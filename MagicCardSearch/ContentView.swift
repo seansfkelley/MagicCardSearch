@@ -117,47 +117,6 @@ struct TopBarView: View {
     }
 }
 
-// MARK: - Search Bar
-
-struct SearchBarView: View {
-    @Binding var searchText: String
-    @FocusState private var isFocused: Bool
-    
-    var body: some View {
-        VStack(spacing: 0) {
-            Divider()
-            
-            HStack(alignment: .top, spacing: 12) {
-                Image(systemName: "magnifyingglass")
-                    .foregroundStyle(.secondary)
-                    .padding(.top, 12)
-                
-                // Multi-line text field that grows with content
-                TextField("Search for cards...", text: $searchText, axis: .vertical)
-                    .textFieldStyle(.plain)
-                    .lineLimit(1...6)
-                    .focused($isFocused)
-                    .padding(.vertical, 10)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled(true)
-                
-                if !searchText.isEmpty {
-                    Button(action: {
-                        searchText = ""
-                    }) {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(.secondary)
-                    }
-                    .padding(.top, 12)
-                }
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 8)
-            .background(.ultraThinMaterial)
-        }
-    }
-}
-
 // MARK: - Preference Key for Scroll Offset
 
 struct ScrollOffsetPreferenceKey: PreferenceKey {

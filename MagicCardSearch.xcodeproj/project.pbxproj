@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		21D3972C2EE225C5008B3EFD /* WrappingHStack in Frameworks */ = {isa = PBXBuildFile; productRef = 21D3972B2EE225C5008B3EFD /* WrappingHStack */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		2137B5BB2EE139C70066BF7E /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -52,6 +56,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				21D3972C2EE225C5008B3EFD /* WrappingHStack in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -112,6 +117,7 @@
 			);
 			name = MagicCardSearch;
 			packageProductDependencies = (
+				21D3972B2EE225C5008B3EFD /* WrappingHStack */,
 			);
 			productName = MagicCardSearch;
 			productReference = 2137B5AD2EE139C60066BF7E /* MagicCardSearch.app */;
@@ -195,6 +201,9 @@
 			);
 			mainGroup = 2137B5A42EE139C60066BF7E;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				21D3972A2EE225C5008B3EFD /* XCRemoteSwiftPackageReference "WrappingHStack" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 2137B5AE2EE139C60066BF7E /* Products */;
 			projectDirPath = "";
@@ -558,6 +567,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		21D3972A2EE225C5008B3EFD /* XCRemoteSwiftPackageReference "WrappingHStack" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/dkk/WrappingHStack";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.2.11;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		21D3972B2EE225C5008B3EFD /* WrappingHStack */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 21D3972A2EE225C5008B3EFD /* XCRemoteSwiftPackageReference "WrappingHStack" */;
+			productName = WrappingHStack;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 2137B5A52EE139C60066BF7E /* Project object */;
 }
