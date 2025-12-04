@@ -3,39 +3,53 @@
 %token_type Token
 
 %nonterminal_type filter SearchFilter
-filter ::= kind(k) Equal text(value). {
-    return SearchFilter(k, .equal, value)
-}
-filter ::= kind(k) Colon text(value). {
-return SearchFilter(k, .colon, value)
-}
-filter ::= kind(k) LessThan text(value). {
-    return SearchFilter(k, .lessThan, value)
-}
-filter ::= kind(k) LessThanOrEqual text(value). {
-    return SearchFilter(k, .lessThanOrEqual, value)
-}
-filter ::= kind(k) GreaterThan text(value). {
-    return SearchFilter(k, .greaterThan, value)
-}
-filter ::= kind(k) GreaterThanOrEqual text(value). {
-    return SearchFilter(k, .greaterThanOrEqual, value)
-}
-filter ::= text(name). {
-    return SearchFilter(.name, .nameContains, name)
-}
-filter ::= Quote text(name) Quote. {
-    return SearchFilter(.name, .nameContains, name)
+filter ::= set_filter(f). { return f }
+filter ::= manavalue_filter(f). { return f }
+filter ::= name_filter(f). { return f }
+
+%nonterminal_type set_filter SearchFilter
+set_filter ::= Set string_comparison(c) text(s). {
+    return .set(c, s)
 }
 
-%nonterminal_type kind FilterKind
-kind ::= Set. {
-    return .set
-}
-kind ::= ManaValue. {
-    return .manaValue
+%nonterminal_type manavalue_filter SearchFilter
+manavalue_filter ::= ManaValue comparison(c) text(s). {
+    return .manaValue(c, s)
 }
 
+%nonterminal_type name_filter SearchFilter
+name_filter ::= text(n). {
+    // TODO: Split on whitespace I guess?
+    return .name([n])
+}
+
+%nonterminal_type string_comparison StringComparison
+string_comparison ::= Equal. {
+    return .equal
+}
+string_comparison ::= NotEqual. {
+    return .notEqual
+}
+
+%nonterminal_type comparison Comparison
+comparison ::= Equal. {
+    .equal
+}
+comparison ::= NotEqual. {
+    .notEqual
+}
+comparison ::= LessThan. {
+    .lessThan
+}
+comparison ::= LessThanOrEqual. {
+    .lessThanOrEqual
+}
+comparison ::= GreaterThan. {
+    .greaterThan
+}
+comparison ::= GreaterThanOrEqual. {
+    .greaterThanOrEqual
+}
 
 %nonterminal_type text String
 text ::= Text(x). {

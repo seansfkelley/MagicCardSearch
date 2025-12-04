@@ -3,36 +3,26 @@ internal enum Token {
     case text(String)
 }
 
-enum FilterKind {
-    case name
-    case set
-    case manaValue
+enum SearchFilter {
+    case name([String])
+    case set(StringComparison, String)
+    case manaValue(Comparison, String)
+    case color(Comparison, [String])
+    case format(StringComparison, String)
+}
+
+enum StringComparison {
+    case equal
+    case notEqual
 }
 
 enum Comparison {
-    case nameContains
-    case colon // is this synonymous with colon?
     case equal
+    case notEqual
     case lessThan
     case lessThanOrEqual
     case greaterThan
     case greaterThanOrEqual
-}
-
-struct SearchFilter: Equatable {
-    let kind: FilterKind
-    let comparison: Comparison
-    let value: String
-    
-    static func from(_ input: String) -> SearchFilter? {
-        return try? parse(input)
-    }
-    
-    init(_ kind: FilterKind, _ comparison: Comparison, _ value: String) {
-        self.kind = kind
-        self.comparison = comparison
-        self.value = value
-    }
 }
 
 typealias LexedTokenData = (MagicCardSearchGrammar.CitronToken, MagicCardSearchGrammar.CitronTokenCode)
@@ -46,8 +36,9 @@ private let lexer = CitronLexer<LexedTokenData>(rules: [
     .string("s", (.void, .Set)),
     .string("manavalue", (.void, .ManaValue)),
     .string("mv", (.void, .ManaValue)),
-    .string(":", (.void, .Colon)),
+    .string(":", (.void, .Equal)),
     .string("=", (.void, .Equal)),
+    .string("!=", (.void, .NotEqual)),
     .string("<", (.void, .LessThan)),
     .string("<=", (.void, .LessThanOrEqual)),
     .string(">", (.void, .GreaterThan)),
