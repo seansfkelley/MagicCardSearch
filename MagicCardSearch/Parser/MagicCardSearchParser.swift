@@ -3,9 +3,13 @@ internal enum Token {
     case text(String)
 }
 
-struct SearchFilter {
+struct SearchFilter: Equatable {
     let kind: String
     let value: String
+    
+    static func from(_ input: String) -> SearchFilter? {
+        return try? parse(input)
+    }
     
     init(_ kind: String, _ value: String) {
         self.kind = kind

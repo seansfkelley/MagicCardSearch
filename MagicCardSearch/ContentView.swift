@@ -53,9 +53,7 @@ struct ContentView: View {
                     .transition(.move(edge: .top).combined(with: .opacity))
             }
         }
-        .safeAreaInset(edge: .bottom) {
-            SearchBarView(searchText: $searchText)
-        }
+//        .safeAreaInexpected
         .animation(.easeInOut(duration: 0.25), value: showTopBar)
     }
     
