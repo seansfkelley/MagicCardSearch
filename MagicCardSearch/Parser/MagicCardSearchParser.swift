@@ -9,6 +9,10 @@ enum SearchFilter {
     case manaValue(Comparison, String)
     case color(Comparison, [String])
     case format(StringComparison, String)
+    
+    static func from(_ input: String) -> SearchFilter? {
+        return try? parse(input)
+    }
 }
 
 enum StringComparison {
