@@ -25,17 +25,46 @@
 			remoteGlobalIDString = 2137B5AC2EE139C60066BF7E;
 			remoteInfo = MagicCardSearch;
 		};
+		21A815F72EE2340000282ED3 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 2137B5A52EE139C60066BF7E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 21A815F32EE233CC00282ED3;
+			remoteInfo = Citron;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
 		2137B5AD2EE139C60066BF7E /* MagicCardSearch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MagicCardSearch.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		2137B5BA2EE139C70066BF7E /* MagicCardSearchTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MagicCardSearchTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		2137B5C42EE139C70066BF7E /* MagicCardSearchUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MagicCardSearchUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		21D3976C2EE23306008B3EFD /* README.md */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = README.md; sourceTree = "<group>"; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		21A815FA2EE2345B00282ED3 /* Exceptions for "Citron" folder in "MagicCardSearch" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				.gitignore,
+				citron.c,
+			);
+			target = 2137B5AC2EE139C60066BF7E /* MagicCardSearch */;
+		};
+		21A816102EE2395100282ED3 /* Exceptions for "MagicCardSearch" folder in "MagicCardSearch" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Parser/MagicCardSearchGrammar.y,
+			);
+			target = 2137B5AC2EE139C60066BF7E /* MagicCardSearch */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		2137B5AF2EE139C60066BF7E /* MagicCardSearch */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				21A816102EE2395100282ED3 /* Exceptions for "MagicCardSearch" folder in "MagicCardSearch" target */,
+			);
 			path = MagicCardSearch;
 			sourceTree = "<group>";
 		};
@@ -47,6 +76,14 @@
 		2137B5C72EE139C70066BF7E /* MagicCardSearchUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = MagicCardSearchUITests;
+			sourceTree = "<group>";
+		};
+		21D397682EE232F0008B3EFD /* Citron */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				21A815FA2EE2345B00282ED3 /* Exceptions for "Citron" folder in "MagicCardSearch" target */,
+			);
+			path = Citron;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -80,6 +117,8 @@
 		2137B5A42EE139C60066BF7E = {
 			isa = PBXGroup;
 			children = (
+				21D3976C2EE23306008B3EFD /* README.md */,
+				21D397682EE232F0008B3EFD /* Citron */,
 				2137B5AF2EE139C60066BF7E /* MagicCardSearch */,
 				2137B5BD2EE139C70066BF7E /* MagicCardSearchTests */,
 				2137B5C72EE139C70066BF7E /* MagicCardSearchUITests */,
@@ -99,11 +138,31 @@
 		};
 /* End PBXGroup section */
 
+/* Begin PBXLegacyTarget section */
+		21A815F32EE233CC00282ED3 /* Citron */ = {
+			isa = PBXLegacyTarget;
+			buildArgumentsString = "citron.c -o citron";
+			buildConfigurationList = 21A815F42EE233CC00282ED3 /* Build configuration list for PBXLegacyTarget "Citron" */;
+			buildPhases = (
+			);
+			buildToolPath = clang;
+			buildWorkingDirectory = /Users/seankelley/code/MagicCardSearch/Citron;
+			dependencies = (
+			);
+			name = Citron;
+			packageProductDependencies = (
+			);
+			passBuildSettingsInEnvironment = 1;
+			productName = Citron;
+		};
+/* End PBXLegacyTarget section */
+
 /* Begin PBXNativeTarget section */
 		2137B5AC2EE139C60066BF7E /* MagicCardSearch */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 2137B5CE2EE139C70066BF7E /* Build configuration list for PBXNativeTarget "MagicCardSearch" */;
 			buildPhases = (
+				21A815F92EE2340C00282ED3 /* ShellScript */,
 				2137B5A92EE139C60066BF7E /* Sources */,
 				2137B5AA2EE139C60066BF7E /* Frameworks */,
 				2137B5AB2EE139C60066BF7E /* Resources */,
@@ -111,9 +170,11 @@
 			buildRules = (
 			);
 			dependencies = (
+				21A815F82EE2340000282ED3 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				2137B5AF2EE139C60066BF7E /* MagicCardSearch */,
+				21D397682EE232F0008B3EFD /* Citron */,
 			);
 			name = MagicCardSearch;
 			packageProductDependencies = (
@@ -190,6 +251,9 @@
 						CreatedOnToolsVersion = 16.4;
 						TestTargetID = 2137B5AC2EE139C60066BF7E;
 					};
+					21A815F32EE233CC00282ED3 = {
+						CreatedOnToolsVersion = 26.1.1;
+					};
 				};
 			};
 			buildConfigurationList = 2137B5A82EE139C60066BF7E /* Build configuration list for PBXProject "MagicCardSearch" */;
@@ -212,6 +276,7 @@
 				2137B5AC2EE139C60066BF7E /* MagicCardSearch */,
 				2137B5B92EE139C70066BF7E /* MagicCardSearchTests */,
 				2137B5C32EE139C70066BF7E /* MagicCardSearchUITests */,
+				21A815F32EE233CC00282ED3 /* Citron */,
 			);
 		};
 /* End PBXProject section */
@@ -239,6 +304,29 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		21A815F92EE2340C00282ED3 /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/Citron/citron",
+				"$(SRCROOT)/MagicCardSearch/Parser/MagicCardSearchGrammar.y",
+			);
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(SRCROOT)/MagicCardSearch/Parser/MagicCardSearchGrammar.swift",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/zsh;
+			shellScript = "Citron/citron MagicCardSearch/Parser/MagicCardSearchGrammar.y -o MagicCardSearch/Parser/MagicCardSearchGrammar.swift\n";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		2137B5A92EE139C60066BF7E /* Sources */ = {
@@ -274,6 +362,12 @@
 			isa = PBXTargetDependency;
 			target = 2137B5AC2EE139C60066BF7E /* MagicCardSearch */;
 			targetProxy = 2137B5C52EE139C70066BF7E /* PBXContainerItemProxy */;
+		};
+		21A815F82EE2340000282ED3 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			platformFilter = ios;
+			target = 21A815F32EE233CC00282ED3 /* Citron */;
+			targetProxy = 21A815F72EE2340000282ED3 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -407,13 +501,16 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = FYBZ352JMQ;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -421,9 +518,14 @@
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = me.nkelley.MagicCardSearch;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = YES;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Debug;
 		};
@@ -435,13 +537,16 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = FYBZ352JMQ;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -449,9 +554,14 @@
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = me.nkelley.MagicCardSearch;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = YES;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Release;
 		};
@@ -527,6 +637,35 @@
 			};
 			name = Release;
 		};
+		21A815F52EE233CC00282ED3 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				DEBUGGING_SYMBOLS = YES;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = FYBZ352JMQ;
+				GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				OTHER_CFLAGS = "";
+				OTHER_LDFLAGS = "";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		21A815F62EE233CC00282ED3 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = FYBZ352JMQ;
+				OTHER_CFLAGS = "";
+				OTHER_LDFLAGS = "";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -562,6 +701,15 @@
 			buildConfigurations = (
 				2137B5D52EE139C70066BF7E /* Debug */,
 				2137B5D62EE139C70066BF7E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		21A815F42EE233CC00282ED3 /* Build configuration list for PBXLegacyTarget "Citron" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				21A815F52EE233CC00282ED3 /* Debug */,
+				21A815F62EE233CC00282ED3 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

@@ -9,97 +9,93 @@ import SwiftUI
 import WrappingHStack
 
 struct SearchBarView: View {
-    @Binding var searchText: String
+    @Binding var unparsedInputText: String
     @FocusState private var isFocused: Bool
-    @State private var editingTermId: UUID?
-    @State private var showingEditAlert = false
-    @State private var editAlertText = ""
-    @State var searchTerms: [SearchTerm] = []
+    @State private var editingIndex: Int?
+    @State private var isEditing: Bool = false
+    @State var parsedTerms: [ScryfallFilter] = []
     
-    // Regex patterns for pill matching
-    // These patterns check that the entire string matches completely
     private let keyValueUnquotedPattern = #/^[a-zA-Z]+:[^ "]+$/#
     private let keyValueQuotedPattern = #/^[a-zA-Z]+:"[^"]+"$/#
     private let quotedPattern = #/^"[^"]+"$/#
     private let freeTextPattern = #/^[^:"]+$/#
     
     var body: some View {
-        VStack(spacing: 0) {
-            Divider()
-            
-            VStack(alignment: .leading, spacing: 8) {
-                // Pills display
-                if !searchTerms.isEmpty {
-                    WrappingHStack(alignment: .leading, spacing: .constant(8), lineSpacing: 8) {
-                        ForEach(searchTerms) { term in
-                            SearchPillView(
-                                term: term,
-                                onTap: {
-                                    editingTermId = term.id
-                                    editAlertText = term.displayText
-                                    showingEditAlert = true
-                                },
-                                onDelete: {
-                                    deleteTerm(term)
-                                }
-                            )
-                        }
+        VStack(alignment: .leading, spacing: 8) {
+            if !searchTerms.isEmpty {
+                WrappingHStack(alignment: .leading, spacing: .constant(8), lineSpacing: 8) {
+                    ForEach(Array(parsedTerms.enumerated()), id: \.element.id) { index, term in
+                        SearchPillView(
+                            term: term,
+                            onTap: {
+                                editingIndex = index
+                                isEditing = true
+                            },
+                            onDelete: {
+                                parsedTerms.remove(at: index)
+                            }
+                        )
                     }
                 }
-                
-                // Input field
-                HStack(spacing: 12) {
-                    Image(systemName: "magnifyingglass")
-                        .foregroundStyle(.secondary)
-                    
-                    TextField("Search for cards...", text: $searchText)
-                        .textFieldStyle(.plain)
-                        .focused($isFocused)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled(true)
-                        .textContentType(.none)
-                        .onSubmit {
-                            addTermsFromText(isEnterPressed: true)
-                        }
-                }
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .background(.ultraThinMaterial)
+            
+            HStack(spacing: 12) {
+                Image(systemName: "magnifyingglass")
+                    .foregroundStyle(.secondary)
+                
+                TextField("Search for cards...", text: $searchText)
+                    .textFieldStyle(.plain)
+                    .focused($isFocused)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled(true)
+                    .textContentType(.none)
+                    .onSubmit {
+                        addTermsFromText(isEnterPressed: true)
+                    }
+            }
         }
-        .onChange(of: searchText) { oldValue, newValue in
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(.ultraThinMaterial)
+        .onChange(of: unparsedInputText) { oldValue, newValue in
             // Only check for space when text is growing
             if newValue.count > oldValue.count && newValue.hasSuffix(" ") {
                 checkAndCreatePillOnSpace()
             }
         }
-        .alert("", isPresented: $showingEditAlert, presenting: editingTermId) { termId in
-            TextField("", text: $editAlertText, prompt: Text("Search term"))
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled(true)
-            
-            Button("Delete", role: .destructive) {
-                guard let term = searchTerms.first(where: { $0.id == termId }) else { return }
-                deleteTerm(term)
-            }
-            
-            Button("Update") {
-                updateTerm(termId, with: .text(editAlertText))
+        .sheet(isPresented: $isEditing) {
+            if let index = editingIndex, index < searchTerms.count {
+                EditPillSheet(
+                    term: searchTerms[index],
+                    editText: $editAlertText,
+                    editNumber: $editNumber,
+                    editColor: $editColor,
+                    onUpdate: { newValue in
+                        searchTerms[index].value = newValue
+                        showingEditSheet = false
+                    },
+                    onDelete: {
+                        searchTerms.remove(at: index)
+                        showingEditSheet = false
+                    }
+                )
             }
         }
     }
     
     private func checkAndCreatePillOnSpace() {
-        // Get text without the trailing space
-        let textWithoutSpace = String(searchText.dropLast())
+        let trimmed = String(unparsedInputText.trimmingCharacters(in: .whitespaces))
         
-        // Check if it matches one of the first three patterns (space-triggerable)
-        // These patterns must match the ENTIRE string (not just contain the pattern)
         if textWithoutSpace.wholeMatch(of: keyValueUnquotedPattern) != nil ||
            textWithoutSpace.wholeMatch(of: keyValueQuotedPattern) != nil ||
            textWithoutSpace.wholeMatch(of: quotedPattern) != nil {
-            // Create pill from this text
-            createPill(from: textWithoutSpace)
+            print("DEBUG: Creating pill with text: '\(text)'")
+            // For now, all pills are free text type
+            // You can enhance this later to determine type based on the pattern matched
+            let newTerm = SearchTerm(type: .freeText, value: .text(text))
+            searchTerms.append(newTerm)
+            searchText = ""
+            print("DEBUG: Pill created. Total pills: \(searchTerms.count)")
         }
     }
     
@@ -124,75 +120,120 @@ struct SearchBarView: View {
             print("DEBUG: No pattern matched!")
         }
     }
-    
-    private func createPill(from text: String) {
-        print("DEBUG: Creating pill with text: '\(text)'")
-        // For now, all pills are free text type
-        // You can enhance this later to determine type based on the pattern matched
-        let newTerm = SearchTerm(type: .freeText, value: .text(text))
-        searchTerms.append(newTerm)
-        searchText = ""
-        print("DEBUG: Pill created. Total pills: \(searchTerms.count)")
-    }
-    
-    private func updateTerm(_ termId: UUID, with newValue: SearchTermValue) {
-        guard let index = searchTerms.firstIndex(where: { $0.id == termId }) else { return }
-        searchTerms[index].value = newValue
-    }
-    
-    private func deleteTerm(_ term: SearchTerm) {
-        searchTerms.removeAll { $0.id == term.id }
-    }
 }
 
 // MARK: - Search Term Model
 
-enum SearchTermType {
+enum ScryfallFilter {
+    case set(FilterType.freeText)
+    case color(FilterType.freeText)
+    case manaValue(FilterType.numerical)
+    case power(FilterType.numerical)
+    case toughness(FilterType.numerical)
+    case type(FilterType.freeText)
+}
+
+enum FilterType {
     case freeText
-    case numerical
-    case enumeration
+    case numerical(Range<Int>)
+    case enumeration(Array<String>)
 }
 
-enum CardColor: String, CaseIterable {
-    case white = "White"
-    case blue = "Blue"
-    case black = "Black"
-    case red = "Red"
-    case green = "Green"
-    case colorless = "Colorless"
-}
+// MARK: - Edit Pill Sheet
 
-enum SearchTermValue {
-    case text(String)
-    case number(Int)
-    case color(CardColor)
+struct EditPillSheet: View {
+    let term: SearchTerm
+    @Binding var editText: String
+    @Binding var editNumber: Int
+    @Binding var editColor: CardColor
+    let onUpdate: (SearchTermValue) -> Void
+    let onDelete: () -> Void
     
-    var displayText: String {
-        switch self {
-        case .text(let string):
-            return string
-        case .number(let int):
-            return "\(int)"
-        case .color(let color):
-            return color.rawValue
+    @Environment(\.dismiss) private var dismiss
+    
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 20) {
+                switch term.type {
+                case .freeText:
+                    TextField("Search term", text: $editText)
+                        .textFieldStyle(.roundedBorder)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled(true)
+                
+                case .numerical:
+                    HStack {
+                        TextField("Number", value: $editNumber, format: .number)
+                            .textFieldStyle(.roundedBorder)
+                            .keyboardType(.numberPad)
+                        
+                        VStack(spacing: 4) {
+                            Button(action: { editNumber += 1 }) {
+                                Image(systemName: "plus.circle.fill")
+                                    .font(.title2)
+                                    .foregroundStyle(.blue)
+                            }
+                            
+                            Button(action: { editNumber = max(0, editNumber - 1) }) {
+                                Image(systemName: "minus.circle.fill")
+                                    .font(.title2)
+                                    .foregroundStyle(.blue)
+                            }
+                        }
+                    }
+                
+                case .enumeration:
+                    Picker("Color", selection: $editColor) {
+                        ForEach(CardColor.allCases, id: \.self) { color in
+                            Text(color.rawValue).tag(color)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .labelsHidden()
+                }
+            }
+            .padding()
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Delete", role: .destructive) {
+                        onDelete()
+                    }
+                }
+                
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Update") {
+                        updateAndDismiss()
+                    }
+                }
+            }
         }
+        .presentationDetents([.height(200)])
     }
-}
-
-struct SearchTerm: Identifiable {
-    let id = UUID()
-    let type: SearchTermType
-    var value: SearchTermValue
     
-    var displayText: String {
-        value.displayText
+    private func updateAndDismiss() {
+        let newValue: SearchTermValue
+        
+        switch term.type {
+        case .freeText:
+            let trimmed = editText.trimmingCharacters(in: .whitespaces)
+            guard !trimmed.isEmpty else { return }
+            newValue = .text(trimmed)
+            
+        case .numerical:
+            newValue = .number(editNumber)
+            
+        case .enumeration:
+            newValue = .color(editColor)
+        }
+        
+        onUpdate(newValue)
     }
 }
 
 // MARK: - Search Pill View
 
 struct SearchPillView: View {
-    let term: SearchTerm
+    let filter: ScryfallFilter
     let onTap: () -> Void
     let onDelete: () -> Void
     
