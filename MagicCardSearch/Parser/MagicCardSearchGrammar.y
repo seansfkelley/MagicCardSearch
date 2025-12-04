@@ -19,8 +19,7 @@ manavalue_filter ::= ManaValue comparison(c) text(s). {
 
 %nonterminal_type name_filter SearchFilter
 name_filter ::= text(n). {
-    // TODO: Split on whitespace I guess?
-    return .name([n])
+    return .name(n)
 }
 
 %nonterminal_type string_comparison StringComparison

@@ -54,7 +54,7 @@ struct ContentView: View {
             }
         }
         .safeAreaInset(edge: .bottom) {
-            SearchBarView(searchText: $searchText)
+            SearchBarView(unparsedInputText: $searchText)
         }
         .animation(.easeInOut(duration: 0.25), value: showTopBar)
     }

@@ -4,7 +4,7 @@ internal enum Token {
 }
 
 enum SearchFilter {
-    case name([String])
+    case name(String)
     case set(StringComparison, String)
     case manaValue(Comparison, String)
     case color(Comparison, [String])

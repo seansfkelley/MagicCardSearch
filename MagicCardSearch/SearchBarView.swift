@@ -17,7 +17,7 @@ struct SearchBarView: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            if !searchTerms.isEmpty {
+            if !parsedFilters.isEmpty {
                 WrappingHStack(alignment: .leading, spacing: .constant(8), lineSpacing: 8) {
                     ForEach(Array(parsedFilters.enumerated()), id: \.element.id) { index, term in
                         SearchPillView(
@@ -27,7 +27,7 @@ struct SearchBarView: View {
                                 isEditing = true
                             },
                             onDelete: {
-                                parsedTerms.remove(at: index)
+                                parsedFilters.remove(at: index)
                             }
                         )
                     }
@@ -58,24 +58,6 @@ struct SearchBarView: View {
                 tryCreateNewFilterFromSearch()
             }
         }
-        .sheet(isPresented: $isEditing) {
-            if let index = editingIndex, index < searchTerms.count {
-                EditPillSheet(
-                    term: searchTerms[index],
-                    editText: $editAlertText,
-                    editNumber: $editNumber,
-                    editColor: $editColor,
-                    onUpdate: { newValue in
-                        searchTerms[index].value = newValue
-                        showingEditSheet = false
-                    },
-                    onDelete: {
-                        searchTerms.remove(at: index)
-                        showingEditSheet = false
-                    }
-                )
-            }
-        }
     }
     
     private func tryCreateNewFilterFromSearch() {
@@ -92,7 +74,7 @@ struct EditPillSheet: View {
     let filter: SearchFilter
     @Binding var editText: String
     @Binding var editNumber: Int
-    let onUpdate: (SearchTermValue) -> Void
+    let onUpdate: (SearchFilter) -> Void
     let onDelete: () -> Void
     
     @Environment(\.dismiss) private var dismiss
@@ -100,6 +82,12 @@ struct EditPillSheet: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 20) {
+                switch filter {
+                case .name(s):
+                    TextField("Name")
+                case .set(comparison, s):
+                    
+                }
                 switch term.type {
                 case .freeText:
                     TextField("Search term", text: $editText)
@@ -179,7 +167,6 @@ struct EditPillSheet: View {
 // MARK: - Search Pill View
 
 struct SearchPillView: View {
-    let filter: ScryfallFilter
     let onTap: () -> Void
     let onDelete: () -> Void
     
@@ -250,10 +237,10 @@ struct SearchPillView: View {
     VStack {
         Spacer()
         SearchBarView(
-            searchText: .constant(""),
-            parsedSearchTerms: [
-                SearchFilter(.set, .equal, "7ED"),
-                SearchFilter(.manaValue, .greaterThanOrEqual, "4")
+            unparsedInputText: .constant(""),
+            parsedFilters: [
+                .set(.equal, "7ED"),
+                .manaValue(.greaterThanOrEqual, "4"),
             ]
         )
     }
