@@ -266,8 +266,7 @@ class MagicCardSearchGrammar: CitronParser {
             func codeBlockForRule05(n: String) throws -> SearchFilter {
 #sourceLocation(file: "MagicCardSearch/Parser/MagicCardSearchGrammar.y", line: 21)
 
-    // TODO: Split on whitespace I guess?
-    return .name([n])
+    return .name(n)
 
 #sourceLocation()
 }
@@ -276,7 +275,7 @@ class MagicCardSearchGrammar: CitronParser {
             }
         case 6: /* string_comparison ::= Equal */
             func codeBlockForRule06() throws -> StringComparison {
-#sourceLocation(file: "MagicCardSearch/Parser/MagicCardSearchGrammar.y", line: 27)
+#sourceLocation(file: "MagicCardSearch/Parser/MagicCardSearchGrammar.y", line: 26)
 
     return .equal
 
@@ -285,7 +284,7 @@ class MagicCardSearchGrammar: CitronParser {
             return .yy21(try codeBlockForRule06())
         case 7: /* string_comparison ::= NotEqual */
             func codeBlockForRule07() throws -> StringComparison {
-#sourceLocation(file: "MagicCardSearch/Parser/MagicCardSearchGrammar.y", line: 30)
+#sourceLocation(file: "MagicCardSearch/Parser/MagicCardSearchGrammar.y", line: 29)
 
     return .notEqual
 
@@ -294,7 +293,7 @@ class MagicCardSearchGrammar: CitronParser {
             return .yy21(try codeBlockForRule07())
         case 8: /* comparison ::= Equal */
             func codeBlockForRule08() throws -> Comparison {
-#sourceLocation(file: "MagicCardSearch/Parser/MagicCardSearchGrammar.y", line: 35)
+#sourceLocation(file: "MagicCardSearch/Parser/MagicCardSearchGrammar.y", line: 34)
 
     .equal
 
@@ -303,7 +302,7 @@ class MagicCardSearchGrammar: CitronParser {
             return .yy7(try codeBlockForRule08())
         case 9: /* comparison ::= NotEqual */
             func codeBlockForRule09() throws -> Comparison {
-#sourceLocation(file: "MagicCardSearch/Parser/MagicCardSearchGrammar.y", line: 38)
+#sourceLocation(file: "MagicCardSearch/Parser/MagicCardSearchGrammar.y", line: 37)
 
     .notEqual
 
@@ -312,7 +311,7 @@ class MagicCardSearchGrammar: CitronParser {
             return .yy7(try codeBlockForRule09())
         case 10: /* comparison ::= LessThan */
             func codeBlockForRule10() throws -> Comparison {
-#sourceLocation(file: "MagicCardSearch/Parser/MagicCardSearchGrammar.y", line: 41)
+#sourceLocation(file: "MagicCardSearch/Parser/MagicCardSearchGrammar.y", line: 40)
 
     .lessThan
 
@@ -321,7 +320,7 @@ class MagicCardSearchGrammar: CitronParser {
             return .yy7(try codeBlockForRule10())
         case 11: /* comparison ::= LessThanOrEqual */
             func codeBlockForRule11() throws -> Comparison {
-#sourceLocation(file: "MagicCardSearch/Parser/MagicCardSearchGrammar.y", line: 44)
+#sourceLocation(file: "MagicCardSearch/Parser/MagicCardSearchGrammar.y", line: 43)
 
     .lessThanOrEqual
 
@@ -330,7 +329,7 @@ class MagicCardSearchGrammar: CitronParser {
             return .yy7(try codeBlockForRule11())
         case 12: /* comparison ::= GreaterThan */
             func codeBlockForRule12() throws -> Comparison {
-#sourceLocation(file: "MagicCardSearch/Parser/MagicCardSearchGrammar.y", line: 47)
+#sourceLocation(file: "MagicCardSearch/Parser/MagicCardSearchGrammar.y", line: 46)
 
     .greaterThan
 
@@ -339,7 +338,7 @@ class MagicCardSearchGrammar: CitronParser {
             return .yy7(try codeBlockForRule12())
         case 13: /* comparison ::= GreaterThanOrEqual */
             func codeBlockForRule13() throws -> Comparison {
-#sourceLocation(file: "MagicCardSearch/Parser/MagicCardSearchGrammar.y", line: 50)
+#sourceLocation(file: "MagicCardSearch/Parser/MagicCardSearchGrammar.y", line: 49)
 
     .greaterThanOrEqual
 
@@ -348,7 +347,7 @@ class MagicCardSearchGrammar: CitronParser {
             return .yy7(try codeBlockForRule13())
         case 14: /* text ::= Text(x) */
             func codeBlockForRule14(x: Token) throws -> String {
-#sourceLocation(file: "MagicCardSearch/Parser/MagicCardSearchGrammar.y", line: 55)
+#sourceLocation(file: "MagicCardSearch/Parser/MagicCardSearchGrammar.y", line: 54)
 
     if case .text(let text) = x {
         return text
