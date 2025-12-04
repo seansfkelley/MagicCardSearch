@@ -3,23 +3,37 @@
 %token_type Token
 
 %nonterminal_type filter SearchFilter
-filter ::= text(kind) Equal text(value). {
-    return SearchFilter(kind, value)
+filter ::= kind(k) Equal text(value). {
+    return SearchFilter(k, .equal, value)
 }
-filter ::= text(kind) Colon text(value). {
-return SearchFilter(kind, value)
+filter ::= kind(k) Colon text(value). {
+return SearchFilter(k, .colon, value)
 }
-filter ::= text(kind) LessThan text(value). {
-    return SearchFilter(kind, value)
+filter ::= kind(k) LessThan text(value). {
+    return SearchFilter(k, .lessThan, value)
 }
-filter ::= text(kind) LessThanOrEqual text(value). {
-    return SearchFilter(kind, value)
+filter ::= kind(k) LessThanOrEqual text(value). {
+    return SearchFilter(k, .lessThanOrEqual, value)
 }
-filter ::= text(kind) GreaterThan text(value). {
-    return SearchFilter(kind, value)
+filter ::= kind(k) GreaterThan text(value). {
+    return SearchFilter(k, .greaterThan, value)
 }
-filter ::= text(kind) GreaterThanOrEqual text(value). {
-    return SearchFilter(kind, value)
+filter ::= kind(k) GreaterThanOrEqual text(value). {
+    return SearchFilter(k, .greaterThanOrEqual, value)
+}
+filter ::= text(name). {
+    return SearchFilter(.name, .nameContains, name)
+}
+filter ::= Quote text(name) Quote. {
+    return SearchFilter(.name, .nameContains, name)
+}
+
+%nonterminal_type kind FilterKind
+kind ::= Set. {
+    return .set
+}
+kind ::= ManaValue. {
+    return .manaValue
 }
 
 
