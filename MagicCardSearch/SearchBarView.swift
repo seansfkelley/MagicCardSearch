@@ -29,7 +29,7 @@ struct SearchBarView: View {
                                 isEditing = true
                             },
                             onDelete: {
-                                // Will need to be handled by parent
+                                parsedFilters.remove(at: index)
                             }
                         )
                     }
@@ -65,21 +65,22 @@ struct SearchBarView: View {
                 EditPillSheet(
                     filter: filter,
                     onUpdate: { updatedFilter in
-                        // Will need to be handled by parent
+                        parsedFilters[index] = updatedFilter
                         isEditing = false
                     },
                     onDelete: {
-                        // Will need to be handled by parent
+                        parsedFilters.remove(at: index)
                         isEditing = false
                     }
                 )
+                .presentationDetents([.medium, .large])
             }
         }
     }
     
     private func createNewFilterFromSearch(fallbackToNameFilter: Bool = false) {
         let trimmed = String(unparsedInputText.trimmingCharacters(in: .whitespaces));
-        if let filter = try? SearchFilter.from(trimmed) {
+        if let filter = SearchFilter.from(trimmed) {
             parsedFilters.append(filter)
         } else if (fallbackToNameFilter) {
             parsedFilters.append(SearchFilter("name", .equal, trimmed))

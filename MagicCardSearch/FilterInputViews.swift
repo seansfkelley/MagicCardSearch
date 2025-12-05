@@ -160,10 +160,10 @@ struct EnumerationInputView: View {
             
             Picker(title, selection: $selection) {
                 ForEach(options, id: \.self) { option in
-                    Text(option).tag(option)
+                    Text(option.capitalized).tag(option)
                 }
             }
-            .pickerStyle(.menu)
+            .pickerStyle(.wheel)
             .labelsHidden()
         }
     }
@@ -172,20 +172,15 @@ struct EnumerationInputView: View {
 // MARK: - Comparison Input
 
 struct ComparisonInputView: View {
-    let title: String
     @Binding var comparison: Comparison
     
-    init(title: String, comparison: Binding<Comparison>) {
-        self.title = title
+    init(_ comparison: Binding<Comparison>) {
         self._comparison = comparison
     }
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(title)
-                .font(.headline)
-            
-            Picker(title, selection: $comparison) {
+            Picker("Comparison", selection: $comparison) {
                 Text("=").tag(Comparison.equal)
                 Text("≠").tag(Comparison.notEqual)
                 Text("<").tag(Comparison.lessThan)
@@ -197,4 +192,64 @@ struct ComparisonInputView: View {
             .labelsHidden()
         }
     }
+}
+
+// MARK: - Previews
+
+#Preview {
+    struct PreviewWrapper: View {
+        @State var cardName = "Counterspell"
+        @State var manaValue = "2"
+        @State var power = 4
+        @State var format = "modern"
+        @State var comparison = Comparison.equal
+        
+        var body: some View {
+            NavigationStack {
+                Form {
+                    Section("Text") {
+                        TextInputView(
+                            title: "Card Name",
+                            text: $cardName,
+                            placeholder: "Enter card name"
+                        )
+                    }
+                    
+                    Section("Numeric") {
+                        NumericTextInputView(
+                            title: "Mana Value",
+                            text: $manaValue,
+                            placeholder: "Enter mana value",
+                            range: 0...20,
+                            step: 1
+                        )
+                        
+                        NumericalInputView(
+                            title: "Power",
+                            value: $power,
+                            range: 0...15,
+                            step: 1
+                        )
+                    }
+                    
+                    Section("Enumeration") {
+                        EnumerationInputView(
+                            title: "Format",
+                            selection: $format,
+                            options: [
+                                "standard", "modern", "legacy", "vintage",
+                                "commander", "pioneer", "pauper", "historic"
+                            ]
+                        )
+                    }
+                    
+                    Section("Comparison") {
+                        ComparisonInputView($comparison)
+                    }
+                }
+            }
+        }
+    }
+    
+    return PreviewWrapper()
 }

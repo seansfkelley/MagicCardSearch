@@ -23,13 +23,9 @@ struct EditPillSheet: View {
             Form {
                 // Get configuration for this filter key
                 if let config = configurationForKey(filter.key) {
-                    // Comparison picker
-                    ComparisonInputView(
-                        title: "Comparison",
-                        comparison: $editComparison
-                    )
+                    ComparisonInputView($editComparison)
                     
-                    // Value input based on field type
+                    // Value input based on field type from configuration
                     switch config.fieldType {
                     case .text(let placeholder):
                         TextInputView(
@@ -55,11 +51,7 @@ struct EditPillSheet: View {
                         )
                     }
                 } else {
-                    // Fallback for unknown filter keys
-                    ComparisonInputView(
-                        title: "Comparison",
-                        comparison: $editComparison
-                    )
+                    ComparisonInputView($editComparison)
                     
                     TextInputView(
                         title: filter.key.capitalized,
@@ -68,11 +60,10 @@ struct EditPillSheet: View {
                     )
                 }
             }
-            .navigationTitle("Edit Filter")
-            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
+                ToolbarItem(placement: .destructiveAction) {
+                    Button("Delete", role: .destructive) {
+                        onDelete()
                         dismiss()
                     }
                 }
@@ -81,14 +72,6 @@ struct EditPillSheet: View {
                     Button("Update") {
                         updateAndDismiss()
                     }
-                }
-                
-                ToolbarItem(placement: .bottomBar) {
-                    Button("Delete", role: .destructive) {
-                        onDelete()
-                        dismiss()
-                    }
-                    .frame(maxWidth: .infinity)
                 }
             }
         }
@@ -110,4 +93,40 @@ struct EditPillSheet: View {
         onUpdate(updatedFilter)
         dismiss()
     }
+}
+
+#Preview("Free Text - Oracle") {
+    EditPillSheet(
+        filter: SearchFilter("oracle", .equal, "tap"),
+        onUpdate: { updatedFilter in
+            print("Updated filter: \(updatedFilter)")
+        },
+        onDelete: {
+            print("Deleted filter")
+        }
+    )
+}
+
+#Preview("Enumeration - Format") {
+    EditPillSheet(
+        filter: SearchFilter("format", .equal, "commander"),
+        onUpdate: { updatedFilter in
+            print("Updated filter: \(updatedFilter)")
+        },
+        onDelete: {
+            print("Deleted filter")
+        }
+    )
+}
+
+#Preview("Numeric - Mana Value") {
+    EditPillSheet(
+        filter: SearchFilter("manavalue", .greaterThanOrEqual, "4"),
+        onUpdate: { updatedFilter in
+            print("Updated filter: \(updatedFilter)")
+        },
+        onDelete: {
+            print("Deleted filter")
+        }
+    )
 }
