@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct ContentView: View {
-    @State private var searchText = ""
+    @State private var filters: [SearchFilter] = []
     @State private var showTopBar = true
     @State private var lastScrollOffset: CGFloat = 0
     
@@ -54,7 +54,7 @@ struct ContentView: View {
             }
         }
         .safeAreaInset(edge: .bottom) {
-            SearchBarView(unparsedInputText: $searchText)
+            SearchBarView(filters: $filters)
         }
         .animation(.easeInOut(duration: 0.25), value: showTopBar)
     }

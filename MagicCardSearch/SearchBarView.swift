@@ -9,18 +9,18 @@ import SwiftUI
 import WrappingHStack
 
 struct SearchBarView: View {
-    @Binding var unparsedInputText: String
+    @Binding var filters: [SearchFilter]
     @FocusState private var isFocused: Bool
+    @State private var unparsedInputText: String = ""
     @State private var editingFilter: SearchFilter?
     @State private var editingIndex: Int?
     @State private var isEditing: Bool = false
-    @State var parsedFilters: [SearchFilter] = []
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            if !parsedFilters.isEmpty {
+            if !filters.isEmpty {
                 WrappingHStack(alignment: .leading, spacing: .constant(8), lineSpacing: 8) {
-                    ForEach(Array(parsedFilters.enumerated()), id: \.offset) { index, filter in
+                    ForEach(Array(filters.enumerated()), id: \.offset) { index, filter in
                         SearchPillView(
                             filter: filter,
                             onTap: {
@@ -29,7 +29,7 @@ struct SearchBarView: View {
                                 isEditing = true
                             },
                             onDelete: {
-                                parsedFilters.remove(at: index)
+                                filters.remove(at: index)
                             }
                         )
                     }
@@ -40,7 +40,7 @@ struct SearchBarView: View {
                 Image(systemName: "magnifyingglass")
                     .foregroundStyle(.secondary)
                 
-                TextField(parsedFilters.isEmpty ? "Search for cards..." : "Add filters...", text: $unparsedInputText)
+                TextField(filters.isEmpty ? "Search for cards..." : "Add filters...", text: $unparsedInputText)
                     .textFieldStyle(.plain)
                     .focused($isFocused)
                     .textInputAutocapitalization(.never)
@@ -64,11 +64,11 @@ struct SearchBarView: View {
                 EditPillSheet(
                     filter: filter,
                     onUpdate: { updatedFilter in
-                        parsedFilters[index] = updatedFilter
+                        filters[index] = updatedFilter
                         isEditing = false
                     },
                     onDelete: {
-                        parsedFilters.remove(at: index)
+                        filters.remove(at: index)
                         isEditing = false
                     }
                 )
@@ -78,14 +78,13 @@ struct SearchBarView: View {
     }
     
     private func createNewFilterFromSearch(fallbackToNameFilter: Bool = false) {
-        print("here")
-        print(String(unparsedInputText))
-        let trimmed = String(unparsedInputText.trimmingCharacters(in: .whitespaces));
-        print(String(trimmed))
+        let trimmed = unparsedInputText.trimmingCharacters(in: .whitespaces)
         if let filter = SearchFilter.from(trimmed) {
-            parsedFilters.append(filter)
-        } else if (fallbackToNameFilter) {
-            parsedFilters.append(SearchFilter("name", .equal, trimmed))
+            filters.append(filter)
+            unparsedInputText = ""
+        } else if fallbackToNameFilter {
+            filters.append(SearchFilter("name", .equal, trimmed))
+            unparsedInputText = ""
         }
     }
 }
@@ -93,16 +92,21 @@ struct SearchBarView: View {
 // MARK: - Preview
 
 #Preview {
-    VStack {
-        Spacer()
-        SearchBarView(
-            unparsedInputText: .constant(""),
-            parsedFilters: [
-                SearchFilter("set", .equal, "7ED"),
-                SearchFilter("manavalue", .greaterThanOrEqual, "4"),
-                SearchFilter("power", .greaterThan, "3"),
-            ]
-        )
+    struct PreviewWrapper: View {
+        @State private var filters: [SearchFilter] = [
+            SearchFilter("set", .equal, "7ED"),
+            SearchFilter("manavalue", .greaterThanOrEqual, "4"),
+            SearchFilter("power", .greaterThan, "3"),
+        ]
+        
+        var body: some View {
+            VStack {
+                Spacer()
+                SearchBarView(filters: $filters)
+            }
+        }
     }
+    
+    return PreviewWrapper()
 }
 
