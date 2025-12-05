@@ -3,31 +3,51 @@
 %token_type Token
 
 %nonterminal_type filter SearchFilter
-filter ::= set_filter(f). { return f }
-filter ::= manavalue_filter(f). { return f }
-filter ::= name_filter(f). { return f }
-
-%nonterminal_type set_filter SearchFilter
-set_filter ::= Set string_comparison(c) text(s). {
-    return .set(c, s)
+filter ::= term(k) comparison(c) term(v). {
+    return SearchFilter(k, c, v)
+}
+filter ::= term(k) comparison(c) SingleQuote terms_double_quote(v) SingleQuote. {
+    return SearchFilter(k, c, v)
+}
+filter ::= term(k) comparison(c) DoubleQuote terms_single_quote(v) DoubleQuote. {
+    return SearchFilter(k, c, v)
+}
+filter ::= SingleQuote terms_double_quote(v) SingleQuote. {
+    return SearchFilter("name", .equal, v)
+}
+filter ::= DoubleQuote terms_single_quote(v) DoubleQuote. {
+    return SearchFilter("name", .equal, v)
 }
 
-%nonterminal_type manavalue_filter SearchFilter
-manavalue_filter ::= ManaValue comparison(c) text(s). {
-    return .manaValue(c, s)
+%nonterminal_type terms_single_quote String
+terms_single_quote ::= term(t) Whitespace(w) terms_single_quote(ts). {
+    return "\(t)\(w)\(ts)"
+}
+terms_single_quote ::= term(t) SingleQuote terms_single_quote(ts). {
+    return "\(t)'\(ts)"
+}
+terms_single_quote ::= term(t). {
+    return t
 }
 
-%nonterminal_type name_filter SearchFilter
-name_filter ::= text(n). {
-    return .name(n)
+%nonterminal_type terms_double_quote String
+terms_double_quote ::= term(t) Whitespace(w) terms_double_quote(ts). {
+    return "\(t)\(w)\(ts)"
+}
+terms_double_quote ::= term(t) DoubleQuote terms_double_quote(ts). {
+    return "\(t)\"\(ts)"
+}
+terms_double_quote ::= term(t). {
+    return t
 }
 
-%nonterminal_type string_comparison StringComparison
-string_comparison ::= Equal. {
-    return .equal
-}
-string_comparison ::= NotEqual. {
-    return .notEqual
+%nonterminal_type term String
+term ::= Term(x). {
+    if case .term(let t) = x {
+        return t
+    } else {
+        preconditionFailure("lexer did not return Token.term for the Term token")
+    }
 }
 
 %nonterminal_type comparison Comparison
@@ -48,13 +68,4 @@ comparison ::= GreaterThan. {
 }
 comparison ::= GreaterThanOrEqual. {
     .greaterThanOrEqual
-}
-
-%nonterminal_type text String
-text ::= Text(x). {
-    if case .text(let text) = x {
-        return text
-    } else {
-        preconditionFailure("lexer did not return Token.text for the Text token")
-    }
 }

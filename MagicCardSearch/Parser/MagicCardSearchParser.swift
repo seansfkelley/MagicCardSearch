@@ -1,23 +1,26 @@
 internal enum Token {
     case void
-    case text(String)
+    case term(String)
 }
 
-enum SearchFilter {
-    case name(String)
-    case set(StringComparison, String)
-    case manaValue(Comparison, String)
-    case color(Comparison, [String])
-    case format(StringComparison, String)
+struct SearchFilter {
+    let key: String
+    let comparison: Comparison
+    let value: String
     
-    static func from(_ input: String) -> SearchFilter? {
-        return try? parse(input)
+    init(_ key: String, _ comparison: Comparison, _ value: String) {
+        self.key = key
+        self.comparison = comparison
+        self.value = value
     }
-}
-
-enum StringComparison {
-    case equal
-    case notEqual
+    
+    static func from(_ input: String) -> SearchFilter {
+        if let result = try? parse(input) {
+            return result
+        } else {
+            return SearchFilter("name", .equal, input)
+        }
+    }
 }
 
 enum Comparison {
@@ -31,15 +34,11 @@ enum Comparison {
 
 typealias LexedTokenData = (MagicCardSearchGrammar.CitronToken, MagicCardSearchGrammar.CitronTokenCode)
 
-internal func parseText(_ input: String) -> LexedTokenData? {
-    return (.text(input), .Text)
+internal func parseTerm(_ input: String) -> LexedTokenData? {
+    return (.term(input), .Term)
 }
 
 private let lexer = CitronLexer<LexedTokenData>(rules: [
-    .string("set", (.void, .Set)),
-    .string("s", (.void, .Set)),
-    .string("manavalue", (.void, .ManaValue)),
-    .string("mv", (.void, .ManaValue)),
     .string(":", (.void, .Equal)),
     .string("=", (.void, .Equal)),
     .string("!=", (.void, .NotEqual)),
@@ -47,7 +46,9 @@ private let lexer = CitronLexer<LexedTokenData>(rules: [
     .string("<=", (.void, .LessThanOrEqual)),
     .string(">", (.void, .GreaterThan)),
     .string(">=", (.void, .GreaterThanOrEqual)),
-    .regexPattern("[^\"]+", parseText),
+    .string("'", (.void, .SingleQuote)),
+    .string("\"", (.void, .DoubleQuote)),
+    .regexPattern("[^'\" ]", parseTerm),
 ])
 
 private func parse(_ input: String) throws -> SearchFilter {
