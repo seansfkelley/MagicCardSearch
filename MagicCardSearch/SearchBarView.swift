@@ -12,9 +12,11 @@ struct SearchBarView: View {
     @Binding var filters: [SearchFilter]
     @FocusState private var isFocused: Bool
     @State private var unparsedInputText: String = ""
-    @State private var editingFilter: SearchFilter?
-    @State private var editingIndex: Int?
-    @State private var isEditing: Bool = false
+    @State private var editingState: EditableItem?
+    
+    struct EditableItem: Identifiable {
+        var id: Int
+    }
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -24,9 +26,7 @@ struct SearchBarView: View {
                         SearchPillView(
                             filter: filter,
                             onTap: {
-                                editingFilter = filter
-                                editingIndex = index
-                                isEditing = true
+                                editingState = EditableItem(id: index)
                             },
                             onDelete: {
                                 filters.remove(at: index)
@@ -54,26 +54,24 @@ struct SearchBarView: View {
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
         .background(.ultraThinMaterial)
-        .onChange(of: unparsedInputText) { oldValue, newValue in
-            if newValue.count > oldValue.count && newValue.hasSuffix(" ") {
+        .onChange(of: unparsedInputText) { (previous: String, current: String) in
+            if previous.count < current.count && current.hasSuffix(" ") {
                 createNewFilterFromSearch()
             }
         }
-        .sheet(isPresented: $isEditing) {
-            if let filter = editingFilter, let index = editingIndex {
-                EditPillSheet(
-                    filter: filter,
-                    onUpdate: { updatedFilter in
-                        filters[index] = updatedFilter
-                        isEditing = false
-                    },
-                    onDelete: {
-                        filters.remove(at: index)
-                        isEditing = false
-                    }
-                )
-                .presentationDetents([.medium])
-            }
+        .sheet(item: $editingState) { state in
+            EditPillSheet(
+                filter: filters[state.id],
+                onUpdate: { updatedFilter in
+                    filters[state.id] = updatedFilter
+                    editingState = nil
+                },
+                onDelete: {
+                    filters.remove(at: state.id)
+                    editingState = nil
+                }
+            )
+            .presentationDetents([.medium])
         }
     }
     
