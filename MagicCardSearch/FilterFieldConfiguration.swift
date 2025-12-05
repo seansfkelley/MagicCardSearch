@@ -1,0 +1,112 @@
+//
+//  FilterFieldConfiguration.swift
+//  MagicCardSearch
+//
+//  Created by Sean Kelley on 2025-12-05.
+//
+
+import Foundation
+
+// MARK: - Filter Field Configuration
+
+enum FilterFieldType {
+    case text(placeholder: String)
+    case numeric(placeholder: String, range: ClosedRange<Int>, step: Int)
+    case enumeration(options: [String])
+}
+
+struct FilterFieldConfiguration {
+    let displayName: String
+    let fieldType: FilterFieldType
+    let aliases: Set<String>
+    
+    init(displayName: String, fieldType: FilterFieldType, aliases: Set<String>) {
+        self.displayName = displayName
+        self.fieldType = fieldType
+        self.aliases = aliases
+    }
+}
+
+// MARK: - Configuration Dictionary
+
+let filterFieldConfigurations: [String: FilterFieldConfiguration] = [
+    "set": FilterFieldConfiguration(
+        displayName: "Set Code",
+        fieldType: .text(placeholder: "e.g. 7ED, MH3"),
+        aliases: ["set", "s", "e"]
+    ),
+    
+    "manavalue": FilterFieldConfiguration(
+        displayName: "Mana Value",
+        fieldType: .numeric(placeholder: "Enter mana value", range: 0...20, step: 1),
+        aliases: ["manavalue", "mv", "cmc"]
+    ),
+    
+    "power": FilterFieldConfiguration(
+        displayName: "Power",
+        fieldType: .numeric(placeholder: "Enter power", range: -1...20, step: 1),
+        aliases: ["power", "pow"]
+    ),
+    
+    "toughness": FilterFieldConfiguration(
+        displayName: "Toughness",
+        fieldType: .numeric(placeholder: "Enter toughness", range: -1...20, step: 1),
+        aliases: ["toughness", "tou"]
+    ),
+    
+    "format": FilterFieldConfiguration(
+        displayName: "Format",
+        fieldType: .enumeration(options: [
+            "standard", "modern", "legacy", "vintage",
+            "commander", "pioneer", "pauper", "historic"
+        ]),
+        aliases: ["format", "f", "legal"]
+    ),
+    
+    "name": FilterFieldConfiguration(
+        displayName: "Card Name",
+        fieldType: .text(placeholder: "Enter card name"),
+        aliases: ["name", "n"]
+    )
+]
+
+// MARK: - Configuration Lookup
+
+/// Find configuration for a given key, checking all aliases
+func configurationForKey(_ key: String) -> FilterFieldConfiguration? {
+    let lowercasedKey = key.lowercased()
+    
+    // Try direct lookup first
+    if let config = filterFieldConfigurations[lowercasedKey] {
+        return config
+    }
+    
+    // Search through aliases
+    for (_, config) in filterFieldConfigurations {
+        if config.aliases.contains(lowercasedKey) {
+            return config
+        }
+    }
+    
+    return nil
+}
+
+/// Get the canonical key for a given key or alias
+func canonicalKey(for key: String) -> String {
+    let lowercasedKey = key.lowercased()
+    
+    // If it's already a primary key, return it
+    if filterFieldConfigurations[lowercasedKey] != nil {
+        return lowercasedKey
+    }
+    
+    // Search through aliases to find the primary key
+    for (primaryKey, config) in filterFieldConfigurations {
+        if config.aliases.contains(lowercasedKey) {
+            return primaryKey
+        }
+    }
+    
+    // Default to the input if not found
+    return lowercasedKey
+}

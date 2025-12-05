@@ -14,78 +14,57 @@ struct EditPillSheet: View {
     
     @Environment(\.dismiss) private var dismiss
     
-    // State for editing different filter types
-    @State private var editName: String = ""
-    @State private var editSet: String = ""
-    @State private var editSetComparison: StringComparison = .equal
-    @State private var editManaValue: String = ""
-    @State private var editManaValueComparison: Comparison = .equal
-    @State private var editColors: [String] = []
-    @State private var editColorComparison: Comparison = .equal
-    @State private var editFormat: String = ""
-    @State private var editFormatComparison: StringComparison = .equal
+    // Generic state for all filter types
+    @State private var editValue: String = ""
+    @State private var editComparison: Comparison = .equal
     
     var body: some View {
         NavigationStack {
             Form {
-                switch filter {
-                case .name(let name):
-                    TextInputView(
-                        title: "Card Name",
-                        text: $editName,
-                        placeholder: "Enter card name"
-                    )
-                    
-                case .set(let comparison, let setCode):
-                    StringComparisonInputView(
-                        title: "Comparison",
-                        comparison: $editSetComparison
-                    )
-                    
-                    TextInputView(
-                        title: "Set Code",
-                        text: $editSet,
-                        placeholder: "e.g. 7ED, MH3"
-                    )
-                    
-                case .manaValue(let comparison, let value):
+                // Get configuration for this filter key
+                if let config = configurationForKey(filter.key) {
+                    // Comparison picker
                     ComparisonInputView(
                         title: "Comparison",
-                        comparison: $editManaValueComparison
+                        comparison: $editComparison
                     )
                     
-                    NumericTextInputView(
-                        title: "Mana Value",
-                        text: $editManaValue,
-                        placeholder: "Enter mana value",
-                        range: 0...20
-                    )
-                    
-                case .color(let comparison, let colors):
-                    ComparisonInputView(
-                        title: "Comparison",
-                        comparison: $editColorComparison
-                    )
-                    
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Colors")
-                            .font(.headline)
+                    // Value input based on field type
+                    switch config.fieldType {
+                    case .text(let placeholder):
+                        TextInputView(
+                            title: config.displayName,
+                            text: $editValue,
+                            placeholder: placeholder
+                        )
                         
-                        // Color selection interface would go here
-                        Text("Colors: \(colors.joined(separator: ", "))")
-                            .foregroundStyle(.secondary)
+                    case .numeric(let placeholder, let range, let step):
+                        NumericTextInputView(
+                            title: config.displayName,
+                            text: $editValue,
+                            placeholder: placeholder,
+                            range: range,
+                            step: step
+                        )
+                        
+                    case .enumeration(let options):
+                        EnumerationInputView(
+                            title: config.displayName,
+                            selection: $editValue,
+                            options: options
+                        )
                     }
-                    
-                case .format(let comparison, let formatName):
-                    StringComparisonInputView(
+                } else {
+                    // Fallback for unknown filter keys
+                    ComparisonInputView(
                         title: "Comparison",
-                        comparison: $editFormatComparison
+                        comparison: $editComparison
                     )
                     
-                    EnumerationInputView(
-                        title: "Format",
-                        selection: $editFormat,
-                        options: ["standard", "modern", "legacy", "vintage", "commander", "pioneer", "pauper"]
+                    TextInputView(
+                        title: filter.key.capitalized,
+                        text: $editValue,
+                        placeholder: "Enter value"
                     )
                 }
             }
@@ -119,57 +98,15 @@ struct EditPillSheet: View {
     }
     
     private func loadFilterValues() {
-        switch filter {
-        case .name(let name):
-            editName = name
-            
-        case .set(let comparison, let setCode):
-            editSetComparison = comparison
-            editSet = setCode
-            
-        case .manaValue(let comparison, let value):
-            editManaValueComparison = comparison
-            editManaValue = value
-            
-        case .color(let comparison, let colors):
-            editColorComparison = comparison
-            editColors = colors
-            
-        case .format(let comparison, let formatName):
-            editFormatComparison = comparison
-            editFormat = formatName
-        }
+        editValue = filter.value
+        editComparison = filter.comparison
     }
     
     private func updateAndDismiss() {
-        let updatedFilter: SearchFilter
+        let trimmed = editValue.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return }
         
-        switch filter {
-        case .name:
-            let trimmed = editName.trimmingCharacters(in: .whitespaces)
-            guard !trimmed.isEmpty else { return }
-            updatedFilter = .name(trimmed)
-            
-        case .set:
-            let trimmed = editSet.trimmingCharacters(in: .whitespaces)
-            guard !trimmed.isEmpty else { return }
-            updatedFilter = .set(editSetComparison, trimmed)
-            
-        case .manaValue:
-            let trimmed = editManaValue.trimmingCharacters(in: .whitespaces)
-            guard !trimmed.isEmpty else { return }
-            updatedFilter = .manaValue(editManaValueComparison, trimmed)
-            
-        case .color:
-            guard !editColors.isEmpty else { return }
-            updatedFilter = .color(editColorComparison, editColors)
-            
-        case .format:
-            let trimmed = editFormat.trimmingCharacters(in: .whitespaces)
-            guard !trimmed.isEmpty else { return }
-            updatedFilter = .format(editFormatComparison, trimmed)
-        }
-        
+        let updatedFilter = SearchFilter(filter.key, editComparison, trimmed)
         onUpdate(updatedFilter)
         dismiss()
     }

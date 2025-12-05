@@ -3,7 +3,7 @@ internal enum Token {
     case term(String)
 }
 
-struct SearchFilter {
+struct SearchFilter: Equatable {
     let key: String
     let comparison: Comparison
     let value: String
@@ -14,12 +14,8 @@ struct SearchFilter {
         self.value = value
     }
     
-    static func from(_ input: String) -> SearchFilter {
-        if let result = try? parse(input) {
-            return result
-        } else {
-            return SearchFilter("name", .equal, input)
-        }
+    static func from(_ input: String) -> SearchFilter? {
+        return try? parse(input)
     }
 }
 
@@ -30,6 +26,17 @@ enum Comparison {
     case lessThanOrEqual
     case greaterThan
     case greaterThanOrEqual
+    
+    var symbol: String {
+        return switch self {
+        case .equal: ":"
+        case .notEqual: "!="
+        case .lessThan: "<"
+        case .lessThanOrEqual: "<="
+        case .greaterThan: ">"
+        case .greaterThanOrEqual: ">="
+        }
+    }
 }
 
 typealias LexedTokenData = (MagicCardSearchGrammar.CitronToken, MagicCardSearchGrammar.CitronTokenCode)
@@ -38,17 +45,22 @@ internal func parseTerm(_ input: String) -> LexedTokenData? {
     return (.term(input), .Term)
 }
 
+internal func parseWhitespace(_ input: String) -> LexedTokenData? {
+    return (.void, .Whitespace)
+}
+
 private let lexer = CitronLexer<LexedTokenData>(rules: [
     .string(":", (.void, .Equal)),
-    .string("=", (.void, .Equal)),
     .string("!=", (.void, .NotEqual)),
-    .string("<", (.void, .LessThan)),
     .string("<=", (.void, .LessThanOrEqual)),
-    .string(">", (.void, .GreaterThan)),
+    .string("<", (.void, .LessThan)),
     .string(">=", (.void, .GreaterThanOrEqual)),
+    .string(">", (.void, .GreaterThan)),
+    .string("=", (.void, .Equal)),
     .string("'", (.void, .SingleQuote)),
     .string("\"", (.void, .DoubleQuote)),
-    .regexPattern("[^'\" ]", parseTerm),
+    .regexPattern("[^'\" =><!:]+", parseTerm),
+    .regexPattern("\\s+", parseWhitespace)
 ])
 
 private func parse(_ input: String) throws -> SearchFilter {

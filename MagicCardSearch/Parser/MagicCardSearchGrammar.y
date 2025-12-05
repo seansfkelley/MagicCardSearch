@@ -23,6 +23,9 @@ filter ::= DoubleQuote terms_single_quote(v) DoubleQuote. {
 terms_single_quote ::= term(t) Whitespace(w) terms_single_quote(ts). {
     return "\(t)\(w)\(ts)"
 }
+terms_single_quote ::= term(t) Comparison(c) terms_single_quote(ts). {
+    return "\(t)\(c)\(ts)"
+}
 terms_single_quote ::= term(t) SingleQuote terms_single_quote(ts). {
     return "\(t)'\(ts)"
 }
@@ -33,6 +36,9 @@ terms_single_quote ::= term(t). {
 %nonterminal_type terms_double_quote String
 terms_double_quote ::= term(t) Whitespace(w) terms_double_quote(ts). {
     return "\(t)\(w)\(ts)"
+}
+terms_double_quote ::= term(t) Comparison(c) terms_double_quote(ts). {
+    return "\(t)\(c)\(ts)"
 }
 terms_double_quote ::= term(t) DoubleQuote terms_double_quote(ts). {
     return "\(t)\"\(ts)"

@@ -198,29 +198,3 @@ struct ComparisonInputView: View {
         }
     }
 }
-
-// MARK: - String Comparison Input
-
-struct StringComparisonInputView: View {
-    let title: String
-    @Binding var comparison: StringComparison
-    
-    init(title: String, comparison: Binding<StringComparison>) {
-        self.title = title
-        self._comparison = comparison
-    }
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(title)
-                .font(.headline)
-            
-            Picker(title, selection: $comparison) {
-                Text("=").tag(StringComparison.equal)
-                Text("≠").tag(StringComparison.notEqual)
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-        }
-    }
-}

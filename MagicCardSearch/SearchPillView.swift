@@ -69,37 +69,7 @@ struct SearchPillView: View {
     }
     
     private var displayText: String {
-        switch filter {
-        case .name(let name):
-            return name
-            
-        case .set(let comparison, let setCode):
-            let op = comparison == .equal ? ":" : "!="
-            return "set\(op)\(setCode)"
-            
-        case .manaValue(let comparison, let value):
-            let op = comparisonSymbol(comparison)
-            return "mv\(op)\(value)"
-            
-        case .color(let comparison, let colors):
-            let op = comparisonSymbol(comparison)
-            return "color\(op)\(colors.joined(separator: ","))"
-            
-        case .format(let comparison, let formatName):
-            let op = comparison == .equal ? ":" : "!="
-            return "format\(op)\(formatName)"
-        }
-    }
-    
-    private func comparisonSymbol(_ comparison: Comparison) -> String {
-        switch comparison {
-        case .equal: return ":"
-        case .notEqual: return "!="
-        case .lessThan: return "<"
-        case .lessThanOrEqual: return "<="
-        case .greaterThan: return ">"
-        case .greaterThanOrEqual: return ">="
-        }
+        return "\(filter.key)\(filter.comparison.symbol)\(filter.value)"
     }
     
     private var pillColor: Color {

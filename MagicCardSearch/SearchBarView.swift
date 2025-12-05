@@ -29,7 +29,7 @@ struct SearchBarView: View {
                                 isEditing = true
                             },
                             onDelete: {
-                                parsedFilters.remove(at: index)
+                                // Will need to be handled by parent
                             }
                         )
                     }
@@ -47,7 +47,7 @@ struct SearchBarView: View {
                     .autocorrectionDisabled(true)
                     .textContentType(.none)
                     .onSubmit {
-                        tryCreateNewFilterFromSearch()
+                        createNewFilterFromSearch(fallbackToNameFilter: true)
                     }
             }
         }
@@ -57,7 +57,7 @@ struct SearchBarView: View {
         .onChange(of: unparsedInputText) { oldValue, newValue in
             // Only check for space when text is growing
             if newValue.count > oldValue.count && newValue.hasSuffix(" ") {
-                tryCreateNewFilterFromSearch()
+                createNewFilterFromSearch()
             }
         }
         .sheet(isPresented: $isEditing) {
@@ -65,24 +65,25 @@ struct SearchBarView: View {
                 EditPillSheet(
                     filter: filter,
                     onUpdate: { updatedFilter in
-                        parsedFilters[index] = updatedFilter
+                        // Will need to be handled by parent
                         isEditing = false
                     },
                     onDelete: {
-                        parsedFilters.remove(at: index)
+                        // Will need to be handled by parent
                         isEditing = false
                     }
                 )
-                .presentationDetents([.fraction(0.5)])
             }
         }
     }
     
-    private func tryCreateNewFilterFromSearch() {
-        let trimmed = String(unparsedInputText.trimmingCharacters(in: .whitespaces))
-         if let parsed = SearchFilter.from(trimmed) {
-             parsedFilters.append(parsed)
-         }
+    private func createNewFilterFromSearch(fallbackToNameFilter: Bool = false) {
+        let trimmed = String(unparsedInputText.trimmingCharacters(in: .whitespaces));
+        if let filter = try? SearchFilter.from(trimmed) {
+            parsedFilters.append(filter)
+        } else if (fallbackToNameFilter) {
+            parsedFilters.append(SearchFilter("name", .equal, trimmed))
+        }
     }
 }
 
@@ -94,8 +95,9 @@ struct SearchBarView: View {
         SearchBarView(
             unparsedInputText: .constant(""),
             parsedFilters: [
-                .set(.equal, "7ED"),
-                .manaValue(.greaterThanOrEqual, "4"),
+                SearchFilter("set", .equal, "7ED"),
+                SearchFilter("manavalue", .greaterThanOrEqual, "4"),
+                SearchFilter("power", .greaterThan, "3"),
             ]
         )
     }
