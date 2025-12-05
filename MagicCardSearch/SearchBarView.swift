@@ -40,7 +40,7 @@ struct SearchBarView: View {
                 Image(systemName: "magnifyingglass")
                     .foregroundStyle(.secondary)
                 
-                TextField("Search for cards...", text: $unparsedInputText)
+                TextField(parsedFilters.isEmpty ? "Search for cards..." : "Add filters...", text: $unparsedInputText)
                     .textFieldStyle(.plain)
                     .focused($isFocused)
                     .textInputAutocapitalization(.never)
@@ -55,7 +55,6 @@ struct SearchBarView: View {
         .padding(.vertical, 12)
         .background(.ultraThinMaterial)
         .onChange(of: unparsedInputText) { oldValue, newValue in
-            // Only check for space when text is growing
             if newValue.count > oldValue.count && newValue.hasSuffix(" ") {
                 createNewFilterFromSearch()
             }
@@ -73,13 +72,16 @@ struct SearchBarView: View {
                         isEditing = false
                     }
                 )
-                .presentationDetents([.medium, .large])
+                .presentationDetents([.medium])
             }
         }
     }
     
     private func createNewFilterFromSearch(fallbackToNameFilter: Bool = false) {
+        print("here")
+        print(String(unparsedInputText))
         let trimmed = String(unparsedInputText.trimmingCharacters(in: .whitespaces));
+        print(String(trimmed))
         if let filter = SearchFilter.from(trimmed) {
             parsedFilters.append(filter)
         } else if (fallbackToNameFilter) {

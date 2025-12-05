@@ -11,13 +11,12 @@ struct EditPillSheet: View {
     let filter: SearchFilter
     let onUpdate: (SearchFilter) -> Void
     let onDelete: () -> Void
-    
+
     @Environment(\.dismiss) private var dismiss
-    
-    // Generic state for all filter types
+
     @State private var editValue: String = ""
     @State private var editComparison: Comparison = .equal
-    
+
     var body: some View {
         NavigationStack {
             Form {
@@ -26,25 +25,22 @@ struct EditPillSheet: View {
                     case .text(let placeholder):
                         ComparisonInputView($editComparison, mode: .equalityOnly)
                         TextInputView(
-                            title: config.displayName,
                             text: $editValue,
                             placeholder: placeholder
                         )
-                        
+
                     case .numeric(let placeholder, let range, let step):
                         ComparisonInputView($editComparison)
                         NumericTextInputView(
-                            title: config.displayName,
                             text: $editValue,
                             placeholder: placeholder,
                             range: range,
                             step: step
                         )
-                        
+
                     case .enumeration(let options):
                         ComparisonInputView($editComparison, mode: .equalityOnly)
                         EnumerationInputView(
-                            title: config.displayName,
                             selection: $editValue,
                             options: options
                         )
@@ -52,7 +48,6 @@ struct EditPillSheet: View {
                 } else {
                     ComparisonInputView($editComparison, mode: .equalityOnly)
                     TextInputView(
-                        title: filter.key.capitalized,
                         text: $editValue,
                         placeholder: "Enter value"
                     )
@@ -65,7 +60,7 @@ struct EditPillSheet: View {
                         dismiss()
                     }
                 }
-                
+
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Update") {
                         updateAndDismiss()
@@ -77,16 +72,16 @@ struct EditPillSheet: View {
             loadFilterValues()
         }
     }
-    
+
     private func loadFilterValues() {
         editValue = filter.value
         editComparison = filter.comparison
     }
-    
+
     private func updateAndDismiss() {
         let trimmed = editValue.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty else { return }
-        
+
         let updatedFilter = SearchFilter(filter.key, editComparison, trimmed)
         onUpdate(updatedFilter)
         dismiss()
