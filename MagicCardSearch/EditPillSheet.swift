@@ -21,13 +21,10 @@ struct EditPillSheet: View {
     var body: some View {
         NavigationStack {
             Form {
-                // Get configuration for this filter key
                 if let config = configurationForKey(filter.key) {
-                    ComparisonInputView($editComparison)
-                    
-                    // Value input based on field type from configuration
                     switch config.fieldType {
                     case .text(let placeholder):
+                        ComparisonInputView($editComparison, mode: .equalityOnly)
                         TextInputView(
                             title: config.displayName,
                             text: $editValue,
@@ -35,6 +32,7 @@ struct EditPillSheet: View {
                         )
                         
                     case .numeric(let placeholder, let range, let step):
+                        ComparisonInputView($editComparison)
                         NumericTextInputView(
                             title: config.displayName,
                             text: $editValue,
@@ -44,6 +42,7 @@ struct EditPillSheet: View {
                         )
                         
                     case .enumeration(let options):
+                        ComparisonInputView($editComparison, mode: .equalityOnly)
                         EnumerationInputView(
                             title: config.displayName,
                             selection: $editValue,
@@ -51,8 +50,7 @@ struct EditPillSheet: View {
                         )
                     }
                 } else {
-                    ComparisonInputView($editComparison)
-                    
+                    ComparisonInputView($editComparison, mode: .equalityOnly)
                     TextInputView(
                         title: filter.key.capitalized,
                         text: $editValue,
@@ -95,9 +93,9 @@ struct EditPillSheet: View {
     }
 }
 
-#Preview("Free Text - Oracle") {
+#Preview("Text Field - Oracle Text") {
     EditPillSheet(
-        filter: SearchFilter("oracle", .equal, "tap"),
+        filter: SearchFilter("oracle", .equal, "when ~ enters"),
         onUpdate: { updatedFilter in
             print("Updated filter: \(updatedFilter)")
         },
@@ -107,21 +105,21 @@ struct EditPillSheet: View {
     )
 }
 
-#Preview("Enumeration - Format") {
-    EditPillSheet(
-        filter: SearchFilter("format", .equal, "commander"),
-        onUpdate: { updatedFilter in
-            print("Updated filter: \(updatedFilter)")
-        },
-        onDelete: {
-            print("Deleted filter")
-        }
-    )
-}
-
-#Preview("Numeric - Mana Value") {
+#Preview("Numeric Field - Mana Value") {
     EditPillSheet(
         filter: SearchFilter("manavalue", .greaterThanOrEqual, "4"),
+        onUpdate: { updatedFilter in
+            print("Updated filter: \(updatedFilter)")
+        },
+        onDelete: {
+            print("Deleted filter")
+        }
+    )
+}
+
+#Preview("Enumeration Field - Format") {
+    EditPillSheet(
+        filter: SearchFilter("format", .equal, "commander"),
         onUpdate: { updatedFilter in
             print("Updated filter: \(updatedFilter)")
         },

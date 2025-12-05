@@ -172,21 +172,35 @@ struct EnumerationInputView: View {
 // MARK: - Comparison Input
 
 struct ComparisonInputView: View {
-    @Binding var comparison: Comparison
+    enum Mode {
+        case equalityOnly     
+        case all
+    }
     
-    init(_ comparison: Binding<Comparison>) {
+    @Binding var comparison: Comparison
+    let mode: Mode
+    
+    init(_ comparison: Binding<Comparison>, mode: Mode = .all) {
         self._comparison = comparison
+        self.mode = mode
     }
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Picker("Comparison", selection: $comparison) {
-                Text("=").tag(Comparison.equal)
-                Text("≠").tag(Comparison.notEqual)
-                Text("<").tag(Comparison.lessThan)
-                Text("≤").tag(Comparison.lessThanOrEqual)
-                Text(">").tag(Comparison.greaterThan)
-                Text("≥").tag(Comparison.greaterThanOrEqual)
+                switch mode {
+                case .equalityOnly:
+                    Text("=").tag(Comparison.equal)
+                    Text("≠").tag(Comparison.notEqual)
+                    
+                case .all:
+                    Text("=").tag(Comparison.equal)
+                    Text("≠").tag(Comparison.notEqual)
+                    Text("<").tag(Comparison.lessThan)
+                    Text("≤").tag(Comparison.lessThanOrEqual)
+                    Text(">").tag(Comparison.greaterThan)
+                    Text("≥").tag(Comparison.greaterThanOrEqual)
+                }
             }
             .pickerStyle(.segmented)
             .labelsHidden()
@@ -202,7 +216,8 @@ struct ComparisonInputView: View {
         @State var manaValue = "2"
         @State var power = 4
         @State var format = "modern"
-        @State var comparison = Comparison.equal
+        @State var comparisonAll = Comparison.greaterThanOrEqual
+        @State var comparisonEquality = Comparison.equal
         
         var body: some View {
             NavigationStack {
@@ -243,8 +258,12 @@ struct ComparisonInputView: View {
                         )
                     }
                     
-                    Section("Comparison") {
-                        ComparisonInputView($comparison)
+                    Section("Comparison - All Options") {
+                        ComparisonInputView($comparisonAll, mode: .all)
+                    }
+                    
+                    Section("Comparison - Equality Only") {
+                        ComparisonInputView($comparisonEquality, mode: .equalityOnly)
                     }
                 }
             }

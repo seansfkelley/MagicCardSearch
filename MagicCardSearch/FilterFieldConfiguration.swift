@@ -72,16 +72,13 @@ let filterFieldConfigurations: [String: FilterFieldConfiguration] = [
 
 // MARK: - Configuration Lookup
 
-/// Find configuration for a given key, checking all aliases
 func configurationForKey(_ key: String) -> FilterFieldConfiguration? {
     let lowercasedKey = key.lowercased()
     
-    // Try direct lookup first
     if let config = filterFieldConfigurations[lowercasedKey] {
         return config
     }
-    
-    // Search through aliases
+
     for (_, config) in filterFieldConfigurations {
         if config.aliases.contains(lowercasedKey) {
             return config
@@ -91,22 +88,18 @@ func configurationForKey(_ key: String) -> FilterFieldConfiguration? {
     return nil
 }
 
-/// Get the canonical key for a given key or alias
 func canonicalKey(for key: String) -> String {
     let lowercasedKey = key.lowercased()
     
-    // If it's already a primary key, return it
     if filterFieldConfigurations[lowercasedKey] != nil {
         return lowercasedKey
     }
     
-    // Search through aliases to find the primary key
     for (primaryKey, config) in filterFieldConfigurations {
         if config.aliases.contains(lowercasedKey) {
             return primaryKey
         }
     }
     
-    // Default to the input if not found
     return lowercasedKey
 }
