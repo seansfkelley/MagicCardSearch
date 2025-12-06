@@ -293,24 +293,27 @@ struct DisplaySortSheetView: View {
 
 struct SettingsSheetView: View {
     @Environment(\.dismiss) private var dismiss
+    @State private var enableGlobalFilters = true
+    @State private var globalFilterText = ""
     
     var body: some View {
         NavigationStack {
-            VStack(spacing: 20) {
-                Image(systemName: "gearshape.circle")
-                    .font(.system(size: 60))
-                    .foregroundStyle(.tint)
+            Form {
+                Section("Global Filters") {
+                    Toggle(isOn: $enableGlobalFilters) {
+                        Text("Enable Global Filters")
+                    }
+                    Text("Global filters, when enabled, are always applied to all searches implicitly. Use these if you only play paper or online, or if you only ever play one format, and don't want to have to always include those filters.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 
-                Text("Settings")
-                    .font(.title2)
-                    .fontWeight(.semibold)
-                
-                Text("Settings coming soon")
-                    .foregroundStyle(.secondary)
-                
-                Spacer()
+                    if enableGlobalFilters {
+                        TextField("Filters...", text: $globalFilterText)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled(true)
+                    }
+                }
             }
-            .padding()
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
