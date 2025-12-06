@@ -97,25 +97,50 @@ struct CardResultCell: View {
     
     var body: some View {
         VStack {
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Color.gray.opacity(0.2))
-                .aspectRatio(0.7, contentMode: .fit)
-                .overlay(
-                    VStack(spacing: 8) {
-                        Image(systemName: "photo")
-                            .font(.largeTitle)
-                            .foregroundStyle(.secondary)
-                        
-                        Text(card.name)
-                            .font(.caption)
-                            .foregroundStyle(.primary)
-                            .multilineTextAlignment(.center)
-                            .lineLimit(2)
+            Group {
+                if let imageUrl = card.imageUrl, let url = URL(string: imageUrl) {
+                    AsyncImage(url: url) { phase in
+                        switch phase {
+                        case .empty:
+                            ProgressView()
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        case .success(let image):
+                            image
+                                .resizable()
+                                .aspectRatio(contentMode: .fill)
+                        case .failure:
+                            placeholderView
+                        @unknown default:
+                            placeholderView
+                        }
                     }
-                    .padding(8)
-                )
-                .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
+                } else {
+                    placeholderView
+                }
+            }
+            .aspectRatio(0.7, contentMode: .fit)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
         }
+    }
+    
+    private var placeholderView: some View {
+        RoundedRectangle(cornerRadius: 12)
+            .fill(Color.gray.opacity(0.2))
+            .overlay(
+                VStack(spacing: 8) {
+                    Image(systemName: "photo")
+                        .font(.largeTitle)
+                        .foregroundStyle(.secondary)
+                    
+                    Text(card.name)
+                        .font(.caption)
+                        .foregroundStyle(.primary)
+                        .multilineTextAlignment(.center)
+                        .lineLimit(2)
+                }
+                .padding(8)
+            )
     }
 }
 

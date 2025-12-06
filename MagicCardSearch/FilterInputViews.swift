@@ -167,10 +167,12 @@ struct ComparisonInputView: View {
             Picker("Comparison", selection: $comparison) {
                 switch mode {
                 case .equalityOnly:
+                    Text(":").tag(Comparison.including)
                     Text("=").tag(Comparison.equal)
                     Text("≠").tag(Comparison.notEqual)
 
                 case .all:
+                    Text(":").tag(Comparison.including)
                     Text("=").tag(Comparison.equal)
                     Text("≠").tag(Comparison.notEqual)
                     Text("<").tag(Comparison.lessThan)

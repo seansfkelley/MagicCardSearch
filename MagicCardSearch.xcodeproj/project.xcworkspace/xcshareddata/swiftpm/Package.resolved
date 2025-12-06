@@ -1,6 +1,15 @@
 {
-  "originHash" : "50578bb08258a739890c5d3d0a495ba4213b27b4dbbbc844c23e93aa2d80550b",
+  "originHash" : "8881b991fc6f98370f089e79b03a10cf7093846172ec2ca5e92917c23c5a3a6f",
   "pins" : [
+    {
+      "identity" : "scryfallkit",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/JacobHearst/ScryfallKit",
+      "state" : {
+        "revision" : "87b4dc729289d123933e6183ebf203a6be60173e",
+        "version" : "4.0.1"
+      }
+    },
     {
       "identity" : "wrappinghstack",
       "kind" : "remoteSourceControl",

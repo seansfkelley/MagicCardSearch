@@ -15,13 +15,51 @@ struct CardResult: Identifiable, Codable {
     enum CodingKeys: String, CodingKey {
         case id
         case name
-        case imageUrl = "image_url"
+        case imageUris = "image_uris"
+    }
+    
+    enum ImageUriKeys: String, CodingKey {
+        case normal
+        case small
+        case large
+    }
+    
+    init(id: String, name: String, imageUrl: String?) {
+        self.id = id
+        self.name = name
+        self.imageUrl = imageUrl
+    }
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(String.self, forKey: .id)
+        name = try container.decode(String.self, forKey: .name)
+        
+        // Try to extract image URL from image_uris
+        if let imageUrisContainer = try? container.nestedContainer(keyedBy: ImageUriKeys.self, forKey: .imageUris) {
+            imageUrl = try? imageUrisContainer.decode(String.self, forKey: .normal)
+        } else {
+            imageUrl = nil
+        }
+    }
+    
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(name, forKey: .name)
     }
 }
 
-// MARK: - API Response
+// MARK: - Scryfall API Response
 
-struct CardSearchResponse: Codable {
-    let cards: [CardResult]
-    let total: Int
+struct ScryfallSearchResponse: Codable {
+    let data: [CardResult]
+    let totalCards: Int?
+    let hasMore: Bool
+    
+    enum CodingKeys: String, CodingKey {
+        case data
+        case totalCards = "total_cards"
+        case hasMore = "has_more"
+    }
 }

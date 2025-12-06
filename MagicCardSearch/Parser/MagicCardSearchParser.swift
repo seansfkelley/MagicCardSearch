@@ -17,9 +17,16 @@ struct SearchFilter: Equatable {
     static func from(_ input: String) -> SearchFilter? {
         return try? parse(input)
     }
+    
+    func toScryfallString() -> String {
+        let needsQuotes = value.contains(" ")
+        let quotedValue = needsQuotes ? "\"\(value)\"" : value
+        return "\(key)\(comparison.symbol)\(quotedValue)"
+    }
 }
 
 enum Comparison {
+    case including
     case equal
     case notEqual
     case lessThan
@@ -29,7 +36,8 @@ enum Comparison {
     
     var symbol: String {
         return switch self {
-        case .equal: ":"
+        case .including: ":"
+        case .equal: "="
         case .notEqual: "!="
         case .lessThan: "<"
         case .lessThanOrEqual: "<="
@@ -50,7 +58,7 @@ internal func parseWhitespace(_ input: String) -> LexedTokenData? {
 }
 
 private let lexer = CitronLexer<LexedTokenData>(rules: [
-    .string(":", (.void, .Equal)),
+    .string(":", (.void, .Including)),
     .string("!=", (.void, .NotEqual)),
     .string("<=", (.void, .LessThanOrEqual)),
     .string("<", (.void, .LessThan)),

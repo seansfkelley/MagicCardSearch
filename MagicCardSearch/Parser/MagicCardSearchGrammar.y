@@ -57,6 +57,9 @@ term ::= Term(x). {
 }
 
 %nonterminal_type comparison Comparison
+comparison ::= Including. {
+    .including
+}
 comparison ::= Equal. {
     .equal
 }

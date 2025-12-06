@@ -18,22 +18,30 @@ struct SearchPillView: View {
     var body: some View {
         HStack(spacing: 0) {
             // Main pill body
-            Text(displayText)
-                .font(.body)
-                .foregroundStyle(.primary)
-                .padding(.leading, 16)
-                .padding(.trailing, 12)
-                .padding(.vertical, 10)
-                .background(isPressing ? Color.gray.opacity(0.3) : Color.clear)
-                .contentShape(Rectangle())
-                .onLongPressGesture(minimumDuration: .infinity, maximumDistance: .infinity) {
-                    // Never completes
-                } onPressingChanged: { pressing in
-                    isPressing = pressing
-                    if !pressing {
-                        onTap()
-                    }
+            HStack(spacing: 6) {
+                if !isRecognizedFilter {
+                    Image(systemName: "exclamationmark.circle.fill")
+                        .font(.body)
+                        .foregroundStyle(.red)
                 }
+                
+                Text(displayText)
+                    .font(.body)
+                    .foregroundStyle(.primary)
+            }
+            .padding(.leading, 16)
+            .padding(.trailing, 12)
+            .padding(.vertical, 10)
+            .background(isPressing ? Color.gray.opacity(0.3) : Color.clear)
+            .contentShape(Rectangle())
+            .onLongPressGesture(minimumDuration: .infinity, maximumDistance: .infinity) {
+                // Never completes
+            } onPressingChanged: { pressing in
+                isPressing = pressing
+                if !pressing {
+                    onTap()
+                }
+            }
             
             // Divider
             Rectangle()
@@ -74,5 +82,9 @@ struct SearchPillView: View {
     
     private var pillColor: Color {
         return Color.gray.opacity(0.2)
+    }
+    
+    private var isRecognizedFilter: Bool {
+        return configurationForKey(filter.key) != nil
     }
 }

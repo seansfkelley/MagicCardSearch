@@ -57,24 +57,29 @@ struct CardDetailView: View {
     
     var body: some View {
         VStack(spacing: 20) {
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Color.gray.opacity(0.2))
-                .aspectRatio(0.7, contentMode: .fit)
-                .frame(maxWidth: 300)
-                .overlay(
-                    VStack(spacing: 12) {
-                        Image(systemName: "photo")
-                            .font(.system(size: 60))
-                            .foregroundStyle(.secondary)
-                        
-                        Text(card.name)
-                            .font(.title2)
-                            .fontWeight(.semibold)
-                            .multilineTextAlignment(.center)
+            Group {
+                if let imageUrl = card.imageUrl, let url = URL(string: imageUrl) {
+                    AsyncImage(url: url) { phase in
+                        switch phase {
+                        case .empty:
+                            ProgressView()
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        case .success(let image):
+                            image
+                                .resizable()
+                                .aspectRatio(contentMode: .fit)
+                        case .failure:
+                            placeholderView
+                        @unknown default:
+                            placeholderView
+                        }
                     }
-                    .padding()
-                )
-                .shadow(color: .black.opacity(0.2), radius: 8, x: 0, y: 4)
+                } else {
+                    placeholderView
+                }
+            }
+            .frame(maxWidth: 300)
+            .shadow(color: .black.opacity(0.2), radius: 8, x: 0, y: 4)
             
             Text("Card ID: \(card.id)")
                 .font(.caption)
@@ -83,6 +88,25 @@ struct CardDetailView: View {
             Spacer()
         }
         .padding()
+    }
+    
+    private var placeholderView: some View {
+        RoundedRectangle(cornerRadius: 16)
+            .fill(Color.gray.opacity(0.2))
+            .aspectRatio(0.7, contentMode: .fit)
+            .overlay(
+                VStack(spacing: 12) {
+                    Image(systemName: "photo")
+                        .font(.system(size: 60))
+                        .foregroundStyle(.secondary)
+                    
+                    Text(card.name)
+                        .font(.title2)
+                        .fontWeight(.semibold)
+                        .multilineTextAlignment(.center)
+                }
+                .padding()
+            )
     }
 }
 

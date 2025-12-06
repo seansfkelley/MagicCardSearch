@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		21A856BD2EE3AAE400E72541 /* ScryfallKit in Frameworks */ = {isa = PBXBuildFile; productRef = 21A856BC2EE3AAE400E72541 /* ScryfallKit */; };
 		21D3972C2EE225C5008B3EFD /* WrappingHStack in Frameworks */ = {isa = PBXBuildFile; productRef = 21D3972B2EE225C5008B3EFD /* WrappingHStack */; };
 /* End PBXBuildFile section */
 
@@ -94,6 +95,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				21D3972C2EE225C5008B3EFD /* WrappingHStack in Frameworks */,
+				21A856BD2EE3AAE400E72541 /* ScryfallKit in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -122,6 +124,7 @@
 				2137B5AF2EE139C60066BF7E /* MagicCardSearch */,
 				2137B5BD2EE139C70066BF7E /* MagicCardSearchTests */,
 				2137B5C72EE139C70066BF7E /* MagicCardSearchUITests */,
+				21A856BB2EE3AAE400E72541 /* Frameworks */,
 				2137B5AE2EE139C60066BF7E /* Products */,
 			);
 			sourceTree = "<group>";
@@ -134,6 +137,13 @@
 				2137B5C42EE139C70066BF7E /* MagicCardSearchUITests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		21A856BB2EE3AAE400E72541 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -179,6 +189,7 @@
 			name = MagicCardSearch;
 			packageProductDependencies = (
 				21D3972B2EE225C5008B3EFD /* WrappingHStack */,
+				21A856BC2EE3AAE400E72541 /* ScryfallKit */,
 			);
 			productName = MagicCardSearch;
 			productReference = 2137B5AD2EE139C60066BF7E /* MagicCardSearch.app */;
@@ -267,6 +278,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				21D3972A2EE225C5008B3EFD /* XCRemoteSwiftPackageReference "WrappingHStack" */,
+				21A856BA2EE3AA9200E72541 /* XCRemoteSwiftPackageReference "ScryfallKit" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 2137B5AE2EE139C60066BF7E /* Products */;
@@ -717,6 +729,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		21A856BA2EE3AA9200E72541 /* XCRemoteSwiftPackageReference "ScryfallKit" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/JacobHearst/ScryfallKit";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 4.0.1;
+			};
+		};
 		21D3972A2EE225C5008B3EFD /* XCRemoteSwiftPackageReference "WrappingHStack" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/dkk/WrappingHStack";
@@ -728,6 +748,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		21A856BC2EE3AAE400E72541 /* ScryfallKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 21A856BA2EE3AA9200E72541 /* XCRemoteSwiftPackageReference "ScryfallKit" */;
+			productName = ScryfallKit;
+		};
 		21D3972B2EE225C5008B3EFD /* WrappingHStack */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 21D3972A2EE225C5008B3EFD /* XCRemoteSwiftPackageReference "WrappingHStack" */;
