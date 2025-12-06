@@ -28,6 +28,9 @@ struct EditPillSheet: View {
                             text: $editValue,
                             placeholder: placeholder
                         )
+                        .onSubmit {
+                            updateAndDismiss()
+                        }
 
                     case .numeric(let placeholder, let range, let step):
                         ComparisonInputView($editComparison)
@@ -37,6 +40,9 @@ struct EditPillSheet: View {
                             range: range,
                             step: step
                         )
+                        .onSubmit {
+                            updateAndDismiss()
+                        }
 
                     case .enumeration(let options):
                         ComparisonInputView($editComparison, mode: .equalityOnly)
@@ -51,20 +57,32 @@ struct EditPillSheet: View {
                         text: $editValue,
                         placeholder: "Enter value"
                     )
+                    .onSubmit {
+                        updateAndDismiss()
+                    }
+                }
+                
+                Section {
+                    Button(action: updateAndDismiss) {
+                        HStack {
+                            Spacer()
+                            Text("Update")
+                                .fontWeight(.semibold)
+                            Spacer()
+                        }
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .listRowInsets(EdgeInsets())
+                    .listRowBackground(Color.clear)
                 }
             }
             .toolbar {
-                ToolbarItem(placement: .destructiveAction) {
+                ToolbarItem(placement: .topBarLeading) {
                     Button("Delete", role: .destructive) {
                         onDelete()
                         dismiss()
                     }
-                }
-
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Update") {
-                        updateAndDismiss()
-                    }
+                    .foregroundStyle(.red)
                 }
             }
         }

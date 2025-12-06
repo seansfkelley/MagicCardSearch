@@ -46,6 +46,7 @@ struct SearchBarView: View {
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled(true)
                     .textContentType(.none)
+                    .keyboardType(.asciiCapable)
                     .onSubmit {
                         createNewFilterFromSearch(fallbackToNameFilter: true)
                     }
@@ -77,12 +78,26 @@ struct SearchBarView: View {
     
     private func createNewFilterFromSearch(fallbackToNameFilter: Bool = false) {
         let trimmed = unparsedInputText.trimmingCharacters(in: .whitespaces)
+        
         if let filter = SearchFilter.from(trimmed) {
             filters.append(filter)
             unparsedInputText = ""
         } else if fallbackToNameFilter {
-            filters.append(SearchFilter("name", .equal, trimmed))
-            unparsedInputText = ""
+            let unquoted = stripMatchingQuotes(from: trimmed)
+            if !unquoted.isEmpty {
+                filters.append(SearchFilter("name", .equal, unquoted))
+                unparsedInputText = ""
+            }
+        }
+    }
+    
+    private func stripMatchingQuotes(from string: String) -> String {
+        if string.hasPrefix("\"") && string.hasSuffix("\"") && string.count >= 2 {
+            return String(string.dropFirst().dropLast())
+        } else if string.hasPrefix("'") && string.hasSuffix("'") && string.count >= 2 {
+            return String(string.dropFirst().dropLast())
+        } else {
+            return string
         }
     }
 }

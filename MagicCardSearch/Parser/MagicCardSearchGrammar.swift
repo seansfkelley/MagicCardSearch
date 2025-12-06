@@ -300,7 +300,7 @@ class MagicCardSearchGrammar: CitronParser {
             func codeBlockForRule05(t: String, w: Token, ts: String) throws -> String {
 #sourceLocation(file: "MagicCardSearch/Parser/MagicCardSearchGrammar.y", line: 23)
 
-    return "\(t)\(w)\(ts)"
+    return "\(t) \(ts)"
 
 #sourceLocation()
 }
@@ -349,7 +349,7 @@ class MagicCardSearchGrammar: CitronParser {
             func codeBlockForRule09(t: String, w: Token, ts: String) throws -> String {
 #sourceLocation(file: "MagicCardSearch/Parser/MagicCardSearchGrammar.y", line: 37)
 
-    return "\(t)\(w)\(ts)"
+    return "\(t) \(ts)"
 
 #sourceLocation()
 }

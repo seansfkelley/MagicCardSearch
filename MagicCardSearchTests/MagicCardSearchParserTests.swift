@@ -15,6 +15,7 @@ struct MagicCardSearchParserTests {
     }
     
     @Test("from (nil)", arguments: [
+        "foo:\"",
         "foo: bar",
         "'foo",
     ]) func fromNil(input: String) throws {
