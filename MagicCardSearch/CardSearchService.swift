@@ -11,7 +11,7 @@ import Foundation
 class CardSearchService {
     private let baseURL = "https://api.scryfall.com/cards/search"
     
-    func search(filters: [SearchFilter]) async throws -> [CardResult] {
+    func search(filters: [SearchFilter], config: SearchConfiguration) async throws -> [CardResult] {
         // Build the search query from filters
         let queryString = filters.map { $0.toScryfallString() }.joined(separator: " ")
         
@@ -23,8 +23,9 @@ class CardSearchService {
         var components = URLComponents(string: baseURL)!
         components.queryItems = [
             URLQueryItem(name: "q", value: queryString),
-            URLQueryItem(name: "unique", value: "cards"),
-            URLQueryItem(name: "order", value: "name")
+            URLQueryItem(name: "unique", value: config.displayMode.apiValue),
+            URLQueryItem(name: "order", value: config.sortField.apiValue),
+            URLQueryItem(name: "dir", value: config.sortOrder.apiValue)
         ]
         
         guard let url = components.url else {

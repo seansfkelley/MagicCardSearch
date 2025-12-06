@@ -9,6 +9,7 @@ import SwiftUI
 
 struct CardResultsView: View {
     @Binding var filters: [SearchFilter]
+    @Binding var searchConfig: SearchConfiguration
     @State private var results: [CardResult] = []
     @State private var isLoading = false
     @State private var selectedCardIndex: Int?
@@ -20,33 +21,62 @@ struct CardResultsView: View {
     ]
     
     var body: some View {
-        Group {
-            if isLoading && results.isEmpty {
-                ProgressView()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if results.isEmpty {
-                ContentUnavailableView(
-                    "No Results",
-                    systemImage: "magnifyingglass",
-                    description: Text("Add search filters to find cards")
-                )
-            } else {
-                ScrollView {
-                    LazyVGrid(columns: columns, spacing: 16) {
-                        ForEach(Array(results.enumerated()), id: \.element.id) { index, card in
-                            CardResultCell(card: card)
-                                .onTapGesture {
-                                    selectedCardIndex = index
-                                }
+        ZStack {
+            Group {
+                if filters.isEmpty {
+                    // Zero state: no filters added yet
+                    ContentUnavailableView(
+                        "Start Your Search",
+                        systemImage: "text.magnifyingglass",
+                        description: Text("Tap the search bar below and start typing to add filters")
+                    )
+                } else if results.isEmpty && !isLoading {
+                    // Search performed but no results
+                    ContentUnavailableView(
+                        "No Results",
+                        systemImage: "magnifyingglass",
+                        description: Text("Try adjusting your search filters")
+                    )
+                } else {
+                    ScrollView {
+                        LazyVGrid(columns: columns, spacing: 16) {
+                            ForEach(Array(results.enumerated()), id: \.element.id) { index, card in
+                                CardResultCell(card: card)
+                                    .onTapGesture {
+                                        selectedCardIndex = index
+                                    }
+                            }
                         }
+                        .padding(.horizontal)
+                        .padding(.top, 60)
+                        .padding(.bottom, 20)
                     }
-                    .padding(.horizontal)
-                    .padding(.top, 60)
-                    .padding(.bottom, 20)
                 }
             }
+            
+            // Loading overlay
+            if isLoading {
+                Color.black.opacity(0.3)
+                    .ignoresSafeArea()
+                    .transition(.opacity)
+                
+                ProgressView()
+                    .scaleEffect(1.5)
+                    .progressViewStyle(.circular)
+                    .tint(.white)
+            }
         }
+        .animation(.easeInOut(duration: 0.2), value: isLoading)
         .onChange(of: filters) { _, _ in
+            performSearch()
+        }
+        .onChange(of: searchConfig.displayMode) { _, _ in
+            performSearch()
+        }
+        .onChange(of: searchConfig.sortField) { _, _ in
+            performSearch()
+        }
+        .onChange(of: searchConfig.sortOrder) { _, _ in
             performSearch()
         }
         .task {
@@ -73,7 +103,10 @@ struct CardResultsView: View {
         
         Task {
             do {
-                results = try await service.search(filters: filters)
+                results = try await service.search(
+                    filters: filters,
+                    config: searchConfig
+                )
             } catch {
                 print("Search error: \(error)")
                 results = []
@@ -152,9 +185,10 @@ struct CardResultCell: View {
             SearchFilter("set", .equal, "7ED"),
             SearchFilter("manavalue", .greaterThanOrEqual, "4")
         ]
+        @State private var config = SearchConfiguration()
         
         var body: some View {
-            CardResultsView(filters: $filters)
+            CardResultsView(filters: $filters, searchConfig: $config)
         }
     }
     
