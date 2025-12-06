@@ -11,6 +11,7 @@ import WrappingHStack
 struct SearchBarView: View {
     @Binding var filters: [SearchFilter]
     @FocusState var isSearchFocused: Bool
+    let onFilterSetTap: () -> Void
     @State private var unparsedInputText: String = ""
     @State private var editingState: EditableItem?
 
@@ -20,9 +21,20 @@ struct SearchBarView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            if !filters.isEmpty {
-                HStack {
-                    Spacer()
+            HStack {
+                Button(action: onFilterSetTap) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "plus")
+                            .font(.subheadline)
+                        Text("Filter Set")
+                            .font(.subheadline)
+                    }
+                    .foregroundStyle(.blue)
+                }
+                
+                Spacer()
+                
+                if !filters.isEmpty {
                     Button(action: {
                         filters.removeAll()
                     }) {
@@ -31,8 +43,10 @@ struct SearchBarView: View {
                             .foregroundStyle(.red)
                     }
                 }
-                .padding(.horizontal, 16)
-                
+            }
+            .padding(.horizontal, 16)
+            
+            if !filters.isEmpty {
                 WrappingHStack(alignment: .leading, spacing: .constant(8), lineSpacing: 8) {
                     ForEach(Array(filters.enumerated()), id: \.offset) { index, filter in
                         SearchPillView(
@@ -141,7 +155,11 @@ struct SearchBarView: View {
         var body: some View {
             VStack {
                 Spacer()
-                SearchBarView(filters: $filters, isSearchFocused: _isFocused)
+                SearchBarView(
+                    filters: $filters,
+                    isSearchFocused: _isFocused,
+                    onFilterSetTap: { print("Filter set tapped") }
+                )
             }
         }
     }
