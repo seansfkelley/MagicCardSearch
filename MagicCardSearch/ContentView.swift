@@ -17,53 +17,63 @@ struct ContentView: View {
     @State private var pendingSearchConfig: SearchConfiguration?
     @FocusState private var isSearchFocused: Bool
     
+    private var hasActiveGlobalFilters: Bool {
+        globalFiltersSettings.isEnabled && !globalFiltersSettings.filters.isEmpty
+    }
+    
     var body: some View {
-        ZStack(alignment: .top) {
+        NavigationStack {
             CardResultsView(
                 filters: $filters,
                 searchConfig: $searchConfig,
                 globalFiltersSettings: globalFiltersSettings
             )
-            .simultaneousGesture(
-                TapGesture()
-                    .onEnded { _ in
-                        isSearchFocused = false
-                    }
-            )
-            .simultaneousGesture(
-                DragGesture(minimumDistance: 0)
-                    .onChanged { _ in
-                        isSearchFocused = false
-                    }
-            )
-            
-            if showTopBar {
-                TopBarView(
-                    onDisplayTap: { 
+            .safeAreaInset(edge: .bottom) {
+                SearchBarView(
+                    filters: $filters,
+                    isSearchFocused: _isSearchFocused,
+                    onFilterSetTap: { 
                         pendingSearchConfig = searchConfig
                         showDisplaySheet = true
-                    },
-                    onSettingsTap: { showSettingsSheet = true },
-                    badgeCount: searchConfig.nonDefaultCount
+                    }
                 )
-                .transition(.move(edge: .top).combined(with: .opacity))
             }
-        }
-        .safeAreaInset(edge: .bottom) {
-            SearchBarView(
-                filters: $filters,
-                isSearchFocused: _isSearchFocused,
-                onFilterSetTap: { 
-                    pendingSearchConfig = searchConfig
-                    showDisplaySheet = true
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        pendingSearchConfig = searchConfig
+                        showDisplaySheet = true
+                    } label: {
+                        Image(systemName: "arrow.up.arrow.down")
+                            .font(.title2)
+                            .badge(searchConfig.nonDefaultCount)
+                    }
                 }
-            )
+                
+                ToolbarItem(placement: .principal) {
+                    Image(systemName: "sparkles.rectangle.stack.fill")
+                        .font(.title)
+                        .foregroundStyle(.tint)
+                }
+                
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        showSettingsSheet = true
+                    } label: {
+                        Image(systemName: "gearshape.fill")
+                            .font(.title2)
+                            .badge(hasActiveGlobalFilters ? " " : nil)
+                    }
+                }
+            }
+            .toolbarBackground(.visible, for: .navigationBar)
+            .toolbarBackground(.ultraThinMaterial, for: .navigationBar)
         }
         .animation(.easeInOut(duration: 0.25), value: showTopBar)
         .sheet(isPresented: $showDisplaySheet, onDismiss: {
             if let pending = pendingSearchConfig, pending != searchConfig {
                 searchConfig = pending
-                searchConfig.save() // Persist changes
+                searchConfig.save()
             }
             pendingSearchConfig = nil
         }) {

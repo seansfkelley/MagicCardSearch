@@ -14,6 +14,7 @@ struct CardResultsView: View {
     @State private var results: [CardResult] = []
     @State private var isLoading = false
     @State private var selectedCardIndex: Int?
+    @State private var searchTask: Task<Void, Never>?
     
     private let service = CardSearchService()
     private let columns = [
@@ -95,8 +96,12 @@ struct CardResultsView: View {
     }
     
     private func performSearch() {
+        // Cancel any existing search
+        searchTask?.cancel()
+        
         guard !filters.isEmpty else {
             results = []
+            searchTask = nil
             return
         }
         
@@ -109,14 +114,17 @@ struct CardResultsView: View {
         }
         allFilters.append(contentsOf: filters)
         
-        Task {
+        searchTask = Task {
             do {
                 results = try await service.search(
                     filters: allFilters,
                     config: searchConfig
                 )
             } catch {
-                print("Search error: \(error)")
+                // Only print error if task wasn't cancelled
+                if !Task.isCancelled {
+                    print("Search error: \(error)")
+                }
                 results = []
             }
             isLoading = false
