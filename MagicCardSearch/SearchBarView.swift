@@ -21,6 +21,18 @@ struct SearchBarView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             if !filters.isEmpty {
+                HStack {
+                    Spacer()
+                    Button(action: {
+                        filters.removeAll()
+                    }) {
+                        Text("Clear All")
+                            .font(.subheadline)
+                            .foregroundStyle(.red)
+                    }
+                }
+                .padding(.horizontal, 16)
+                
                 WrappingHStack(alignment: .leading, spacing: .constant(8), lineSpacing: 8) {
                     ForEach(Array(filters.enumerated()), id: \.offset) { index, filter in
                         SearchPillView(
@@ -34,6 +46,7 @@ struct SearchBarView: View {
                         )
                     }
                 }
+                .padding(.horizontal, 16)
             }
 
             HStack(spacing: 12) {
@@ -52,9 +65,19 @@ struct SearchBarView: View {
                 .onSubmit {
                     createNewFilterFromSearch(fallbackToNameFilter: true)
                 }
+                
+                if !unparsedInputText.isEmpty {
+                    Button(action: {
+                        unparsedInputText = ""
+                    }) {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                }
             }
+            .padding(.horizontal, 16)
         }
-        .padding(.horizontal, 16)
         .padding(.vertical, 12)
         .background(.ultraThinMaterial)
         .onChange(of: unparsedInputText) { (previous: String, current: String) in
