@@ -64,12 +64,8 @@ struct EditPillSheet: View {
                 
                 Section {
                     Button(action: updateAndDismiss) {
-                        HStack {
-                            Spacer()
                             Text("Update")
                                 .fontWeight(.semibold)
-                            Spacer()
-                        }
                     }
                     .buttonStyle(.borderedProminent)
                     .listRowInsets(EdgeInsets())

@@ -10,14 +10,14 @@ import WrappingHStack
 
 struct SearchBarView: View {
     @Binding var filters: [SearchFilter]
-    @FocusState private var isFocused: Bool
+    @FocusState var isSearchFocused: Bool
     @State private var unparsedInputText: String = ""
     @State private var editingState: EditableItem?
-    
+
     struct EditableItem: Identifiable {
         var id: Int
     }
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             if !filters.isEmpty {
@@ -35,21 +35,23 @@ struct SearchBarView: View {
                     }
                 }
             }
-            
+
             HStack(spacing: 12) {
                 Image(systemName: "magnifyingglass")
                     .foregroundStyle(.secondary)
-                
-                TextField(filters.isEmpty ? "Search for cards..." : "Add filters...", text: $unparsedInputText)
-                    .textFieldStyle(.plain)
-                    .focused($isFocused)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled(true)
-                    .textContentType(.none)
-                    .keyboardType(.asciiCapable)
-                    .onSubmit {
-                        createNewFilterFromSearch(fallbackToNameFilter: true)
-                    }
+
+                TextField(
+                    filters.isEmpty ? "Search for cards..." : "Add filters...",
+                    text: $unparsedInputText
+                )
+                .textFieldStyle(.plain)
+                .focused($isSearchFocused)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled(true)
+                .textContentType(.none)
+                .onSubmit {
+                    createNewFilterFromSearch(fallbackToNameFilter: true)
+                }
             }
         }
         .padding(.horizontal, 16)
@@ -75,10 +77,10 @@ struct SearchBarView: View {
             .presentationDetents([.medium])
         }
     }
-    
+
     private func createNewFilterFromSearch(fallbackToNameFilter: Bool = false) {
         let trimmed = unparsedInputText.trimmingCharacters(in: .whitespaces)
-        
+
         if let filter = SearchFilter.from(trimmed) {
             filters.append(filter)
             unparsedInputText = ""
@@ -90,7 +92,7 @@ struct SearchBarView: View {
             }
         }
     }
-    
+
     private func stripMatchingQuotes(from string: String) -> String {
         if string.hasPrefix("\"") && string.hasSuffix("\"") && string.count >= 2 {
             return String(string.dropFirst().dropLast())
@@ -111,15 +113,15 @@ struct SearchBarView: View {
             SearchFilter("manavalue", .greaterThanOrEqual, "4"),
             SearchFilter("power", .greaterThan, "3"),
         ]
-        
+        @FocusState private var isFocused: Bool
+
         var body: some View {
             VStack {
                 Spacer()
-                SearchBarView(filters: $filters)
+                SearchBarView(filters: $filters, isSearchFocused: _isFocused)
             }
         }
     }
-    
+
     return PreviewWrapper()
 }
-

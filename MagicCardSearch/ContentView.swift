@@ -10,10 +10,14 @@ import SwiftUI
 struct ContentView: View {
     @State private var filters: [SearchFilter] = []
     @State private var showTopBar = true
+    @FocusState private var isSearchFocused: Bool
     
     var body: some View {
         ZStack(alignment: .top) {
-            CardResultsView(filters: $filters)
+            CardResultsView(
+                filters: $filters,
+                unfocusSearch: { isSearchFocused = false }
+            )
             
             if showTopBar {
                 TopBarView()
@@ -21,7 +25,7 @@ struct ContentView: View {
             }
         }
         .safeAreaInset(edge: .bottom) {
-            SearchBarView(filters: $filters)
+            SearchBarView(filters: $filters, isSearchFocused: _isSearchFocused)
         }
         .animation(.easeInOut(duration: 0.25), value: showTopBar)
     }

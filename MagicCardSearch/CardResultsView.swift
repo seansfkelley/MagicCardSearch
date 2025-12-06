@@ -9,6 +9,7 @@ import SwiftUI
 
 struct CardResultsView: View {
     @Binding var filters: [SearchFilter]
+    let unfocusSearch: () -> Void
     @State private var results: [CardResult] = []
     @State private var isLoading = false
     @State private var selectedCardIndex: Int?
@@ -44,6 +45,12 @@ struct CardResultsView: View {
                     .padding(.top, 60)
                     .padding(.bottom, 20)
                 }
+                .simultaneousGesture(
+                    DragGesture(minimumDistance: 10)
+                        .onChanged { _ in
+                            unfocusSearch()
+                        }
+                )
             }
         }
         .onChange(of: filters) { _, _ in
@@ -154,7 +161,7 @@ struct CardResultCell: View {
         ]
         
         var body: some View {
-            CardResultsView(filters: $filters)
+            CardResultsView(filters: $filters, unfocusSearch: {})
         }
     }
     
