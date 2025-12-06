@@ -13,24 +13,29 @@ struct ContentView: View {
     @State private var showDisplaySheet = false
     @State private var showSettingsSheet = false
     @State private var searchConfig = SearchConfiguration.load()
+    @State private var globalFiltersSettings = GlobalFiltersSettings.load()
     @State private var pendingSearchConfig: SearchConfiguration?
     @FocusState private var isSearchFocused: Bool
     
     var body: some View {
         ZStack(alignment: .top) {
-            CardResultsView(filters: $filters, searchConfig: $searchConfig)
-                .simultaneousGesture(
-                    TapGesture()
-                        .onEnded { _ in
-                            isSearchFocused = false
-                        }
-                )
-                .simultaneousGesture(
-                    DragGesture(minimumDistance: 0)
-                        .onChanged { _ in
-                            isSearchFocused = false
-                        }
-                )
+            CardResultsView(
+                filters: $filters,
+                searchConfig: $searchConfig,
+                globalFiltersSettings: globalFiltersSettings
+            )
+            .simultaneousGesture(
+                TapGesture()
+                    .onEnded { _ in
+                        isSearchFocused = false
+                    }
+            )
+            .simultaneousGesture(
+                DragGesture(minimumDistance: 0)
+                    .onChanged { _ in
+                        isSearchFocused = false
+                    }
+            )
             
             if showTopBar {
                 TopBarView(
@@ -69,7 +74,7 @@ struct ContentView: View {
             .presentationDetents([.medium])
         }
         .sheet(isPresented: $showSettingsSheet) {
-            SettingsSheetView()
+            SettingsSheetView(globalFiltersSettings: $globalFiltersSettings)
         }
     }
 }

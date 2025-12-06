@@ -3,7 +3,7 @@ internal enum Token {
     case term(String)
 }
 
-struct SearchFilter: Equatable {
+struct SearchFilter: Equatable, Codable {
     let key: String
     let comparison: Comparison
     let value: String
@@ -25,25 +25,17 @@ struct SearchFilter: Equatable {
     }
 }
 
-enum Comparison {
-    case including
-    case equal
-    case notEqual
-    case lessThan
-    case lessThanOrEqual
-    case greaterThan
-    case greaterThanOrEqual
+enum Comparison: String, Codable {
+    case including = ":"
+    case equal = "="
+    case notEqual = "!="
+    case lessThan = "<"
+    case lessThanOrEqual = "<="
+    case greaterThan = ">"
+    case greaterThanOrEqual = ">="
     
     var symbol: String {
-        return switch self {
-        case .including: ":"
-        case .equal: "="
-        case .notEqual: "!="
-        case .lessThan: "<"
-        case .lessThanOrEqual: "<="
-        case .greaterThan: ">"
-        case .greaterThanOrEqual: ">="
-        }
+        return self.rawValue
     }
 }
 

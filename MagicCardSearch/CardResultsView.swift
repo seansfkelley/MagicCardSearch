@@ -10,6 +10,7 @@ import SwiftUI
 struct CardResultsView: View {
     @Binding var filters: [SearchFilter]
     @Binding var searchConfig: SearchConfiguration
+    let globalFiltersSettings: GlobalFiltersSettings
     @State private var results: [CardResult] = []
     @State private var isLoading = false
     @State private var selectedCardIndex: Int?
@@ -101,10 +102,17 @@ struct CardResultsView: View {
         
         isLoading = true
         
+        // Combine global filters (if enabled) with user filters
+        var allFilters: [SearchFilter] = []
+        if globalFiltersSettings.isEnabled {
+            allFilters.append(contentsOf: globalFiltersSettings.filters)
+        }
+        allFilters.append(contentsOf: filters)
+        
         Task {
             do {
                 results = try await service.search(
-                    filters: filters,
+                    filters: allFilters,
                     config: searchConfig
                 )
             } catch {
@@ -188,7 +196,11 @@ struct CardResultCell: View {
         @State private var config = SearchConfiguration()
         
         var body: some View {
-            CardResultsView(filters: $filters, searchConfig: $config)
+            CardResultsView(
+                filters: $filters,
+                searchConfig: $config,
+                globalFiltersSettings: GlobalFiltersSettings()
+            )
         }
     }
     
