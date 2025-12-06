@@ -41,6 +41,10 @@ struct CardResultsView: View {
                     )
                 } else {
                     ScrollView {
+                        Text("\(results.count) \(results.count == 1 ? "result" : "results")")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .padding(.vertical, 20)
                         LazyVGrid(columns: columns, spacing: 16) {
                             ForEach(Array(results.enumerated()), id: \.element.id) { index, card in
                                 CardResultCell(card: card)
@@ -50,7 +54,6 @@ struct CardResultsView: View {
                             }
                         }
                         .padding(.horizontal)
-                        .padding(.top, 60)
                         .padding(.bottom, 20)
                     }
                 }

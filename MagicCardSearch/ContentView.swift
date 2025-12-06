@@ -9,7 +9,6 @@ import SwiftUI
 
 struct ContentView: View {
     @State private var filters: [SearchFilter] = []
-    @State private var showTopBar = true
     @State private var showDisplaySheet = false
     @State private var showSettingsSheet = false
     @State private var searchConfig = SearchConfiguration.load()
@@ -75,13 +74,12 @@ struct ContentView: View {
                         }
                     }
                     .labelStyle(.iconOnly)
-                    .badge(hasActiveGlobalFilters ? 1 : 0)
+                    .badge(hasActiveGlobalFilters ? " " : nil)
                 }
             }
             .toolbarBackground(.visible, for: .navigationBar)
             .toolbarBackground(.ultraThinMaterial, for: .navigationBar)
         }
-        .animation(.easeInOut(duration: 0.25), value: showTopBar)
         .sheet(isPresented: $showDisplaySheet, onDismiss: {
             if let pending = pendingSearchConfig, pending != searchConfig {
                 searchConfig = pending
