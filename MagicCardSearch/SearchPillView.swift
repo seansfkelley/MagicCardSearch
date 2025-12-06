@@ -17,7 +17,6 @@ struct SearchPillView: View {
     
     var body: some View {
         HStack(spacing: 0) {
-            // Main pill body
             HStack(spacing: 6) {
                 if !isRecognizedFilter {
                     Image(systemName: "exclamationmark.circle.fill")
@@ -35,7 +34,6 @@ struct SearchPillView: View {
             .background(isPressing ? Color.gray.opacity(0.3) : Color.clear)
             .contentShape(Rectangle())
             .onLongPressGesture(minimumDuration: .infinity, maximumDistance: .infinity) {
-                // Never completes
             } onPressingChanged: { pressing in
                 isPressing = pressing
                 if !pressing {
@@ -43,28 +41,20 @@ struct SearchPillView: View {
                 }
             }
             
-            // Divider
             Rectangle()
                 .fill(Color.gray.opacity(0.3))
                 .frame(width: 1)
                 .padding(.vertical, 6)
             
-            // Delete button (right side with semicircle)
-            Image(systemName: "xmark")
-                .font(.body)
-                .foregroundStyle(.secondary)
-                .frame(width: 36)
-                .frame(maxHeight: .infinity)
-                .background(isPressingDelete ? Color.gray.opacity(0.3) : Color.clear)
-                .contentShape(Rectangle())
-                .onLongPressGesture(minimumDuration: .infinity, maximumDistance: .infinity) {
-                    // Never completes
-                } onPressingChanged: { pressing in
-                    isPressingDelete = pressing
-                    if !pressing {
-                        onDelete()
-                    }
-                }
+            Button(action: onDelete) {
+                Image(systemName: "xmark")
+                    .font(.body)
+                    .foregroundStyle(.secondary)
+                    .frame(width: 36)
+                    .frame(maxHeight: .infinity)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
         }
         .fixedSize(horizontal: true, vertical: false)
         .frame(height: 40)

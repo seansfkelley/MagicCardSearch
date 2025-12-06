@@ -6,112 +6,45 @@
 //
 
 import SwiftUI
-import WrappingHStack
 
 struct SearchBarView: View {
     @Binding var filters: [SearchFilter]
+    @Binding var unparsedInputText: String
     @FocusState var isSearchFocused: Bool
-    let onFilterSetTap: () -> Void
-    @State private var unparsedInputText: String = ""
-    @State private var editingState: EditableItem?
-
-    struct EditableItem: Identifiable {
-        var id: Int
-    }
-
+    
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Button(action: onFilterSetTap) {
-                    HStack(spacing: 4) {
-                        Image(systemName: "plus")
-                            .font(.subheadline)
-                        Text("Filter Set")
-                            .font(.subheadline)
-                    }
-                    .foregroundStyle(.blue)
-                }
-                
-                Spacer()
-                
-                if !filters.isEmpty {
-                    Button(action: {
-                        filters.removeAll()
-                    }) {
-                        Text("Clear All")
-                            .font(.subheadline)
-                            .foregroundStyle(.red)
-                    }
-                }
+        HStack(spacing: 12) {
+            Image(systemName: "magnifyingglass")
+                .foregroundStyle(.secondary)
+
+            TextField(
+                filters.isEmpty ? "Search for cards..." : "Add filters...",
+                text: $unparsedInputText
+            )
+            .textFieldStyle(.plain)
+            .focused($isSearchFocused)
+            .textInputAutocapitalization(.never)
+            .autocorrectionDisabled(true)
+            .textContentType(.none)
+            .onSubmit {
+                createNewFilterFromSearch(fallbackToNameFilter: true)
             }
-            .padding(.horizontal, 16)
             
-            if !filters.isEmpty {
-                WrappingHStack(alignment: .leading, spacing: .constant(8), lineSpacing: 8) {
-                    ForEach(Array(filters.enumerated()), id: \.offset) { index, filter in
-                        SearchPillView(
-                            filter: filter,
-                            onTap: {
-                                editingState = EditableItem(id: index)
-                            },
-                            onDelete: {
-                                filters.remove(at: index)
-                            }
-                        )
-                    }
+            if !unparsedInputText.isEmpty {
+                Button(action: {
+                    unparsedInputText = ""
+                }) {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(.secondary)
                 }
-                .padding(.horizontal, 16)
+                .buttonStyle(.plain)
             }
-
-            HStack(spacing: 12) {
-                Image(systemName: "magnifyingglass")
-                    .foregroundStyle(.secondary)
-
-                TextField(
-                    filters.isEmpty ? "Search for cards..." : "Add filters...",
-                    text: $unparsedInputText
-                )
-                .textFieldStyle(.plain)
-                .focused($isSearchFocused)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled(true)
-                .textContentType(.none)
-                .onSubmit {
-                    createNewFilterFromSearch(fallbackToNameFilter: true)
-                }
-                
-                if !unparsedInputText.isEmpty {
-                    Button(action: {
-                        unparsedInputText = ""
-                    }) {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(.secondary)
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-            .padding(.horizontal, 16)
         }
-        .padding(.vertical, 12)
-        .background(.ultraThinMaterial)
+        .padding(.horizontal, 16)
         .onChange(of: unparsedInputText) { (previous: String, current: String) in
             if previous.count < current.count && current.hasSuffix(" ") {
                 createNewFilterFromSearch()
             }
-        }
-        .sheet(item: $editingState) { state in
-            EditPillSheet(
-                filter: filters[state.id],
-                onUpdate: { updatedFilter in
-                    filters[state.id] = updatedFilter
-                    editingState = nil
-                },
-                onDelete: {
-                    filters.remove(at: state.id)
-                    editingState = nil
-                }
-            )
-            .presentationDetents([.medium])
         }
     }
 
@@ -145,11 +78,8 @@ struct SearchBarView: View {
 
 #Preview {
     struct PreviewWrapper: View {
-        @State private var filters: [SearchFilter] = [
-            SearchFilter("set", .equal, "7ED"),
-            SearchFilter("manavalue", .greaterThanOrEqual, "4"),
-            SearchFilter("power", .greaterThan, "3"),
-        ]
+        @State private var filters: [SearchFilter] = []
+        @State private var text = ""
         @FocusState private var isFocused: Bool
 
         var body: some View {
@@ -157,9 +87,11 @@ struct SearchBarView: View {
                 Spacer()
                 SearchBarView(
                     filters: $filters,
-                    isSearchFocused: _isFocused,
-                    onFilterSetTap: { print("Filter set tapped") }
+                    unparsedInputText: $text,
+                    isSearchFocused: _isFocused
                 )
+                .padding(.vertical, 12)
+                .background(.ultraThinMaterial)
             }
         }
     }

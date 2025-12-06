@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct SettingsSheetView: View {
+struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @Binding var globalFiltersSettings: GlobalFiltersSettings
     @FocusState private var isFilterFocused: Bool

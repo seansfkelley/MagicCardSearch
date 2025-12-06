@@ -15,6 +15,7 @@ struct ContentView: View {
     @State private var searchConfig = SearchConfiguration.load()
     @State private var globalFiltersSettings = GlobalFiltersSettings.load()
     @State private var pendingSearchConfig: SearchConfiguration?
+    @State private var unparsedInputText: String = ""
     @FocusState private var isSearchFocused: Bool
     
     private var hasActiveGlobalFilters: Bool {
@@ -29,8 +30,9 @@ struct ContentView: View {
                 globalFiltersSettings: globalFiltersSettings
             )
             .safeAreaInset(edge: .bottom) {
-                SearchBarView(
+                SearchBarContainerView(
                     filters: $filters,
+                    unparsedInputText: $unparsedInputText,
                     isSearchFocused: _isSearchFocused,
                     onFilterSetTap: { 
                         pendingSearchConfig = searchConfig
@@ -44,10 +46,15 @@ struct ContentView: View {
                         pendingSearchConfig = searchConfig
                         showDisplaySheet = true
                     } label: {
-                        Image(systemName: "arrow.up.arrow.down")
-                            .font(.title2)
-                            .badge(searchConfig.nonDefaultCount)
+                        Label {
+                            Text("Sort & Display")
+                        } icon: {
+                            Image(systemName: "arrow.up.arrow.down")
+                                .font(.title2)
+                        }
                     }
+                    .labelStyle(.iconOnly)
+                    .badge(searchConfig.nonDefaultCount)
                 }
                 
                 ToolbarItem(placement: .principal) {
@@ -60,10 +67,15 @@ struct ContentView: View {
                     Button {
                         showSettingsSheet = true
                     } label: {
-                        Image(systemName: "gearshape.fill")
-                            .font(.title2)
-                            .badge(hasActiveGlobalFilters ? " " : nil)
+                        Label {
+                            Text("Settings")
+                        } icon: {
+                            Image(systemName: "gearshape.fill")
+                                .font(.title2)
+                        }
                     }
+                    .labelStyle(.iconOnly)
+                    .badge(hasActiveGlobalFilters ? 1 : 0)
                 }
             }
             .toolbarBackground(.visible, for: .navigationBar)
@@ -84,7 +96,7 @@ struct ContentView: View {
             .presentationDetents([.medium])
         }
         .sheet(isPresented: $showSettingsSheet) {
-            SettingsSheetView(globalFiltersSettings: $globalFiltersSettings)
+            SettingsView(globalFiltersSettings: $globalFiltersSettings)
         }
     }
 }
