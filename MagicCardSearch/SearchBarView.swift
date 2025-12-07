@@ -9,9 +9,10 @@ import SwiftUI
 
 struct SearchBarView: View {
     @Binding var filters: [SearchFilter]
-    @Binding var unparsedInputText: String
+    @Binding var inputText: String
+    @Binding var inputSelection: TextSelection?
+    
     @FocusState var isSearchFocused: Bool
-    @State private var textSelection: TextSelection?
     
     var body: some View {
         HStack(spacing: 12) {
@@ -20,8 +21,8 @@ struct SearchBarView: View {
 
             TextField(
                 filters.isEmpty ? "Search for cards..." : "Add filters...",
-                text: $unparsedInputText,
-                selection: $textSelection
+                text: $inputText,
+                selection: $inputSelection
             )
             .textFieldStyle(.plain)
             .focused($isSearchFocused)
@@ -31,15 +32,10 @@ struct SearchBarView: View {
             .onSubmit {
                 createNewFilterFromSearch(fallbackToNameFilter: true)
             }
-            .onChange(of: isSearchFocused) { oldValue, newValue in
-                if newValue && !unparsedInputText.isEmpty {
-                    textSelection = TextSelection(range: unparsedInputText.startIndex..<unparsedInputText.endIndex)
-                }
-            }
             
-            if !unparsedInputText.isEmpty {
+            if !inputText.isEmpty {
                 Button(action: {
-                    unparsedInputText = ""
+                    inputText = ""
                 }) {
                     Image(systemName: "xmark.circle.fill")
                         .foregroundStyle(.secondary)
@@ -48,7 +44,7 @@ struct SearchBarView: View {
             }
         }
         .padding(.horizontal, 16)
-        .onChange(of: unparsedInputText) { (previous: String, current: String) in
+        .onChange(of: inputText) { (previous: String, current: String) in
             if previous.count < current.count && current.hasSuffix(" ") {
                 createNewFilterFromSearch()
             }
@@ -56,16 +52,16 @@ struct SearchBarView: View {
     }
 
     private func createNewFilterFromSearch(fallbackToNameFilter: Bool = false) {
-        let trimmed = unparsedInputText.trimmingCharacters(in: .whitespaces)
+        let trimmed = inputText.trimmingCharacters(in: .whitespaces)
 
         if let filter = SearchFilter.tryParseKeyValue(trimmed) {
             filters.append(filter)
-            unparsedInputText = ""
+            inputText = ""
         } else if fallbackToNameFilter {
             let unquoted = stripMatchingQuotes(from: trimmed)
             if !unquoted.isEmpty {
                 filters.append(SearchFilter.name(unquoted))
-                unparsedInputText = ""
+                inputText = ""
             }
         }
     }
@@ -86,7 +82,8 @@ struct SearchBarView: View {
 #Preview {
     struct PreviewWrapper: View {
         @State private var filters: [SearchFilter] = []
-        @State private var text = ""
+        @State private var inputText = ""
+        @State private var inputSelection: TextSelection?
         @FocusState private var isFocused: Bool
 
         var body: some View {
@@ -94,8 +91,9 @@ struct SearchBarView: View {
                 Spacer()
                 SearchBarView(
                     filters: $filters,
-                    unparsedInputText: $text,
-                    isSearchFocused: _isFocused
+                    inputText: $inputText,
+                    inputSelection: $inputSelection,
+                    isSearchFocused: _isFocused,
                 )
                 .padding(.vertical, 12)
                 .background(.ultraThinMaterial)

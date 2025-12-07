@@ -7,13 +7,15 @@
 
 import SwiftUI
 
-struct SearchBarContainerView: View {
+struct BottomBarFilterView: View {
     @Binding var filters: [SearchFilter]
-    @Binding var unparsedInputText: String
     @FocusState var isSearchFocused: Bool
     let onFilterSetTap: () -> Void
+
+    @State private var inputText: String = ""
+    @State private var inputSelection: TextSelection?
     @State private var showFilterPopover = false
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
@@ -28,12 +30,18 @@ struct SearchBarContainerView: View {
                 }
             }
             .padding(.horizontal, 16)
-            
+
             if !filters.isEmpty {
                 ReflowingFilterPillsView(
                     filters: $filters,
-                    unparsedInputText: $unparsedInputText,
-                    isSearchFocused: _isSearchFocused
+                    onFilterEdit: { filter in
+                        let (prefix, highlightable, suffix) = filter.toResettableParts()
+                        // TODO: This is horrible. What is the right way to do this?
+                        let tmp = "\(prefix)\(highlightable)"
+                        inputText = "\(prefix)\(highlightable)\(suffix)"
+                        inputSelection = TextSelection(range: prefix.endIndex..<tmp.endIndex)
+                        isSearchFocused = true
+                    }
                 )
             }
 
@@ -48,11 +56,12 @@ struct SearchBarContainerView: View {
                     FilterQuickAddMenu()
                         .presentationCompactAdaptation(.popover)
                 }
-                
+
                 SearchBarView(
                     filters: $filters,
-                    unparsedInputText: $unparsedInputText,
-                    isSearchFocused: _isSearchFocused
+                    inputText: $inputText,
+                    inputSelection: $inputSelection,
+                    isSearchFocused: _isSearchFocused,
                 )
             }
         }
@@ -85,7 +94,7 @@ struct FilterQuickAddMenu: View {
 struct FilterQuickAddItem: View {
     let title: String
     let icon: String
-    
+
     var body: some View {
         Button(action: {
             print("Selected: \(title)")
@@ -121,9 +130,8 @@ struct FilterQuickAddItem: View {
         var body: some View {
             VStack {
                 Spacer()
-                SearchBarContainerView(
+                BottomBarFilterView(
                     filters: $filters,
-                    unparsedInputText: $text,
                     isSearchFocused: _isFocused,
                     onFilterSetTap: { print("Filter set tapped") }
                 )

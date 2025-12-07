@@ -10,8 +10,7 @@ import WrappingHStack
 
 struct ReflowingFilterPillsView: View {
     @Binding var filters: [SearchFilter]
-    @Binding var unparsedInputText: String
-    @FocusState var isSearchFocused: Bool
+    let onFilterEdit: (SearchFilter) -> Void
 
     var body: some View {
         WrappingHStack(
@@ -27,9 +26,8 @@ struct ReflowingFilterPillsView: View {
             FilterPillView(
                 filter: filter,
                 onTap: {
-                    unparsedInputText = filter.toIdiomaticString()
                     filters.remove(at: index)
-                    isSearchFocused = true
+                    onFilterEdit(filter)
                 },
                 onDelete: {
                     filters.remove(at: index)
@@ -49,15 +47,14 @@ struct ReflowingFilterPillsView: View {
             SearchFilter.keyValue("manavalue", .greaterThanOrEqual, "4"),
             SearchFilter.keyValue("power", .greaterThan, "3"),
         ]
-        @State private var text = ""
-        @FocusState private var isFocused: Bool
 
         var body: some View {
             VStack {
                 ReflowingFilterPillsView(
                     filters: $filters,
-                    unparsedInputText: $text,
-                    isSearchFocused: _isFocused
+                    onFilterEdit: { filter in
+                        print("Editing filter: \(filter.toIdiomaticString())")
+                    }
                 )
                 Spacer()
             }

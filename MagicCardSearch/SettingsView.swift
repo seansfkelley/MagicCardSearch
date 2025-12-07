@@ -10,7 +10,8 @@ import SwiftUI
 struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @Binding var globalFiltersSettings: GlobalFiltersSettings
-    @State private var unparsedInputText: String = ""
+    @State private var inputText: String = ""
+    @State private var inputSelection: TextSelection?
     @FocusState private var isFilterFocused: Bool
     
     var body: some View {
@@ -32,13 +33,16 @@ struct SettingsView: View {
                         if !globalFiltersSettings.filters.isEmpty {
                             ReflowingFilterPillsView(
                                 filters: $globalFiltersSettings.filters,
-                                unparsedInputText: $unparsedInputText
+                                onFilterEdit: { _ in
+                                    print("TODO")
+                                }
                             )
                         }
                         
                         SearchBarView(
                             filters: $globalFiltersSettings.filters,
-                            unparsedInputText: $unparsedInputText,
+                            inputText: $inputText,
+                            inputSelection: $inputSelection,
                             isSearchFocused: _isFilterFocused
                         )
                     }

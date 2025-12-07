@@ -14,7 +14,6 @@ struct ContentView: View {
     @State private var searchConfig = SearchConfiguration.load()
     @State private var globalFiltersSettings = GlobalFiltersSettings.load()
     @State private var pendingSearchConfig: SearchConfiguration?
-    @State private var unparsedInputText: String = ""
     @FocusState private var isSearchFocused: Bool
     
     private var hasActiveGlobalFilters: Bool {
@@ -30,9 +29,8 @@ struct ContentView: View {
             )
             .contentShape(Rectangle())
             .safeAreaInset(edge: .bottom) {
-                SearchBarContainerView(
+                BottomBarFilterView(
                     filters: $filters,
-                    unparsedInputText: $unparsedInputText,
                     isSearchFocused: _isSearchFocused,
                     onFilterSetTap: { 
                         pendingSearchConfig = searchConfig
