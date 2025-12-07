@@ -28,6 +28,7 @@ struct ContentView: View {
                 searchConfig: $searchConfig,
                 globalFiltersSettings: globalFiltersSettings
             )
+            .contentShape(Rectangle())
             .safeAreaInset(edge: .bottom) {
                 SearchBarContainerView(
                     filters: $filters,
@@ -77,8 +78,8 @@ struct ContentView: View {
                     .badge(hasActiveGlobalFilters ? " " : nil)
                 }
             }
-            .toolbarBackground(.visible, for: .navigationBar)
-            .toolbarBackground(.ultraThinMaterial, for: .navigationBar)
+            .toolbarBackground(.hidden, for: .navigationBar)
+            .navigationBarTitleDisplayMode(.inline)
         }
         .sheet(isPresented: $showDisplaySheet, onDismiss: {
             if let pending = pendingSearchConfig, pending != searchConfig {
