@@ -30,6 +30,13 @@ struct AutocompleteView: View {
                     )
                 }
                 .buttonStyle(.plain)
+                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                    Button(role: .destructive) {
+                        historyProvider.deleteFilter(suggestion.filterString)
+                    } label: {
+                        Label("Delete", systemImage: "trash")
+                    }
+                }
             }
         }
         .listStyle(.plain)

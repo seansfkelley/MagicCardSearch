@@ -68,6 +68,13 @@ class FilterHistoryProvider {
         return matches
     }
     
+    /// Deletes a filter from the history by its string representation
+    /// - Parameter filterString: The string representation of the filter to delete
+    func deleteFilter(_ filterString: String) {
+        history.removeAll { $0.filterString == filterString }
+        saveHistory()
+    }
+    
     // MARK: - Persistence
     
     private func saveHistory() {
