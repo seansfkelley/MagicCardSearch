@@ -22,10 +22,6 @@ struct ContentView: View {
         globalFiltersSettings.isEnabled && !globalFiltersSettings.filters.isEmpty
     }
     
-    private var shouldShowAutocomplete: Bool {
-        !inputText.trimmingCharacters(in: .whitespaces).isEmpty
-    }
-    
     var body: some View {
         NavigationStack {
             ZStack {
@@ -34,9 +30,9 @@ struct ContentView: View {
                     searchConfig: $searchConfig,
                     globalFiltersSettings: globalFiltersSettings
                 )
-                .opacity(shouldShowAutocomplete ? 0 : 1)
+                .opacity(isSearchFocused ? 0 : 1)
                 
-                if shouldShowAutocomplete {
+                if isSearchFocused {
                     AutocompleteView(
                         inputText: inputText,
                         historyProvider: historyProvider,
