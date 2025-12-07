@@ -30,7 +30,7 @@ struct SearchBarContainerView: View {
             .padding(.horizontal, 16)
             
             if !filters.isEmpty {
-                FilterPillsView(
+                ReflowingFilterPillsView(
                     filters: $filters,
                     unparsedInputText: $unparsedInputText,
                     isSearchFocused: _isSearchFocused

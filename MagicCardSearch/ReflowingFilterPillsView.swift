@@ -8,26 +8,33 @@
 import SwiftUI
 import WrappingHStack
 
-struct FilterPillsView: View {
+struct ReflowingFilterPillsView: View {
     @Binding var filters: [SearchFilter]
     @Binding var unparsedInputText: String
     @FocusState var isSearchFocused: Bool
-    
+
     var body: some View {
-        WrappingHStack(alignment: .leading, spacing: .constant(8), lineSpacing: 8) {
-            ForEach(Array(filters.enumerated()), id: \.offset) { index, filter in
-                SearchPillView(
-                    filter: filter,
-                    onTap: {
-                        unparsedInputText = filter.idiomaticString
-                        filters.remove(at: index)
-                        isSearchFocused = true
-                    },
-                    onDelete: {
-                        filters.remove(at: index)
-                    }
-                )
-            }
+        WrappingHStack(
+            // n.b. you can't use ForEach here as a limitation of the library, so pass the list of
+            // things to render to the stack.
+            filters.enumerated(),
+            // TODO: Does this need `id:` to prevent excessive rendering, or does Swift do value
+            // equality such that the enumerated pairs are considered equal?
+            alignment: .leading,
+            spacing: .constant(8),
+            lineSpacing: 8
+        ) { index, filter in
+            FilterPillView(
+                filter: filter,
+                onTap: {
+                    unparsedInputText = filter.toIdiomaticString()
+                    filters.remove(at: index)
+                    isSearchFocused = true
+                },
+                onDelete: {
+                    filters.remove(at: index)
+                }
+            )
         }
         .padding(.horizontal, 16)
     }
@@ -47,7 +54,7 @@ struct FilterPillsView: View {
 
         var body: some View {
             VStack {
-                FilterPillsView(
+                ReflowingFilterPillsView(
                     filters: $filters,
                     unparsedInputText: $text,
                     isSearchFocused: _isFocused

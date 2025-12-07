@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct SearchPillView: View {
+struct FilterPillView: View {
     let filter: SearchFilter
     let onTap: () -> Void
     let onDelete: () -> Void
@@ -22,7 +22,7 @@ struct SearchPillView: View {
                         .padding(12)
                 }
 
-                Text(filter.idiomaticString)
+                Text(filter.toIdiomaticString())
                     .font(.body)
                     .foregroundStyle(.primary)
                     .padding(.trailing, 12)

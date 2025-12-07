@@ -30,7 +30,7 @@ struct SettingsView: View {
                     
                     if globalFiltersSettings.isEnabled {
                         if !globalFiltersSettings.filters.isEmpty {
-                            FilterPillsView(
+                            ReflowingFilterPillsView(
                                 filters: $globalFiltersSettings.filters,
                                 unparsedInputText: $unparsedInputText
                             )

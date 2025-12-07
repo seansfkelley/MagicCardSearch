@@ -16,10 +16,22 @@ enum SearchFilter: Equatable, Codable {
         return try? parse(input)
     }
     
-    var idiomaticString: String {
+    func toResettableParts() -> (String, String, String) {
         return switch self {
-        case .name(let n): n
-        case .keyValue(let key, let comparison, let value): "\(key)\(comparison.symbol)\(doubleQuoteIfNecessary(value))"
+        case .name(let n):
+            n.contains(" ") ? ("\"", n, "\"") : ("", n, "")
+        case .keyValue(let key, let comparison, let value):
+            value.contains(" ") ? ("\(key)\(comparison.symbol)\"", value, "\"") : ("\(key)\(comparison.symbol)", value, "")
+        }
+    }
+    
+    // TODO: This and the previous method should be single-quote aware too, probably.
+    func toIdiomaticString() -> String {
+        return switch self {
+        case .name(let n):
+            n.contains(" ") ? "\"\(n)\"" : n
+        case .keyValue(let key, let comparison, let value):
+            value.contains(" ") ? "\(key)\(comparison.symbol)\"\(value)\"" : "\(key)\(comparison.symbol)\(value)"
         }
     }
 
