@@ -15,45 +15,39 @@ struct FilterPillView: View {
     var body: some View {
         HStack(spacing: 0) {
             Button(action: onTap) {
-                if !isRecognizedFilter {
-                    Image(systemName: "exclamationmark.circle.fill")
-                        .font(.body)
-                        .foregroundStyle(.red)
-                        .padding(12)
+                HStack(spacing: 6) {
+                    if !isRecognizedFilter {
+                        Image(systemName: "exclamationmark.circle.fill")
+                            .font(.callout)
+                            .foregroundStyle(.red)
+                    }
+                    
+                    Text(filter.toIdiomaticString())
+                        .font(.subheadline)
+                        .fontWeight(.medium)
                 }
-
-                Text(filter.toIdiomaticString())
-                    .font(.body)
-                    .foregroundStyle(.primary)
-                    .padding(.trailing, 12)
-                    .padding(.vertical, 10)
-                    .contentShape(Rectangle())
+                .padding(.leading, 12)
+                .padding(.trailing, 8)
+                .padding(.vertical, 8)
             }
             .buttonStyle(.plain)
-
-            Rectangle()
-                .fill(Color.gray.opacity(0.3))
-                .frame(width: 1)
-                .padding(.vertical, 6)
-
+            
+            Divider()
+                .frame(height: 20)
+            
             Button(action: onDelete) {
                 Image(systemName: "xmark")
-                    .font(.body)
+                    .font(.caption)
+                    .fontWeight(.semibold)
                     .foregroundStyle(.secondary)
-                    .frame(width: 36)
+                    .frame(width: 28)
                     .frame(maxHeight: .infinity)
-                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
         }
         .fixedSize(horizontal: true, vertical: false)
-        .frame(height: 40)
-        .background(Color.gray.opacity(0.2))
-        .clipShape(Capsule())
-        .overlay(
-            Capsule()
-                .strokeBorder(Color.gray.opacity(0.3), lineWidth: 1)
-        )
+        .frame(height: 32)
+        .glassEffect(.regular.interactive(), in: .capsule)
     }
     
     private var isRecognizedFilter: Bool {

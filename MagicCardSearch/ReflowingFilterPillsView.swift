@@ -13,28 +13,30 @@ struct ReflowingFilterPillsView: View {
     let onFilterEdit: (SearchFilter) -> Void
 
     var body: some View {
-        WrappingHStack(
-            // n.b. you can't use ForEach here as a limitation of the library, so pass the list of
-            // things to render to the stack.
-            filters.enumerated(),
-            // TODO: Does this need `id:` to prevent excessive rendering, or does Swift do value
-            // equality such that the enumerated pairs are considered equal?
-            alignment: .leading,
-            spacing: .constant(8),
-            lineSpacing: 8
-        ) { index, filter in
-            FilterPillView(
-                filter: filter,
-                onTap: {
-                    filters.remove(at: index)
-                    onFilterEdit(filter)
-                },
-                onDelete: {
-                    filters.remove(at: index)
-                }
-            )
+        GlassEffectContainer(spacing: 8) {
+            WrappingHStack(
+                // n.b. you can't use ForEach here as a limitation of the library, so pass the list of
+                // things to render to the stack.
+                filters.enumerated(),
+                // TODO: Does this need `id:` to prevent excessive rendering, or does Swift do value
+                // equality such that the enumerated pairs are considered equal?
+                alignment: .leading,
+                spacing: .constant(8),
+                lineSpacing: 8
+            ) { index, filter in
+                FilterPillView(
+                    filter: filter,
+                    onTap: {
+                        onFilterEdit(filter)
+                        filters.remove(at: index)
+                    },
+                    onDelete: {
+                        filters.remove(at: index)
+                    }
+                )
+            }
+            .padding(.horizontal, 16)
         }
-        .padding(.horizontal, 16)
     }
 }
 
