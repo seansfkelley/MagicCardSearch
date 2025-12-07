@@ -11,6 +11,7 @@ struct SearchBarView: View {
     @Binding var filters: [SearchFilter]
     @Binding var inputText: String
     @Binding var inputSelection: TextSelection?
+    let historyProvider: FilterHistoryProvider
     
     @FocusState var isSearchFocused: Bool
     
@@ -56,11 +57,14 @@ struct SearchBarView: View {
 
         if let filter = SearchFilter.tryParseKeyValue(trimmed) {
             filters.append(filter)
+            historyProvider.recordFilter(filter)
             inputText = ""
         } else if fallbackToNameFilter {
             let unquoted = stripMatchingQuotes(from: trimmed)
             if !unquoted.isEmpty {
-                filters.append(SearchFilter.name(unquoted))
+                let filter = SearchFilter.name(unquoted)
+                filters.append(filter)
+                historyProvider.recordFilter(filter)
                 inputText = ""
             }
         }
@@ -84,6 +88,7 @@ struct SearchBarView: View {
         @State private var filters: [SearchFilter] = []
         @State private var inputText = ""
         @State private var inputSelection: TextSelection?
+        @State private var historyProvider = FilterHistoryProvider()
         @FocusState private var isFocused: Bool
 
         var body: some View {
@@ -93,7 +98,8 @@ struct SearchBarView: View {
                     filters: $filters,
                     inputText: $inputText,
                     inputSelection: $inputSelection,
-                    isSearchFocused: _isFocused,
+                    historyProvider: historyProvider,
+                    isSearchFocused: _isFocused
                 )
                 .padding(.vertical, 12)
                 .background(.ultraThinMaterial)

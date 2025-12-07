@@ -15,6 +15,7 @@ struct ContentView: View {
     @State private var searchConfig = SearchConfiguration.load()
     @State private var globalFiltersSettings = GlobalFiltersSettings.load()
     @State private var pendingSearchConfig: SearchConfiguration?
+    @State private var historyProvider = FilterHistoryProvider()
     @FocusState private var isSearchFocused: Bool
     
     private var hasActiveGlobalFilters: Bool {
@@ -36,9 +37,13 @@ struct ContentView: View {
                 .opacity(shouldShowAutocomplete ? 0 : 1)
                 
                 if shouldShowAutocomplete {
-                    AutocompleteView(inputText: inputText) { suggestion in
-                        handleSuggestionTap(suggestion)
-                    }
+                    AutocompleteView(
+                        inputText: inputText,
+                        historyProvider: historyProvider,
+                        onSuggestionTap: { suggestion in
+                            handleSuggestionTap(suggestion)
+                        }
+                    )
                 }
             }
             .contentShape(Rectangle())
@@ -47,6 +52,7 @@ struct ContentView: View {
                     filters: $filters,
                     inputText: $inputText,
                     isSearchFocused: _isSearchFocused,
+                    historyProvider: historyProvider,
                     onFilterSetTap: { 
                         pendingSearchConfig = searchConfig
                         showDisplaySheet = true
@@ -118,11 +124,14 @@ struct ContentView: View {
         // Try to parse as a filter
         if let filter = SearchFilter.tryParseKeyValue(suggestion) {
             filters.append(filter)
+            historyProvider.recordFilter(filter)
         } else {
             // Fallback to name filter if parsing fails
             let unquoted = stripMatchingQuotes(from: suggestion)
             if !unquoted.isEmpty {
-                filters.append(SearchFilter.name(unquoted))
+                let filter = SearchFilter.name(unquoted)
+                filters.append(filter)
+                historyProvider.recordFilter(filter)
             }
         }
         

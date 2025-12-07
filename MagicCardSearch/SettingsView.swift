@@ -38,13 +38,6 @@ struct SettingsView: View {
                                 }
                             )
                         }
-                        
-                        SearchBarView(
-                            filters: $globalFiltersSettings.filters,
-                            inputText: $inputText,
-                            inputSelection: $inputSelection,
-                            isSearchFocused: _isFilterFocused
-                        )
                     }
                 }
             }

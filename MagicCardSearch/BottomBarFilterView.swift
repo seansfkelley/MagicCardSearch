@@ -11,6 +11,7 @@ struct BottomBarFilterView: View {
     @Binding var filters: [SearchFilter]
     @Binding var inputText: String
     @FocusState var isSearchFocused: Bool
+    let historyProvider: FilterHistoryProvider
     let onFilterSetTap: () -> Void
 
     @State private var inputSelection: TextSelection?
@@ -71,6 +72,7 @@ struct BottomBarFilterView: View {
                     filters: $filters,
                     inputText: $inputText,
                     inputSelection: $inputSelection,
+                    historyProvider: historyProvider,
                     isSearchFocused: _isSearchFocused,
                 )
             }
@@ -147,6 +149,7 @@ struct FilterQuickAddItem: View {
             SearchFilter.keyValue("power", .greaterThan, "3"),
         ]
         @State private var inputText = ""
+        @State private var historyProvider = FilterHistoryProvider()
         @FocusState private var isFocused: Bool
 
         var body: some View {
@@ -156,6 +159,7 @@ struct FilterQuickAddItem: View {
                     filters: $filters,
                     inputText: $inputText,
                     isSearchFocused: _isFocused,
+                    historyProvider: historyProvider,
                     onFilterSetTap: { print("Filter set tapped") }
                 )
             }

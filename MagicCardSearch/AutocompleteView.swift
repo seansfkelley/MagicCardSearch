@@ -9,14 +9,12 @@ import SwiftUI
 
 struct AutocompleteView: View {
     let inputText: String
+    let historyProvider: FilterHistoryProvider
     let onSuggestionTap: (String) -> Void
 
-    // Hardcoded suggestions for now
-    private let suggestions = [
-        "c<selesnya",
-        "mv>=10",
-        "set:mh5",
-    ]
+    private var suggestions: [String] {
+        historyProvider.searchHistory(prefix: inputText)
+    }
 
     var body: some View {
         List {
@@ -24,10 +22,14 @@ struct AutocompleteView: View {
                 Button {
                     onSuggestionTap(suggestion)
                 } label: {
-                    Image(systemName: "magnifyingglass")
-                        .foregroundStyle(.secondary)
-                    Text(suggestion)
-                        .foregroundStyle(.primary)
+                    HStack {
+                        Image(systemName: "magnifyingglass")
+                            .foregroundStyle(.secondary)
+                        Text(suggestion)
+                            .foregroundStyle(.primary)
+                        Spacer()
+                    }
+                    .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
             }
@@ -39,7 +41,16 @@ struct AutocompleteView: View {
 // MARK: - Preview
 
 #Preview {
-    AutocompleteView(inputText: "c") { suggestion in
+    let provider = FilterHistoryProvider()
+    // Add some sample filters to the provider
+    provider.recordFilter(SearchFilter.keyValue("c", .lessThan, "selesnya"))
+    provider.recordFilter(SearchFilter.keyValue("mv", .greaterThanOrEqual, "10"))
+    provider.recordFilter(SearchFilter.keyValue("set", .including, "mh5"))
+    
+    return AutocompleteView(
+        inputText: "c",
+        historyProvider: provider
+    ) { suggestion in
         print("Selected: \(suggestion)")
     }
 }
