@@ -15,6 +15,7 @@ struct BottomBarFilterView: View {
     @State private var inputText: String = ""
     @State private var inputSelection: TextSelection?
     @State private var showFilterPopover = false
+    @State private var pendingSelection: TextSelection?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -36,11 +37,20 @@ struct BottomBarFilterView: View {
                     filters: $filters,
                     onFilterEdit: { filter in
                         let (prefix, highlightable, suffix) = filter.toResettableParts()
+                        inputText = "\(prefix)\(highlightable)\(suffix)"
+                        
                         // TODO: This is horrible. What is the right way to do this?
                         let tmp = "\(prefix)\(highlightable)"
-                        inputText = "\(prefix)\(highlightable)\(suffix)"
-                        inputSelection = TextSelection(range: prefix.endIndex..<tmp.endIndex)
-                        isSearchFocused = true
+                        let selection = TextSelection(range: prefix.endIndex..<tmp.endIndex)
+
+                        // Unfortunate, but seems to be the only way that we can reliably focus the
+                        // text whether or not the text field is currently focused.
+                        if isSearchFocused {
+                            inputSelection = selection
+                        } else {
+                            pendingSelection = selection
+                            isSearchFocused = true
+                        }
                     }
                 )
             }
@@ -56,7 +66,7 @@ struct BottomBarFilterView: View {
                     FilterQuickAddMenu()
                         .presentationCompactAdaptation(.popover)
                 }
-
+                
                 SearchBarView(
                     filters: $filters,
                     inputText: $inputText,
@@ -67,6 +77,18 @@ struct BottomBarFilterView: View {
         }
         .padding(.vertical, 12)
         .background(.ultraThinMaterial)
+        .onChange(of: isSearchFocused, { _, _ in
+            if let s = pendingSelection {
+                inputSelection = s
+                pendingSelection = nil
+            }
+        })
+        .onChange(of: filters.count, { currentCount, previousCount in
+            // TODO: This doesn't work for some reason.
+            if currentCount < previousCount {
+                isSearchFocused = true
+            }
+        })
     }
 }
 
