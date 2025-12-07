@@ -9,10 +9,10 @@ import SwiftUI
 
 struct BottomBarFilterView: View {
     @Binding var filters: [SearchFilter]
+    @Binding var inputText: String
     @FocusState var isSearchFocused: Bool
     let onFilterSetTap: () -> Void
 
-    @State private var inputText: String = ""
     @State private var inputSelection: TextSelection?
     @State private var showFilterPopover = false
     @State private var pendingSelection: TextSelection?
@@ -146,7 +146,7 @@ struct FilterQuickAddItem: View {
             SearchFilter.keyValue("manavalue", .greaterThanOrEqual, "4"),
             SearchFilter.keyValue("power", .greaterThan, "3"),
         ]
-        @State private var text = ""
+        @State private var inputText = ""
         @FocusState private var isFocused: Bool
 
         var body: some View {
@@ -154,6 +154,7 @@ struct FilterQuickAddItem: View {
                 Spacer()
                 BottomBarFilterView(
                     filters: $filters,
+                    inputText: $inputText,
                     isSearchFocused: _isFocused,
                     onFilterSetTap: { print("Filter set tapped") }
                 )
