@@ -46,23 +46,26 @@ class FilterHistoryProvider {
         saveHistory()
     }
     
-    /// Searches history for filters matching the given prefix
-    /// - Parameter prefix: The prefix to search for. If empty/whitespace, returns the 10 most recent entries.
-    /// - Returns: Array of matching filter strings, ordered by recency
-    func searchHistory(prefix: String) -> [String] {
+    /// Searches history for filters matching the given search term
+    /// - Parameter prefix: The search term. If empty/whitespace, returns the 10 most recent entries.
+    /// - Returns: Array of tuples containing the filter string and the range of the match (if any)
+    func searchHistory(prefix: String) -> [(filterString: String, matchRange: Range<String.Index>?)] {
         let trimmedPrefix = prefix.trimmingCharacters(in: .whitespaces)
         
-        // If empty, return 10 most recent
+        // If empty, return 10 most recent with no match ranges
         if trimmedPrefix.isEmpty {
-            return Array(history.prefix(10).map { $0.filterString })
+            return Array(history.prefix(10).map { ($0.filterString, nil as Range<String.Index>?) })
         }
         
-        // Search for entries that begin with the prefix
-        let matches = history.filter { entry in
-            entry.filterString.hasPrefix(trimmedPrefix)
+        // Search for entries that contain the search term anywhere
+        let matches = history.compactMap { entry -> (String, Range<String.Index>?)? in
+            if let range = entry.filterString.range(of: trimmedPrefix, options: .caseInsensitive) {
+                return (entry.filterString, range)
+            }
+            return nil
         }
         
-        return matches.map { $0.filterString }
+        return matches
     }
     
     // MARK: - Persistence

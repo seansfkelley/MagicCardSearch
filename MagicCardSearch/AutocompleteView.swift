@@ -12,29 +12,68 @@ struct AutocompleteView: View {
     let historyProvider: FilterHistoryProvider
     let onSuggestionTap: (String) -> Void
 
-    private var suggestions: [String] {
+    private var suggestions: [(filterString: String, matchRange: Range<String.Index>?)] {
         historyProvider.searchHistory(prefix: inputText)
     }
 
     var body: some View {
         List {
-            ForEach(suggestions, id: \.self) { suggestion in
+            ForEach(suggestions, id: \.filterString) { suggestion in
                 Button {
-                    onSuggestionTap(suggestion)
+                    onSuggestionTap(suggestion.filterString)
                 } label: {
-                    HStack {
-                        Image(systemName: "magnifyingglass")
-                            .foregroundStyle(.secondary)
-                        Text(suggestion)
-                            .foregroundStyle(.primary)
-                        Spacer()
-                    }
-                    .contentShape(Rectangle())
+                    Image(systemName: "magnifyingglass")
+                        .foregroundStyle(.secondary)
+                    HighlightedText(
+                        text: suggestion.filterString,
+                        highlightRange: suggestion.matchRange
+                    )
                 }
                 .buttonStyle(.plain)
             }
         }
         .listStyle(.plain)
+    }
+}
+
+// MARK: - Highlighted Text View
+
+struct HighlightedText: View {
+    let text: String
+    let highlightRange: Range<String.Index>?
+
+    var body: some View {
+        if let range = highlightRange {
+            Text(buildAttributedString(text: text, highlightRange: range))
+                .foregroundStyle(.primary)
+        } else {
+            Text(text)
+                .foregroundStyle(.primary)
+        }
+    }
+
+    private func buildAttributedString(text: String, highlightRange: Range<String.Index>)
+        -> AttributedString
+    {
+        var attributedString = AttributedString(text)
+
+        // Convert String.Index range to AttributedString.Index range
+        let startOffset = text.distance(from: text.startIndex, to: highlightRange.lowerBound)
+        let endOffset = text.distance(from: text.startIndex, to: highlightRange.upperBound)
+
+        let attrStart = attributedString.index(
+            attributedString.startIndex,
+            offsetByCharacters: startOffset
+        )
+        let attrEnd = attributedString.index(
+            attributedString.startIndex,
+            offsetByCharacters: endOffset
+        )
+
+        let attrRange = attrStart..<attrEnd
+        attributedString[attrRange].font = .body.bold()
+
+        return attributedString
     }
 }
 
@@ -46,9 +85,10 @@ struct AutocompleteView: View {
     provider.recordFilter(SearchFilter.keyValue("c", .lessThan, "selesnya"))
     provider.recordFilter(SearchFilter.keyValue("mv", .greaterThanOrEqual, "10"))
     provider.recordFilter(SearchFilter.keyValue("set", .including, "mh5"))
-    
+    provider.recordFilter(SearchFilter.name("Lightning Bolt"))
+
     return AutocompleteView(
-        inputText: "c",
+        inputText: "set",
         historyProvider: provider
     ) { suggestion in
         print("Selected: \(suggestion)")
