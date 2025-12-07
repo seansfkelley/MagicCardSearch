@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct DisplaySortSheetView: View {
+struct DisplayOptionsView: View {
     @Environment(\.dismiss) private var dismiss
     @Binding var searchConfig: SearchConfiguration
     

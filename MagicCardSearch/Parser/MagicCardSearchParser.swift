@@ -3,25 +3,32 @@ internal enum Token {
     case term(String)
 }
 
-struct SearchFilter: Equatable, Codable {
-    let key: String
-    let comparison: Comparison
-    let value: String
-    
-    init(_ key: String, _ comparison: Comparison, _ value: String) {
-        self.key = key
-        self.comparison = comparison
-        self.value = value
-    }
-    
-    static func from(_ input: String) -> SearchFilter? {
+func doubleQuoteIfNecessary(_ string: String) -> String {
+    return string.contains(" ") ? "\"\(string)\"" : string
+}
+
+/// Quoting to preserve whitespace not required; any quotes present will be assumed to be part of the term to search for.
+enum SearchFilter: Equatable, Codable {
+    case name(String)
+    case keyValue(String, Comparison, String)
+
+    static func tryParseKeyValue(_ input: String) -> SearchFilter? {
         return try? parse(input)
     }
     
-    func toScryfallString() -> String {
-        let needsQuotes = value.contains(" ")
-        let quotedValue = needsQuotes ? "\"\(value)\"" : value
-        return "\(key)\(comparison.symbol)\(quotedValue)"
+    var idiomaticString: String {
+        return switch self {
+        case .name(let n): n
+        case .keyValue(let key, let comparison, let value): "\(key)\(comparison.symbol)\(doubleQuoteIfNecessary(value))"
+        }
+    }
+
+    func toScryfallQueryString() -> String {
+        // TODO: Is this all the right syntax? Does name need a `name:`; do we need to quote?
+        return switch self {
+        case .name(let n): n
+        case .keyValue(let key, let comparison, let value): "\(key)\(comparison.symbol)\(value)"
+        }
     }
 }
 
@@ -33,13 +40,15 @@ enum Comparison: String, Codable {
     case lessThanOrEqual = "<="
     case greaterThan = ">"
     case greaterThanOrEqual = ">="
-    
+
     var symbol: String {
         return self.rawValue
     }
 }
 
-typealias LexedTokenData = (MagicCardSearchGrammar.CitronToken, MagicCardSearchGrammar.CitronTokenCode)
+typealias LexedTokenData = (
+    MagicCardSearchGrammar.CitronToken, MagicCardSearchGrammar.CitronTokenCode
+)
 
 internal func parseTerm(_ input: String) -> LexedTokenData? {
     return (.term(input), .Term)
@@ -60,7 +69,7 @@ private let lexer = CitronLexer<LexedTokenData>(rules: [
     .string("'", (.void, .SingleQuote)),
     .string("\"", (.void, .DoubleQuote)),
     .regexPattern("[^'\" =><!:]+", parseTerm),
-    .regexPattern("\\s+", parseWhitespace)
+    .regexPattern("\\s+", parseWhitespace),
 ])
 
 private func parse(_ input: String) throws -> SearchFilter {

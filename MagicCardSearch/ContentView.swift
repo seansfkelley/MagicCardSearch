@@ -87,7 +87,7 @@ struct ContentView: View {
             }
             pendingSearchConfig = nil
         }) {
-            DisplaySortSheetView(searchConfig: Binding(
+            DisplayOptionsView(searchConfig: Binding(
                 get: { pendingSearchConfig ?? searchConfig },
                 set: { pendingSearchConfig = $0 }
             ))

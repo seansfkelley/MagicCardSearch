@@ -22,7 +22,7 @@ struct SearchPillView: View {
                         .padding(12)
                 }
 
-                Text(displayText)
+                Text(filter.idiomaticString)
                     .font(.body)
                     .foregroundStyle(.primary)
                     .padding(.trailing, 12)
@@ -48,23 +48,18 @@ struct SearchPillView: View {
         }
         .fixedSize(horizontal: true, vertical: false)
         .frame(height: 40)
-        .background(pillColor)
+        .background(Color.gray.opacity(0.2))
         .clipShape(Capsule())
         .overlay(
             Capsule()
                 .strokeBorder(Color.gray.opacity(0.3), lineWidth: 1)
         )
     }
-
-    private var displayText: String {
-        return "\(filter.key)\(filter.comparison.symbol)\(filter.value)"
-    }
-
-    private var pillColor: Color {
-        return Color.gray.opacity(0.2)
-    }
-
+    
     private var isRecognizedFilter: Bool {
-        return configurationForKey(filter.key) != nil
+        return switch (filter) {
+        case .name: true
+        case .keyValue(let key, _, _): configurationForKey(key) != nil
+        }
     }
 }

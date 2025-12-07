@@ -239,7 +239,7 @@ class MagicCardSearchGrammar: CitronParser {
             func codeBlockForRule00(k: String, c: Comparison, v: String) throws -> SearchFilter {
 #sourceLocation(file: "MagicCardSearch/Parser/MagicCardSearchGrammar.y", line: 6)
 
-    return SearchFilter(k, c, v)
+    return SearchFilter.keyValue(k, c, v)
 
 #sourceLocation()
 }
@@ -252,7 +252,7 @@ class MagicCardSearchGrammar: CitronParser {
             func codeBlockForRule01(k: String, c: Comparison, v: String) throws -> SearchFilter {
 #sourceLocation(file: "MagicCardSearch/Parser/MagicCardSearchGrammar.y", line: 9)
 
-    return SearchFilter(k, c, v)
+    return SearchFilter.keyValue(k, c, v)
 
 #sourceLocation()
 }
@@ -265,7 +265,7 @@ class MagicCardSearchGrammar: CitronParser {
             func codeBlockForRule02(k: String, c: Comparison, v: String) throws -> SearchFilter {
 #sourceLocation(file: "MagicCardSearch/Parser/MagicCardSearchGrammar.y", line: 12)
 
-    return SearchFilter(k, c, v)
+    return SearchFilter.keyValue(k, c, v)
 
 #sourceLocation()
 }
@@ -278,7 +278,7 @@ class MagicCardSearchGrammar: CitronParser {
             func codeBlockForRule03(v: String) throws -> SearchFilter {
 #sourceLocation(file: "MagicCardSearch/Parser/MagicCardSearchGrammar.y", line: 15)
 
-    return SearchFilter("name", .equal, v)
+    return SearchFilter.name(v)
 
 #sourceLocation()
 }
@@ -289,7 +289,7 @@ class MagicCardSearchGrammar: CitronParser {
             func codeBlockForRule04(v: String) throws -> SearchFilter {
 #sourceLocation(file: "MagicCardSearch/Parser/MagicCardSearchGrammar.y", line: 18)
 
-    return SearchFilter("name", .equal, v)
+    return SearchFilter.name(v)
 
 #sourceLocation()
 }

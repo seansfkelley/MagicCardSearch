@@ -19,11 +19,8 @@ struct FilterPillsView: View {
                 SearchPillView(
                     filter: filter,
                     onTap: {
-                        // Replace text field content with filter text
-                        unparsedInputText = "\(filter.key)\(filter.comparison.symbol)\(filter.value)"
-                        // Remove the filter
+                        unparsedInputText = filter.idiomaticString
                         filters.remove(at: index)
-                        // Focus and select all text
                         isSearchFocused = true
                     },
                     onDelete: {
@@ -41,9 +38,9 @@ struct FilterPillsView: View {
 #Preview {
     struct PreviewWrapper: View {
         @State private var filters: [SearchFilter] = [
-            SearchFilter("set", .equal, "7ED"),
-            SearchFilter("manavalue", .greaterThanOrEqual, "4"),
-            SearchFilter("power", .greaterThan, "3"),
+            SearchFilter.keyValue("set", .equal, "7ED"),
+            SearchFilter.keyValue("manavalue", .greaterThanOrEqual, "4"),
+            SearchFilter.keyValue("power", .greaterThan, "3"),
         ]
         @State private var text = ""
         @FocusState private var isFocused: Bool

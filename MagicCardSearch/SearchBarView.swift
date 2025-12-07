@@ -58,13 +58,13 @@ struct SearchBarView: View {
     private func createNewFilterFromSearch(fallbackToNameFilter: Bool = false) {
         let trimmed = unparsedInputText.trimmingCharacters(in: .whitespaces)
 
-        if let filter = SearchFilter.from(trimmed) {
+        if let filter = SearchFilter.tryParseKeyValue(trimmed) {
             filters.append(filter)
             unparsedInputText = ""
         } else if fallbackToNameFilter {
             let unquoted = stripMatchingQuotes(from: trimmed)
             if !unquoted.isEmpty {
-                filters.append(SearchFilter("name", .equal, unquoted))
+                filters.append(SearchFilter.name(unquoted))
                 unparsedInputText = ""
             }
         }

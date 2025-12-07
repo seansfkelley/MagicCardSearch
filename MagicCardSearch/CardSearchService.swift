@@ -13,7 +13,7 @@ class CardSearchService {
     
     func search(filters: [SearchFilter], config: SearchConfiguration) async throws -> [CardResult] {
         // Build the search query from filters
-        let queryString = filters.map { $0.toScryfallString() }.joined(separator: " ")
+        let queryString = filters.map { $0.toScryfallQueryString() }.joined(separator: " ")
         
         guard !queryString.isEmpty else {
             return []

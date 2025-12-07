@@ -4,19 +4,19 @@
 
 %nonterminal_type filter SearchFilter
 filter ::= term(k) comparison(c) term(v). {
-    return SearchFilter(k, c, v)
+    return SearchFilter.keyValue(k, c, v)
 }
 filter ::= term(k) comparison(c) SingleQuote terms_double_quote(v) SingleQuote. {
-    return SearchFilter(k, c, v)
+    return SearchFilter.keyValue(k, c, v)
 }
 filter ::= term(k) comparison(c) DoubleQuote terms_single_quote(v) DoubleQuote. {
-    return SearchFilter(k, c, v)
+    return SearchFilter.keyValue(k, c, v)
 }
 filter ::= SingleQuote terms_double_quote(v) SingleQuote. {
-    return SearchFilter("name", .equal, v)
+    return SearchFilter.name(v)
 }
 filter ::= DoubleQuote terms_single_quote(v) DoubleQuote. {
-    return SearchFilter("name", .equal, v)
+    return SearchFilter.name(v)
 }
 
 %nonterminal_type terms_single_quote String
