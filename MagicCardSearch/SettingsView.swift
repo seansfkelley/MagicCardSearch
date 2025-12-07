@@ -30,7 +30,10 @@ struct SettingsView: View {
                     
                     if globalFiltersSettings.isEnabled {
                         if !globalFiltersSettings.filters.isEmpty {
-                            FilterPillsView(filters: $globalFiltersSettings.filters)
+                            FilterPillsView(
+                                filters: $globalFiltersSettings.filters,
+                                unparsedInputText: $unparsedInputText
+                            )
                         }
                         
                         SearchBarView(

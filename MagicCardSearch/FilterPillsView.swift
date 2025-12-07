@@ -10,11 +10,8 @@ import WrappingHStack
 
 struct FilterPillsView: View {
     @Binding var filters: [SearchFilter]
-    @State private var editingState: EditableItem?
-    
-    struct EditableItem: Identifiable {
-        var id: Int
-    }
+    @Binding var unparsedInputText: String
+    @FocusState var isSearchFocused: Bool
     
     var body: some View {
         WrappingHStack(alignment: .leading, spacing: .constant(8), lineSpacing: 8) {
@@ -22,7 +19,12 @@ struct FilterPillsView: View {
                 SearchPillView(
                     filter: filter,
                     onTap: {
-                        editingState = EditableItem(id: index)
+                        // Replace text field content with filter text
+                        unparsedInputText = "\(filter.key)\(filter.comparison.symbol)\(filter.value)"
+                        // Remove the filter
+                        filters.remove(at: index)
+                        // Focus and select all text
+                        isSearchFocused = true
                     },
                     onDelete: {
                         filters.remove(at: index)
@@ -31,20 +33,6 @@ struct FilterPillsView: View {
             }
         }
         .padding(.horizontal, 16)
-        .sheet(item: $editingState) { state in
-            EditPillSheet(
-                filter: filters[state.id],
-                onUpdate: { updatedFilter in
-                    filters[state.id] = updatedFilter
-                    editingState = nil
-                },
-                onDelete: {
-                    filters.remove(at: state.id)
-                    editingState = nil
-                }
-            )
-            .presentationDetents([.medium])
-        }
     }
 }
 
@@ -57,10 +45,16 @@ struct FilterPillsView: View {
             SearchFilter("manavalue", .greaterThanOrEqual, "4"),
             SearchFilter("power", .greaterThan, "3"),
         ]
+        @State private var text = ""
+        @FocusState private var isFocused: Bool
 
         var body: some View {
             VStack {
-                FilterPillsView(filters: $filters)
+                FilterPillsView(
+                    filters: $filters,
+                    unparsedInputText: $text,
+                    isSearchFocused: _isFocused
+                )
                 Spacer()
             }
         }

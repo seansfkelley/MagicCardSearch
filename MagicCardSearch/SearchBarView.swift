@@ -11,6 +11,7 @@ struct SearchBarView: View {
     @Binding var filters: [SearchFilter]
     @Binding var unparsedInputText: String
     @FocusState var isSearchFocused: Bool
+    @State private var textSelection: TextSelection?
     
     var body: some View {
         HStack(spacing: 12) {
@@ -19,7 +20,8 @@ struct SearchBarView: View {
 
             TextField(
                 filters.isEmpty ? "Search for cards..." : "Add filters...",
-                text: $unparsedInputText
+                text: $unparsedInputText,
+                selection: $textSelection
             )
             .textFieldStyle(.plain)
             .focused($isSearchFocused)
@@ -28,6 +30,11 @@ struct SearchBarView: View {
             .textContentType(.none)
             .onSubmit {
                 createNewFilterFromSearch(fallbackToNameFilter: true)
+            }
+            .onChange(of: isSearchFocused) { oldValue, newValue in
+                if newValue && !unparsedInputText.isEmpty {
+                    textSelection = TextSelection(range: unparsedInputText.startIndex..<unparsedInputText.endIndex)
+                }
             }
             
             if !unparsedInputText.isEmpty {
