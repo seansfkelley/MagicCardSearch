@@ -30,10 +30,28 @@ struct AutocompleteView: View {
                             highlightRange: suggestion.matchRange
                         )
                         Spacer(minLength: 0)
+                        
+                        if historyProvider.isPinned(suggestion.filterString) {
+                            Image(systemName: "pin.fill")
+                                .foregroundStyle(.secondary)
+                                .font(.caption)
+                        }
                     }
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                    Button {
+                        historyProvider.togglePin(suggestion.filterString)
+                    } label: {
+                        if historyProvider.isPinned(suggestion.filterString) {
+                            Label("Unpin", systemImage: "pin.slash")
+                        } else {
+                            Label("Pin", systemImage: "pin")
+                        }
+                    }
+                    .tint(.orange)
+                }
                 .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                     Button(role: .destructive) {
                         historyProvider.deleteFilter(suggestion.filterString)

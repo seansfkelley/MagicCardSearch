@@ -27,6 +27,9 @@ class FilterHistoryProvider {
     func recordFilter(_ filter: SearchFilter) {
         let filterString = filter.toQueryStringWithEditingRange().0
         
+        // Check if this filter already exists to preserve its pinned state
+        let wasPinned = history.first(where: { $0.filterString == filterString })?.isPinned ?? false
+        
         // Remove any existing entry with the same string representation
         history.removeAll { $0.filterString == filterString }
         
@@ -34,7 +37,8 @@ class FilterHistoryProvider {
         let entry = FilterHistoryEntry(
             filterString: filterString,
             filter: filter,
-            timestamp: Date()
+            timestamp: Date(),
+            isPinned: wasPinned
         )
         history.insert(entry, at: 0)
         
@@ -54,18 +58,86 @@ class FilterHistoryProvider {
         
         // If empty, return 10 most recent with no match ranges
         if trimmedPrefix.isEmpty {
-            return Array(history.prefix(10).map { ($0.filterString, nil as Range<String.Index>?) })
+            let results = history.prefix(10).map { ($0.filterString, nil as Range<String.Index>?) }
+            return sortByPinned(results)
         }
         
-        // Search for entries that contain the search term anywhere
+        // Search for entries that contain the search term anywhere, but exclude exact matches
         let matches = history.compactMap { entry -> (String, Range<String.Index>?)? in
+            // Exclude exact matches (case-insensitive comparison)
+            if entry.filterString.caseInsensitiveCompare(trimmedPrefix) == .orderedSame {
+                return nil
+            }
+            
             if let range = entry.filterString.range(of: trimmedPrefix, options: .caseInsensitive) {
                 return (entry.filterString, range)
             }
             return nil
         }
         
-        return matches
+        return sortByPinned(matches)
+    }
+    
+    /// Pins a filter to the top of search results
+    /// - Parameter filterString: The string representation of the filter to pin
+    func pinFilter(_ filterString: String) {
+        if let index = history.firstIndex(where: { $0.filterString == filterString }) {
+            history[index].isPinned = true
+            saveHistory()
+        }
+    }
+    
+    /// Unpins a filter
+    /// - Parameter filterString: The string representation of the filter to unpin
+    func unpinFilter(_ filterString: String) {
+        if let index = history.firstIndex(where: { $0.filterString == filterString }) {
+            history[index].isPinned = false
+            saveHistory()
+        }
+    }
+    
+    /// Checks if a filter is pinned
+    /// - Parameter filterString: The string representation of the filter to check
+    /// - Returns: Whether the filter is pinned
+    func isPinned(_ filterString: String) -> Bool {
+        history.first(where: { $0.filterString == filterString })?.isPinned ?? false
+    }
+    
+    /// Toggles the pinned state of a filter
+    /// - Parameter filterString: The string representation of the filter to toggle
+    func togglePin(_ filterString: String) {
+        if isPinned(filterString) {
+            unpinFilter(filterString)
+        } else {
+            pinFilter(filterString)
+        }
+    }
+    
+    // MARK: - Private Helpers
+    
+    /// Sorts results by pinned status first, then by recency
+    private func sortByPinned(_ results: [(filterString: String, matchRange: Range<String.Index>?)]) -> [(filterString: String, matchRange: Range<String.Index>?)] {
+        return results.sorted { lhs, rhs in
+            let lhsEntry = history.first(where: { $0.filterString == lhs.filterString })
+            let rhsEntry = history.first(where: { $0.filterString == rhs.filterString })
+            
+            let lhsPinned = lhsEntry?.isPinned ?? false
+            let rhsPinned = rhsEntry?.isPinned ?? false
+            
+            if lhsPinned != rhsPinned {
+                // Pinned items come first
+                return lhsPinned
+            }
+            
+            // If both pinned or both unpinned, maintain original order (which is already by recency)
+            // To maintain recency order, we need to find their indices
+            guard let lhsIndex = history.firstIndex(where: { $0.filterString == lhs.filterString }),
+                  let rhsIndex = history.firstIndex(where: { $0.filterString == rhs.filterString }) else {
+                return false
+            }
+            
+            return lhsIndex < rhsIndex
+        }
     }
     
     /// Deletes a filter from the history by its string representation
@@ -110,4 +182,5 @@ private struct FilterHistoryEntry: Codable {
     let filterString: String
     let filter: SearchFilter
     let timestamp: Date
+    var isPinned: Bool
 }
