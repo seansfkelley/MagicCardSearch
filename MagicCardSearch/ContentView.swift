@@ -38,6 +38,7 @@ struct ContentView: View {
                     AutocompleteView(
                         inputText: inputText,
                         historyProvider: historyProvider,
+                        filters: filters,
                         onSuggestionTap: { suggestion in
                             handleSuggestionTap(suggestion)
                         }
@@ -137,7 +138,7 @@ struct ContentView: View {
     // MARK: - Helper Methods
     
     private func handleFilterEdit(_ filter: SearchFilter) {
-        let (filterString, range) = filter.toQueryStringWithEditingRange()
+        let (filterString, range) = filter.queryStringWithEditingRange
         inputText = filterString
         let selection = TextSelection(range: range)
         

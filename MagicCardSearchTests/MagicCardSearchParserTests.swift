@@ -33,6 +33,6 @@ struct SearchFilterTests {
             String.Index.init(encodedOffset: editableRange.lowerBound)
             ..<
             String.Index.init(encodedOffset: editableRange.upperBound)
-        #expect(filter.toQueryStringWithEditingRange() == (string, indexRange))
+        #expect(filter.queryStringWithEditingRange() == (string, indexRange))
     }
 }

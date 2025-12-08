@@ -22,7 +22,7 @@ struct FilterPillView: View {
                             .foregroundStyle(.red)
                     }
                     
-                    Text(filter.toQueryStringWithEditingRange().0)
+                    Text(filter.queryStringWithEditingRange.0)
                         .font(.subheadline)
                         .fontWeight(.medium)
                 }

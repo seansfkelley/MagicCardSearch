@@ -25,7 +25,7 @@ class FilterHistoryProvider {
     
     /// Records a filter in the history, updating its timestamp if it already exists
     func recordFilter(_ filter: SearchFilter) {
-        let filterString = filter.toQueryStringWithEditingRange().0
+        let filterString = filter.queryStringWithEditingRange.0
         
         // Check if this filter already exists to preserve its pinned state
         let wasPinned = history.first(where: { $0.filterString == filterString })?.isPinned ?? false
@@ -51,31 +51,33 @@ class FilterHistoryProvider {
     }
     
     /// Searches history for filters matching the given search term
-    /// - Parameter prefix: The search term. If empty/whitespace, returns the 10 most recent entries.
+    /// - Parameters:
+    ///   - prefix: The search term. If empty/whitespace, returns the 10 most recent entries.
+    ///   - excludeFilters: Set of filter strings that are currently active (shown as pills) and should be excluded
     /// - Returns: Array of tuples containing the filter string and the range of the match (if any)
-    func searchHistory(prefix: String) -> [(filterString: String, matchRange: Range<String.Index>?)] {
+    func searchHistory(prefix: String, excludeFilters: [SearchFilter] = []) -> [(filterString: String, matchRange: Range<String.Index>?)] {
         let trimmedPrefix = prefix.trimmingCharacters(in: .whitespaces)
+        
+        let excludedFilterStrings = Set(excludeFilters.map(\.queryStringWithEditingRange.0))
+        
+        // Filter out entries that are currently active as pills
+        let availableHistory = history.filter { !excludedFilterStrings.contains($0.filterString) }
         
         // If empty, return 10 most recent with no match ranges
         if trimmedPrefix.isEmpty {
-            let results = history.prefix(10).map { ($0.filterString, nil as Range<String.Index>?) }
-            return sortByPinned(results)
+            let results = availableHistory.prefix(10).map { ($0.filterString, nil as Range<String.Index>?) }
+            return sortByPinned(results, from: availableHistory)
         }
         
-        // Search for entries that contain the search term anywhere, but exclude exact matches
-        let matches = history.compactMap { entry -> (String, Range<String.Index>?)? in
-            // Exclude exact matches (case-insensitive comparison)
-            if entry.filterString.caseInsensitiveCompare(trimmedPrefix) == .orderedSame {
-                return nil
-            }
-            
+        // Search for entries that contain the search term anywhere (including exact matches)
+        let matches = availableHistory.compactMap { entry -> (String, Range<String.Index>?)? in
             if let range = entry.filterString.range(of: trimmedPrefix, options: .caseInsensitive) {
                 return (entry.filterString, range)
             }
             return nil
         }
         
-        return sortByPinned(matches)
+        return sortByPinned(matches, from: availableHistory)
     }
     
     /// Pins a filter to the top of search results
@@ -116,10 +118,10 @@ class FilterHistoryProvider {
     // MARK: - Private Helpers
     
     /// Sorts results by pinned status first, then by recency
-    private func sortByPinned(_ results: [(filterString: String, matchRange: Range<String.Index>?)]) -> [(filterString: String, matchRange: Range<String.Index>?)] {
+    private func sortByPinned(_ results: [(filterString: String, matchRange: Range<String.Index>?)], from historySubset: [FilterHistoryEntry]) -> [(filterString: String, matchRange: Range<String.Index>?)] {
         return results.sorted { lhs, rhs in
-            let lhsEntry = history.first(where: { $0.filterString == lhs.filterString })
-            let rhsEntry = history.first(where: { $0.filterString == rhs.filterString })
+            let lhsEntry = historySubset.first(where: { $0.filterString == lhs.filterString })
+            let rhsEntry = historySubset.first(where: { $0.filterString == rhs.filterString })
             
             let lhsPinned = lhsEntry?.isPinned ?? false
             let rhsPinned = rhsEntry?.isPinned ?? false
@@ -131,8 +133,8 @@ class FilterHistoryProvider {
             
             // If both pinned or both unpinned, maintain original order (which is already by recency)
             // To maintain recency order, we need to find their indices
-            guard let lhsIndex = history.firstIndex(where: { $0.filterString == lhs.filterString }),
-                  let rhsIndex = history.firstIndex(where: { $0.filterString == rhs.filterString }) else {
+            guard let lhsIndex = historySubset.firstIndex(where: { $0.filterString == lhs.filterString }),
+                  let rhsIndex = historySubset.firstIndex(where: { $0.filterString == rhs.filterString }) else {
                 return false
             }
             

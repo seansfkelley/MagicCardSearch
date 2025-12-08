@@ -17,7 +17,7 @@ enum SearchFilter: Equatable, Codable {
     }
 
     // TODO: This and the previous method should be single-quote aware too, probably.
-    func toQueryStringWithEditingRange() -> (String, Range<String.Index>) {
+    var queryStringWithEditingRange:(String, Range<String.Index>) {
         switch self {
         case .name(let n):
             return if n.contains(" ") {

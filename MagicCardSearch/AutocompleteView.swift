@@ -10,10 +10,11 @@ import SwiftUI
 struct AutocompleteView: View {
     let inputText: String
     let historyProvider: FilterHistoryProvider
+    let filters: [SearchFilter]
     let onSuggestionTap: (String) -> Void
 
     private var suggestions: [(filterString: String, matchRange: Range<String.Index>?)] {
-        historyProvider.searchHistory(prefix: inputText)
+        historyProvider.searchHistory(prefix: inputText, excludeFilters: filters)
     }
 
     var body: some View {
@@ -110,7 +111,6 @@ struct HighlightedText: View {
 
 #Preview {
     let provider = FilterHistoryProvider()
-    // Add some sample filters to the provider
     provider.recordFilter(SearchFilter.keyValue("c", .lessThan, "selesnya"))
     provider.recordFilter(SearchFilter.keyValue("mv", .greaterThanOrEqual, "10"))
     provider.recordFilter(SearchFilter.keyValue("set", .including, "mh5"))
@@ -118,7 +118,8 @@ struct HighlightedText: View {
 
     return AutocompleteView(
         inputText: "set",
-        historyProvider: provider
+        historyProvider: provider,
+        filters: []
     ) { suggestion in
         print("Selected: \(suggestion)")
     }
