@@ -37,17 +37,17 @@ struct AutocompleteView: View {
         -> some View
     {
         switch suggestion {
-        case .history(let entry, let matchRange):
-            historyRow(entry: entry, matchRange: matchRange)
+        case .history(let historySuggestion):
+            historyRow(historySuggestion: historySuggestion)
                 .swipeActions(edge: .leading, allowsFullSwipe: true) {
                     Button {
-                        if entry.isPinned {
-                            suggestionProvider.unpinHistoryEntry(entry)
+                        if historySuggestion.isPinned {
+                            suggestionProvider.unpinSearchFilter(historySuggestion.filter)
                         } else {
-                            suggestionProvider.pinHistoryEntry(entry)
+                            suggestionProvider.pinSearchFilter(historySuggestion.filter)
                         }
                     } label: {
-                        if entry.isPinned {
+                        if historySuggestion.isPinned {
                             Label("Unpin", systemImage: "pin.slash")
                         } else {
                             Label("Pin", systemImage: "pin")
@@ -57,38 +57,42 @@ struct AutocompleteView: View {
                 }
                 .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                     Button(role: .destructive) {
+                        let entry = AutocompleteProvider.HistoryEntry(
+                            filter: historySuggestion.filter,
+                            timestamp: Date(),
+                            isPinned: historySuggestion.isPinned
+                        )
                         suggestionProvider.deleteHistoryEntry(entry)
                     } label: {
                         Label("Delete", systemImage: "trash")
                     }
                 }
 
-        case .filterType(let filterType, let matchRange):
-            filterTypeRow(filterType: filterType, matchRange: matchRange)
+        case .filter(let filterTypeSuggestion):
+            filterTypeRow(filterTypeSuggestion: filterTypeSuggestion)
 
-        case .enumeration(let existingText, let filterPart, let options):
-            enumerationRow(existingText, filterPart, options: options)
+        case .enumeration(let enumerationSuggestion):
+            enumerationRow(enumerationSuggestion: enumerationSuggestion)
         }
     }
 
     private func historyRow(
-        entry: AutocompleteProvider.HistoryEntry,
-        matchRange: Range<String.Index>?
+        historySuggestion: AutocompleteProvider.HistorySuggestion
     ) -> some View {
-        let filterString = entry.filter.queryStringWithEditingRange.0
+        let filterString = historySuggestion.filter.queryStringWithEditingRange.0
         return Button {
-            onSuggestionTap(.filter(entry.filter))
+            onSuggestionTap(.filter(historySuggestion.filter))
         } label: {
             HStack(spacing: 12) {
                 Image(systemName: "clock.arrow.circlepath")
                     .foregroundStyle(.secondary)
                 HighlightedText(
                     text: filterString,
-                    highlightRange: matchRange
+                    highlightRange: historySuggestion.matchRange
                 )
                 Spacer(minLength: 0)
 
-                if entry.isPinned {
+                if historySuggestion.isPinned {
                     Image(systemName: "pin.fill")
                         .foregroundStyle(.secondary)
                         .font(.caption)
@@ -99,19 +103,19 @@ struct AutocompleteView: View {
         .buttonStyle(.plain)
     }
 
-    private func filterTypeRow(filterType: String, matchRange: Range<String.Index>?) -> some View {
+    private func filterTypeRow(filterTypeSuggestion: AutocompleteProvider.FilterTypeSuggestion) -> some View {
         HStack(spacing: 12) {
             Image(systemName: "line.3.horizontal.decrease.circle")
                 .foregroundStyle(.secondary)
 
             VStack(alignment: .leading, spacing: 6) {
                 HighlightedText(
-                    text: filterType,
-                    highlightRange: matchRange
+                    text: filterTypeSuggestion.filterType,
+                    highlightRange: filterTypeSuggestion.matchRange
                 )
                 
                 ComparisonButtonGroup(onButtonTap: { comparison in
-                    onSuggestionTap(.string("\(filterType)\(comparison.rawValue)"))
+                    onSuggestionTap(.string("\(filterTypeSuggestion.filterType)\(comparison.rawValue)"))
                 })
             }
 
@@ -120,20 +124,24 @@ struct AutocompleteView: View {
         .padding(.vertical, 4)
     }
     
-    private func enumerationRow(_ text: String, _ filterPart: String, options: [(String, Range<String.Index>?)]) -> some View {
-        HStack(spacing: 12) {
+    private func enumerationRow(enumerationSuggestion: AutocompleteProvider.EnumerationSuggestion) -> some View {
+        // Convert the dictionary back to an array of tuples for display
+        let options = Array(enumerationSuggestion.options.map { ($0.key, $0.value) })
+            .sorted { $0.0.count < $1.0.count } // Sort by length
+        
+        return HStack(spacing: 12) {
             Image(systemName: "list.bullet.circle")
                 .foregroundStyle(.secondary)
 
             VStack(alignment: .leading, spacing: 6) {
-                Text(text)
+                Text("\(enumerationSuggestion.filterType)\(enumerationSuggestion.comparison.rawValue)")
                     .foregroundStyle(.primary)
                 
                 ScrollView(.horizontal, showsIndicators: false) {
                     EnumerationButtonGroup(
                         options: options,
                         onButtonTap: { option in
-                            onSuggestionTap(.string("\(filterPart)\(option)"))
+                            onSuggestionTap(.string("\(enumerationSuggestion.filterType)\(enumerationSuggestion.comparison.rawValue)\(option)"))
                         }
                     )
                 }

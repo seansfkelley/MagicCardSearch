@@ -14,11 +14,28 @@ class AutocompleteProvider {
         let timestamp: Date
         let isPinned: Bool
     }
-
+    
+    struct HistorySuggestion {
+        let filter: SearchFilter
+        let isPinned: Bool
+        let matchRange: Range<String.Index>?
+    }
+    
+    struct FilterTypeSuggestion {
+        let filterType: String
+        let matchRange: Range<String.Index>?
+    }
+    
+    struct EnumerationSuggestion {
+        let filterType: String
+        let comparison: Comparison
+        let options: [String: Range<String.Index>?]
+    }
+    
     enum Suggestion {
-        case history(HistoryEntry, Range<String.Index>?)
-        case filterType(String, Range<String.Index>?)
-        case enumeration(String, String, [(String, Range<String.Index>?)])
+        case history(HistorySuggestion)
+        case filter(FilterTypeSuggestion)
+        case enumeration(EnumerationSuggestion)
     }
 
     // MARK: - Properties
@@ -64,7 +81,13 @@ class AutocompleteProvider {
 
         if trimmedSearchTerm.isEmpty {
             return Array(
-                sortResults(availableHistory.map { Suggestion.history($0, nil) }).prefix(10)
+                sortResults(availableHistory.map { 
+                    Suggestion.history(HistorySuggestion(
+                        filter: $0.filter,
+                        isPinned: $0.isPinned,
+                        matchRange: nil
+                    ))
+                }, historyLookup: Dictionary(uniqueKeysWithValues: availableHistory.map { ($0.filter, $0) })).prefix(10)
             )
         }
 
@@ -73,7 +96,11 @@ class AutocompleteProvider {
         for entry in availableHistory {
             let filterString = entry.filter.queryStringWithEditingRange.0
             if let range = filterString.range(of: trimmedSearchTerm, options: .caseInsensitive) {
-                results.append(.history(entry, range))
+                results.append(.history(HistorySuggestion(
+                    filter: entry.filter,
+                    isPinned: entry.isPinned,
+                    matchRange: range
+                )))
             }
         }
 
@@ -158,7 +185,10 @@ class AutocompleteProvider {
 
         // TODO: Why does this seem to be sorting in reverse?
         for match in filterTypeMatches.reversed() {
-            results.append(.filterType(match.displayText, match.range))
+            results.append(.filter(FilterTypeSuggestion(
+                filterType: match.displayText,
+                matchRange: match.range
+            )))
         }
 
         // Check for enumeration-type filter suggestions
@@ -166,12 +196,14 @@ class AutocompleteProvider {
             results.append(enumerationSuggestions)
         }
 
-        return Array(sortResults(results).prefix(10))
+        let historyLookup = Dictionary(uniqueKeysWithValues: availableHistory.map { ($0.filter, $0) })
+        return Array(sortResults(results, historyLookup: historyLookup).prefix(10))
     }
 
     // TODO: Weird interface; improve it. Also, slow.
-    func pinHistoryEntry(_ entry: HistoryEntry) {
-        if let i = history.firstIndex(where: { $0.filter == entry.filter }) {
+    func pinSearchFilter(_ filter: SearchFilter) {
+        if let i = history.firstIndex(where: { $0.filter == filter }) {
+            let entry = history[i]
             history[i] = HistoryEntry(
                 filter: entry.filter,
                 timestamp: entry.timestamp,
@@ -181,8 +213,9 @@ class AutocompleteProvider {
         }
     }
 
-    func unpinHistoryEntry(_ entry: HistoryEntry) {
-        if let i = history.firstIndex(where: { $0.filter == entry.filter }) {
+    func unpinSearchFilter(_ filter: SearchFilter) {
+        if let i = history.firstIndex(where: { $0.filter == filter }) {
+            let entry = history[i]
             history[i] = HistoryEntry(
                 filter: entry.filter,
                 timestamp: entry.timestamp,
@@ -230,7 +263,23 @@ class AutocompleteProvider {
                 }
 
                 if !matchingOptions.isEmpty {
-                    return .enumeration(searchTerm, filterPart, matchingOptions)
+                    let comparison: Comparison
+                    switch op {
+                    case "=":
+                        comparison = .equal
+                    case "!=":
+                        comparison = .notEqual
+                    case ":":
+                        comparison = .including
+                    default:
+                        comparison = .including
+                    }
+                    
+                    return .enumeration(EnumerationSuggestion(
+                        filterType: filterPart,
+                        comparison: comparison,
+                        options: Dictionary(uniqueKeysWithValues: matchingOptions.map { ($0.option, $0.range) })
+                    ))
                 }
             }
 
@@ -241,19 +290,22 @@ class AutocompleteProvider {
         return nil
     }
 
-    private func sortResults(_ results: [Suggestion]) -> [Suggestion] {
+    private func sortResults(_ results: [Suggestion], historyLookup: [SearchFilter: HistoryEntry]) -> [Suggestion] {
         return results.sorted { lhs, rhs in
-            if case Suggestion.history(let lhHistory, _) = lhs,
-                case Suggestion.history(let rhHistory, _) = rhs
+            if case Suggestion.history(let lhHistory) = lhs,
+                case Suggestion.history(let rhHistory) = rhs
             {
                 if lhHistory.isPinned != rhHistory.isPinned {
                     return lhHistory.isPinned
                 }
 
-                return lhHistory.timestamp < rhHistory.timestamp
-            } else if case Suggestion.history(_, _) = lhs {
+                // Look up timestamps from the history lookup
+                let lhTimestamp = historyLookup[lhHistory.filter]?.timestamp ?? Date.distantPast
+                let rhTimestamp = historyLookup[rhHistory.filter]?.timestamp ?? Date.distantPast
+                return lhTimestamp > rhTimestamp
+            } else if case Suggestion.history(_) = lhs {
                 return true
-            } else if case Suggestion.history(_, _) = rhs {
+            } else if case Suggestion.history(_) = rhs {
                 return false
             } else {
                 // TODO: Sort these for real.
