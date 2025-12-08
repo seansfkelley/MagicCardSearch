@@ -228,7 +228,8 @@ class AutocompleteProvider {
     // MARK: - Private Helpers
 
     private func checkForEnumerationSuggestions(_ searchTerm: String) -> Suggestion? {
-        for op in ["!=", ":", "="] {
+        // Some enumeration types, like rarity, are considered orderable.
+        for op in ["!=", ">=", ">", "<=", "<", ":", "="] {
             guard let operatorRange = searchTerm.range(of: op) else {
                 continue
             }
