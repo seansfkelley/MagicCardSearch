@@ -11,11 +11,29 @@ struct CardResult: Identifiable, Codable {
     let id: String
     let name: String
     let imageUrl: String?
+    let manaCost: String?
+    let typeLine: String?
+    let oracleText: String?
+    let flavorText: String?
+    let power: String?
+    let toughness: String?
+    let artist: String?
+    let colors: [String]?
+    let colorIndicator: [String]?
     
     enum CodingKeys: String, CodingKey {
         case id
         case name
         case imageUris = "image_uris"
+        case manaCost = "mana_cost"
+        case typeLine = "type_line"
+        case oracleText = "oracle_text"
+        case flavorText = "flavor_text"
+        case power
+        case toughness
+        case artist
+        case colors
+        case colorIndicator = "color_indicator"
     }
     
     enum ImageUriKeys: String, CodingKey {
@@ -24,10 +42,22 @@ struct CardResult: Identifiable, Codable {
         case large
     }
     
-    init(id: String, name: String, imageUrl: String?) {
+    init(id: String, name: String, imageUrl: String?, manaCost: String? = nil, 
+         typeLine: String? = nil, oracleText: String? = nil, flavorText: String? = nil,
+         power: String? = nil, toughness: String? = nil, artist: String? = nil,
+         colors: [String]? = nil, colorIndicator: [String]? = nil) {
         self.id = id
         self.name = name
         self.imageUrl = imageUrl
+        self.manaCost = manaCost
+        self.typeLine = typeLine
+        self.oracleText = oracleText
+        self.flavorText = flavorText
+        self.power = power
+        self.toughness = toughness
+        self.artist = artist
+        self.colors = colors
+        self.colorIndicator = colorIndicator
     }
     
     init(from decoder: Decoder) throws {
@@ -41,6 +71,16 @@ struct CardResult: Identifiable, Codable {
         } else {
             imageUrl = nil
         }
+        
+        manaCost = try? container.decode(String.self, forKey: .manaCost)
+        typeLine = try? container.decode(String.self, forKey: .typeLine)
+        oracleText = try? container.decode(String.self, forKey: .oracleText)
+        flavorText = try? container.decode(String.self, forKey: .flavorText)
+        power = try? container.decode(String.self, forKey: .power)
+        toughness = try? container.decode(String.self, forKey: .toughness)
+        artist = try? container.decode(String.self, forKey: .artist)
+        colors = try? container.decode([String].self, forKey: .colors)
+        colorIndicator = try? container.decode([String].self, forKey: .colorIndicator)
     }
     
     func encode(to encoder: Encoder) throws {

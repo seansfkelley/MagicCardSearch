@@ -7,6 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		217EEB4B2EE7814F00BBAF94 /* MANA_SYMBOLS_README.md in Resources */ = {isa = PBXBuildFile; fileRef = 217EEB4A2EE7814F00BBAF94 /* MANA_SYMBOLS_README.md */; };
+		217EEB4D2EE7815D00BBAF94 /* ASSET_CATALOG_SETUP.md in Resources */ = {isa = PBXBuildFile; fileRef = 217EEB4C2EE7815D00BBAF94 /* ASSET_CATALOG_SETUP.md */; };
+		217EEB512EE7818400BBAF94 /* CARD_DETAIL_ENHANCEMENT_SUMMARY.md in Resources */ = {isa = PBXBuildFile; fileRef = 217EEB502EE7818400BBAF94 /* CARD_DETAIL_ENHANCEMENT_SUMMARY.md */; };
+		217EEB532EE7819600BBAF94 /* QUICK_ASSET_CHECKLIST.md in Resources */ = {isa = PBXBuildFile; fileRef = 217EEB522EE7819600BBAF94 /* QUICK_ASSET_CHECKLIST.md */; };
 		21A856BD2EE3AAE400E72541 /* ScryfallKit in Frameworks */ = {isa = PBXBuildFile; productRef = 21A856BC2EE3AAE400E72541 /* ScryfallKit */; };
 		21D3972C2EE225C5008B3EFD /* WrappingHStack in Frameworks */ = {isa = PBXBuildFile; productRef = 21D3972B2EE225C5008B3EFD /* WrappingHStack */; };
 /* End PBXBuildFile section */
@@ -39,6 +43,10 @@
 		2137B5AD2EE139C60066BF7E /* MagicCardSearch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MagicCardSearch.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		2137B5BA2EE139C70066BF7E /* MagicCardSearchTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MagicCardSearchTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		2137B5C42EE139C70066BF7E /* MagicCardSearchUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MagicCardSearchUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		217EEB4A2EE7814F00BBAF94 /* MANA_SYMBOLS_README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = MANA_SYMBOLS_README.md; sourceTree = "<group>"; };
+		217EEB4C2EE7815D00BBAF94 /* ASSET_CATALOG_SETUP.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = ASSET_CATALOG_SETUP.md; sourceTree = "<group>"; };
+		217EEB502EE7818400BBAF94 /* CARD_DETAIL_ENHANCEMENT_SUMMARY.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = CARD_DETAIL_ENHANCEMENT_SUMMARY.md; sourceTree = "<group>"; };
+		217EEB522EE7819600BBAF94 /* QUICK_ASSET_CHECKLIST.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = QUICK_ASSET_CHECKLIST.md; sourceTree = "<group>"; };
 		21D3976C2EE23306008B3EFD /* README.md */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = README.md; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -126,6 +134,10 @@
 				2137B5C72EE139C70066BF7E /* MagicCardSearchUITests */,
 				21A856BB2EE3AAE400E72541 /* Frameworks */,
 				2137B5AE2EE139C60066BF7E /* Products */,
+				217EEB4A2EE7814F00BBAF94 /* MANA_SYMBOLS_README.md */,
+				217EEB4C2EE7815D00BBAF94 /* ASSET_CATALOG_SETUP.md */,
+				217EEB502EE7818400BBAF94 /* CARD_DETAIL_ENHANCEMENT_SUMMARY.md */,
+				217EEB522EE7819600BBAF94 /* QUICK_ASSET_CHECKLIST.md */,
 			);
 			sourceTree = "<group>";
 		};
@@ -298,6 +310,10 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				217EEB532EE7819600BBAF94 /* QUICK_ASSET_CHECKLIST.md in Resources */,
+				217EEB4B2EE7814F00BBAF94 /* MANA_SYMBOLS_README.md in Resources */,
+				217EEB512EE7818400BBAF94 /* CARD_DETAIL_ENHANCEMENT_SUMMARY.md in Resources */,
+				217EEB4D2EE7815D00BBAF94 /* ASSET_CATALOG_SETUP.md in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
