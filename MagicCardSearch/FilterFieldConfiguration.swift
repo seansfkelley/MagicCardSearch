@@ -61,6 +61,60 @@ let filterFieldConfigurations: [String: FilterFieldConfiguration] = [
         displayName: "Card Name",
         fieldType: .text(placeholder: "Enter card name"),
         aliases: ["name", "n"]
+    ),
+    
+    "oracle": FilterFieldConfiguration(
+        displayName: "Oracle Text",
+        fieldType: .text(placeholder: "Search oracle text"),
+        aliases: ["oracle", "o"]
+    ),
+    
+    "function": FilterFieldConfiguration(
+        displayName: "Oracle Tags",
+        fieldType: .text(placeholder: "Search by function tags"),
+        aliases: ["function", "otag"]
+    ),
+    
+    "type": FilterFieldConfiguration(
+        displayName: "Type Line",
+        fieldType: .text(placeholder: "e.g. Creature, Instant"),
+        aliases: ["type", "t"]
+    ),
+    
+    "color": FilterFieldConfiguration(
+        displayName: "Color",
+        fieldType: .enumeration(options: [
+            "w", "u", "b", "r", "g", "c", "m"
+        ]),
+        aliases: ["color", "c"]
+    ),
+    
+    "coloridentity": FilterFieldConfiguration(
+        displayName: "Color Identity",
+        fieldType: .enumeration(options: [
+            "w", "u", "b", "r", "g", "c"
+        ]),
+        aliases: ["coloridentity", "id", "identity"]
+    ),
+    
+    "rarity": FilterFieldConfiguration(
+        displayName: "Rarity",
+        fieldType: .enumeration(options: [
+            "common", "uncommon", "rare", "mythic", "special", "bonus"
+        ]),
+        aliases: ["rarity", "r"]
+    ),
+    
+    "artist": FilterFieldConfiguration(
+        displayName: "Artist",
+        fieldType: .text(placeholder: "Enter artist name"),
+        aliases: ["artist", "a"]
+    ),
+    
+    "flavor": FilterFieldConfiguration(
+        displayName: "Flavor Text",
+        fieldType: .text(placeholder: "Search flavor text"),
+        aliases: ["flavor", "ft"]
     )
 ]
 
