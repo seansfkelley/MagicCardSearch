@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct CardResultsView: View {
+    var allowedToSearch: Bool
     @Binding var filters: [SearchFilter]
     @Binding var searchConfig: SearchConfiguration
     let globalFiltersSettings: GlobalFiltersSettings
@@ -72,20 +73,23 @@ struct CardResultsView: View {
             }
         }
         .animation(.easeInOut(duration: 0.2), value: isLoading)
+        .onChange(of: allowedToSearch) { _, _ in
+            maybePerformSearch()
+        }
         .onChange(of: filters) { _, _ in
-            performSearch()
+            maybePerformSearch()
         }
         .onChange(of: searchConfig.displayMode) { _, _ in
-            performSearch()
+            maybePerformSearch()
         }
         .onChange(of: searchConfig.sortField) { _, _ in
-            performSearch()
+            maybePerformSearch()
         }
         .onChange(of: searchConfig.sortOrder) { _, _ in
-            performSearch()
+            maybePerformSearch()
         }
         .task {
-            performSearch()
+            maybePerformSearch()
         }
         .sheet(item: Binding(
             get: { selectedCardIndex.map { SheetIdentifier(index: $0) } },
@@ -98,7 +102,11 @@ struct CardResultsView: View {
         }
     }
     
-    private func performSearch() {
+    private func maybePerformSearch() {
+        guard allowedToSearch else {
+            return
+        }
+        
         // Cancel any existing search
         searchTask?.cancel()
         
@@ -107,6 +115,8 @@ struct CardResultsView: View {
             searchTask = nil
             return
         }
+        
+        print("Searching...")
         
         isLoading = true
         
@@ -208,6 +218,7 @@ struct CardResultCell: View {
         
         var body: some View {
             CardResultsView(
+                allowedToSearch: true,
                 filters: $filters,
                 searchConfig: $config,
                 globalFiltersSettings: GlobalFiltersSettings()

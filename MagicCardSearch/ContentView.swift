@@ -28,6 +28,7 @@ struct ContentView: View {
         NavigationStack {
             ZStack {
                 CardResultsView(
+                    allowedToSearch: !isSearchFocused,
                     filters: $filters,
                     searchConfig: $searchConfig,
                     globalFiltersSettings: globalFiltersSettings
