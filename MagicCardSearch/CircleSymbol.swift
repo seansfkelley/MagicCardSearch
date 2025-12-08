@@ -10,14 +10,14 @@ import SwiftUI
 private let baseManaNames = Set([
     // Colors/colorless mana
     "w", "u", "b", "r", "g", "c",
-    
+
     // Generic mana
     "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10",
     "11", "12", "13", "14", "15", "16", "20", "1000000", "x", "y", "z",
-    
+
     // Phyrexian mana, which never appears alone but is nevertheless a base symbol type
     "p",
-    
+
     // Other symbols
     "s", "t", "q", "e", "chaos",
 ])
@@ -30,7 +30,7 @@ private enum ManaColor: String {
     case red = "Red"
     case green = "Green"
     case colorless = "Colorless"
-    
+
     static func fromShorthand(_ s: String) -> ManaColor? {
         return switch s {
         case "w": .white
@@ -56,55 +56,94 @@ struct CircleSymbol: View {
     var body: some View {
         let cleaned = symbol.trimmingCharacters(in: CharacterSet(charactersIn: "{}")).lowercased()
         if baseManaNames.contains(cleaned) {
-            let color = ManaColor.fromShorthand(cleaned) ?? .colorless
-            ZStack {
-                Circle()
-                    .fill(Color(color.rawValue))
-                    .frame(width: size, height: size)
-                
-                Image(cleaned)
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .frame(width: size * 0.8, height: size * 0.8)
-            }
+            basic(cleaned)
         } else {
-            // fallback; should never happen
-            Text(symbol)
-                .font(.system(size: size * 0.6))
-                .foregroundStyle(.secondary)
+            let parts = cleaned.split(separator: "/")
+            if parts.count == 2 {
+                let left = String(parts[0])
+                let right = String(parts[1])
+
+                if baseManaNames.contains(left) && baseManaNames.contains(right) {
+                    if right == "p", let leftColor = ManaColor.fromShorthand(left) {
+                        phyrexian(leftColor)
+                    } else {
+                        hybrid(left, right)
+                    }
+                } else {
+                    unknown(cleaned)
+                }
+            } else {
+                unknown(cleaned)
+            }
+        }
+    }
+    
+    private func basic(_ symbol: String) -> some View {
+        let color = ManaColor.fromShorthand(symbol) ?? .colorless
+        return ZStack {
+            Circle()
+                .fill(Color(color.rawValue))
+                .frame(width: size, height: size)
+            
+            Image(symbol)
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: size * 0.8, height: size * 0.8)
         }
     }
 
-//    private func symbolToImageName(_ symbol: String) -> String? {
-//        return switch cleaned.uppercased() {
-//        case "W/U", "WU": "wu"
-//        case "W/B", "WB": "wb"
-//        case "U/B", "UB": "ub"
-//        case "U/R", "UR": "ur"
-//        case "B/R", "BR": "br"
-//        case "B/G", "BG": "bg"
-//        case "R/W", "RW": "rw"
-//        case "R/G", "RG": "rg"
-//        case "G/W", "GW": "gw"
-//        case "G/U", "GU": "gu"
-//
-//        // Phyrexian mana
-//        case "W/P", "WP": "wp"
-//        case "U/P", "UP": "up"
-//        case "B/P", "BP": "bp"
-//        case "R/P", "RP": "rp"
-//        case "G/P", "GP": "gp"
-//        case "P": "p"
-//
-//        // Hybrid generic/colored
-//        case "2/W": "2w"
-//        case "2/U": "2u"
-//        case "2/B": "2b"
-//        case "2/R": "2r"
-//        case "2/G": "2g"
-//
-//        }
-//    }
+    private func phyrexian(_ color: ManaColor) -> some View {
+        return ZStack {
+            Circle()
+                .fill(Color(color.rawValue))
+                .frame(width: size, height: size)
+
+            Image("p")
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: size * 0.8, height: size * 0.8)
+        }
+    }
+
+    private func hybrid(_ left: String, _ right: String) -> some View {
+        let leftColor = ManaColor.fromShorthand(left) ?? .colorless
+        let rightColor = ManaColor.fromShorthand(right) ?? .colorless
+
+        return ZStack {
+            Circle()
+                .fill(
+                    LinearGradient(
+                        stops: [
+                            .init(color: Color(leftColor.rawValue), location: 0.0),
+                            .init(color: Color(leftColor.rawValue), location: 0.5),
+                            .init(color: Color(rightColor.rawValue), location: 0.5),
+                            .init(color: Color(rightColor.rawValue), location: 1.0),
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .frame(width: size, height: size)
+
+            Image(left)
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: size * 0.4, height: size * 0.4)
+                .offset(x: -size * 0.16, y: -size * 0.16)
+
+            Image(right)
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: size * 0.4, height: size * 0.4)
+                .offset(x: size * 0.175, y: size * 0.175)
+        }
+    }
+
+    private func unknown(_ symbol: String) -> some View {
+        Text(symbol)
+            .font(.system(size: size * 0.6))
+            .foregroundStyle(.secondary)
+    }
 }
 
 struct ManaCostView: View {
@@ -150,7 +189,6 @@ struct ManaCostView: View {
 #Preview("All Mana Symbols") {
     ScrollView {
         VStack(alignment: .leading, spacing: 20) {
-            // Basic mana
             VStack(alignment: .leading, spacing: 8) {
                 Text("Basic Mana")
                     .font(.headline)
@@ -163,10 +201,6 @@ struct ManaCostView: View {
                     CircleSymbol("{C}", size: 32)
                 }
             }
-
-            Divider()
-
-            // Generic/Colorless
             VStack(alignment: .leading, spacing: 8) {
                 Text("Generic/Colorless")
                     .font(.headline)
@@ -200,10 +234,6 @@ struct ManaCostView: View {
                     CircleSymbol("{Z}", size: 32)
                 }
             }
-
-            Divider()
-
-            // Hybrid mana
             VStack(alignment: .leading, spacing: 8) {
                 Text("Hybrid Mana")
                     .font(.headline)
@@ -222,10 +252,6 @@ struct ManaCostView: View {
                     CircleSymbol("{G/U}", size: 32)
                 }
             }
-
-            Divider()
-
-            // Phyrexian mana
             VStack(alignment: .leading, spacing: 8) {
                 Text("Phyrexian Mana")
                     .font(.headline)
@@ -238,10 +264,6 @@ struct ManaCostView: View {
                     CircleSymbol("{P}", size: 32)
                 }
             }
-
-            Divider()
-
-            // Hybrid generic/colored
             VStack(alignment: .leading, spacing: 8) {
                 Text("Hybrid Generic/Colored")
                     .font(.headline)
@@ -253,10 +275,6 @@ struct ManaCostView: View {
                     CircleSymbol("{2/G}", size: 32)
                 }
             }
-
-            Divider()
-
-            // Special symbols
             VStack(alignment: .leading, spacing: 8) {
                 Text("Special Symbols")
                     .font(.headline)
@@ -268,10 +286,6 @@ struct ManaCostView: View {
                     CircleSymbol("{CHAOS}", size: 32)
                 }
             }
-
-            Divider()
-
-            // Example mana costs
             VStack(alignment: .leading, spacing: 8) {
                 Text("Example Mana Costs")
                     .font(.headline)
