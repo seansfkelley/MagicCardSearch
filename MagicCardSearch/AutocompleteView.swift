@@ -67,7 +67,7 @@ struct AutocompleteView: View {
             filterTypeRow(filterType: filterType, matchRange: matchRange)
 
         case .enumeration(let options):
-            enumerationRow(options: options)
+            Group {}
         }
     }
 
@@ -110,74 +110,50 @@ struct AutocompleteView: View {
                     highlightRange: matchRange
                 )
                 
-                Picker("Comparison", selection: .constant(0)) {
-                    ForEach([
-                        Comparison.including,
-                        .equal,
-                        .notEqual,
-                        .lessThan,
-                        .lessThanOrEqual,
-                        .greaterThan,
-                        .greaterThanOrEqual,
-                    ], id: \.rawValue) { comparison in
-                        Text(comparison.rawValue)
-                            .onTapGesture {
-                                onSuggestionTap(.string("\(filterType)\(comparison.rawValue)"))
-                            }
-                    }
-                }
-                .pickerStyle(.segmented)
+                ComparisonButtonGroup(onButtonTap: { comparison in
+                    onSuggestionTap(.string("\(filterType)\(comparison.rawValue)"))
+                })
             }
 
             Spacer(minLength: 0)
         }
         .padding(.vertical, 4)
     }
+}
 
-    private func enumerationRow(options: [(String, Range<String.Index>?)]) -> some View {
-        HStack(spacing: 12) {
-            Image(systemName: "list.bullet.circle")
-                .foregroundStyle(.secondary)
+// MARK: - Filter Type Picker
 
-            VStack(alignment: .leading, spacing: 8) {
-                Text(inputText)
-                    .foregroundStyle(.primary)
-
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8) {
-                        ForEach(Array(options.enumerated()), id: \.offset) { _, option in
-                            Button {
-                                onSuggestionTap(.string(inputText + option.0))
-                            } label: {
-                                if let range = option.1 {
-                                    HighlightedText(
-                                        text: option.0,
-                                        highlightRange: range
-                                    )
-                                    .font(.body)
-                                    .padding(.horizontal, 12)
-                                    .padding(.vertical, 6)
-                                    .background(Color.accentColor.opacity(0.15))
-                                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                                } else {
-                                    Text(option.0)
-                                        .font(.body)
-                                        .padding(.horizontal, 12)
-                                        .padding(.vertical, 6)
-                                        .background(Color.accentColor.opacity(0.15))
-                                        .foregroundStyle(.primary)
-                                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                                }
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
+private struct ComparisonButtonGroup: View {
+    let onButtonTap: (Comparison) -> Void
+    
+    private let orderedComparisons: [Comparison] = [
+        .including,
+        .equal,
+        .notEqual,
+        .lessThan,
+        .lessThanOrEqual,
+        .greaterThan,
+        .greaterThanOrEqual,
+    ]
+    
+    var body: some View {
+        HStack {
+            ForEach(Array(orderedComparisons.enumerated()), id: \.offset) { _, option in
+                Button {
+                    onButtonTap(option)
+                } label: {
+                    Text(option.rawValue)
+                        .font(.body)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(Color.accentColor.opacity(0.15))
+                        .foregroundStyle(.primary)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
                 }
+                .buttonStyle(.plain)
+                .padding(.horizontal, 0)
             }
-
-            Spacer(minLength: 0)
         }
-        .padding(.vertical, 4)
     }
 }
 
