@@ -20,7 +20,7 @@ struct ManaCostView: View {
         if let symbols = safelyParseManaCost(manaCost) {
             HStack(spacing: 2) {
                 ForEach(symbols, id: \.self) { symbol in
-                    CircleSymbol(symbol, size: size)
+                    CircleSymbolView(symbol, size: size)
                 }
             }
         } else {

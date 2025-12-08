@@ -7,6 +7,32 @@
 
 import SwiftUI
 
+enum ManaColor: String {
+    case white = "WhiteManaColor"
+    case blue = "BlueManaColor"
+    case black = "BlackManaColor"
+    case red = "RedManaColor"
+    case green = "GreenManaColor"
+    case colorless = "ColorlessManaColor"
+
+    static func fromSymbolCode(_ s: String) -> ManaColor? {
+        return switch s.lowercased() {
+        case "w": .white
+        case "u": .blue
+        case "b": .black
+        case "r": .red
+        case "g": .green
+        case "c": .colorless
+        default: nil
+        }
+    }
+    
+    var uiColor: Color {
+        return Color(self.rawValue)
+    }
+}
+
+
 private let baseSymbolCodes = Set([
     // Colors/colorless mana
     "w", "u", "b", "r", "g", "c",
@@ -23,28 +49,9 @@ private let baseSymbolCodes = Set([
 ])
 
 // n.b. these are the asset names for the color!
-private enum ManaColor: String {
-    case white = "White"
-    case blue = "Blue"
-    case black = "Black"
-    case red = "Red"
-    case green = "Green"
-    case colorless = "Colorless"
 
-    static func fromSymbolCode(_ s: String) -> ManaColor? {
-        return switch s {
-        case "w": .white
-        case "u": .blue
-        case "b": .black
-        case "r": .red
-        case "g": .green
-        case "c": .colorless
-        default: nil
-        }
-    }
-}
 
-struct CircleSymbol: View {
+struct CircleSymbolView: View {
     let symbol: String
     let size: CGFloat
 
@@ -82,7 +89,7 @@ struct CircleSymbol: View {
         let color = ManaColor.fromSymbolCode(symbol) ?? .colorless
         return ZStack {
             Circle()
-                .fill(Color(color.rawValue))
+                .fill(color.uiColor)
                 .frame(width: size, height: size)
             
             Image(symbol)
@@ -95,7 +102,7 @@ struct CircleSymbol: View {
     private func phyrexian(_ color: ManaColor) -> some View {
         return ZStack {
             Circle()
-                .fill(Color(color.rawValue))
+                .fill(color.uiColor)
                 .frame(width: size, height: size)
 
             Image("p")
@@ -114,10 +121,10 @@ struct CircleSymbol: View {
                 .fill(
                     LinearGradient(
                         stops: [
-                            .init(color: Color(leftColor.rawValue), location: 0.0),
-                            .init(color: Color(leftColor.rawValue), location: 0.5),
-                            .init(color: Color(rightColor.rawValue), location: 0.5),
-                            .init(color: Color(rightColor.rawValue), location: 1.0),
+                            .init(color: leftColor.uiColor, location: 0.0),
+                            .init(color: leftColor.uiColor, location: 0.5),
+                            .init(color: rightColor.uiColor, location: 0.5),
+                            .init(color: rightColor.uiColor, location: 1.0),
                         ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
@@ -155,97 +162,95 @@ struct CircleSymbol: View {
                 Text("Basic Mana")
                     .font(.headline)
                 HStack(spacing: 8) {
-                    CircleSymbol("{W}", size: 32)
-                    CircleSymbol("{U}", size: 32)
-                    CircleSymbol("{B}", size: 32)
-                    CircleSymbol("{R}", size: 32)
-                    CircleSymbol("{G}", size: 32)
-                    CircleSymbol("{C}", size: 32)
+                    CircleSymbolView("{W}", size: 32)
+                    CircleSymbolView("{U}", size: 32)
+                    CircleSymbolView("{B}", size: 32)
+                    CircleSymbolView("{R}", size: 32)
+                    CircleSymbolView("{G}", size: 32)
+                    CircleSymbolView("{C}", size: 32)
                 }
             }
             VStack(alignment: .leading, spacing: 8) {
                 Text("Generic/Colorless")
                     .font(.headline)
                 HStack(spacing: 8) {
-                    CircleSymbol("{0}", size: 32)
-                    CircleSymbol("{1}", size: 32)
-                    CircleSymbol("{2}", size: 32)
-                    CircleSymbol("{3}", size: 32)
-                    CircleSymbol("{4}", size: 32)
-                    CircleSymbol("{5}", size: 32)
+                    CircleSymbolView("{0}", size: 32)
+                    CircleSymbolView("{1}", size: 32)
+                    CircleSymbolView("{2}", size: 32)
+                    CircleSymbolView("{3}", size: 32)
+                    CircleSymbolView("{4}", size: 32)
+                    CircleSymbolView("{5}", size: 32)
                 }
                 HStack(spacing: 8) {
-                    CircleSymbol("{6}", size: 32)
-                    CircleSymbol("{7}", size: 32)
-                    CircleSymbol("{8}", size: 32)
-                    CircleSymbol("{9}", size: 32)
-                    CircleSymbol("{10}", size: 32)
-                    CircleSymbol("{11}", size: 32)
+                    CircleSymbolView("{6}", size: 32)
+                    CircleSymbolView("{7}", size: 32)
+                    CircleSymbolView("{8}", size: 32)
+                    CircleSymbolView("{9}", size: 32)
+                    CircleSymbolView("{10}", size: 32)
+                    CircleSymbolView("{11}", size: 32)
                 }
                 HStack(spacing: 8) {
-                    CircleSymbol("{12}", size: 32)
-                    CircleSymbol("{13}", size: 32)
-                    CircleSymbol("{14}", size: 32)
-                    CircleSymbol("{15}", size: 32)
-                    CircleSymbol("{16}", size: 32)
-                    CircleSymbol("{20}", size: 32)
+                    CircleSymbolView("{12}", size: 32)
+                    CircleSymbolView("{13}", size: 32)
+                    CircleSymbolView("{14}", size: 32)
+                    CircleSymbolView("{15}", size: 32)
+                    CircleSymbolView("{16}", size: 32)
+                    CircleSymbolView("{20}", size: 32)
                 }
                 HStack(spacing: 8) {
-                    CircleSymbol("{X}", size: 32)
-                    CircleSymbol("{Y}", size: 32)
-                    CircleSymbol("{Z}", size: 32)
+                    CircleSymbolView("{X}", size: 32)
+                    CircleSymbolView("{Y}", size: 32)
+                    CircleSymbolView("{Z}", size: 32)
                 }
             }
             VStack(alignment: .leading, spacing: 8) {
                 Text("Hybrid Mana")
                     .font(.headline)
                 HStack(spacing: 8) {
-                    CircleSymbol("{W/U}", size: 32)
-                    CircleSymbol("{W/B}", size: 32)
-                    CircleSymbol("{U/B}", size: 32)
-                    CircleSymbol("{U/R}", size: 32)
-                    CircleSymbol("{B/R}", size: 32)
+                    CircleSymbolView("{W/U}", size: 32)
+                    CircleSymbolView("{W/B}", size: 32)
+                    CircleSymbolView("{U/B}", size: 32)
+                    CircleSymbolView("{U/R}", size: 32)
+                    CircleSymbolView("{B/R}", size: 32)
                 }
                 HStack(spacing: 8) {
-                    CircleSymbol("{B/G}", size: 32)
-                    CircleSymbol("{R/W}", size: 32)
-                    CircleSymbol("{R/G}", size: 32)
-                    CircleSymbol("{G/W}", size: 32)
-                    CircleSymbol("{G/U}", size: 32)
+                    CircleSymbolView("{B/G}", size: 32)
+                    CircleSymbolView("{R/W}", size: 32)
+                    CircleSymbolView("{R/G}", size: 32)
+                    CircleSymbolView("{G/W}", size: 32)
+                    CircleSymbolView("{G/U}", size: 32)
                 }
             }
             VStack(alignment: .leading, spacing: 8) {
                 Text("Phyrexian Mana")
                     .font(.headline)
                 HStack(spacing: 8) {
-                    CircleSymbol("{W/P}", size: 32)
-                    CircleSymbol("{U/P}", size: 32)
-                    CircleSymbol("{B/P}", size: 32)
-                    CircleSymbol("{R/P}", size: 32)
-                    CircleSymbol("{G/P}", size: 32)
-                    CircleSymbol("{P}", size: 32)
+                    CircleSymbolView("{W/P}", size: 32)
+                    CircleSymbolView("{U/P}", size: 32)
+                    CircleSymbolView("{B/P}", size: 32)
+                    CircleSymbolView("{R/P}", size: 32)
+                    CircleSymbolView("{G/P}", size: 32)
+                    CircleSymbolView("{P}", size: 32)
                 }
             }
             VStack(alignment: .leading, spacing: 8) {
                 Text("Hybrid Generic/Colored")
                     .font(.headline)
                 HStack(spacing: 8) {
-                    CircleSymbol("{2/W}", size: 32)
-                    CircleSymbol("{2/U}", size: 32)
-                    CircleSymbol("{2/B}", size: 32)
-                    CircleSymbol("{2/R}", size: 32)
-                    CircleSymbol("{2/G}", size: 32)
+                    CircleSymbolView("{2/W}", size: 32)
+                    CircleSymbolView("{2/U}", size: 32)
+                    CircleSymbolView("{2/B}", size: 32)
+                    CircleSymbolView("{2/R}", size: 32)
+                    CircleSymbolView("{2/G}", size: 32)
                 }
             }
             VStack(alignment: .leading, spacing: 8) {
                 Text("Special Symbols")
                     .font(.headline)
                 HStack(spacing: 8) {
-                    CircleSymbol("{S}", size: 32)
-                    CircleSymbol("{T}", size: 32)
-                    CircleSymbol("{Q}", size: 32)
-                    CircleSymbol("{E}", size: 32)
-                    CircleSymbol("{CHAOS}", size: 32)
+                    CircleSymbolView("{S}", size: 32)
+                    CircleSymbolView("{T}", size: 32)
+                    CircleSymbolView("{Q}", size: 32)
                 }
             }
         }
