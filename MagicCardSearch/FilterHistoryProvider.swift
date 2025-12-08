@@ -25,7 +25,7 @@ class FilterHistoryProvider {
     
     /// Records a filter in the history, updating its timestamp if it already exists
     func recordFilter(_ filter: SearchFilter) {
-        let filterString = filter.toIdiomaticString()
+        let filterString = filter.toQueryStringWithEditingRange().0
         
         // Remove any existing entry with the same string representation
         history.removeAll { $0.filterString == filterString }

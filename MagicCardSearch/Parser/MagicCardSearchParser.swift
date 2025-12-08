@@ -15,31 +15,31 @@ enum SearchFilter: Equatable, Codable {
     static func tryParseUnambiguous(_ input: String) -> SearchFilter? {
         return try? parse(input)
     }
-    
-    func toResettableParts() -> (String, String, String) {
-        return switch self {
-        case .name(let n):
-            n.contains(" ") ? ("\"", n, "\"") : ("", n, "")
-        case .keyValue(let key, let comparison, let value):
-            value.contains(" ") ? ("\(key)\(comparison.symbol)\"", value, "\"") : ("\(key)\(comparison.symbol)", value, "")
-        }
-    }
-    
-    // TODO: This and the previous method should be single-quote aware too, probably.
-    func toIdiomaticString() -> String {
-        return switch self {
-        case .name(let n):
-            n.contains(" ") ? "\"\(n)\"" : n
-        case .keyValue(let key, let comparison, let value):
-            value.contains(" ") ? "\(key)\(comparison.symbol)\"\(value)\"" : "\(key)\(comparison.symbol)\(value)"
-        }
-    }
 
-    func toScryfallQueryString() -> String {
-        // TODO: Is this all the right syntax? Does name need a `name:`; do we need to quote?
-        return switch self {
-        case .name(let n): n
-        case .keyValue(let key, let comparison, let value): "\(key)\(comparison.symbol)\(value)"
+    // TODO: This and the previous method should be single-quote aware too, probably.
+    func toQueryStringWithEditingRange() -> (String, Range<String.Index>) {
+        switch self {
+        case .name(let n):
+            return if n.contains(" ") {
+                ("\"\(n)\"", n.index(after: n.startIndex)..<n.index(before: n.endIndex))
+            } else {
+                (n, n.startIndex..<n.endIndex)
+            }
+        case .keyValue(let key, let comparison, let value):
+            let prefix = "\(key)\(comparison.symbol)"
+            if value.contains(" ") {
+                let formatted = "\(prefix)\"\(value)\""
+                return (
+                    formatted,
+                    prefix.index(after: prefix.endIndex)..<formatted.index(before: formatted.endIndex)
+                )
+            } else {
+                let formatted = "\(prefix)\(value)"
+                return (
+                    formatted,
+                    prefix.endIndex..<formatted.endIndex
+                )
+            }
         }
     }
 }

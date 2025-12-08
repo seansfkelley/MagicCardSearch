@@ -55,7 +55,7 @@ struct ReflowingFilterPillsView: View {
                 ReflowingFilterPillsView(
                     filters: $filters,
                     onFilterEdit: { filter in
-                        print("Editing filter: \(filter.toIdiomaticString())")
+                        print("Editing filter: \(filter.toQueryStringWithEditingRange().0)")
                     }
                 )
                 Spacer()

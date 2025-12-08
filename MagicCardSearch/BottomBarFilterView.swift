@@ -37,12 +37,9 @@ struct BottomBarFilterView: View {
                 ReflowingFilterPillsView(
                     filters: $filters,
                     onFilterEdit: { filter in
-                        let (prefix, highlightable, suffix) = filter.toResettableParts()
-                        inputText = "\(prefix)\(highlightable)\(suffix)"
-                        
-                        // TODO: This is horrible. What is the right way to do this?
-                        let tmp = "\(prefix)\(highlightable)"
-                        let selection = TextSelection(range: prefix.endIndex..<tmp.endIndex)
+                        let (filterString, range) = filter.toQueryStringWithEditingRange()
+                        inputText = filterString
+                        let selection = TextSelection(range: range)
 
                         // Unfortunate, but seems to be the only way that we can reliably focus the
                         // text whether or not the text field is currently focused.

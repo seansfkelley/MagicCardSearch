@@ -23,5 +23,16 @@ struct MagicCardSearchParserTests {
     ]) func tryParseUnambiguousNil(input: String) throws {
         #expect(SearchFilter.tryParseUnambiguous(input) == nil)
     }
-    
+}
+
+struct SearchFilterTests {
+    @Test<[(SearchFilter, String, Range<Int>)]>("toQueryStringWithEditingRange", arguments: [
+        (.keyValue("foo", .including, "bar"), "foo:bar", 4..<7)
+    ]) func toQueryStringWithEditingRange(filter: SearchFilter, string: String, editableRange: Range<Int>) throws {
+        let indexRange =
+            String.Index.init(encodedOffset: editableRange.lowerBound)
+            ..<
+            String.Index.init(encodedOffset: editableRange.upperBound)
+        #expect(filter.toQueryStringWithEditingRange() == (string, indexRange))
+    }
 }
