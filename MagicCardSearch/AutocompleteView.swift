@@ -12,7 +12,7 @@ struct AutocompleteView: View {
         case filter(SearchFilter)
         case string(String)
     }
-    
+
     let inputText: String
     let suggestionProvider: AutocompleteProvider
     let filters: [SearchFilter]
@@ -31,9 +31,11 @@ struct AutocompleteView: View {
         }
         .listStyle(.plain)
     }
-    
+
     @ViewBuilder
-    private func suggestionRow(for suggestion: AutocompleteProvider.Suggestion, at index: Int) -> some View {
+    private func suggestionRow(for suggestion: AutocompleteProvider.Suggestion, at index: Int)
+        -> some View
+    {
         switch suggestion {
         case .history(let entry, let matchRange):
             historyRow(entry: entry, matchRange: matchRange)
@@ -60,19 +62,19 @@ struct AutocompleteView: View {
                         Label("Delete", systemImage: "trash")
                     }
                 }
-                
+
         case .filterType(let filterType, let matchRange):
             filterTypeRow(filterType: filterType, matchRange: matchRange)
-            
-        case .comparison(let comparisons):
-            comparisonRow(comparisons: comparisons)
-            
+
         case .enumeration(let options):
             enumerationRow(options: options)
         }
     }
-    
-    private func historyRow(entry: AutocompleteProvider.HistoryEntry, matchRange: Range<String.Index>?) -> some View {
+
+    private func historyRow(
+        entry: AutocompleteProvider.HistoryEntry,
+        matchRange: Range<String.Index>?
+    ) -> some View {
         let filterString = entry.filter.queryStringWithEditingRange.0
         return Button {
             onSuggestionTap(.filter(entry.filter))
@@ -85,7 +87,7 @@ struct AutocompleteView: View {
                     highlightRange: matchRange
                 )
                 Spacer(minLength: 0)
-                
+
                 if entry.isPinned {
                     Image(systemName: "pin.fill")
                         .foregroundStyle(.secondary)
@@ -96,68 +98,51 @@ struct AutocompleteView: View {
         }
         .buttonStyle(.plain)
     }
-    
+
     private func filterTypeRow(filterType: String, matchRange: Range<String.Index>?) -> some View {
-        Button {
-            onSuggestionTap(.string(filterType))
-        } label: {
-            HStack(spacing: 12) {
-                Image(systemName: "line.3.horizontal.decrease.circle")
-                    .foregroundStyle(.secondary)
+        HStack(spacing: 12) {
+            Image(systemName: "line.3.horizontal.decrease.circle")
+                .foregroundStyle(.secondary)
+
+            VStack(alignment: .leading, spacing: 6) {
                 HighlightedText(
                     text: filterType,
                     highlightRange: matchRange
                 )
-                Spacer(minLength: 0)
-            }
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-    }
-    
-    private func comparisonRow(comparisons: [Comparison: Range<String.Index>]) -> some View {
-        HStack(spacing: 12) {
-            Image(systemName: "equal.circle")
-                .foregroundStyle(.secondary)
-            
-            VStack(alignment: .leading, spacing: 8) {
-                Text(inputText)
-                    .foregroundStyle(.primary)
                 
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8) {
-                        ForEach([Comparison.including, .equal, .notEqual, .lessThan, .lessThanOrEqual, .greaterThan, .greaterThanOrEqual], id: \.self) { comparison in
-                            Button {
-                                onSuggestionTap(.string(inputText + comparison.symbol))
-                            } label: {
-                                Text(comparison.symbol)
-                                    .font(.body.monospaced())
-                                    .padding(.horizontal, 12)
-                                    .padding(.vertical, 6)
-                                    .background(Color.accentColor.opacity(0.15))
-                                    .foregroundStyle(.primary)
-                                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                Picker("Comparison", selection: .constant(0)) {
+                    ForEach([
+                        Comparison.including,
+                        .equal,
+                        .notEqual,
+                        .lessThan,
+                        .lessThanOrEqual,
+                        .greaterThan,
+                        .greaterThanOrEqual,
+                    ], id: \.rawValue) { comparison in
+                        Text(comparison.rawValue)
+                            .onTapGesture {
+                                onSuggestionTap(.string("\(filterType)\(comparison.rawValue)"))
                             }
-                            .buttonStyle(.plain)
-                        }
                     }
                 }
+                .pickerStyle(.segmented)
             }
-            
+
             Spacer(minLength: 0)
         }
         .padding(.vertical, 4)
     }
-    
+
     private func enumerationRow(options: [(String, Range<String.Index>?)]) -> some View {
         HStack(spacing: 12) {
             Image(systemName: "list.bullet.circle")
                 .foregroundStyle(.secondary)
-            
+
             VStack(alignment: .leading, spacing: 8) {
                 Text(inputText)
                     .foregroundStyle(.primary)
-                
+
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
                         ForEach(Array(options.enumerated()), id: \.offset) { _, option in
@@ -189,7 +174,7 @@ struct AutocompleteView: View {
                     }
                 }
             }
-            
+
             Spacer(minLength: 0)
         }
         .padding(.vertical, 4)
