@@ -15,7 +15,7 @@ struct ContentView: View {
     @State private var searchConfig = SearchConfiguration.load()
     @State private var globalFiltersSettings = GlobalFiltersSettings.load()
     @State private var pendingSearchConfig: SearchConfiguration?
-    @State private var historyProvider = FilterHistoryProvider()
+    @State private var historyProvider = AutocompleteProvider()
     @State private var inputSelection: TextSelection?
     @State private var pendingSelection: TextSelection?
     @FocusState private var isSearchFocused: Bool
@@ -37,7 +37,7 @@ struct ContentView: View {
                 if isSearchFocused {
                     AutocompleteView(
                         inputText: inputText,
-                        historyProvider: historyProvider,
+                        suggestionProvider: historyProvider,
                         filters: filters,
                         onSuggestionTap: { suggestion in
                             handleSuggestionTap(suggestion)

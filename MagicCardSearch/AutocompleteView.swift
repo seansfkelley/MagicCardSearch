@@ -8,20 +8,33 @@
 import SwiftUI
 
 struct AutocompleteView: View {
+    enum AcceptedSuggestion {
+        case .filter(SearchFilter)
+        case .string(String)
+    }
+    
     let inputText: String
-    let historyProvider: FilterHistoryProvider
+    let suggestionProvider: AutocompleteProvider
     let filters: [SearchFilter]
-    let onSuggestionTap: (String) -> Void
+    let onSuggestionTap: (AcceptedSuggestion) -> Void
 
-    private var suggestions: [(filterString: String, matchRange: Range<String.Index>?)] {
-        historyProvider.searchHistory(prefix: inputText, excludeFilters: filters)
+    private var suggestions: [AutocompleteProvider.Suggestion] {
+        // TODO: Cache the set conversion here.
+        suggestionProvider.suggestions(for: inputText, excluding: Set(filters))
     }
 
     var body: some View {
         List {
-            ForEach(suggestions, id: \.filterString) { suggestion in
+            ForEach(suggestions) { suggestion in
                 Button {
-                    onSuggestionTap(suggestion.filterString)
+                    onSuggestionTap(switch suggestion {
+                    case .history(let entry, _):
+                        entry.filter.queryStringWithEditingRange.0
+                    case .filterType(let s, _):
+                        s
+                    case .
+                    })
+                    onSuggestionTap(suggestion)
                 } label: {
                     HStack(spacing: 12) {
                         Image(systemName: "magnifyingglass")
@@ -32,7 +45,7 @@ struct AutocompleteView: View {
                         )
                         Spacer(minLength: 0)
                         
-                        if historyProvider.isPinned(suggestion.filterString) {
+                        if suggestion.entry.isPinned {
                             Image(systemName: "pin.fill")
                                 .foregroundStyle(.secondary)
                                 .font(.caption)
@@ -43,9 +56,13 @@ struct AutocompleteView: View {
                 .buttonStyle(.plain)
                 .swipeActions(edge: .leading, allowsFullSwipe: true) {
                     Button {
-                        historyProvider.togglePin(suggestion.filterString)
+                        if suggestion.entry.isPinned {
+                            historyProvider.unpinHistoryEntry(suggestion.entry)
+                        } else {
+                            historyProvider.pinHistoryEntry(suggestion.entry)
+                        }
                     } label: {
-                        if historyProvider.isPinned(suggestion.filterString) {
+                        if suggestion.entry.isPinned {
                             Label("Unpin", systemImage: "pin.slash")
                         } else {
                             Label("Pin", systemImage: "pin")
@@ -55,7 +72,7 @@ struct AutocompleteView: View {
                 }
                 .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                     Button(role: .destructive) {
-                        historyProvider.deleteFilter(suggestion.filterString)
+                        historyProvider.deleteHistoryEntry(suggestion.entry)
                     } label: {
                         Label("Delete", systemImage: "trash")
                     }
@@ -110,7 +127,7 @@ struct HighlightedText: View {
 // MARK: - Preview
 
 #Preview {
-    let provider = FilterHistoryProvider()
+    let provider = AutocompleteProvider()
     provider.recordFilter(SearchFilter.keyValue("c", .lessThan, "selesnya"))
     provider.recordFilter(SearchFilter.keyValue("mv", .greaterThanOrEqual, "10"))
     provider.recordFilter(SearchFilter.keyValue("set", .including, "mh5"))
@@ -118,7 +135,7 @@ struct HighlightedText: View {
 
     return AutocompleteView(
         inputText: "set",
-        historyProvider: provider,
+        suggestionProvider: provider,
         filters: []
     ) { suggestion in
         print("Selected: \(suggestion)")

@@ -11,7 +11,7 @@ struct SearchBarView: View {
     @Binding var filters: [SearchFilter]
     @Binding var inputText: String
     @Binding var inputSelection: TextSelection?
-    let historyProvider: FilterHistoryProvider
+    let historyProvider: AutocompleteProvider
     
     @FocusState var isSearchFocused: Bool
     
@@ -90,7 +90,7 @@ struct SearchBarView: View {
         @State private var filters: [SearchFilter] = []
         @State private var inputText = ""
         @State private var inputSelection: TextSelection?
-        @State private var historyProvider = FilterHistoryProvider()
+        @State private var historyProvider = AutocompleteProvider()
         @FocusState private var isFocused: Bool
 
         var body: some View {

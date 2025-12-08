@@ -8,7 +8,7 @@ func doubleQuoteIfNecessary(_ string: String) -> String {
 }
 
 /// Quoting to preserve whitespace not required; any quotes present will be assumed to be part of the term to search for.
-enum SearchFilter: Equatable, Codable {
+enum SearchFilter: Equatable, Hashable, Codable {
     case name(String)
     case keyValue(String, Comparison, String)
 
