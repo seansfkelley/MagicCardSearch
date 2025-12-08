@@ -74,14 +74,9 @@ struct DisplayOptionsView: View {
                     Button {
                         dismiss()
                     } label: {
-                        Label {
-                            Text("Close")
-                        } icon: {
-                            Image(systemName: "xmark")
-                                .font(.body.weight(.semibold))
-                        }
+                        Image(systemName: "xmark")
+                            .font(.body.weight(.semibold))
                     }
-                    .labelStyle(.iconOnly)
                     .buttonStyle(.glass)
                     .buttonBorderShape(.circle)
                 }
@@ -90,14 +85,9 @@ struct DisplayOptionsView: View {
                         searchConfig = workingConfig
                         dismiss()
                     } label: {
-                        Label {
-                            Text("Done")
-                        } icon: {
-                            Image(systemName: "checkmark")
-                                .font(.body.weight(.semibold))
-                        }
+                        Image(systemName: "checkmark")
+                            .font(.body.weight(.semibold))
                     }
-                    .labelStyle(.iconOnly)
                     .buttonStyle(.glassProminent)
                     .buttonBorderShape(.circle)
                 }

@@ -11,10 +11,12 @@ import WebKit
 struct SyntaxReferenceView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var searchVisible = false
-    
+    @State private var page = WebPage()
+    @State private var hasRunJavascript = false
+
     var body: some View {
         NavigationStack {
-            WebView(url: URL(string: "https://scryfall.com/docs/syntax"))
+            WebView(page)
                 .findNavigator(isPresented: $searchVisible)
                 .navigationTitle("Syntax Reference")
                 .navigationBarTitleDisplayMode(.inline)
@@ -27,7 +29,7 @@ struct SyntaxReferenceView: View {
                             Image(systemName: "xmark")
                         }
                     }
-                    
+
                     ToolbarItem(placement: .primaryAction) {
                         Button {
                             searchVisible.toggle()
@@ -36,6 +38,27 @@ struct SyntaxReferenceView: View {
                         }
                     }
                 }
+                .onChange(of: page.isLoading) { _, isLoading in
+                    if !isLoading && !hasRunJavascript {
+                        hasRunJavascript = true
+                        Task {
+                            // Best-effort!
+                            _ = try? await page.callJavaScript(
+                                """
+                                (function() {
+                                    const header = document.getElementById('header');
+                                    if (header != null) {
+                                        header.remove();
+                                    }
+                                })();
+                                """
+                            )
+                        }
+                    }
+                }
+        }
+        .onAppear {
+            _ = page.load(URLRequest(url: URL(string: "https://scryfall.com/docs/syntax")!))
         }
     }
 }
