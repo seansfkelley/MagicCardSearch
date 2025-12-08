@@ -10,8 +10,9 @@ import Foundation
 // MARK: - Filter Field Configuration
 
 enum FilterFieldType {
-    case text(placeholder: String)
-    case numeric(placeholder: String, range: ClosedRange<Int>, step: Int)
+    // TODO: Consider regex that warns, but doesn't prevent, using a given filter.
+    case text
+    case numeric(range: ClosedRange<Int>, step: Int)
     case enumeration(options: [String])
 }
 
@@ -26,94 +27,90 @@ struct FilterFieldConfiguration {
 let filterFieldConfigurations: [String: FilterFieldConfiguration] = [
     "set": FilterFieldConfiguration(
         displayName: "Set Code",
-        fieldType: .text(placeholder: "e.g. 7ED, MH3"),
+        fieldType: .text,
         aliases: ["set", "s", "e"]
     ),
     
     "manavalue": FilterFieldConfiguration(
         displayName: "Mana Value",
-        fieldType: .numeric(placeholder: "Enter mana value", range: 0...20, step: 1),
+        fieldType: .numeric(range: 0...20, step: 1),
         aliases: ["manavalue", "mv", "cmc"]
     ),
     
     "power": FilterFieldConfiguration(
         displayName: "Power",
-        fieldType: .numeric(placeholder: "Enter power", range: -1...20, step: 1),
+        fieldType: .numeric(range: -1...20, step: 1),
         aliases: ["power", "pow"]
     ),
     
     "toughness": FilterFieldConfiguration(
         displayName: "Toughness",
-        fieldType: .numeric(placeholder: "Enter toughness", range: -1...20, step: 1),
+        fieldType: .numeric(range: -1...20, step: 1),
         aliases: ["toughness", "tou"]
     ),
     
     "format": FilterFieldConfiguration(
         displayName: "Format",
         fieldType: .enumeration(options: [
-            "standard", "modern", "legacy", "vintage",
-            "commander", "pioneer", "pauper", "historic"
+            "Standard", "Modern", "Legacy", "Vintage",
+            "Commander", "Pioneer", "Pauper", "Historic"
         ]),
         aliases: ["format", "f", "legal"]
     ),
     
     "name": FilterFieldConfiguration(
         displayName: "Card Name",
-        fieldType: .text(placeholder: "Enter card name"),
+        fieldType: .text,
         aliases: ["name", "n"]
     ),
     
     "oracle": FilterFieldConfiguration(
         displayName: "Oracle Text",
-        fieldType: .text(placeholder: "Search oracle text"),
+        fieldType: .text,
         aliases: ["oracle", "o"]
     ),
     
     "function": FilterFieldConfiguration(
         displayName: "Oracle Tags",
-        fieldType: .text(placeholder: "Search by function tags"),
+        fieldType: .text,
         aliases: ["function", "otag"]
     ),
     
     "type": FilterFieldConfiguration(
         displayName: "Type Line",
-        fieldType: .text(placeholder: "e.g. Creature, Instant"),
+        fieldType: .text,
         aliases: ["type", "t"]
     ),
     
     "color": FilterFieldConfiguration(
         displayName: "Color",
-        fieldType: .enumeration(options: [
-            "w", "u", "b", "r", "g", "c", "m"
-        ]),
+        fieldType: .text,
         aliases: ["color", "c"]
     ),
     
     "coloridentity": FilterFieldConfiguration(
         displayName: "Color Identity",
-        fieldType: .enumeration(options: [
-            "w", "u", "b", "r", "g", "c"
-        ]),
+        fieldType: .text,
         aliases: ["coloridentity", "id", "identity"]
     ),
     
     "rarity": FilterFieldConfiguration(
         displayName: "Rarity",
         fieldType: .enumeration(options: [
-            "common", "uncommon", "rare", "mythic", "special", "bonus"
+            "Common", "Uncommon", "Rare", "Mythic", "Special", "Bonus"
         ]),
         aliases: ["rarity", "r"]
     ),
     
     "artist": FilterFieldConfiguration(
         displayName: "Artist",
-        fieldType: .text(placeholder: "Enter artist name"),
+        fieldType: .text,
         aliases: ["artist", "a"]
     ),
     
     "flavor": FilterFieldConfiguration(
         displayName: "Flavor Text",
-        fieldType: .text(placeholder: "Search flavor text"),
+        fieldType: .text,
         aliases: ["flavor", "ft"]
     )
 ]

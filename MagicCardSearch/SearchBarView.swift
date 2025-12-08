@@ -46,7 +46,11 @@ struct SearchBarView: View {
                 .buttonStyle(.plain)
             }
         }
+        .padding(.vertical)
         .padding(.horizontal)
+        .onTapGesture {
+            isSearchFocused = true
+        }
         .onChange(of: inputText) { (previous: String, current: String) in
             if previous.count < current.count && current.hasSuffix(" ") {
                 createNewFilterFromSearch()

@@ -63,7 +63,6 @@ struct BottomBarFilterView: View {
                 historyProvider: historyProvider,
                 isSearchFocused: _isSearchFocused
             )
-            .padding(.vertical)
         }
         .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 20))
         .padding()

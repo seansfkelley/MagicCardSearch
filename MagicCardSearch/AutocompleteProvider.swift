@@ -314,8 +314,8 @@ class AutocompleteProvider {
         }
     }
 
-    func deleteHistoryEntry(_ entry: HistoryEntry) {
-        history.removeAll(where: { $0.filter == entry.filter })
+    func deleteSearchFilter(_ filter: SearchFilter) {
+        history.removeAll(where: { $0.filter == filter })
         saveHistory()
     }
 

@@ -26,73 +26,61 @@ struct AutocompleteView: View {
     var body: some View {
         List {
             ForEach(Array(suggestions.enumerated()), id: \.offset) { index, suggestion in
-                suggestionRow(for: suggestion, at: index)
+                switch suggestion {
+                case .history(let suggestion):
+                    historyRow(suggestion)
+                        .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                            Button {
+                                if suggestion.isPinned {
+                                    suggestionProvider.unpinSearchFilter(suggestion.filter)
+                                } else {
+                                    suggestionProvider.pinSearchFilter(suggestion.filter)
+                                }
+                            } label: {
+                                if suggestion.isPinned {
+                                    Label("Unpin", systemImage: "pin.slash")
+                                } else {
+                                    Label("Pin", systemImage: "pin")
+                                }
+                            }
+                            .tint(.orange)
+                        }
+                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                            Button(role: .destructive) {
+                                suggestionProvider.deleteSearchFilter(suggestion.filter)
+                            } label: {
+                                Label("Delete", systemImage: "trash")
+                            }
+                        }
+
+                case .filter(let suggestion):
+                    filterTypeRow(suggestion)
+
+                case .enumeration(let suggestion):
+                    enumerationRow(suggestion)
+                }
             }
         }
         .listStyle(.plain)
     }
 
-    @ViewBuilder
-    private func suggestionRow(for suggestion: AutocompleteProvider.Suggestion, at index: Int)
-        -> some View
-    {
-        switch suggestion {
-        case .history(let historySuggestion):
-            historyRow(historySuggestion: historySuggestion)
-                .swipeActions(edge: .leading, allowsFullSwipe: true) {
-                    Button {
-                        if historySuggestion.isPinned {
-                            suggestionProvider.unpinSearchFilter(historySuggestion.filter)
-                        } else {
-                            suggestionProvider.pinSearchFilter(historySuggestion.filter)
-                        }
-                    } label: {
-                        if historySuggestion.isPinned {
-                            Label("Unpin", systemImage: "pin.slash")
-                        } else {
-                            Label("Pin", systemImage: "pin")
-                        }
-                    }
-                    .tint(.orange)
-                }
-                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                    Button(role: .destructive) {
-                        let entry = AutocompleteProvider.HistoryEntry(
-                            filter: historySuggestion.filter,
-                            timestamp: Date(),
-                            isPinned: historySuggestion.isPinned
-                        )
-                        suggestionProvider.deleteHistoryEntry(entry)
-                    } label: {
-                        Label("Delete", systemImage: "trash")
-                    }
-                }
-
-        case .filter(let filterTypeSuggestion):
-            filterTypeRow(filterTypeSuggestion: filterTypeSuggestion)
-
-        case .enumeration(let enumerationSuggestion):
-            enumerationRow(enumerationSuggestion: enumerationSuggestion)
-        }
-    }
-
     private func historyRow(
-        historySuggestion: AutocompleteProvider.HistorySuggestion
+        _ suggestion: AutocompleteProvider.HistorySuggestion
     ) -> some View {
-        let filterString = historySuggestion.filter.queryStringWithEditingRange.0
+        let filterString = suggestion.filter.queryStringWithEditingRange.0
         return Button {
-            onSuggestionTap(.filter(historySuggestion.filter))
+            onSuggestionTap(.filter(suggestion.filter))
         } label: {
             HStack(spacing: 12) {
                 Image(systemName: "clock.arrow.circlepath")
                     .foregroundStyle(.secondary)
                 HighlightedText(
                     text: filterString,
-                    highlightRange: historySuggestion.matchRange
+                    highlightRange: suggestion.matchRange
                 )
                 Spacer(minLength: 0)
 
-                if historySuggestion.isPinned {
+                if suggestion.isPinned {
                     Image(systemName: "pin.fill")
                         .foregroundStyle(.secondary)
                         .font(.caption)
@@ -103,19 +91,19 @@ struct AutocompleteView: View {
         .buttonStyle(.plain)
     }
 
-    private func filterTypeRow(filterTypeSuggestion: AutocompleteProvider.FilterTypeSuggestion) -> some View {
+    private func filterTypeRow(_ suggestion: AutocompleteProvider.FilterTypeSuggestion) -> some View {
         HStack(spacing: 12) {
             Image(systemName: "line.3.horizontal.decrease.circle")
                 .foregroundStyle(.secondary)
 
             VStack(alignment: .leading, spacing: 6) {
                 HighlightedText(
-                    text: filterTypeSuggestion.filterType,
-                    highlightRange: filterTypeSuggestion.matchRange
+                    text: suggestion.filterType,
+                    highlightRange: suggestion.matchRange
                 )
                 
                 ComparisonButtonGroup(onButtonTap: { comparison in
-                    onSuggestionTap(.string("\(filterTypeSuggestion.filterType)\(comparison.rawValue)"))
+                    onSuggestionTap(.string("\(suggestion.filterType)\(comparison.rawValue)"))
                 })
             }
 
@@ -124,9 +112,8 @@ struct AutocompleteView: View {
         .padding(.vertical, 4)
     }
     
-    private func enumerationRow(enumerationSuggestion: AutocompleteProvider.EnumerationSuggestion) -> some View {
-        // Convert the dictionary back to an array of tuples for display
-        let options = Array(enumerationSuggestion.options.map { ($0.key, $0.value) })
+    private func enumerationRow(_ suggestion: AutocompleteProvider.EnumerationSuggestion) -> some View {
+        let options = Array(suggestion.options.map { ($0.key, $0.value) })
             .sorted { $0.0.count < $1.0.count } // Sort by length
         
         return HStack(spacing: 12) {
@@ -134,14 +121,16 @@ struct AutocompleteView: View {
                 .foregroundStyle(.secondary)
 
             VStack(alignment: .leading, spacing: 6) {
-                Text("\(enumerationSuggestion.filterType)\(enumerationSuggestion.comparison.rawValue)")
+                Text("\(suggestion.filterType)\(suggestion.comparison.rawValue)")
                     .foregroundStyle(.primary)
                 
                 ScrollView(.horizontal, showsIndicators: false) {
                     EnumerationButtonGroup(
                         options: options,
                         onButtonTap: { option in
-                            onSuggestionTap(.string("\(enumerationSuggestion.filterType)\(enumerationSuggestion.comparison.rawValue)\(option)"))
+                            onSuggestionTap(
+                                .filter(.keyValue(suggestion.filterType, suggestion.comparison, option))
+                            )
                         }
                     )
                 }
