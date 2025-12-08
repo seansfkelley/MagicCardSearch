@@ -18,7 +18,7 @@ class AutocompleteProvider {
     enum Suggestion {
         case history(HistoryEntry, Range<String.Index>?)
         case filterType(String, Range<String.Index>?)
-        case enumeration([(String, Range<String.Index>?)])
+        case enumeration(String, String, [(String, Range<String.Index>?)])
     }
 
     // MARK: - Properties
@@ -78,13 +78,14 @@ class AutocompleteProvider {
         }
 
         // Collect filter type matches with their match quality
-        var filterTypeMatches: [(
-            canonicalType: String,
-            displayText: String,
-            range: Range<String.Index>,
-            isExactMatch: Bool,
-            matchLength: Int
-        )] = []
+        var filterTypeMatches:
+            [(
+                canonicalType: String,
+                displayText: String,
+                range: Range<String.Index>,
+                isExactMatch: Bool,
+                matchLength: Int
+            )] = []
 
         for (canonicalFilterType, config) in filterFieldConfigurations {
             var filterTypeCandidates = [canonicalFilterType]
@@ -97,10 +98,12 @@ class AutocompleteProvider {
                 // Check for exact match (case insensitive)
                 if candidate.caseInsensitiveCompare(trimmedSearchTerm) == .orderedSame {
                     hasExactMatch = true
-                    bestMatch = (candidate, candidate.startIndex..<candidate.endIndex, candidate.count)
+                    bestMatch = (
+                        candidate, candidate.startIndex..<candidate.endIndex, candidate.count
+                    )
                     break
                 }
-                
+
                 // Check for partial match
                 if let range = candidate.range(of: trimmedSearchTerm, options: .caseInsensitive) {
                     let matchLength = trimmedSearchTerm.count
@@ -122,13 +125,15 @@ class AutocompleteProvider {
             }
 
             if let (candidate, range, matchLength) = bestMatch {
-                filterTypeMatches.append((
-                    canonicalType: canonicalFilterType,
-                    displayText: candidate,
-                    range: range,
-                    isExactMatch: hasExactMatch,
-                    matchLength: matchLength
-                ))
+                filterTypeMatches.append(
+                    (
+                        canonicalType: canonicalFilterType,
+                        displayText: candidate,
+                        range: range,
+                        isExactMatch: hasExactMatch,
+                        matchLength: matchLength
+                    )
+                )
             }
         }
 
@@ -154,6 +159,11 @@ class AutocompleteProvider {
         // TODO: Why does this seem to be sorting in reverse?
         for match in filterTypeMatches.reversed() {
             results.append(.filterType(match.displayText, match.range))
+        }
+
+        // Check for enumeration-type filter suggestions
+        if let enumerationSuggestions = checkForEnumerationSuggestions(trimmedSearchTerm) {
+            results.append(enumerationSuggestions)
         }
 
         return Array(sortResults(results).prefix(10))
@@ -183,6 +193,53 @@ class AutocompleteProvider {
     }
 
     // MARK: - Private Helpers
+
+    private func checkForEnumerationSuggestions(_ searchTerm: String) -> Suggestion? {
+        for op in ["!=", ":", "="] {
+            guard let operatorRange = searchTerm.range(of: op) else {
+                continue
+            }
+
+            let filterPart = String(searchTerm[..<operatorRange.lowerBound])
+            let valuePart = String(searchTerm[operatorRange.upperBound...])
+
+            // Check if filterPart matches an enumeration filter
+            if let config = configurationForKey(filterPart),
+                case .enumeration(let options) = config.fieldType
+            {
+
+                // Filter and sort options based on valuePart
+                var matchingOptions: [(option: String, range: Range<String.Index>?)] = []
+
+                if valuePart.isEmpty {
+                    // Return all options if no value part
+                    matchingOptions = options.sorted { $0.count < $1.count }.map { ($0, nil) }
+                } else {
+                    // Find matching options
+                    var matches: [(option: String, range: Range<String.Index>)] = []
+
+                    for option in options {
+                        if let range = option.range(of: valuePart, options: .caseInsensitive) {
+                            matches.append((option, range))
+                        }
+                    }
+
+                    // Sort by length (shortest first)
+                    matches.sort { $0.option.count < $1.option.count }
+                    matchingOptions = matches.map { ($0.option, $0.range as Range<String.Index>?) }
+                }
+
+                if !matchingOptions.isEmpty {
+                    return .enumeration(searchTerm, filterPart, matchingOptions)
+                }
+            }
+
+            // Once we find an operator, stop searching
+            break
+        }
+
+        return nil
+    }
 
     private func sortResults(_ results: [Suggestion]) -> [Suggestion] {
         return results.sorted { lhs, rhs in

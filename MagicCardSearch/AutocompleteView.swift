@@ -66,8 +66,8 @@ struct AutocompleteView: View {
         case .filterType(let filterType, let matchRange):
             filterTypeRow(filterType: filterType, matchRange: matchRange)
 
-        case .enumeration(let options):
-            Group {}
+        case .enumeration(let existingText, let filterPart, let options):
+            enumerationRow(existingText, filterPart, options: options)
         }
     }
 
@@ -119,9 +119,62 @@ struct AutocompleteView: View {
         }
         .padding(.vertical, 4)
     }
+    
+    private func enumerationRow(_ text: String, _ filterPart: String, options: [(String, Range<String.Index>?)]) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: "list.bullet.circle")
+                .foregroundStyle(.secondary)
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text(text)
+                    .foregroundStyle(.primary)
+                
+                ScrollView(.horizontal, showsIndicators: false) {
+                    EnumerationButtonGroup(
+                        options: options,
+                        onButtonTap: { option in
+                            onSuggestionTap(.string("\(filterPart)\(option)"))
+                        }
+                    )
+                }
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(.vertical, 4)
+    }
 }
 
 // MARK: - Filter Type Picker
+
+private struct EnumerationButtonGroup: View {
+    let options: [(String, Range<String.Index>?)]
+    let onButtonTap: (String) -> Void
+    
+    var body: some View {
+        HStack(spacing: 8) {
+            ForEach(Array(options.enumerated()), id: \.offset) { _, item in
+                let (option, matchRange) = item
+                Button {
+                    onButtonTap(option)
+                } label: {
+                    HighlightedText(
+                        text: option,
+                        highlightRange: matchRange
+                    )
+                    .font(.body)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(Color.accentColor.opacity(0.15))
+                    .foregroundStyle(.primary)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.horizontal, 2)
+    }
+}
 
 private struct ComparisonButtonGroup: View {
     let onButtonTap: (Comparison) -> Void
@@ -200,7 +253,7 @@ struct HighlightedText: View {
 
 // MARK: - Preview
 
-#Preview {
+#Preview("Filter Type Suggestions") {
     let provider = AutocompleteProvider()
     provider.recordFilterUsage(SearchFilter.keyValue("c", .lessThan, "selesnya"))
     provider.recordFilterUsage(SearchFilter.keyValue("mv", .greaterThanOrEqual, "10"))
@@ -209,6 +262,30 @@ struct HighlightedText: View {
 
     return AutocompleteView(
         inputText: "set",
+        suggestionProvider: provider,
+        filters: []
+    ) { suggestion in
+        print("Selected: \(suggestion)")
+    }
+}
+
+#Preview("Enumeration Suggestions - Empty") {
+    let provider = AutocompleteProvider()
+    
+    return AutocompleteView(
+        inputText: "format:",
+        suggestionProvider: provider,
+        filters: []
+    ) { suggestion in
+        print("Selected: \(suggestion)")
+    }
+}
+
+#Preview("Enumeration Suggestions - Filtered") {
+    let provider = AutocompleteProvider()
+    
+    return AutocompleteView(
+        inputText: "rarity=my",
         suggestionProvider: provider,
         filters: []
     ) { suggestion in
