@@ -41,6 +41,7 @@ struct ContentView: View {
                         filters: filters,
                         onSuggestionTap: { suggestion in
                             handleSuggestionTap(suggestion)
+                            inputSelection = TextSelection(insertionPoint: inputText.endIndex)
                         }
                     )
                 }
@@ -152,35 +153,15 @@ struct ContentView: View {
         }
     }
     
-    private func handleSuggestionTap(_ suggestion: String) {
-        // Try to parse as a filter
-        if let filter = SearchFilter.tryParseUnambiguous(suggestion) {
+    private func handleSuggestionTap(_ suggestion: AutocompleteView.AcceptedSuggestion) {
+        switch suggestion {
+        case .filter(let filter):
             filters.append(filter)
             historyProvider.recordFilter(filter)
-        } else {
-            // Fallback to name filter if parsing fails
-            let unquoted = stripMatchingQuotes(from: suggestion)
-            if !unquoted.isEmpty {
-                let filter = SearchFilter.name(unquoted)
-                filters.append(filter)
-                historyProvider.recordFilter(filter)
-            }
-        }
-        
-        // Clear the input text
-        inputText = ""
-        
-        // Refocus the search field
-        isSearchFocused = true
-    }
-    
-    private func stripMatchingQuotes(from string: String) -> String {
-        if string.hasPrefix("\"") && string.hasSuffix("\"") && string.count >= 2 {
-            return String(string.dropFirst().dropLast())
-        } else if string.hasPrefix("'") && string.hasSuffix("'") && string.count >= 2 {
-            return String(string.dropFirst().dropLast())
-        } else {
-            return string
+            inputText = ""
+            
+        case .string(let string):
+            inputText = string
         }
     }
 }

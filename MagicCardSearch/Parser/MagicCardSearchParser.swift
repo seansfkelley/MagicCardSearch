@@ -44,7 +44,7 @@ enum SearchFilter: Equatable, Hashable, Codable {
     }
 }
 
-enum Comparison: String, Codable {
+enum Comparison: String, Codable, Hashable {
     case including = ":"
     case equal = "="
     case notEqual = "!="

@@ -62,20 +62,68 @@ class AutocompleteProvider {
         let trimmedSearchTerm = searchTerm.trimmingCharacters(in: .whitespaces)
         
         if trimmedSearchTerm.isEmpty {
-            return Array(sortResults(Array(availableHistory.map { Suggestion.history($0, nil) })).prefix(10))
+            return Array(sortResults(availableHistory.map { Suggestion.history($0, nil) }).prefix(10))
         }
         
-        let matches = availableHistory.compactMap { entry in
-            if let range = entry.filter.queryStringWithEditingRange.0.range(
-                of: trimmedSearchTerm,
-                options: .caseInsensitive
-            ) {
+        var results: [Suggestion] = []
+        
+        // Add history matches
+        let historyMatches = availableHistory.compactMap { entry -> Suggestion? in
+            let filterString = entry.filter.queryStringWithEditingRange.0
+            if let range = filterString.range(of: trimmedSearchTerm, options: .caseInsensitive) {
                 return Suggestion.history(entry, range)
             }
             return nil
         }
+        results.append(contentsOf: historyMatches)
         
-        return Array(sortResults(matches).prefix(10))
+        // Add filter type suggestions (common filter keys)
+        let filterTypes = ["name", "type", "oracle", "color", "mana", "power", "toughness", "rarity", "set", "artist"]
+        for filterType in filterTypes {
+            if let range = filterType.range(of: trimmedSearchTerm, options: .caseInsensitive) {
+                results.append(.filterType(filterType, range))
+            }
+        }
+        
+        // Check if the search term looks like it might be incomplete filter syntax (ends with a key and comparison operator)
+        if let colonIndex = trimmedSearchTerm.lastIndex(of: ":"),
+           colonIndex == trimmedSearchTerm.index(before: trimmedSearchTerm.endIndex) {
+            // User typed something like "color:" - show comparison operators
+            let comparisons: [Comparison: Range<String.Index>] = [
+                .including: trimmedSearchTerm.endIndex..<trimmedSearchTerm.endIndex,
+                .equal: trimmedSearchTerm.endIndex..<trimmedSearchTerm.endIndex,
+                .notEqual: trimmedSearchTerm.endIndex..<trimmedSearchTerm.endIndex,
+                .lessThan: trimmedSearchTerm.endIndex..<trimmedSearchTerm.endIndex,
+                .lessThanOrEqual: trimmedSearchTerm.endIndex..<trimmedSearchTerm.endIndex,
+                .greaterThan: trimmedSearchTerm.endIndex..<trimmedSearchTerm.endIndex,
+                .greaterThanOrEqual: trimmedSearchTerm.endIndex..<trimmedSearchTerm.endIndex
+            ]
+            results.append(.comparison(comparisons))
+        }
+        
+        // Check for enumerable values (e.g., color values after "color:")
+        if trimmedSearchTerm.contains(":") || trimmedSearchTerm.contains("=") {
+            let colorValues = ["white", "blue", "black", "red", "green", "colorless", "multicolor"]
+            let rarityValues = ["common", "uncommon", "rare", "mythic"]
+            
+            // Determine which enumeration to show based on the filter key
+            var enumerationValues: [String] = []
+            if trimmedSearchTerm.lowercased().contains("color") {
+                enumerationValues = colorValues
+            } else if trimmedSearchTerm.lowercased().contains("rarity") {
+                enumerationValues = rarityValues
+            }
+            
+            if !enumerationValues.isEmpty {
+                let enumOptions = enumerationValues.prefix(4).map { value -> (String, Range<String.Index>?) in
+                    let range = value.range(of: trimmedSearchTerm, options: .caseInsensitive)
+                    return (value, range)
+                }
+                results.append(.enumeration(enumOptions))
+            }
+        }
+        
+        return Array(sortResults(results).prefix(10))
     }
     
     // TODO: Weird interface; improve it. Also, slow.
