@@ -33,18 +33,14 @@ struct CardDetailNavigator: View {
             .tabViewStyle(.page(indexDisplayMode: .never))
             .navigationTitle(cards[currentIndex].name)
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Done") {
-                        dismiss()
-                    }
-                }
-                
-                ToolbarItem(placement: .status) {
-                    Text("\(currentIndex + 1) of \(cards.count)")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
+            .overlay(alignment: .bottom) {
+                Text("\(currentIndex + 1) of \(cards.count)")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(.regularMaterial, in: Capsule())
+                    .padding(.bottom, 16)
             }
         }
     }

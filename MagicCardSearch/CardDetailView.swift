@@ -40,7 +40,6 @@ struct CardDetailView: View {
                     .padding(.bottom, 24)
                     
                     VStack(spacing: 0) {
-                        // Section 1: Name and Mana Cost
                         VStack(alignment: .leading, spacing: 8) {
                             HStack(alignment: .top) {
                                 Text(card.name)
@@ -57,49 +56,56 @@ struct CardDetailView: View {
                         .padding(.vertical, 12)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         
-                        Divider()
-                            .padding(.horizontal)
-                        
-                        // Section 2: Type Line with Color Indicator
-                        VStack(alignment: .leading, spacing: 8) {
-                            HStack(spacing: 8) {
-                                if let colorIndicator = card.colorIndicator, !colorIndicator.isEmpty {
-                                    ColorIndicatorView(colors: colorIndicator)
-                                }
-                                
-                                if let typeLine = card.typeLine {
+                        if let typeLine = card.typeLine, !typeLine.isEmpty {
+                            Divider()
+                                .padding(.horizontal)
+                            
+                            VStack(alignment: .leading, spacing: 8) {
+                                HStack(spacing: 8) {
+                                    if let colorIndicator = card.colorIndicator, !colorIndicator.isEmpty {
+                                        ColorIndicatorView(colors: colorIndicator)
+                                    }
+                                    
                                     Text(typeLine)
                                         .font(.body)
-                                        .italic()
-                                } else {
-                                    Text("Unknown Type")
-                                        .font(.body)
-                                        .italic()
-                                        .foregroundStyle(.secondary)
                                 }
                             }
+                            .padding(.horizontal)
+                            .padding(.vertical, 12)
+                            .frame(maxWidth: .infinity, alignment: .leading)
                         }
-                        .padding(.horizontal)
-                        .padding(.vertical, 12)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                        
+                        // TODO: Are there any cards with no oracle _and_ no flavor? I assume an
+                        // edge case exists. Restructure this to render nothing in that case.
                         
                         Divider()
                             .padding(.horizontal)
                         
-                        // Section 3: Text Box (Oracle and Flavor Text)
                         VStack(alignment: .leading, spacing: 12) {
                             if let oracleText = card.oracleText, !oracleText.isEmpty {
-                                Text(formatOracleText(oracleText))
-                                    .font(.body)
-                                    .fixedSize(horizontal: false, vertical: true)
+                                VStack(alignment: .leading, spacing: 8) {
+                                    ForEach(formatOracleText(oracleText).components(separatedBy: "\n"), id: \.self) { line in
+                                        if !line.isEmpty {
+                                            Text(line)
+                                                .font(.body)
+                                                .fixedSize(horizontal: false, vertical: true)
+                                        }
+                                    }
+                                }
                             }
                             
                             if let flavorText = card.flavorText, !flavorText.isEmpty {
-                                Text(flavorText)
-                                    .font(.body)
-                                    .italic()
-                                    .foregroundStyle(.secondary)
-                                    .fixedSize(horizontal: false, vertical: true)
+                                VStack(alignment: .leading, spacing: 8) {
+                                    ForEach(flavorText.components(separatedBy: "\n"), id: \.self) { line in
+                                        if !line.isEmpty {
+                                            Text(line)
+                                                .font(.system(.body, design: .serif))
+                                                .italic()
+                                                .foregroundStyle(.secondary)
+                                                .fixedSize(horizontal: false, vertical: true)
+                                        }
+                                    }
+                                }
                             }
                             
                             if card.oracleText == nil && card.flavorText == nil {
@@ -112,44 +118,42 @@ struct CardDetailView: View {
                         .padding(.vertical, 12)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         
-                        // Section 4: Power/Toughness (conditional)
                         if let power = card.power, let toughness = card.toughness {
                             Divider()
                                 .padding(.horizontal)
                             
                             VStack(alignment: .leading, spacing: 8) {
-                                Text("\(power)/\(toughness)")
-                                    .font(.title3)
-                                    .fontWeight(.semibold)
+                                HStack {
+                                    Spacer()
+                                    Text("\(power)/\(toughness)")
+                                        .font(.title3)
+                                        .fontWeight(.semibold)
+                                }
                             }
                             .padding(.horizontal)
                             .padding(.vertical, 12)
                             .frame(maxWidth: .infinity, alignment: .leading)
                         }
                         
-                        Divider()
-                            .padding(.horizontal)
-                        
-                        // Section 5: Artist Credit
-                        VStack(alignment: .leading, spacing: 8) {
-                            if let artist = card.artist {
+                        if let artist = card.artist {
+                            Divider()
+                                .padding(.horizontal)
+                            
+                            VStack(alignment: .leading, spacing: 8) {
                                 HStack(spacing: 4) {
-                                    Image(systemName: "paintbrush.fill")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
+                                    Image("artist-nib")
+                                        .resizable()
+                                        .aspectRatio(contentMode: .fit)
+                                        .frame(width: 16, height: 16)
                                     Text(artist)
                                         .font(.caption)
                                         .foregroundStyle(.secondary)
                                 }
-                            } else {
-                                Text("Artist unknown")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
                             }
+                            .padding(.horizontal)
+                            .padding(.vertical, 12)
+                            .frame(maxWidth: .infinity, alignment: .leading)
                         }
-                        .padding(.horizontal)
-                        .padding(.vertical, 12)
-                        .frame(maxWidth: .infinity, alignment: .leading)
                     }
                     .background(Color(.systemBackground))
                 }
