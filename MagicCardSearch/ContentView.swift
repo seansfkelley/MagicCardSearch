@@ -157,7 +157,7 @@ struct ContentView: View {
         switch suggestion {
         case .filter(let filter):
             filters.append(filter)
-            historyProvider.recordFilter(filter)
+            historyProvider.recordFilterUsage(filter)
             inputText = ""
             
         case .string(let string):

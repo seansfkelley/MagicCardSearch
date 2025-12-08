@@ -19,12 +19,6 @@ struct FilterFieldConfiguration {
     let displayName: String
     let fieldType: FilterFieldType
     let aliases: Set<String>
-    
-    init(displayName: String, fieldType: FilterFieldType, aliases: Set<String>) {
-        self.displayName = displayName
-        self.fieldType = fieldType
-        self.aliases = aliases
-    }
 }
 
 // MARK: - Configuration Dictionary

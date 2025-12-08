@@ -241,10 +241,10 @@ struct HighlightedText: View {
 
 #Preview {
     let provider = AutocompleteProvider()
-    provider.recordFilter(SearchFilter.keyValue("c", .lessThan, "selesnya"))
-    provider.recordFilter(SearchFilter.keyValue("mv", .greaterThanOrEqual, "10"))
-    provider.recordFilter(SearchFilter.keyValue("set", .including, "mh5"))
-    provider.recordFilter(SearchFilter.name("Lightning Bolt"))
+    provider.recordFilterUsage(SearchFilter.keyValue("c", .lessThan, "selesnya"))
+    provider.recordFilterUsage(SearchFilter.keyValue("mv", .greaterThanOrEqual, "10"))
+    provider.recordFilterUsage(SearchFilter.keyValue("set", .including, "mh5"))
+    provider.recordFilterUsage(SearchFilter.name("Lightning Bolt"))
 
     return AutocompleteView(
         inputText: "set",

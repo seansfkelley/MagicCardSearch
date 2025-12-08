@@ -59,14 +59,14 @@ struct SearchBarView: View {
         
         if let filter = SearchFilter.tryParseUnambiguous(trimmed) {
             filters.append(filter)
-            historyProvider.recordFilter(filter)
+            historyProvider.recordFilterUsage(filter)
             inputText = ""
         } else if fallbackToNameFilter {
             let unquoted = stripMatchingQuotes(from: trimmed)
             if !unquoted.isEmpty {
                 let filter = SearchFilter.name(unquoted)
                 filters.append(filter)
-                historyProvider.recordFilter(filter)
+                historyProvider.recordFilterUsage(filter)
                 inputText = ""
             }
         }

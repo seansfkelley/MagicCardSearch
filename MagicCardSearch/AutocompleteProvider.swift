@@ -36,8 +36,8 @@ class AutocompleteProvider {
     
     // MARK: - Public Methods
     
-    /// Records a filter in the history, updating its timestamp if it already exists
-    func recordFilter(_ filter: SearchFilter) {
+    // TODO: This implementation sucks.
+    func recordFilterUsage(_ filter: SearchFilter) {
         let wasPinned = history.first(where: { $0.filter == filter })?.isPinned ?? false
         
         history.removeAll { $0.filter == filter }
@@ -67,63 +67,49 @@ class AutocompleteProvider {
         
         var results: [Suggestion] = []
         
-        // Add history matches
-        let historyMatches = availableHistory.compactMap { entry -> Suggestion? in
+        for entry in availableHistory {
             let filterString = entry.filter.queryStringWithEditingRange.0
             if let range = filterString.range(of: trimmedSearchTerm, options: .caseInsensitive) {
-                return Suggestion.history(entry, range)
-            }
-            return nil
-        }
-        results.append(contentsOf: historyMatches)
-        
-        // Add filter type suggestions (common filter keys)
-        let filterTypes = ["name", "type", "oracle", "color", "mana", "power", "toughness", "rarity", "set", "artist"]
-        for filterType in filterTypes {
-            if let range = filterType.range(of: trimmedSearchTerm, options: .caseInsensitive) {
-                results.append(.filterType(filterType, range))
+                results.append(.history(entry, range))
             }
         }
         
-        // Check if the search term looks like it might be incomplete filter syntax (ends with a key and comparison operator)
-        if let colonIndex = trimmedSearchTerm.lastIndex(of: ":"),
-           colonIndex == trimmedSearchTerm.index(before: trimmedSearchTerm.endIndex) {
-            // User typed something like "color:" - show comparison operators
-            let comparisons: [Comparison: Range<String.Index>] = [
-                .including: trimmedSearchTerm.endIndex..<trimmedSearchTerm.endIndex,
-                .equal: trimmedSearchTerm.endIndex..<trimmedSearchTerm.endIndex,
-                .notEqual: trimmedSearchTerm.endIndex..<trimmedSearchTerm.endIndex,
-                .lessThan: trimmedSearchTerm.endIndex..<trimmedSearchTerm.endIndex,
-                .lessThanOrEqual: trimmedSearchTerm.endIndex..<trimmedSearchTerm.endIndex,
-                .greaterThan: trimmedSearchTerm.endIndex..<trimmedSearchTerm.endIndex,
-                .greaterThanOrEqual: trimmedSearchTerm.endIndex..<trimmedSearchTerm.endIndex
-            ]
-            results.append(.comparison(comparisons))
-        }
-        
-        // Check for enumerable values (e.g., color values after "color:")
-        if trimmedSearchTerm.contains(":") || trimmedSearchTerm.contains("=") {
-            let colorValues = ["white", "blue", "black", "red", "green", "colorless", "multicolor"]
-            let rarityValues = ["common", "uncommon", "rare", "mythic"]
+        for (canonicalFilterType, config) in filterFieldConfigurations {
+            var filterTypeCandidates = [canonicalFilterType]
+            filterTypeCandidates.append(contentsOf: config.aliases)
             
-            // Determine which enumeration to show based on the filter key
-            var enumerationValues: [String] = []
-            if trimmedSearchTerm.lowercased().contains("color") {
-                enumerationValues = colorValues
-            } else if trimmedSearchTerm.lowercased().contains("rarity") {
-                enumerationValues = rarityValues
+            let hasExactMatch = filterTypeCandidates.contains { candidate in
+                candidate.caseInsensitiveCompare(trimmedSearchTerm) == .orderedSame
             }
             
-            if !enumerationValues.isEmpty {
-                let enumOptions = enumerationValues.prefix(4).map { value -> (String, Range<String.Index>?) in
-                    let range = value.range(of: trimmedSearchTerm, options: .caseInsensitive)
-                    return (value, range)
+            if hasExactMatch {
+                continue
+            }
+            
+            var bestMatch: (text: String, range: Range<String.Index>, matchLength: Int)? = nil
+            
+            for candidate in filterTypeCandidates {
+                if let range = candidate.range(of: trimmedSearchTerm, options: .caseInsensitive) {
+                    let matchLength = trimmedSearchTerm.count
+                    
+                    if let existing = bestMatch {
+                        if matchLength > existing.matchLength ||
+                           (matchLength == existing.matchLength && candidate == canonicalFilterType) ||
+                           (matchLength == existing.matchLength && existing.text != canonicalFilterType && candidate.count < existing.text.count) {
+                            bestMatch = (candidate, range, matchLength)
+                        }
+                    } else {
+                        bestMatch = (candidate, range, matchLength)
+                    }
                 }
-                results.append(.enumeration(enumOptions))
+            }
+            
+            if let (candidate, range, _) = bestMatch {
+                results.append(.filterType(candidate, range))
             }
         }
         
-        return Array(sortResults(results).prefix(10))
+       return Array(sortResults(results).prefix(10))
     }
     
     // TODO: Weird interface; improve it. Also, slow.
