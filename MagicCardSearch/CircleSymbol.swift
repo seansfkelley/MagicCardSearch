@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-private let baseManaNames = Set([
+private let baseSymbolCodes = Set([
     // Colors/colorless mana
     "w", "u", "b", "r", "g", "c",
 
@@ -19,7 +19,7 @@ private let baseManaNames = Set([
     "p",
 
     // Other symbols
-    "s", "t", "q", "e", "chaos",
+    "s", "t", "q"
 ])
 
 // n.b. these are the asset names for the color!
@@ -31,7 +31,7 @@ private enum ManaColor: String {
     case green = "Green"
     case colorless = "Colorless"
 
-    static func fromShorthand(_ s: String) -> ManaColor? {
+    static func fromSymbolCode(_ s: String) -> ManaColor? {
         return switch s {
         case "w": .white
         case "u": .blue
@@ -55,7 +55,7 @@ struct CircleSymbol: View {
 
     var body: some View {
         let cleaned = symbol.trimmingCharacters(in: CharacterSet(charactersIn: "{}")).lowercased()
-        if baseManaNames.contains(cleaned) {
+        if baseSymbolCodes.contains(cleaned) {
             basic(cleaned)
         } else {
             let parts = cleaned.split(separator: "/")
@@ -63,9 +63,9 @@ struct CircleSymbol: View {
                 let left = String(parts[0])
                 let right = String(parts[1])
 
-                if baseManaNames.contains(left) && baseManaNames.contains(right) {
-                    if right == "p", let leftColor = ManaColor.fromShorthand(left) {
-                        phyrexian(leftColor)
+                if baseSymbolCodes.contains(left) && baseSymbolCodes.contains(right) {
+                    if right == "p", let color = ManaColor.fromSymbolCode(left) {
+                        phyrexian(color)
                     } else {
                         hybrid(left, right)
                     }
@@ -79,7 +79,7 @@ struct CircleSymbol: View {
     }
     
     private func basic(_ symbol: String) -> some View {
-        let color = ManaColor.fromShorthand(symbol) ?? .colorless
+        let color = ManaColor.fromSymbolCode(symbol) ?? .colorless
         return ZStack {
             Circle()
                 .fill(Color(color.rawValue))
@@ -106,8 +106,8 @@ struct CircleSymbol: View {
     }
 
     private func hybrid(_ left: String, _ right: String) -> some View {
-        let leftColor = ManaColor.fromShorthand(left) ?? .colorless
-        let rightColor = ManaColor.fromShorthand(right) ?? .colorless
+        let leftColor = ManaColor.fromSymbolCode(left) ?? .colorless
+        let rightColor = ManaColor.fromSymbolCode(right) ?? .colorless
 
         return ZStack {
             Circle()
@@ -146,45 +146,7 @@ struct CircleSymbol: View {
     }
 }
 
-struct ManaCostView: View {
-    let manaCost: String
-    let size: CGFloat
 
-    init(_ manaCost: String, size: CGFloat = 16) {
-        self.manaCost = manaCost
-        self.size = size
-    }
-
-    var body: some View {
-        HStack(spacing: 2) {
-            ForEach(parseManaCost(manaCost), id: \.self) { symbol in
-                CircleSymbol(symbol, size: size)
-            }
-        }
-    }
-
-    private func parseManaCost(_ cost: String) -> [String] {
-        var symbols: [String] = []
-        var currentSymbol = ""
-        var inBraces = false
-
-        for char in cost {
-            if char == "{" {
-                inBraces = true
-                currentSymbol = "{"
-            } else if char == "}" {
-                currentSymbol += "}"
-                symbols.append(currentSymbol)
-                currentSymbol = ""
-                inBraces = false
-            } else if inBraces {
-                currentSymbol += String(char)
-            }
-        }
-
-        return symbols
-    }
-}
 
 #Preview("All Mana Symbols") {
     ScrollView {
@@ -286,18 +248,8 @@ struct ManaCostView: View {
                     CircleSymbol("{CHAOS}", size: 32)
                 }
             }
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Example Mana Costs")
-                    .font(.headline)
-                VStack(alignment: .leading, spacing: 4) {
-                    ManaCostView("{3}{U}{U}", size: 24)
-                    ManaCostView("{2}{W}{U}", size: 24)
-                    ManaCostView("{X}{R}{R}", size: 24)
-                    ManaCostView("{W/U}{W/U}{W/U}", size: 24)
-                    ManaCostView("{5}{B}{B}{B}", size: 24)
-                }
-            }
         }
         .padding()
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
