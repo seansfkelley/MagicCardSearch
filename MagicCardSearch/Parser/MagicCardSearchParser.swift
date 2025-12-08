@@ -12,7 +12,7 @@ enum SearchFilter: Equatable, Codable {
     case name(String)
     case keyValue(String, Comparison, String)
 
-    static func tryParseKeyValue(_ input: String) -> SearchFilter? {
+    static func tryParseUnambiguous(_ input: String) -> SearchFilter? {
         return try? parse(input)
     }
     

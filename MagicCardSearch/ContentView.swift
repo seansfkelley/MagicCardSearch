@@ -118,7 +118,7 @@ struct ContentView: View {
     
     private func handleSuggestionTap(_ suggestion: String) {
         // Try to parse as a filter
-        if let filter = SearchFilter.tryParseKeyValue(suggestion) {
+        if let filter = SearchFilter.tryParseUnambiguous(suggestion) {
             filters.append(filter)
             historyProvider.recordFilter(filter)
         } else {

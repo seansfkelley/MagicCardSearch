@@ -30,6 +30,8 @@ struct SearchBarView: View {
             .textInputAutocapitalization(.never)
             .autocorrectionDisabled(true)
             .textContentType(.none)
+            // ASCII means we don't get smart quotes so can parse double quotes properly.
+            .keyboardType(.asciiCapable)
             .onSubmit {
                 createNewFilterFromSearch(fallbackToNameFilter: true)
             }
@@ -54,8 +56,8 @@ struct SearchBarView: View {
 
     private func createNewFilterFromSearch(fallbackToNameFilter: Bool = false) {
         let trimmed = inputText.trimmingCharacters(in: .whitespaces)
-
-        if let filter = SearchFilter.tryParseKeyValue(trimmed) {
+        
+        if let filter = SearchFilter.tryParseUnambiguous(trimmed) {
             filters.append(filter)
             historyProvider.recordFilter(filter)
             inputText = ""

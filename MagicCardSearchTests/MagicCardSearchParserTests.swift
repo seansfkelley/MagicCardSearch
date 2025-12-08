@@ -5,12 +5,13 @@ import Testing
 @Suite(.serialized)
 struct MagicCardSearchParserTests {
     @Test<[(String, SearchFilter)]>("parse", arguments: [
-        ("set:foo", .init("set", .equal, "foo")),
-        ("s=bar", .init("s", .equal, "bar")),
-        ("mv>=bar", .init("mv", .greaterThanOrEqual, "bar")),
-        ("'foo'", .init("name", .equal, "foo")),
-    ]) func from(input: String, expected: SearchFilter) throws {
-        let actual = SearchFilter.from(input)
+        ("set:foo", .keyValue("set", .including, "foo")),
+        ("s=bar", .keyValue("s", .equal, "bar")),
+        ("mv>=bar", .keyValue("mv", .greaterThanOrEqual, "bar")),
+        ("'foo'", .name("foo")),
+        ("foo:”bar", .keyValue("foo", .including, "”bar")), // TODO: Normalize smart quotes.
+    ]) func tryParseUnambiguous(input: String, expected: SearchFilter) throws {
+        let actual = SearchFilter.tryParseUnambiguous(input)
         #expect(actual == expected)
     }
     
@@ -18,8 +19,9 @@ struct MagicCardSearchParserTests {
         "foo:\"",
         "foo: bar",
         "'foo",
-    ]) func fromNil(input: String) throws {
-        #expect(SearchFilter.from(input) == nil)
+        "foo",
+    ]) func tryParseUnambiguousNil(input: String) throws {
+        #expect(SearchFilter.tryParseUnambiguous(input) == nil)
     }
     
 }
