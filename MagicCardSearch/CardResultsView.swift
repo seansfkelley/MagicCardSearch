@@ -79,7 +79,7 @@ struct CardResultsView: View {
         .onChange(of: filters) { _, _ in
             maybePerformSearch()
         }
-        .onChange(of: searchConfig.displayMode) { _, _ in
+        .onChange(of: searchConfig.uniqueMode) { _, _ in
             maybePerformSearch()
         }
         .onChange(of: searchConfig.sortField) { _, _ in

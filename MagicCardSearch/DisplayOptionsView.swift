@@ -19,8 +19,8 @@ struct DisplayOptionsView: View {
         NavigationStack {
             Form {
                 Section("Display") {
-                    Picker("Display Mode", selection: $searchConfig.displayMode) {
-                        ForEach(SearchConfiguration.DisplayMode.allCases, id: \.self) { mode in
+                    Picker("Display Mode", selection: $searchConfig.uniqueMode) {
+                        ForEach(SearchConfiguration.UniqueMode.allCases, id: \.self) { mode in
                             Text(mode.rawValue).tag(mode)
                         }
                     }
@@ -29,13 +29,13 @@ struct DisplayOptionsView: View {
                 }
                 
                 Section("Sort") {
-                    Picker("Sort By", selection: $searchConfig.sortField) {
+                    Picker("Sort by", selection: $searchConfig.sortField) {
                         ForEach(SearchConfiguration.SortField.allCases, id: \.self) { field in
                             Text(field.rawValue).tag(field)
                         }
                     }
                     
-                    Picker("Sort Order", selection: $searchConfig.sortOrder) {
+                    Picker("Sort order", selection: $searchConfig.sortOrder) {
                         ForEach(SearchConfiguration.SortOrder.allCases, id: \.self) { order in
                             Text(order.rawValue).tag(order)
                         }
@@ -62,9 +62,19 @@ struct DisplayOptionsView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") {
+                    Button {
                         dismiss()
+                    } label: {
+                        Label {
+                            Text("Done")
+                        } icon: {
+                            Image(systemName: "checkmark")
+                                .font(.body.weight(.semibold))
+                        }
                     }
+                    .labelStyle(.iconOnly)
+                    .buttonStyle(.glassProminent)
+                    .buttonBorderShape(.circle)
                 }
             }
         }

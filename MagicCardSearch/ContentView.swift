@@ -92,7 +92,6 @@ struct ContentView: View {
                         }
                     }
                     .labelStyle(.iconOnly)
-                    .badge(searchConfig.nonDefaultCount)
                 }
                 
                 ToolbarItem(placement: .principal) {

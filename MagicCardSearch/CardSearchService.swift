@@ -12,18 +12,16 @@ class CardSearchService {
     private let baseURL = "https://api.scryfall.com/cards/search"
     
     func search(filters: [SearchFilter], config: SearchConfiguration) async throws -> [CardResult] {
-        // Build the search query from filters
         let queryString = filters.map { $0.queryStringWithEditingRange.0 }.joined(separator: " ")
         
         guard !queryString.isEmpty else {
             return []
         }
         
-        // Construct URL with query parameters
         var components = URLComponents(string: baseURL)!
         components.queryItems = [
             URLQueryItem(name: "q", value: queryString),
-            URLQueryItem(name: "unique", value: config.displayMode.apiValue),
+            URLQueryItem(name: "unique", value: config.uniqueMode.apiValue),
             URLQueryItem(name: "order", value: config.sortField.apiValue),
             URLQueryItem(name: "dir", value: config.sortOrder.apiValue)
         ]
@@ -32,7 +30,6 @@ class CardSearchService {
             throw SearchError.invalidURL
         }
         
-        // Make the request
         let (data, response) = try await URLSession.shared.data(from: url)
         
         guard let httpResponse = response as? HTTPURLResponse else {
@@ -43,7 +40,6 @@ class CardSearchService {
             throw SearchError.httpError(statusCode: httpResponse.statusCode)
         }
         
-        // Decode the response
         let decoder = JSONDecoder()
         let searchResponse = try decoder.decode(ScryfallSearchResponse.self, from: data)
         
