@@ -16,6 +16,8 @@ struct ContentView: View {
     @State private var globalFiltersSettings = GlobalFiltersSettings.load()
     @State private var pendingSearchConfig: SearchConfiguration?
     @State private var historyProvider = FilterHistoryProvider()
+    @State private var inputSelection: TextSelection?
+    @State private var pendingSelection: TextSelection?
     @FocusState private var isSearchFocused: Bool
     
     private var hasActiveGlobalFilters: Bool {
@@ -44,16 +46,34 @@ struct ContentView: View {
             }
             .contentShape(Rectangle())
             .safeAreaInset(edge: .bottom) {
-                BottomBarFilterView(
-                    filters: $filters,
-                    inputText: $inputText,
-                    isSearchFocused: _isSearchFocused,
-                    historyProvider: historyProvider,
-                    onFilterSetTap: { 
-                        pendingSearchConfig = searchConfig
-                        showDisplaySheet = true
+                VStack(spacing: 0) {
+                    if !filters.isEmpty {
+                        HStack {
+                            Spacer()
+                            Button(role: .destructive, action: {
+                                filters.removeAll()
+                            }) {
+                                Text("Clear all")
+                                    .font(.subheadline)
+                                    .fontWeight(.medium)
+                                    .padding(.horizontal)
+                                    .padding(.vertical, 6)
+                            }
+                            .glassEffect(.regular.interactive())
+                        }
+                        .padding(.horizontal)
                     }
-                )
+                    
+                    BottomBarFilterView(
+                        filters: $filters,
+                        inputText: $inputText,
+                        inputSelection: $inputSelection,
+                        pendingSelection: $pendingSelection,
+                        isSearchFocused: _isSearchFocused,
+                        historyProvider: historyProvider,
+                        onFilterEdit: handleFilterEdit
+                    )
+                }
             }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -115,6 +135,21 @@ struct ContentView: View {
     }
     
     // MARK: - Helper Methods
+    
+    private func handleFilterEdit(_ filter: SearchFilter) {
+        let (filterString, range) = filter.toQueryStringWithEditingRange()
+        inputText = filterString
+        let selection = TextSelection(range: range)
+        
+        // Unfortunate, but seems to be the only way that we can reliably focus the
+        // text whether or not the text field is currently focused.
+        if isSearchFocused {
+            inputSelection = selection
+        } else {
+            pendingSelection = selection
+            isSearchFocused = true
+        }
+    }
     
     private func handleSuggestionTap(_ suggestion: String) {
         // Try to parse as a filter

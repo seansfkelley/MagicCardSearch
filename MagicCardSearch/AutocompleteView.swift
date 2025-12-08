@@ -22,12 +22,16 @@ struct AutocompleteView: View {
                 Button {
                     onSuggestionTap(suggestion.filterString)
                 } label: {
-                    Image(systemName: "magnifyingglass")
-                        .foregroundStyle(.secondary)
-                    HighlightedText(
-                        text: suggestion.filterString,
-                        highlightRange: suggestion.matchRange
-                    )
+                    HStack(spacing: 12) {
+                        Image(systemName: "magnifyingglass")
+                            .foregroundStyle(.secondary)
+                        HighlightedText(
+                            text: suggestion.filterString,
+                            highlightRange: suggestion.matchRange
+                        )
+                        Spacer(minLength: 0)
+                    }
+                    .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .swipeActions(edge: .trailing, allowsFullSwipe: true) {

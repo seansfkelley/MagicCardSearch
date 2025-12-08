@@ -46,7 +46,7 @@ struct SearchBarView: View {
                 .buttonStyle(.plain)
             }
         }
-        .padding(.horizontal, 16)
+        .padding(.horizontal)
         .onChange(of: inputText) { (previous: String, current: String) in
             if previous.count < current.count && current.hasSuffix(" ") {
                 createNewFilterFromSearch()

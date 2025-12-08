@@ -26,7 +26,7 @@ struct FilterPillView: View {
                         .font(.subheadline)
                         .fontWeight(.medium)
                 }
-                .padding(.leading, 12)
+                .padding(.leading)
                 .padding(.trailing, 8)
                 .padding(.vertical, 8)
             }

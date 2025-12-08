@@ -1,5 +1,5 @@
 //
-//  SearchBarContainerView.swift
+//  BottomBarFilterView.swift
 //  MagicCardSearch
 //
 //  Created by Sean Kelley on 2025-12-06.
@@ -10,129 +10,69 @@ import SwiftUI
 struct BottomBarFilterView: View {
     @Binding var filters: [SearchFilter]
     @Binding var inputText: String
+    @Binding var inputSelection: TextSelection?
+    @Binding var pendingSelection: TextSelection?
     @FocusState var isSearchFocused: Bool
     let historyProvider: FilterHistoryProvider
-    let onFilterSetTap: () -> Void
-
-    @State private var inputSelection: TextSelection?
-    @State private var showFilterPopover = false
-    @State private var pendingSelection: TextSelection?
+    let onFilterEdit: (SearchFilter) -> Void
+    
+    // Calculate max height based on pill dimensions without hardcoding
+    // Each pill is 32pt tall with 8pt spacing = 40pt per line
+    // 3.5 lines = 3.5 * 40 = 140pt
+    private var maxPillsHeight: CGFloat {
+        let pillHeight: CGFloat = 32
+        let lineSpacing: CGFloat = 8
+        let lines: CGFloat = 4
+        return (pillHeight + lineSpacing) * lines
+    }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                if !filters.isEmpty {
-                    Button(action: {
-                        filters.removeAll()
-                    }) {
-                        Text("Clear All")
-                            .font(.subheadline)
-                            .foregroundStyle(.red)
-                    }
-                }
-            }
-            .padding(.horizontal, 16)
-
+        VStack(spacing: 0) {
             if !filters.isEmpty {
-                ReflowingFilterPillsView(
-                    filters: $filters,
-                    onFilterEdit: { filter in
-                        let (filterString, range) = filter.toQueryStringWithEditingRange()
-                        inputText = filterString
-                        let selection = TextSelection(range: range)
-
-                        // Unfortunate, but seems to be the only way that we can reliably focus the
-                        // text whether or not the text field is currently focused.
-                        if isSearchFocused {
-                            inputSelection = selection
-                        } else {
-                            pendingSelection = selection
-                            isSearchFocused = true
-                        }
+                ScrollView {
+                    GlassEffectContainer(spacing: 8) {
+                        ReflowingFilterPillsView(
+                            filters: $filters,
+                            onFilterEdit: onFilterEdit
+                        )
                     }
-                )
-            }
-
-            HStack {
-                Button(action: {
-                    showFilterPopover = true
-                }) {
-                    Image(systemName: "line.3.horizontal.decrease.circle")
-                        .foregroundStyle(.primary)
+                    .padding()
                 }
-                .popover(isPresented: $showFilterPopover, arrowEdge: .bottom) {
-                    FilterQuickAddMenu()
-                        .presentationCompactAdaptation(.popover)
+                .frame(maxHeight: maxPillsHeight)
+                .fixedSize(horizontal: false, vertical: true)
+                .mask {
+                    VStack(spacing: 0) {
+                        Rectangle()
+                        LinearGradient(
+                            colors: [.black, .clear],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                        .frame(height: 20)
+                    }
                 }
                 
-                SearchBarView(
-                    filters: $filters,
-                    inputText: $inputText,
-                    inputSelection: $inputSelection,
-                    historyProvider: historyProvider,
-                    isSearchFocused: _isSearchFocused,
-                )
+                Divider()
+                    .padding(.horizontal)
             }
+            
+            SearchBarView(
+                filters: $filters,
+                inputText: $inputText,
+                inputSelection: $inputSelection,
+                historyProvider: historyProvider,
+                isSearchFocused: _isSearchFocused
+            )
+            .padding(.vertical)
         }
-        .padding(.vertical, 12)
-        .background(.ultraThinMaterial)
-        .onChange(of: isSearchFocused, { _, _ in
+        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 20))
+        .padding()
+        .onChange(of: isSearchFocused) { _, _ in
             if let s = pendingSelection {
                 inputSelection = s
                 pendingSelection = nil
             }
-        })
-        .onChange(of: filters.count, { currentCount, previousCount in
-            // TODO: This doesn't work for some reason.
-            if currentCount < previousCount {
-                isSearchFocused = true
-            }
-        })
-    }
-}
-
-// MARK: - Filter Quick Add Menu
-
-struct FilterQuickAddMenu: View {
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            FilterQuickAddItem(title: "Color", icon: "circle.lefthalf.filled")
-            Divider()
-            FilterQuickAddItem(title: "Mana Value", icon: "drop.fill")
-            Divider()
-            FilterQuickAddItem(title: "Type", icon: "doc.text")
-            Divider()
-            FilterQuickAddItem(title: "Set", icon: "shippingbox")
-            Divider()
-            FilterQuickAddItem(title: "Rarity", icon: "star.fill")
-            Divider()
-            FilterQuickAddItem(title: "Power/Toughness", icon: "shield.fill")
         }
-        .frame(width: 200)
-    }
-}
-
-struct FilterQuickAddItem: View {
-    let title: String
-    let icon: String
-
-    var body: some View {
-        Button(action: {
-            print("Selected: \(title)")
-        }) {
-            HStack {
-                Image(systemName: icon)
-                    .foregroundStyle(.secondary)
-                    .frame(width: 24)
-                Text(title)
-                    .foregroundStyle(.primary)
-                Spacer()
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 10)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
     }
 }
 
@@ -146,6 +86,8 @@ struct FilterQuickAddItem: View {
             SearchFilter.keyValue("power", .greaterThan, "3"),
         ]
         @State private var inputText = ""
+        @State private var inputSelection: TextSelection?
+        @State private var pendingSelection: TextSelection?
         @State private var historyProvider = FilterHistoryProvider()
         @FocusState private var isFocused: Bool
 
@@ -155,9 +97,13 @@ struct FilterQuickAddItem: View {
                 BottomBarFilterView(
                     filters: $filters,
                     inputText: $inputText,
+                    inputSelection: $inputSelection,
+                    pendingSelection: $pendingSelection,
                     isSearchFocused: _isFocused,
                     historyProvider: historyProvider,
-                    onFilterSetTap: { print("Filter set tapped") }
+                    onFilterEdit: { filter in
+                        print("Editing filter: \(filter)")
+                    }
                 )
             }
         }

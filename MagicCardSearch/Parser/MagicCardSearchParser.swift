@@ -31,7 +31,7 @@ enum SearchFilter: Equatable, Codable {
                 let formatted = "\(prefix)\"\(value)\""
                 return (
                     formatted,
-                    prefix.index(after: prefix.endIndex)..<formatted.index(before: formatted.endIndex)
+                    formatted.index(after: prefix.endIndex)..<formatted.index(before: formatted.endIndex)
                 )
             } else {
                 let formatted = "\(prefix)\(value)"
