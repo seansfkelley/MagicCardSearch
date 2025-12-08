@@ -11,7 +11,6 @@ struct CardResultsView: View {
     var allowedToSearch: Bool
     @Binding var filters: [SearchFilter]
     @Binding var searchConfig: SearchConfiguration
-    let globalFiltersSettings: GlobalFiltersSettings
     @State private var results: [CardResult] = []
     @State private var isLoading = false
     @State private var selectedCardIndex: Int?
@@ -120,17 +119,10 @@ struct CardResultsView: View {
         
         isLoading = true
         
-        // Combine global filters (if enabled) with user filters
-        var allFilters: [SearchFilter] = []
-        if globalFiltersSettings.isEnabled {
-            allFilters.append(contentsOf: globalFiltersSettings.filters)
-        }
-        allFilters.append(contentsOf: filters)
-        
         searchTask = Task {
             do {
                 results = try await service.search(
-                    filters: allFilters,
+                    filters: filters,
                     config: searchConfig
                 )
             } catch {
@@ -220,8 +212,7 @@ struct CardResultCell: View {
             CardResultsView(
                 allowedToSearch: true,
                 filters: $filters,
-                searchConfig: $config,
-                globalFiltersSettings: GlobalFiltersSettings()
+                searchConfig: $config
             )
         }
     }

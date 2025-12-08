@@ -11,18 +11,13 @@ struct ContentView: View {
     @State private var filters: [SearchFilter] = []
     @State private var inputText: String = ""
     @State private var showDisplaySheet = false
-    @State private var showSettingsSheet = false
+    @State private var showSyntaxReference = false
     @State private var searchConfig = SearchConfiguration.load()
-    @State private var globalFiltersSettings = GlobalFiltersSettings.load()
     @State private var pendingSearchConfig: SearchConfiguration?
     @State private var historyProvider = AutocompleteProvider()
     @State private var inputSelection: TextSelection?
     @State private var pendingSelection: TextSelection?
     @FocusState private var isSearchFocused: Bool
-    
-    private var hasActiveGlobalFilters: Bool {
-        globalFiltersSettings.isEnabled && !globalFiltersSettings.filters.isEmpty
-    }
     
     var body: some View {
         NavigationStack {
@@ -30,8 +25,7 @@ struct ContentView: View {
                 CardResultsView(
                     allowedToSearch: !isSearchFocused,
                     filters: $filters,
-                    searchConfig: $searchConfig,
-                    globalFiltersSettings: globalFiltersSettings
+                    searchConfig: $searchConfig
                 )
                 .opacity(isSearchFocused ? 0 : 1)
                 
@@ -102,17 +96,16 @@ struct ContentView: View {
                 
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
-                        showSettingsSheet = true
+                        showSyntaxReference = true
                     } label: {
                         Label {
-                            Text("Settings")
+                            Text("Syntax Reference")
                         } icon: {
-                            Image(systemName: "gearshape.fill")
+                            Image(systemName: "book")
                                 .font(.title2)
                         }
                     }
                     .labelStyle(.iconOnly)
-                    .badge(hasActiveGlobalFilters ? " " : nil)
                 }
             }
             .toolbarBackground(.hidden, for: .navigationBar)
@@ -131,8 +124,8 @@ struct ContentView: View {
             ))
             .presentationDetents([.medium])
         }
-        .sheet(isPresented: $showSettingsSheet) {
-            SettingsView(globalFiltersSettings: $globalFiltersSettings)
+        .sheet(isPresented: $showSyntaxReference) {
+            SyntaxReferenceView()
         }
     }
     
