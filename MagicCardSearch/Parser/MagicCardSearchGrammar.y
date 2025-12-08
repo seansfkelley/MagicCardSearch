@@ -18,6 +18,9 @@ filter ::= SingleQuote terms_double_quote(v) SingleQuote. {
 filter ::= DoubleQuote terms_single_quote(v) DoubleQuote. {
     return SearchFilter.name(v)
 }
+filter ::= terms_bare(v). {
+    return SearchFilter.name(v)
+}
 
 %nonterminal_type terms_single_quote String
 terms_single_quote ::= term(t) Whitespace(w) terms_single_quote(ts). {
@@ -44,6 +47,23 @@ terms_double_quote ::= term(t) DoubleQuote terms_double_quote(ts). {
     return "\(t)\"\(ts)"
 }
 terms_double_quote ::= term(t). {
+    return t
+}
+
+%nonterminal_type terms_bare String
+terms_bare ::= term(t) Whitespace(w) terms_bare(ts). {
+    return "\(t) \(ts)"
+}
+terms_bare ::= term(t) SingleQuote terms_bare(ts). {
+    return "\(t)'\(ts)"
+}
+terms_bare ::= term(t) DoubleQuote terms_bare(ts). {
+    return "\(t)\"\(ts)"
+}
+terms_bare ::= term(t) Comparison(c) terms_bare(ts). {
+    return "\(t)\(c)\(ts)"
+}
+terms_bare ::= term(t). {
     return t
 }
 
