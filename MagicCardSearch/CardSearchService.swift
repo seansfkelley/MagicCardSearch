@@ -9,25 +9,12 @@ import Foundation
 
 @MainActor
 class CardSearchService {
-    private let baseURL = "https://api.scryfall.com/cards/search"
+    private static let apiBaseURL = "https://api.scryfall.com/cards/search"
+    private static let webBaseURL = "https://scryfall.com/search"
     
     func search(filters: [SearchFilter], config: SearchConfiguration) async throws -> [CardResult] {
-        let queryString = filters.map { $0.queryStringWithEditingRange.0 }.joined(separator: " ")
-        
-        guard !queryString.isEmpty else {
+        guard let url = CardSearchService.buildSearchURL(filters: filters, config: config, forAPI: true) else {
             return []
-        }
-        
-        var components = URLComponents(string: baseURL)!
-        components.queryItems = [
-            URLQueryItem(name: "q", value: queryString),
-            URLQueryItem(name: "unique", value: config.uniqueMode.apiValue),
-            URLQueryItem(name: "order", value: config.sortField.apiValue),
-            URLQueryItem(name: "dir", value: config.sortOrder.apiValue)
-        ]
-        
-        guard let url = components.url else {
-            throw SearchError.invalidURL
         }
         
         let (data, response) = try await URLSession.shared.data(from: url)
@@ -44,6 +31,25 @@ class CardSearchService {
         let searchResponse = try decoder.decode(ScryfallSearchResponse.self, from: data)
         
         return searchResponse.data
+    }
+    
+    static func buildSearchURL(filters: [SearchFilter], config: SearchConfiguration, forAPI: Bool) -> URL? {
+        let queryString = filters.map { $0.queryStringWithEditingRange.0 }.joined(separator: " ")
+        
+        guard !queryString.isEmpty else {
+            return nil
+        }
+        
+        let baseURL = forAPI ? apiBaseURL : webBaseURL
+        var components = URLComponents(string: baseURL)!
+        components.queryItems = [
+            URLQueryItem(name: "q", value: queryString),
+            URLQueryItem(name: "unique", value: config.uniqueMode.apiValue),
+            URLQueryItem(name: "order", value: config.sortField.apiValue),
+            URLQueryItem(name: "dir", value: config.sortOrder.apiValue)
+        ]
+        
+        return components.url
     }
 }
 

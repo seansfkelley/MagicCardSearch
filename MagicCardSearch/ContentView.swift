@@ -19,6 +19,8 @@ struct ContentView: View {
     @State private var pendingSelection: TextSelection?
     @FocusState private var isSearchFocused: Bool
     
+    private let searchService = CardSearchService()
+    
     var body: some View {
         NavigationStack {
             ZStack {
@@ -74,18 +76,32 @@ struct ContentView: View {
             }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button {
-                        pendingSearchConfig = searchConfig
-                        showDisplaySheet = true
-                    } label: {
-                        Label {
-                            Text("Sort & Display")
-                        } icon: {
-                            Image(systemName: "arrow.up.arrow.down")
-                                .font(.title2)
+                    ControlGroup {
+                        Button {
+                            pendingSearchConfig = searchConfig
+                            showDisplaySheet = true
+                        } label: {
+                            Label {
+                                Text("Sort & Display")
+                            } icon: {
+                                Image(systemName: "arrow.up.arrow.down")
+                                    .font(.title2)
+                            }
                         }
+                        .labelStyle(.iconOnly)
+                        
+                        Button {
+                            showSyntaxReference = true
+                        } label: {
+                            Label {
+                                Text("Syntax Reference")
+                            } icon: {
+                                Image(systemName: "book")
+                                    .font(.title2)
+                            }
+                        }
+                        .labelStyle(.iconOnly)
                     }
-                    .labelStyle(.iconOnly)
                 }
                 
                 ToolbarItem(placement: .principal) {
@@ -95,17 +111,21 @@ struct ContentView: View {
                 }
                 
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        showSyntaxReference = true
-                    } label: {
+                    ShareLink(
+                        item: CardSearchService
+                            .buildSearchURL(filters: filters, config: searchConfig, forAPI: false) ?? URL(
+                                string: "https://scryfall.com"
+                            )!
+                    ) {
                         Label {
-                            Text("Syntax Reference")
+                            Text("Share Search")
                         } icon: {
-                            Image(systemName: "book")
+                            Image(systemName: "square.and.arrow.up")
                                 .font(.title2)
                         }
                     }
                     .labelStyle(.iconOnly)
+                    .disabled(filters.isEmpty)
                 }
             }
             .toolbarBackground(.hidden, for: .navigationBar)

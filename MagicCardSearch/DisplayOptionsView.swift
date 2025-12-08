@@ -11,15 +11,24 @@ struct DisplayOptionsView: View {
     @Environment(\.dismiss) private var dismiss
     @Binding var searchConfig: SearchConfiguration
     
+    // Local state that will only be applied on confirmation
+    @State private var workingConfig: SearchConfiguration = SearchConfiguration()
+    
+    init(searchConfig: Binding<SearchConfiguration>) {
+        self._searchConfig = searchConfig
+        // Use underscore to access the State wrapper directly and initialize it properly
+        self._workingConfig = State(wrappedValue: searchConfig.wrappedValue)
+    }
+    
     private var hasNonDefaultSettings: Bool {
-        searchConfig != SearchConfiguration.defaultConfig
+        workingConfig != SearchConfiguration.defaultConfig
     }
     
     var body: some View {
         NavigationStack {
             Form {
                 Section("Display") {
-                    Picker("Display Mode", selection: $searchConfig.uniqueMode) {
+                    Picker("Display Mode", selection: $workingConfig.uniqueMode) {
                         ForEach(SearchConfiguration.UniqueMode.allCases, id: \.self) { mode in
                             Text(mode.rawValue).tag(mode)
                         }
@@ -29,13 +38,13 @@ struct DisplayOptionsView: View {
                 }
                 
                 Section("Sort") {
-                    Picker("Sort by", selection: $searchConfig.sortField) {
+                    Picker("Sort by", selection: $workingConfig.sortField) {
                         ForEach(SearchConfiguration.SortField.allCases, id: \.self) { field in
                             Text(field.rawValue).tag(field)
                         }
                     }
                     
-                    Picker("Sort order", selection: $searchConfig.sortOrder) {
+                    Picker("Sort order", selection: $workingConfig.sortOrder) {
                         ForEach(SearchConfiguration.SortOrder.allCases, id: \.self) { order in
                             Text(order.rawValue).tag(order)
                         }
@@ -46,7 +55,7 @@ struct DisplayOptionsView: View {
                 
                 Section {
                     Button(action: {
-                        searchConfig.resetToDefaults()
+                        workingConfig.resetToDefaults()
                     }) {
                         HStack {
                             Image(systemName: "arrow.counterclockwise")
@@ -61,8 +70,24 @@ struct DisplayOptionsView: View {
             .navigationTitle("Display & Sort")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button {
+                        dismiss()
+                    } label: {
+                        Label {
+                            Text("Close")
+                        } icon: {
+                            Image(systemName: "xmark")
+                                .font(.body.weight(.semibold))
+                        }
+                    }
+                    .labelStyle(.iconOnly)
+                    .buttonStyle(.glass)
+                    .buttonBorderShape(.circle)
+                }
                 ToolbarItem(placement: .confirmationAction) {
                     Button {
+                        searchConfig = workingConfig
                         dismiss()
                     } label: {
                         Label {
