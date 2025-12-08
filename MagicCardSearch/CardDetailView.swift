@@ -11,6 +11,8 @@ struct CardDetailView: View {
     let card: CardResult
     
     var body: some View {
+        let _ = print(card)
+        
         NavigationStack {
             ScrollView {
                 VStack(spacing: 0) {
@@ -83,15 +85,7 @@ struct CardDetailView: View {
                         
                         VStack(alignment: .leading, spacing: 12) {
                             if let oracleText = card.oracleText, !oracleText.isEmpty {
-                                VStack(alignment: .leading, spacing: 8) {
-                                    ForEach(formatOracleText(oracleText).components(separatedBy: "\n"), id: \.self) { line in
-                                        if !line.isEmpty {
-                                            Text(line)
-                                                .font(.body)
-                                                .fixedSize(horizontal: false, vertical: true)
-                                        }
-                                    }
-                                }
+                                OracleTextView(oracleText)
                             }
                             
                             if let flavorText = card.flavorText, !flavorText.isEmpty {
@@ -194,12 +188,5 @@ struct CardDetailView: View {
             )
     }
     
-    private func formatOracleText(_ text: String) -> String {
-        // Replace common symbols with readable text
-        // In a real implementation, you might want to render these as actual symbols
-        var formatted = text
-        formatted = formatted.replacingOccurrences(of: "{T}", with: "⤸")
-        formatted = formatted.replacingOccurrences(of: "{Q}", with: "↷")
-        return formatted
-    }
+
 }
