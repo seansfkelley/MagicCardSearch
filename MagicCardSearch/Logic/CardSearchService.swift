@@ -15,7 +15,7 @@ class CardSearchService {
     
     func search(filters: [SearchFilter], config: SearchConfiguration) async throws -> SearchResult {
         guard let url = CardSearchService.buildSearchURL(filters: filters, config: config, forAPI: true) else {
-            return SearchResult(cards: [], totalCount: 0, nextPageURL: nil)
+            return SearchResult(cards: [], totalCount: 0, nextPageURL: nil, warnings: [])
         }
         
         return try await fetchPage(from: url)
@@ -46,7 +46,8 @@ class CardSearchService {
         return SearchResult(
             cards: searchResponse.data,
             totalCount: searchResponse.totalCards ?? searchResponse.data.count,
-            nextPageURL: searchResponse.nextPage
+            nextPageURL: searchResponse.nextPage,
+            warnings: searchResponse.warnings ?? []
         )
     }
     
@@ -117,4 +118,5 @@ struct SearchResult {
     let cards: [CardResult]
     let totalCount: Int
     let nextPageURL: String?
+    let warnings: [String]
 }

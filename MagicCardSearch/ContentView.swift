@@ -17,6 +17,8 @@ struct ContentView: View {
     @State private var historyProvider = AutocompleteProvider()
     @State private var inputSelection: TextSelection?
     @State private var pendingSelection: TextSelection?
+    @State private var warnings: [String] = []
+    @State private var showWarningsPopover = false
     @FocusState private var isSearchFocused: Bool
     
     private let searchService = CardSearchService()
@@ -33,7 +35,8 @@ struct ContentView: View {
                 CardResultsView(
                     allowedToSearch: !isSearchFocused,
                     filters: $filters,
-                    searchConfig: $searchConfig
+                    searchConfig: $searchConfig,
+                    warnings: $warnings
                 )
                 .opacity(isSearchFocused ? 0 : 1)
                 
@@ -54,7 +57,39 @@ struct ContentView: View {
                 VStack(spacing: 0) {
                     if !filters.isEmpty {
                         HStack {
+                            // Warnings button
+                            if !warnings.isEmpty {
+                                Button {
+                                    showWarningsPopover.toggle()
+                                } label: {
+                                    Text(warnings.count == 1 ? "1 warning" : "\(warnings.count) warnings")
+                                        .font(.subheadline)
+                                        .fontWeight(.medium)
+                                        .padding(.horizontal)
+                                        .padding(.vertical, 6)
+                                }
+                                .foregroundStyle(.orange)
+                                .glassEffect(.regular.interactive())
+                                .popover(isPresented: $showWarningsPopover) {
+                                    VStack(alignment: .leading, spacing: 0) {
+                                        ForEach(Array(warnings.enumerated()), id: \.offset) { index, warning in
+                                            Text(warning)
+                                                .font(.subheadline)
+                                                .padding()
+                                            
+                                            if index < warnings.count - 1 {
+                                                Divider()
+                                                    .padding(.horizontal)
+                                            }
+                                        }
+                                    }
+                                    .frame(maxWidth: 300)
+                                    .presentationCompactAdaptation(.popover)
+                                }
+                            }
+                            
                             Spacer()
+                            
                             Button(role: .destructive, action: {
                                 filters.removeAll()
                             }) {

@@ -131,11 +131,13 @@ struct ScryfallSearchResponse: Codable {
     let totalCards: Int?
     let hasMore: Bool
     let nextPage: String?
+    let warnings: [String]?
     
     enum CodingKeys: String, CodingKey {
         case data
         case totalCards = "total_cards"
         case hasMore = "has_more"
         case nextPage = "next_page"
+        case warnings
     }
 }

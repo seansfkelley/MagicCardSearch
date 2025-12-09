@@ -11,6 +11,7 @@ struct CardResultsView: View {
     var allowedToSearch: Bool
     @Binding var filters: [SearchFilter]
     @Binding var searchConfig: SearchConfiguration
+    @Binding var warnings: [String]
     @State private var results: [CardResult] = []
     @State private var totalCount: Int = 0
     @State private var nextPageURL: String?
@@ -149,6 +150,7 @@ struct CardResultsView: View {
             nextPageURL = nil
             errorState = nil
             searchTask = nil
+            warnings = []
             return
         }
         
@@ -166,6 +168,7 @@ struct CardResultsView: View {
                 results = searchResult.cards
                 totalCount = searchResult.totalCount
                 nextPageURL = searchResult.nextPageURL
+                warnings = searchResult.warnings
                 errorState = nil
             } catch {
                 // Only handle error if task wasn't cancelled
@@ -176,6 +179,7 @@ struct CardResultsView: View {
                 results = []
                 totalCount = 0
                 nextPageURL = nil
+                warnings = []
             }
             isLoading = false
         }
@@ -344,12 +348,14 @@ struct CardResultCell: View {
             SearchFilter.keyValue("manavalue", .greaterThanOrEqual, "4")
         ]
         @State private var config = SearchConfiguration()
+        @State private var warnings: [String] = []
         
         var body: some View {
             CardResultsView(
                 allowedToSearch: true,
                 filters: $filters,
-                searchConfig: $config
+                searchConfig: $config,
+                warnings: $warnings
             )
         }
     }
