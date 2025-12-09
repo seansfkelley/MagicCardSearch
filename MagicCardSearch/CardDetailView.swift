@@ -1,13 +1,14 @@
 //
-//  CardDetailView.swift
+//  CardDetailContentView.swift
 //  MagicCardSearch
 //
 //  Created by Sean Kelley on 2025-12-08.
 //
+
+
 import SwiftUI
 
 struct CardDetailView: View {
-    @Environment(\.dismiss) private var dismiss
     let card: CardResult
     
     var body: some View {
@@ -73,9 +74,6 @@ struct CardDetailView: View {
                         .padding(.vertical, 12)
                         .frame(maxWidth: .infinity, alignment: .leading)
                     }
-                    
-                    // TODO: Are there any cards with no oracle _and_ no flavor? I assume an
-                    // edge case exists. Restructure this to render nothing in that case.
                     
                     Divider()
                         .padding(.horizontal)
@@ -146,19 +144,6 @@ struct CardDetailView: View {
             }
             .padding(.top)
         }
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .cancellationAction) {
-                Button {
-                    dismiss()
-                } label: {
-                    Image(systemName: "xmark")
-                        .font(.body.weight(.semibold))
-                }
-                .buttonStyle(.glass)
-                .buttonBorderShape(.circle)
-            }
-        }
     }
     
     private var placeholderView: some View {
@@ -179,6 +164,4 @@ struct CardDetailView: View {
                 .padding()
             )
     }
-    
-
 }

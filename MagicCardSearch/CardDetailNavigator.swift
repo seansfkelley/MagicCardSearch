@@ -11,27 +11,48 @@ struct CardDetailNavigator: View {
     let initialIndex: Int
     
     @State private var currentIndex: Int
+    @State private var scrollPosition: Int?
     @Environment(\.dismiss) private var dismiss
     
     init(cards: [CardResult], initialIndex: Int) {
         self.cards = cards
         self.initialIndex = initialIndex
         self._currentIndex = State(initialValue: initialIndex)
+        self._scrollPosition = State(initialValue: initialIndex)
     }
     
     var body: some View {
         NavigationStack {
-            TabView(selection: $currentIndex) {
-                ForEach(Array(cards.enumerated()), id: \.element.id) { index, card in
-                    CardDetailView(card: card)
-                        .tag(index)
+            GeometryReader { geometry in
+                ScrollView(.horizontal) {
+                    LazyHStack(spacing: 0) {
+                        ForEach(Array(cards.enumerated()), id: \.element.id) { index, card in
+                            CardDetailView(card: card)
+                                .frame(width: geometry.size.width, height: geometry.size.height)
+                                .containerRelativeFrame(.horizontal)
+                                .id(index)
+                        }
+                    }
+                    .scrollTargetLayout()
+                }
+                .scrollTargetBehavior(.paging)
+                .scrollPosition(id: $scrollPosition)
+                .scrollIndicators(.hidden)
+            }
+            .navigationTitle(cards[currentIndex].name)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button {
+                        dismiss()
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.body.weight(.semibold))
+                    }
+                    .buttonStyle(.glass)
+                    .buttonBorderShape(.circle)
                 }
             }
-            .tabViewStyle(.page(indexDisplayMode: .never))
-            .ignoresSafeArea(edges: .bottom)
-            .navigationTitle(cards[currentIndex].name)
-            .navigationBarTitleDisplayMode(.automatic)
-            .toolbarBackground(.hidden, for: .navigationBar)
             .overlay(alignment: .bottom) {
                 Text("\(currentIndex + 1) of \(cards.count)")
                     .font(.caption)
@@ -39,6 +60,15 @@ struct CardDetailNavigator: View {
                     .padding(.horizontal, 16)
                     .padding(.vertical, 8)
                     .glassEffect(.regular, in: .capsule)
+                    .padding(.bottom, 20)
+            }
+        }
+        .onAppear {
+            scrollPosition = initialIndex
+        }
+        .onChange(of: scrollPosition) { _, newValue in
+            if let newValue {
+                currentIndex = newValue
             }
         }
     }
@@ -46,7 +76,7 @@ struct CardDetailNavigator: View {
 
 // MARK: - Preview
 
-#Preview("Single Card") {
+#Preview("Card Navigator") {
     CardDetailNavigator(
         cards: [
             CardResult(id: "1", name: "Black Lotus", imageUrl: nil),
@@ -54,15 +84,5 @@ struct CardDetailNavigator: View {
             CardResult(id: "3", name: "Time Walk", imageUrl: nil)
         ],
         initialIndex: 0
-    )
-}
-
-#Preview("Card Detail Only") {
-    CardDetailView(
-        card: CardResult(
-            id: "preview-id",
-            name: "Black Lotus",
-            imageUrl: nil
-        )
     )
 }
