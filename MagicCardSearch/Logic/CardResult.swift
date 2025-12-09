@@ -20,6 +20,8 @@ struct CardResult: Identifiable, Codable {
     let artist: String?
     let colors: [String]?
     let colorIndicator: [String]?
+    let legalities: [String: String]?
+    let gameChanger: Bool?
     
     enum CodingKeys: String, CodingKey {
         case id
@@ -34,6 +36,8 @@ struct CardResult: Identifiable, Codable {
         case artist
         case colors
         case colorIndicator = "color_indicator"
+        case legalities
+        case gameChanger = "game_changer"
     }
     
     enum ImageUriKeys: String, CodingKey {
@@ -45,7 +49,8 @@ struct CardResult: Identifiable, Codable {
     init(id: String, name: String, imageUrl: String?, manaCost: String? = nil, 
          typeLine: String? = nil, oracleText: String? = nil, flavorText: String? = nil,
          power: String? = nil, toughness: String? = nil, artist: String? = nil,
-         colors: [String]? = nil, colorIndicator: [String]? = nil) {
+         colors: [String]? = nil, colorIndicator: [String]? = nil, legalities: [String: String]? = nil,
+         gameChanger: Bool? = nil) {
         self.id = id
         self.name = name
         self.imageUrl = imageUrl
@@ -58,6 +63,8 @@ struct CardResult: Identifiable, Codable {
         self.artist = artist
         self.colors = colors
         self.colorIndicator = colorIndicator
+        self.legalities = legalities
+        self.gameChanger = gameChanger
     }
     
     init(from decoder: Decoder) throws {
@@ -81,6 +88,8 @@ struct CardResult: Identifiable, Codable {
         artist = try? container.decode(String.self, forKey: .artist)
         colors = try? container.decode([String].self, forKey: .colors)
         colorIndicator = try? container.decode([String].self, forKey: .colorIndicator)
+        legalities = try? container.decode([String: String].self, forKey: .legalities)
+        gameChanger = try? container.decode(Bool.self, forKey: .gameChanger)
     }
     
     func encode(to encoder: Encoder) throws {

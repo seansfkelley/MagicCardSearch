@@ -139,6 +139,18 @@ struct CardDetailView: View {
                         .padding(.vertical, 12)
                         .frame(maxWidth: .infinity, alignment: .leading)
                     }
+                    
+                    if let legalities = card.legalities, !legalities.isEmpty {
+                        Divider()
+                            .padding(.horizontal)
+                        
+                        VStack(alignment: .leading, spacing: 12) {
+                            LegalityGridView(legalities: legalities, isGameChanger: card.gameChanger ?? false)
+                        }
+                        .padding(.horizontal)
+                        .padding(.vertical, 12)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    }
                 }
                 .background(Color(.systemBackground))
             }
