@@ -11,6 +11,10 @@ import SwiftUI
 struct CardDetailView: View {
     let card: CardResult
     
+    @State private var relatedCardToShow: CardResult?
+    @State private var isLoadingRelatedCard = false
+    private let cardSearchService = CardSearchService()
+    
     var body: some View {
         ScrollView {
             VStack(spacing: 0) {
@@ -151,10 +155,89 @@ struct CardDetailView: View {
                         .padding(.vertical, 12)
                         .frame(maxWidth: .infinity, alignment: .leading)
                     }
+                    
+                    if let allParts = card.allParts, !allParts.isEmpty {
+                        List {
+                            Section("Related Parts") {
+                                ForEach(allParts) { part in
+                                    Button {
+                                        Task {
+                                            await loadRelatedCard(id: part.id)
+                                        }
+                                    } label: {
+                                        HStack {
+                                            VStack(alignment: .leading, spacing: 2) {
+                                                Text(part.name)
+                                                    .font(.body)
+                                                    .foregroundStyle(.primary)
+                                                
+                                                if let typeLine = part.typeLine {
+                                                    Text(typeLine)
+                                                        .font(.caption)
+                                                        .foregroundStyle(.secondary)
+                                                }
+                                            }
+                                            
+                                            Spacer()
+                                            
+                                            if isLoadingRelatedCard {
+                                                ProgressView()
+                                                    .controlSize(.small)
+                                            } else {
+                                                Image(systemName: "chevron.right")
+                                                    .font(.caption)
+                                                    .foregroundStyle(.secondary)
+                                            }
+                                        }
+                                        .contentShape(Rectangle())
+                                    }
+                                    .buttonStyle(.plain)
+                                    .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                                }
+                            }
+                        }
+                        .listStyle(.insetGrouped)
+                        .scrollDisabled(true)
+                        // TODO: wtf. There has got to be a way to tell the list to just be its own
+                        // natural height.
+                        .frame(height: CGFloat(allParts.count) * 60 + 60)
+                    }
                 }
                 .background(Color(.systemBackground))
             }
             .padding(.top)
+        }
+        .sheet(item: $relatedCardToShow) { relatedCard in
+            NavigationStack {
+                CardDetailView(card: relatedCard)
+                    .navigationTitle(relatedCard.name)
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button {
+                                relatedCardToShow = nil
+                            } label: {
+                                Image(systemName: "xmark")
+                                    .font(.body.weight(.semibold))
+                            }
+                            .buttonStyle(.glass)
+                            .buttonBorderShape(.circle)
+                        }
+                    }
+            }
+        }
+    }
+    
+    private func loadRelatedCard(id: String) async {
+        isLoadingRelatedCard = true
+        defer { isLoadingRelatedCard = false }
+        
+        do {
+            let card = try await cardSearchService.fetchCard(byId: id)
+            relatedCardToShow = card
+        } catch {
+            // TODO: Handle error appropriately (e.g., show alert)
+            print("Error loading related card: \(error)")
         }
     }
     

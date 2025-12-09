@@ -10,6 +10,7 @@ import Foundation
 @MainActor
 class CardSearchService {
     private static let apiBaseURL = "https://api.scryfall.com/cards/search"
+    private static let cardByIdURL = "https://api.scryfall.com/cards"
     private static let webBaseURL = "https://scryfall.com/search"
     
     func search(filters: [SearchFilter], config: SearchConfiguration) async throws -> [CardResult] {
@@ -31,6 +32,28 @@ class CardSearchService {
         let searchResponse = try decoder.decode(ScryfallSearchResponse.self, from: data)
         
         return searchResponse.data
+    }
+    
+    func fetchCard(byId id: String) async throws -> CardResult {
+        let urlString = "\(CardSearchService.cardByIdURL)/\(id)"
+        guard let url = URL(string: urlString) else {
+            throw SearchError.invalidURL
+        }
+        
+        let (data, response) = try await URLSession.shared.data(from: url)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw SearchError.invalidResponse
+        }
+        
+        guard httpResponse.statusCode == 200 else {
+            throw SearchError.httpError(statusCode: httpResponse.statusCode)
+        }
+        
+        let decoder = JSONDecoder()
+        let card = try decoder.decode(CardResult.self, from: data)
+        
+        return card
     }
     
     static func buildSearchURL(filters: [SearchFilter], config: SearchConfiguration, forAPI: Bool) -> URL? {

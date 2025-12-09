@@ -7,6 +7,18 @@
 
 import Foundation
 
+struct RelatedPart: Identifiable, Codable {
+    let id: String
+    let name: String
+    let typeLine: String?
+    
+    enum CodingKeys: String, CodingKey {
+        case id
+        case name
+        case typeLine = "type_line"
+    }
+}
+
 struct CardResult: Identifiable, Codable {
     let id: String
     let name: String
@@ -22,6 +34,7 @@ struct CardResult: Identifiable, Codable {
     let colorIndicator: [String]?
     let legalities: [String: String]?
     let gameChanger: Bool?
+    let allParts: [RelatedPart]?
     
     enum CodingKeys: String, CodingKey {
         case id
@@ -38,6 +51,7 @@ struct CardResult: Identifiable, Codable {
         case colorIndicator = "color_indicator"
         case legalities
         case gameChanger = "game_changer"
+        case allParts = "all_parts"
     }
     
     enum ImageUriKeys: String, CodingKey {
@@ -50,7 +64,7 @@ struct CardResult: Identifiable, Codable {
          typeLine: String? = nil, oracleText: String? = nil, flavorText: String? = nil,
          power: String? = nil, toughness: String? = nil, artist: String? = nil,
          colors: [String]? = nil, colorIndicator: [String]? = nil, legalities: [String: String]? = nil,
-         gameChanger: Bool? = nil) {
+         gameChanger: Bool? = nil, allParts: [RelatedPart]? = nil) {
         self.id = id
         self.name = name
         self.imageUrl = imageUrl
@@ -65,6 +79,7 @@ struct CardResult: Identifiable, Codable {
         self.colorIndicator = colorIndicator
         self.legalities = legalities
         self.gameChanger = gameChanger
+        self.allParts = allParts
     }
     
     init(from decoder: Decoder) throws {
@@ -90,6 +105,7 @@ struct CardResult: Identifiable, Codable {
         colorIndicator = try? container.decode([String].self, forKey: .colorIndicator)
         legalities = try? container.decode([String: String].self, forKey: .legalities)
         gameChanger = try? container.decode(Bool.self, forKey: .gameChanger)
+        allParts = try? container.decode([RelatedPart].self, forKey: .allParts)
     }
     
     func encode(to encoder: Encoder) throws {
