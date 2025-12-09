@@ -23,9 +23,9 @@ struct CardResultsView: View {
     @State private var selectedCardIndex: Int?
     @State private var searchTask: Task<Void, Never>?
     @State private var errorState: SearchErrorState?
-    @State private var scrollOffset: CGFloat = 0
-    @State private var lastDragValue: CGFloat = 0
-    @State private var isDragging = false
+    @State private var lastScrollPosition: CGFloat = 0
+    @State private var scrollVelocity: CGFloat = 0
+    @State private var isInteracting = false
     
     private let service = CardSearchService()
     private let columns = [
@@ -60,7 +60,6 @@ struct CardResultsView: View {
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                                 .padding(.vertical, 20)
-                                .id("top")
                             
                             LazyVGrid(columns: columns, spacing: 16) {
                                 ForEach(Array(results.enumerated()), id: \.element.id) { index, card in
@@ -97,40 +96,14 @@ struct CardResultsView: View {
                             }
                         }
                     }
-                    .simultaneousGesture(
-                        DragGesture(minimumDistance: 0)
-                            .onChanged { value in
-                                if !isDragging {
-                                    isDragging = true
-                                    lastDragValue = value.translation.height
-                                }
-                                
-                                let delta = value.translation.height - lastDragValue
-                                lastDragValue = value.translation.height
-                                
-                                // Scrolling down: translation becomes more positive, collapse
-                                if delta < -10 && !isSearchBarCollapsed {
-                                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                                        isSearchBarCollapsed = true
-                                    }
-                                }
-                            }
-                            .onEnded { value in
-                                isDragging = false
-                                lastDragValue = 0
-                                
-                                // Detect flick up gesture
-                                let velocity = value.predictedEndTranslation.height - value.translation.height
-                                print("Drag ended - velocity: \(velocity)")
-                                
-                                // If flicked up significantly, expand
-                                if velocity > 200 && isSearchBarCollapsed {
-                                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                                        isSearchBarCollapsed = false
-                                    }
-                                }
-                            }
-                    )
+                    .onScrollGeometryChange(for: CGFloat.self) { geometry in
+                        geometry.contentOffset.y
+                    } action: { oldValue, newValue in
+                        handleScrollChange(oldValue: oldValue, newValue: newValue)
+                    }
+                    .onScrollPhaseChange { oldPhase, newPhase in
+                        handleScrollPhaseChange(oldPhase: oldPhase, newPhase: newPhase)
+                    }
                 }
             }
             
@@ -183,6 +156,51 @@ struct CardResultsView: View {
                     retryNextPage()
                 }
             )
+        }
+    }
+    
+    private func handleScrollChange(oldValue: CGFloat, newValue: CGFloat) {
+        let delta = newValue - oldValue
+        
+        // Overscrolling at the top (negative offset), always expand
+        if newValue < 0 && isSearchBarCollapsed {
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                isSearchBarCollapsed = false
+            }
+            lastScrollPosition = newValue
+            return
+        }
+        
+        // Scrolling down (positive delta) = collapse
+        // Collapse anytime we scroll down while finger is on screen
+        if delta > 5 && !isSearchBarCollapsed && isInteracting {
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                isSearchBarCollapsed = true
+            }
+        }
+        
+        lastScrollPosition = newValue
+    }
+    
+    private func handleScrollPhaseChange(oldPhase: ScrollPhase, newPhase: ScrollPhase) {
+        // Track if user is currently touching the screen
+        isInteracting = (newPhase == .interacting)
+        
+        // When user releases after scrolling (flick gesture)
+        if oldPhase == .interacting && newPhase == .decelerating {
+            let delta = lastScrollPosition - scrollVelocity
+            
+            // If scrolling upward (negative delta) with momentum, expand
+            if delta < -50 && isSearchBarCollapsed {
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                    isSearchBarCollapsed = false
+                }
+            }
+        }
+        
+        // Store the position when interaction starts for velocity calculation
+        if oldPhase != .interacting && newPhase == .interacting {
+            scrollVelocity = lastScrollPosition
         }
     }
     
@@ -325,6 +343,16 @@ struct CardResultsView: View {
             }
             .buttonStyle(.borderedProminent)
         }
+    }
+}
+
+// MARK: - Scroll Offset Preference Key
+
+private struct ScrollOffsetPreferenceKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
     }
 }
 
