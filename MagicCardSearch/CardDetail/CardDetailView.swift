@@ -94,6 +94,8 @@ struct CardDetailView: View {
     }
     
     private func loadRelatedCard(id: String) async {
+        print("Loading related card...")
+        
         isLoadingRelatedCard = true
         defer { isLoadingRelatedCard = false }
         
@@ -114,7 +116,7 @@ private struct CardImageSection: View {
     
     var body: some View {
         Group {
-            if let imageUrl = card.imageUrl, let url = URL(string: imageUrl) {
+            if let imageUrl = card.largeImageUrl, let url = URL(string: imageUrl) {
                 AsyncImage(url: url) { phase in
                     switch phase {
                     case .empty:

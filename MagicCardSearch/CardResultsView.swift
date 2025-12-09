@@ -152,7 +152,7 @@ struct CardResultCell: View {
     var body: some View {
         VStack {
             Group {
-                if let imageUrl = card.imageUrl, let url = URL(string: imageUrl) {
+                if let imageUrl = card.smallImageUrl, let url = URL(string: imageUrl) {
                     AsyncImage(url: url) { phase in
                         switch phase {
                         case .empty:

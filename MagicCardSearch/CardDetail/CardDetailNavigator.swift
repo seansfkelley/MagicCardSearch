@@ -73,16 +73,3 @@ struct CardDetailNavigator: View {
         }
     }
 }
-
-// MARK: - Preview
-
-#Preview("Card Navigator") {
-    CardDetailNavigator(
-        cards: [
-            CardResult(id: "1", name: "Black Lotus", imageUrl: nil),
-            CardResult(id: "2", name: "Mox Ruby", imageUrl: nil),
-            CardResult(id: "3", name: "Time Walk", imageUrl: nil)
-        ],
-        initialIndex: 0
-    )
-}

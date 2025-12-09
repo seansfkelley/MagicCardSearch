@@ -10,7 +10,9 @@ import Foundation
 struct CardResult: Identifiable, Codable {
     let id: String
     let name: String
-    let imageUrl: String?
+    let smallImageUrl: String?
+    let normalImageUrl: String?
+    let largeImageUrl: String?
     let manaCost: String?
     let typeLine: String?
     let oracleText: String?
@@ -60,14 +62,17 @@ struct CardResult: Identifiable, Codable {
         case large
     }
     
-    init(id: String, name: String, imageUrl: String?, manaCost: String? = nil, 
+    init(id: String, name: String, smallImageUrl: String? = nil, normalImageUrl: String? = nil, 
+         largeImageUrl: String? = nil, manaCost: String? = nil, 
          typeLine: String? = nil, oracleText: String? = nil, flavorText: String? = nil,
          power: String? = nil, toughness: String? = nil, artist: String? = nil,
          colors: [String]? = nil, colorIndicator: [String]? = nil, legalities: [String: String]? = nil,
          gameChanger: Bool? = nil, allParts: [RelatedPart]? = nil) {
         self.id = id
         self.name = name
-        self.imageUrl = imageUrl
+        self.smallImageUrl = smallImageUrl
+        self.normalImageUrl = normalImageUrl
+        self.largeImageUrl = largeImageUrl
         self.manaCost = manaCost
         self.typeLine = typeLine
         self.oracleText = oracleText
@@ -87,11 +92,15 @@ struct CardResult: Identifiable, Codable {
         id = try container.decode(String.self, forKey: .id)
         name = try container.decode(String.self, forKey: .name)
         
-        // Try to extract image URL from image_uris
+        // Try to extract image URLs from image_uris
         if let imageUrisContainer = try? container.nestedContainer(keyedBy: ImageUriKeys.self, forKey: .imageUris) {
-            imageUrl = try? imageUrisContainer.decode(String.self, forKey: .normal)
+            smallImageUrl = try? imageUrisContainer.decode(String.self, forKey: .small)
+            normalImageUrl = try? imageUrisContainer.decode(String.self, forKey: .normal)
+            largeImageUrl = try? imageUrisContainer.decode(String.self, forKey: .large)
         } else {
-            imageUrl = nil
+            smallImageUrl = nil
+            normalImageUrl = nil
+            largeImageUrl = nil
         }
         
         manaCost = try? container.decode(String.self, forKey: .manaCost)
