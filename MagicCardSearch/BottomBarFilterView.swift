@@ -60,7 +60,7 @@ struct BottomBarFilterView: View {
                 filters: $filters,
                 inputText: $inputText,
                 inputSelection: $inputSelection,
-                historyProvider: historyProvider,
+                autocompleteProvider: historyProvider,
                 isSearchFocused: _isSearchFocused
             )
         }

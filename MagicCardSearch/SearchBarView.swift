@@ -11,7 +11,7 @@ struct SearchBarView: View {
     @Binding var filters: [SearchFilter]
     @Binding var inputText: String
     @Binding var inputSelection: TextSelection?
-    let historyProvider: AutocompleteProvider
+    let autocompleteProvider: AutocompleteProvider
 
     @FocusState var isSearchFocused: Bool
     @State private var showSymbolPicker = false
@@ -83,14 +83,14 @@ struct SearchBarView: View {
 
         if let filter = SearchFilter.tryParseUnambiguous(trimmed) {
             filters.append(filter)
-            historyProvider.recordFilterUsage(filter)
+            autocompleteProvider.recordFilterUsage(filter)
             inputText = ""
         } else if fallbackToNameFilter {
             let unquoted = stripMatchingQuotes(from: trimmed)
             if !unquoted.isEmpty {
                 let filter = SearchFilter.name(unquoted)
                 filters.append(filter)
-                historyProvider.recordFilterUsage(filter)
+                autocompleteProvider.recordFilterUsage(filter)
                 inputText = ""
             }
         }
@@ -222,7 +222,7 @@ struct SymbolGroupRow: View {
                     filters: $filters,
                     inputText: $inputText,
                     inputSelection: $inputSelection,
-                    historyProvider: historyProvider,
+                    autocompleteProvider: historyProvider,
                     isSearchFocused: _isFocused
                 )
                 .padding(.vertical, 12)
