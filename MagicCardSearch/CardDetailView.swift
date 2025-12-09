@@ -93,7 +93,6 @@ struct CardDetailView: View {
                                             Text(line)
                                                 .font(.system(.body, design: .serif))
                                                 .italic()
-                                                .foregroundStyle(.secondary)
                                                 .fixedSize(horizontal: false, vertical: true)
                                         }
                                     }

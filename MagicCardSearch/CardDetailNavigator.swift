@@ -4,10 +4,7 @@
 //
 //  Created by Sean Kelley on 2025-12-05.
 //
-
 import SwiftUI
-
-// MARK: - Card Detail Navigator
 
 struct CardDetailNavigator: View {
     let cards: [CardResult]
@@ -25,22 +22,23 @@ struct CardDetailNavigator: View {
     var body: some View {
         NavigationStack {
             TabView(selection: $currentIndex) {
-                ForEach(Array(cards.enumerated()), id: \.element.id) { index, card in
+                For0Each(Array(cards.enumerated()), id: \.element.id) { index, card in
                     CardDetailView(card: card)
                         .tag(index)
                 }
             }
             .tabViewStyle(.page(indexDisplayMode: .never))
+            .ignoresSafeArea(edges: .bottom)
             .navigationTitle(cards[currentIndex].name)
-            .navigationBarTitleDisplayMode(.inline)
+            .navigationBarTitleDisplayMode(.automatic)
+            .toolbarBackground(.hidden, for: .navigationBar)
             .overlay(alignment: .bottom) {
                 Text("\(currentIndex + 1) of \(cards.count)")
                     .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(.regularMaterial, in: Capsule())
-                    .padding(.bottom, 16)
+                    .foregroundStyle(.primary)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .glassEffect(.regular, in: .capsule)
             }
         }
     }

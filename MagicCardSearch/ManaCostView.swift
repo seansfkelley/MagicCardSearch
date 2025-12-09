@@ -19,7 +19,7 @@ struct ManaCostView: View {
     var body: some View {
         if let symbols = safelyParseManaCost(manaCost) {
             HStack(spacing: 2) {
-                ForEach(symbols, id: \.self) { symbol in
+                ForEach(symbols.enumerated(), id: \.offset) { _, symbol in
                     CircleSymbolView(symbol, size: size)
                 }
             }
