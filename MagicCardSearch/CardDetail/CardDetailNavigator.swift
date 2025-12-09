@@ -73,25 +73,22 @@ struct CardDetailNavigator: View {
                         dismiss()
                     } label: {
                         Image(systemName: "xmark")
-                            .font(.body.weight(.semibold))
                     }
-                    .buttonStyle(.glass)
-                    .buttonBorderShape(.circle)
                 }
                 
                 ToolbarItem(placement: .topBarTrailing) {
-                    HStack(spacing: 8) {
-                        Button {
-                            showingListSheet = true
-                        } label: {
-                            Image(systemName: "list.bullet")
-                        }
-                        
-                        if let card = currentCard,
-                           let scryfallUri = card.scryfallUri,
-                           let url = URL(string: scryfallUri) {
-                            ShareLink(item: url)
-                        }
+                    Button {
+                        showingListSheet = true
+                    } label: {
+                        Image(systemName: "list.bullet")
+                    }
+                }
+                
+                if let card = currentCard,
+                   let scryfallUri = card.scryfallUri,
+                   let url = URL(string: scryfallUri) {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        ShareLink(item: url)
                     }
                 }
             }
