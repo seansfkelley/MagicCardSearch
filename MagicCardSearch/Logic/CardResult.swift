@@ -33,6 +33,10 @@ enum CardResult: Identifiable, Codable {
         field(regular: \.allParts, transforming: \.allParts)
     }
     
+    var scryfallUri: String? {
+        field(regular: \.scryfallUri, transforming: \.scryfallUri)
+    }
+    
     // MARK: - Front Face Properties (for transforming cards, returns front face data)
     
     var smallImageUrl: String? {
@@ -147,6 +151,7 @@ struct RegularCard: Identifiable, Codable {
     let legalities: [String: String]?
     let gameChanger: Bool?
     let allParts: [RelatedPart]?
+    let scryfallUri: String?
     
     enum CodingKeys: String, CodingKey {
         case id
@@ -164,6 +169,7 @@ struct RegularCard: Identifiable, Codable {
         case legalities
         case gameChanger = "game_changer"
         case allParts = "all_parts"
+        case scryfallUri = "scryfall_uri"
     }
     
     enum ImageUriKeys: String, CodingKey {
@@ -177,7 +183,7 @@ struct RegularCard: Identifiable, Codable {
          typeLine: String? = nil, oracleText: String? = nil, flavorText: String? = nil,
          power: String? = nil, toughness: String? = nil, artist: String? = nil,
          colors: [String]? = nil, colorIndicator: [String]? = nil, legalities: [String: String]? = nil,
-         gameChanger: Bool? = nil, allParts: [RelatedPart]? = nil) {
+         gameChanger: Bool? = nil, allParts: [RelatedPart]? = nil, scryfallUri: String? = nil) {
         self.id = id
         self.name = name
         self.smallImageUrl = smallImageUrl
@@ -195,6 +201,7 @@ struct RegularCard: Identifiable, Codable {
         self.legalities = legalities
         self.gameChanger = gameChanger
         self.allParts = allParts
+        self.scryfallUri = scryfallUri
     }
     
     init(from decoder: Decoder) throws {
@@ -225,6 +232,7 @@ struct RegularCard: Identifiable, Codable {
         legalities = try? container.decode([String: String].self, forKey: .legalities)
         gameChanger = try? container.decode(Bool.self, forKey: .gameChanger)
         allParts = try? container.decode([RelatedPart].self, forKey: .allParts)
+        scryfallUri = try? container.decode(String.self, forKey: .scryfallUri)
     }
     
     func encode(to encoder: Encoder) throws {
@@ -245,6 +253,7 @@ struct TransformingCard: Identifiable, Codable {
     let legalities: [String: String]?
     let gameChanger: Bool?
     let allParts: [RelatedPart]?
+    let scryfallUri: String?
     
     enum CodingKeys: String, CodingKey {
         case id
@@ -254,6 +263,7 @@ struct TransformingCard: Identifiable, Codable {
         case legalities
         case gameChanger = "game_changer"
         case allParts = "all_parts"
+        case scryfallUri = "scryfall_uri"
     }
     
     init(from decoder: Decoder) throws {
@@ -276,6 +286,7 @@ struct TransformingCard: Identifiable, Codable {
         legalities = try? container.decode([String: String].self, forKey: .legalities)
         gameChanger = try? container.decode(Bool.self, forKey: .gameChanger)
         allParts = try? container.decode([RelatedPart].self, forKey: .allParts)
+        scryfallUri = try? container.decode(String.self, forKey: .scryfallUri)
     }
     
     func encode(to encoder: Encoder) throws {

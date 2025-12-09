@@ -243,6 +243,18 @@ private struct CardImageSection: View {
                         image
                             .resizable()
                             .aspectRatio(contentMode: .fit)
+                            .contextMenu {
+                                ShareLink(item: url, preview: SharePreview(card.name, image: image))
+                                
+                                Button {
+                                    // Copy the rendered image to pasteboard
+                                    if let uiImage = ImageRenderer(content: image).uiImage {
+                                        UIPasteboard.general.image = uiImage
+                                    }
+                                } label: {
+                                    Label("Copy", systemImage: "doc.on.doc")
+                                }
+                            }
                     case .failure:
                         CardImagePlaceholder(card: card)
                     @unknown default:
@@ -496,6 +508,17 @@ private struct CardFaceImageSection: View {
                         image
                             .resizable()
                             .aspectRatio(contentMode: .fit)
+                            .contextMenu {
+                                ShareLink(item: url, preview: SharePreview(face.name, image: image))
+                                
+                                Button {
+                                    if let uiImage = ImageRenderer(content: image).uiImage {
+                                        UIPasteboard.general.image = uiImage
+                                    }
+                                } label: {
+                                    Label("Copy", systemImage: "doc.on.doc")
+                                }
+                            }
                     case .failure:
                         CardFaceImagePlaceholder(face: face, cardName: cardName)
                     @unknown default:

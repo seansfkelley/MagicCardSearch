@@ -18,6 +18,7 @@ struct CardDetailNavigator: View {
     
     @State private var currentIndex: Int
     @State private var scrollPosition: Int?
+    @State private var showingListSheet = false
     @Environment(\.dismiss) private var dismiss
     
     init(cards: [CardResult], 
@@ -77,6 +78,36 @@ struct CardDetailNavigator: View {
                     .buttonStyle(.glass)
                     .buttonBorderShape(.circle)
                 }
+                
+                ToolbarItem(placement: .topBarTrailing) {
+                    HStack(spacing: 8) {
+                        Button {
+                            showingListSheet = true
+                        } label: {
+                            Image(systemName: "list.bullet")
+                        }
+                        
+                        if let card = currentCard,
+                           let scryfallUri = card.scryfallUri,
+                           let url = URL(string: scryfallUri) {
+                            ShareLink(item: url)
+                        }
+                    }
+                }
+            }
+            .sheet(isPresented: $showingListSheet) {
+                NavigationStack {
+                    Text("Coming soon")
+                        .navigationTitle("Lists")
+                        .navigationBarTitleDisplayMode(.inline)
+                        .toolbar {
+                            ToolbarItem(placement: .cancellationAction) {
+                                Button("Done") {
+                                    showingListSheet = false
+                                }
+                            }
+                        }
+                }
             }
             .safeAreaInset(edge: .bottom) {
                 Text(counterText)
@@ -109,6 +140,13 @@ struct CardDetailNavigator: View {
         } else {
             return "Loading..."
         }
+    }
+    
+    private var currentCard: CardResult? {
+        guard currentIndex >= 0 && currentIndex < cards.count else {
+            return nil
+        }
+        return cards[currentIndex]
     }
     
     private var counterText: String {
