@@ -12,6 +12,7 @@ struct CardDetailView: View {
 
     @State private var relatedCardToShow: CardResult?
     @State private var isLoadingRelatedCard = false
+    @State private var showingListSheet = false
     private let cardSearchService = CardSearchService()
 
     var body: some View {
@@ -61,6 +62,38 @@ struct CardDetailView: View {
             }
             .background(Color(.systemBackground))
             .padding(.top)
+        }
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    showingListSheet = true
+                } label: {
+                    Image(systemName: "list.bullet")
+                }
+            }
+            
+            if let scryfallUri = card.scryfallUri,
+               let url = URL(string: scryfallUri) {
+                ToolbarItem(placement: .topBarTrailing) {
+                    ShareLink(item: url)
+                }
+            }
+        }
+        .sheet(isPresented: $showingListSheet) {
+            NavigationStack {
+                Text("Coming soon")
+                    .navigationTitle("Lists")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button {
+                                showingListSheet = false
+                            } label: {
+                                Image(systemName: "xmark")
+                            }
+                        }
+                    }
+            }
         }
         .sheet(item: $relatedCardToShow) { relatedCard in
             NavigationStack {

@@ -18,7 +18,6 @@ struct CardDetailNavigator: View {
     
     @State private var currentIndex: Int
     @State private var scrollPosition: Int?
-    @State private var showingListSheet = false
     @Environment(\.dismiss) private var dismiss
     
     init(cards: [CardResult], 
@@ -74,36 +73,6 @@ struct CardDetailNavigator: View {
                     } label: {
                         Image(systemName: "xmark")
                     }
-                }
-                
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        showingListSheet = true
-                    } label: {
-                        Image(systemName: "list.bullet")
-                    }
-                }
-                
-                if let card = currentCard,
-                   let scryfallUri = card.scryfallUri,
-                   let url = URL(string: scryfallUri) {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        ShareLink(item: url)
-                    }
-                }
-            }
-            .sheet(isPresented: $showingListSheet) {
-                NavigationStack {
-                    Text("Coming soon")
-                        .navigationTitle("Lists")
-                        .navigationBarTitleDisplayMode(.inline)
-                        .toolbar {
-                            ToolbarItem(placement: .cancellationAction) {
-                                Button("Done") {
-                                    showingListSheet = false
-                                }
-                            }
-                        }
                 }
             }
             .safeAreaInset(edge: .bottom) {
