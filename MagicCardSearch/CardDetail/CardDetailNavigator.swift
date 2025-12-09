@@ -78,7 +78,7 @@ struct CardDetailNavigator: View {
                     .buttonBorderShape(.circle)
                 }
             }
-            .overlay(alignment: .bottom) {
+            .safeAreaInset(edge: .bottom) {
                 Text(counterText)
                     .font(.caption)
                     .foregroundStyle(.primary)
