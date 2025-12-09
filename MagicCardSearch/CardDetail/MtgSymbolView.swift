@@ -48,21 +48,24 @@ private let baseSymbolCodes = Set([
     "s", "t", "q"
 ])
 
-// n.b. these are the asset names for the color!
+private let noncircledSymbolCodes = Set(["e", "chaos"])
 
-
-struct CircleSymbolView: View {
+struct MtgSymbolView: View {
     let symbol: String
     let size: CGFloat
+    let showDropShadow: Bool
 
-    init(_ symbol: String, size: CGFloat = 16) {
+    init(_ symbol: String, size: CGFloat = 16, showDropShadow: Bool = false) {
         self.symbol = symbol
         self.size = size
+        self.showDropShadow = showDropShadow
     }
 
     var body: some View {
         let cleaned = symbol.trimmingCharacters(in: CharacterSet(charactersIn: "{}")).lowercased()
-        if baseSymbolCodes.contains(cleaned) {
+        if noncircledSymbolCodes.contains(cleaned) {
+            noncircled(cleaned)
+        } else if baseSymbolCodes.contains(cleaned) {
             basic(cleaned)
         } else {
             let parts = cleaned.split(separator: "/")
@@ -85,9 +88,23 @@ struct CircleSymbolView: View {
         }
     }
     
+    private func noncircled(_ symbol: String) -> some View {
+        return Image(symbol)
+            .resizable()
+            .aspectRatio(contentMode: .fit)
+            .frame(width: size * 0.8, height: size * 0.8)
+    }
+    
     private func basic(_ symbol: String) -> some View {
         let color = ManaColor.fromSymbolCode(symbol) ?? .colorless
         return ZStack {
+            if showDropShadow {
+                Circle()
+                    .fill(.black)
+                    .frame(width: size, height: size)
+                    .offset(x: -1, y: 1)
+            }
+            
             Circle()
                 .fill(color.uiColor)
                 .frame(width: size, height: size)
@@ -101,6 +118,13 @@ struct CircleSymbolView: View {
 
     private func phyrexian(_ color: ManaColor) -> some View {
         return ZStack {
+            if showDropShadow {
+                Circle()
+                    .fill(.black)
+                    .frame(width: size, height: size)
+                    .offset(x: -1, y: 1)
+            }
+            
             Circle()
                 .fill(color.uiColor)
                 .frame(width: size, height: size)
@@ -117,6 +141,13 @@ struct CircleSymbolView: View {
         let rightColor = ManaColor.fromSymbolCode(right) ?? .colorless
 
         return ZStack {
+            if showDropShadow {
+                Circle()
+                    .fill(.black)
+                    .frame(width: size, height: size)
+                    .offset(x: -1, y: 1)
+            }
+            
             Circle()
                 .fill(
                     LinearGradient(
@@ -162,95 +193,109 @@ struct CircleSymbolView: View {
                 Text("Basic Mana")
                     .font(.headline)
                 HStack(spacing: 8) {
-                    CircleSymbolView("{W}", size: 32)
-                    CircleSymbolView("{U}", size: 32)
-                    CircleSymbolView("{B}", size: 32)
-                    CircleSymbolView("{R}", size: 32)
-                    CircleSymbolView("{G}", size: 32)
-                    CircleSymbolView("{C}", size: 32)
+                    MtgSymbolView("{W}", size: 32)
+                    MtgSymbolView("{U}", size: 32)
+                    MtgSymbolView("{B}", size: 32)
+                    MtgSymbolView("{R}", size: 32)
+                    MtgSymbolView("{G}", size: 32)
+                    MtgSymbolView("{C}", size: 32)
                 }
             }
             VStack(alignment: .leading, spacing: 8) {
                 Text("Generic/Colorless")
                     .font(.headline)
                 HStack(spacing: 8) {
-                    CircleSymbolView("{0}", size: 32)
-                    CircleSymbolView("{1}", size: 32)
-                    CircleSymbolView("{2}", size: 32)
-                    CircleSymbolView("{3}", size: 32)
-                    CircleSymbolView("{4}", size: 32)
-                    CircleSymbolView("{5}", size: 32)
+                    MtgSymbolView("{0}", size: 32)
+                    MtgSymbolView("{1}", size: 32)
+                    MtgSymbolView("{2}", size: 32)
+                    MtgSymbolView("{3}", size: 32)
+                    MtgSymbolView("{4}", size: 32)
+                    MtgSymbolView("{5}", size: 32)
                 }
                 HStack(spacing: 8) {
-                    CircleSymbolView("{6}", size: 32)
-                    CircleSymbolView("{7}", size: 32)
-                    CircleSymbolView("{8}", size: 32)
-                    CircleSymbolView("{9}", size: 32)
-                    CircleSymbolView("{10}", size: 32)
-                    CircleSymbolView("{11}", size: 32)
+                    MtgSymbolView("{6}", size: 32)
+                    MtgSymbolView("{7}", size: 32)
+                    MtgSymbolView("{8}", size: 32)
+                    MtgSymbolView("{9}", size: 32)
+                    MtgSymbolView("{10}", size: 32)
+                    MtgSymbolView("{11}", size: 32)
                 }
                 HStack(spacing: 8) {
-                    CircleSymbolView("{12}", size: 32)
-                    CircleSymbolView("{13}", size: 32)
-                    CircleSymbolView("{14}", size: 32)
-                    CircleSymbolView("{15}", size: 32)
-                    CircleSymbolView("{16}", size: 32)
-                    CircleSymbolView("{20}", size: 32)
+                    MtgSymbolView("{12}", size: 32)
+                    MtgSymbolView("{13}", size: 32)
+                    MtgSymbolView("{14}", size: 32)
+                    MtgSymbolView("{15}", size: 32)
+                    MtgSymbolView("{16}", size: 32)
+                    MtgSymbolView("{20}", size: 32)
                 }
                 HStack(spacing: 8) {
-                    CircleSymbolView("{X}", size: 32)
-                    CircleSymbolView("{Y}", size: 32)
-                    CircleSymbolView("{Z}", size: 32)
+                    MtgSymbolView("{X}", size: 32)
+                    MtgSymbolView("{Y}", size: 32)
+                    MtgSymbolView("{Z}", size: 32)
                 }
             }
             VStack(alignment: .leading, spacing: 8) {
                 Text("Hybrid Mana")
                     .font(.headline)
                 HStack(spacing: 8) {
-                    CircleSymbolView("{W/U}", size: 32)
-                    CircleSymbolView("{W/B}", size: 32)
-                    CircleSymbolView("{U/B}", size: 32)
-                    CircleSymbolView("{U/R}", size: 32)
-                    CircleSymbolView("{B/R}", size: 32)
+                    MtgSymbolView("{W/U}", size: 32)
+                    MtgSymbolView("{W/B}", size: 32)
+                    MtgSymbolView("{U/B}", size: 32)
+                    MtgSymbolView("{U/R}", size: 32)
+                    MtgSymbolView("{B/R}", size: 32)
                 }
                 HStack(spacing: 8) {
-                    CircleSymbolView("{B/G}", size: 32)
-                    CircleSymbolView("{R/W}", size: 32)
-                    CircleSymbolView("{R/G}", size: 32)
-                    CircleSymbolView("{G/W}", size: 32)
-                    CircleSymbolView("{G/U}", size: 32)
+                    MtgSymbolView("{B/G}", size: 32)
+                    MtgSymbolView("{R/W}", size: 32)
+                    MtgSymbolView("{R/G}", size: 32)
+                    MtgSymbolView("{G/W}", size: 32)
+                    MtgSymbolView("{G/U}", size: 32)
                 }
             }
             VStack(alignment: .leading, spacing: 8) {
                 Text("Phyrexian Mana")
                     .font(.headline)
                 HStack(spacing: 8) {
-                    CircleSymbolView("{W/P}", size: 32)
-                    CircleSymbolView("{U/P}", size: 32)
-                    CircleSymbolView("{B/P}", size: 32)
-                    CircleSymbolView("{R/P}", size: 32)
-                    CircleSymbolView("{G/P}", size: 32)
-                    CircleSymbolView("{P}", size: 32)
+                    MtgSymbolView("{W/P}", size: 32)
+                    MtgSymbolView("{U/P}", size: 32)
+                    MtgSymbolView("{B/P}", size: 32)
+                    MtgSymbolView("{R/P}", size: 32)
+                    MtgSymbolView("{G/P}", size: 32)
+                    MtgSymbolView("{P}", size: 32)
                 }
             }
             VStack(alignment: .leading, spacing: 8) {
                 Text("Hybrid Generic/Colored")
                     .font(.headline)
                 HStack(spacing: 8) {
-                    CircleSymbolView("{2/W}", size: 32)
-                    CircleSymbolView("{2/U}", size: 32)
-                    CircleSymbolView("{2/B}", size: 32)
-                    CircleSymbolView("{2/R}", size: 32)
-                    CircleSymbolView("{2/G}", size: 32)
+                    MtgSymbolView("{2/W}", size: 32)
+                    MtgSymbolView("{2/U}", size: 32)
+                    MtgSymbolView("{2/B}", size: 32)
+                    MtgSymbolView("{2/R}", size: 32)
+                    MtgSymbolView("{2/G}", size: 32)
                 }
             }
             VStack(alignment: .leading, spacing: 8) {
                 Text("Special Symbols")
                     .font(.headline)
                 HStack(spacing: 8) {
-                    CircleSymbolView("{S}", size: 32)
-                    CircleSymbolView("{T}", size: 32)
-                    CircleSymbolView("{Q}", size: 32)
+                    MtgSymbolView("{S}", size: 32)
+                    MtgSymbolView("{T}", size: 32)
+                    MtgSymbolView("{Q}", size: 32)
+                    MtgSymbolView("{E}", size: 32)
+                    MtgSymbolView("{CHAOS}", size: 32)
+                }
+            }
+            VStack(alignment: .leading, spacing: 8) {
+                Text("With Drop Shadows")
+                    .font(.headline)
+                HStack(spacing: 8) {
+                    MtgSymbolView("{W}", size: 32, showDropShadow: true)
+                    MtgSymbolView("{0}", size: 32, showDropShadow: true)
+                    MtgSymbolView("{B/U}", size: 32, showDropShadow: true)
+                    MtgSymbolView("{G/P}", size: 32, showDropShadow: true)
+                    MtgSymbolView("{T}", size: 32, showDropShadow: true)
+                    MtgSymbolView("{E}", size: 32, showDropShadow: true)
                 }
             }
         }

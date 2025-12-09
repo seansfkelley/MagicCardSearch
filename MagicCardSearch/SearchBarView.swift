@@ -179,7 +179,7 @@ struct SymbolGroupRow: View {
                     Button(action: {
                         onSymbolTapped(symbol)
                     }) {
-                        CircleSymbolView(symbol, size: 32)
+                        MtgSymbolView(symbol, size: 32)
                     }
                     .buttonStyle(.plain)
                 }
@@ -191,7 +191,7 @@ struct SymbolGroupRow: View {
                         Button(action: {
                             onSymbolTapped(symbol)
                         }) {
-                            CircleSymbolView(symbol, size: 32)
+                            MtgSymbolView(symbol, size: 32)
                         }
                         .buttonStyle(.plain)
                     }
