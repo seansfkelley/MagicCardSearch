@@ -7,18 +7,6 @@
 
 import Foundation
 
-struct RelatedPart: Identifiable, Codable {
-    let id: String
-    let name: String
-    let typeLine: String?
-    
-    enum CodingKeys: String, CodingKey {
-        case id
-        case name
-        case typeLine = "type_line"
-    }
-}
-
 struct CardResult: Identifiable, Codable {
     let id: String
     let name: String
@@ -35,6 +23,18 @@ struct CardResult: Identifiable, Codable {
     let legalities: [String: String]?
     let gameChanger: Bool?
     let allParts: [RelatedPart]?
+    
+    struct RelatedPart: Identifiable, Codable {
+        let id: String
+        let name: String
+        let typeLine: String?
+        
+        enum CodingKeys: String, CodingKey {
+            case id
+            case name
+            case typeLine = "type_line"
+        }
+    }
     
     enum CodingKeys: String, CodingKey {
         case id
