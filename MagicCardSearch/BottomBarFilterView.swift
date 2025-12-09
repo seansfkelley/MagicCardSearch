@@ -13,7 +13,14 @@ struct BottomBarFilterView: View {
     @Binding var inputSelection: TextSelection?
     @Binding var pendingSelection: TextSelection?
     @FocusState var isSearchFocused: Bool
+    @Binding var isCollapsed: Bool
+    let warnings: [String]
+    @Binding var showWarningsPopover: Bool
     let onFilterEdit: (SearchFilter) -> Void
+    
+    @Namespace private var animation
+    
+    private let collapsedButtonSize: CGFloat = 44
     
     // Calculate max height based on pill dimensions without hardcoding
     // Each pill is 32pt tall with 8pt spacing = 40pt per line
@@ -27,42 +34,134 @@ struct BottomBarFilterView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            if !filters.isEmpty {
-                ScrollView {
-                    GlassEffectContainer(spacing: 8) {
-                        ReflowingFilterPillsView(
-                            filters: $filters,
-                            onFilterEdit: onFilterEdit
+            // Warnings and Clear All row (expanded state only)
+            if !filters.isEmpty && !isCollapsed {
+                HStack(alignment: .bottom) {
+                    if !warnings.isEmpty {
+                        WarningsPillView(
+                            warnings: warnings,
+                            isExpanded: $showWarningsPopover
                         )
+                        .matchedGeometryEffect(id: "warnings", in: animation)
                     }
-                    .padding()
-                }
-                .frame(maxHeight: maxPillsHeight)
-                .fixedSize(horizontal: false, vertical: true)
-                .mask {
-                    VStack(spacing: 0) {
-                        Rectangle()
-                        LinearGradient(
-                            colors: [.black, .clear],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                        .frame(height: 20)
+                    
+                    Spacer()
+                    
+                    Button(role: .destructive, action: onClearAll) {
+                        Text("Clear all")
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                            .padding(.horizontal)
+                            .padding(.vertical, 6)
                     }
+                    .glassEffect(.regular.interactive())
+                    .matchedGeometryEffect(id: "clearAll", in: animation)
                 }
-                
-                Divider()
-                    .padding(.horizontal)
+                .padding(.bottom, 8)
             }
             
-            SearchBarView(
-                filters: $filters,
-                inputText: $inputText,
-                inputSelection: $inputSelection,
-                isSearchFocused: _isSearchFocused
-            )
+            if isCollapsed {
+                HStack(spacing: 12) {
+                    if !warnings.isEmpty {
+                        Button(action: {
+                            onExpandTap()
+                            showWarningsPopover = true
+                        }) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundStyle(.orange)
+                                .font(.system(size: 20))
+                                .frame(width: collapsedButtonSize, height: collapsedButtonSize)
+                        }
+                        .glassEffect(.regular.interactive(), in: .circle)
+                        .matchedGeometryEffect(id: "warnings", in: animation)
+                    }
+                    
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            ForEach(Array(filters.enumerated()), id: \.offset) { index, filter in
+                                FilterPillView(
+                                    filter: filter,
+                                    onTap: {
+                                        isCollapsed = false
+                                        onFilterEdit(filter)
+                                        filters.remove(at: index)
+                                    },
+                                    onDelete: {
+                                        filters.remove(at: index)
+                                        if filters.isEmpty {
+                                            onClearAll()
+                                        }
+                                    }
+                                )
+                            }
+                        }
+                        .padding(.horizontal, 4)
+                    }
+                    .frame(height: collapsedButtonSize)
+                    .clipShape(.capsule)
+                    .glassEffect(.regular.interactive(), in: .capsule)
+                    .matchedGeometryEffect(id: "searchBar", in: animation)
+                    
+                    if !filters.isEmpty {
+                        Button(action: onClearAll) {
+                            Image(systemName: "xmark")
+                                .foregroundStyle(.red)
+                                .font(.system(size: 20))
+                                .frame(width: collapsedButtonSize, height: collapsedButtonSize)
+                        }
+                        .glassEffect(.regular.interactive(), in: .circle)
+                        .matchedGeometryEffect(id: "clearAll", in: animation)
+                    }
+                }
+                .padding(.horizontal)
+                .padding(.vertical, 12)
+            } else {
+                VStack(spacing: 0) {
+                    if !filters.isEmpty {
+                        ScrollView {
+                            GlassEffectContainer(spacing: 8) {
+                                ReflowingFilterPillsView(
+                                    filters: $filters,
+                                    onFilterEdit: onFilterEdit
+                                )
+                            }
+                            .padding()
+                        }
+                        .frame(maxHeight: maxPillsHeight)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .mask {
+                            VStack(spacing: 0) {
+                                Rectangle()
+                                LinearGradient(
+                                    colors: [.black, .clear],
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                )
+                                .frame(height: 20)
+                            }
+                        }
+                        
+                        Divider()
+                            .padding(.horizontal)
+                    }
+                    
+                    SearchBarView(
+                        filters: $filters,
+                        inputText: $inputText,
+                        inputSelection: $inputSelection,
+                        isSearchFocused: _isSearchFocused
+                    )
+                    .matchedGeometryEffect(id: "searchBar", in: animation)
+                }
+                .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 20))
+                .simultaneousGesture(
+                    TapGesture()
+                        .onEnded { _ in
+                            isSearchFocused = true
+                        }
+                )
+            }
         }
-        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 20))
         .padding()
         .onChange(of: isSearchFocused) { _, _ in
             if let s = pendingSelection {
@@ -70,12 +169,69 @@ struct BottomBarFilterView: View {
                 pendingSelection = nil
             }
         }
-        .simultaneousGesture(
-            TapGesture()
-                .onEnded { _ in
-                    isSearchFocused = true
+    }
+    
+    private func onClearAll() {
+        filters.removeAll()
+        inputText = ""
+        inputSelection = nil
+        isCollapsed = false
+        isSearchFocused = true
+    }
+    
+    private func onExpandTap() {
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+            isCollapsed = false
+        }
+    }
+}
+
+// MARK: - Warnings Pill View
+
+private struct WarningsPillView: View {
+    let warnings: [String]
+    @Binding var isExpanded: Bool
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            if isExpanded {
+                ForEach(Array(warnings.enumerated()), id: \.offset) { index, warning in
+                    Text(warning)
+                        .font(.subheadline)
+                        .foregroundStyle(.orange)
+                        .multilineTextAlignment(.leading)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    
+                    if index < warnings.count - 1 {
+                        Divider()
+                            .padding(.horizontal, 12)
+                    }
                 }
-        )
+            } else {
+                Button {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                        isExpanded = true
+                    }
+                } label: {
+                    Text(warnings.count == 1 ? "1 warning" : "\(warnings.count) warnings")
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundStyle(.orange)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 6)
+                }
+            }
+        }
+        .glassEffect(.regular.interactive(), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .onTapGesture {
+            if isExpanded {
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                    isExpanded = false
+                }
+            }
+        }
     }
 }
 
@@ -92,20 +248,34 @@ struct BottomBarFilterView: View {
         @State private var inputSelection: TextSelection?
         @State private var pendingSelection: TextSelection?
         @State private var historyProvider = AutocompleteProvider()
+        @State private var isCollapsed = false
+        @State private var showWarningsPopover = false
         @FocusState private var isFocused: Bool
 
         var body: some View {
             VStack {
                 Spacer()
+                
+                // Toggle for testing
+                Button("Toggle Collapsed") {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                        isCollapsed.toggle()
+                    }
+                }
+                .padding()
+                
                 BottomBarFilterView(
                     filters: $filters,
                     inputText: $inputText,
                     inputSelection: $inputSelection,
                     pendingSelection: $pendingSelection,
                     isSearchFocused: _isFocused,
+                    isCollapsed: $isCollapsed,
+                    warnings: ["Warning 1", "Warning 2"],
+                    showWarningsPopover: $showWarningsPopover,
                     onFilterEdit: { filter in
                         print("Editing filter: \(filter)")
-                    }
+                    },
                 )
             }
             .background(Color(uiColor: .systemBackground))

@@ -13,6 +13,7 @@ struct CardResultsView: View {
     @Binding var searchConfig: SearchConfiguration
     @Binding var warnings: [String]
     var autocompleteProvider: AutocompleteProvider
+    @Binding var isSearchBarCollapsed: Bool
     @State private var results: [CardResult] = []
     @State private var totalCount: Int = 0
     @State private var nextPageURL: String?
@@ -22,6 +23,9 @@ struct CardResultsView: View {
     @State private var selectedCardIndex: Int?
     @State private var searchTask: Task<Void, Never>?
     @State private var errorState: SearchErrorState?
+    @State private var scrollOffset: CGFloat = 0
+    @State private var lastDragValue: CGFloat = 0
+    @State private var isDragging = false
     
     private let service = CardSearchService()
     private let columns = [
@@ -51,37 +55,82 @@ struct CardResultsView: View {
                     )
                 } else {
                     ScrollView {
-                        Text("\(totalCount) \(totalCount == 1 ? "result" : "results")")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .padding(.vertical, 20)
-                        LazyVGrid(columns: columns, spacing: 16) {
-                            ForEach(Array(results.enumerated()), id: \.element.id) { index, card in
-                                CardResultCell(card: card)
-                                    .onTapGesture {
-                                        selectedCardIndex = index
-                                    }
-                                    .onAppear {
-                                        // Load next page when nearing the end
-                                        if index == results.count - 4 {
-                                            loadNextPageIfNeeded()
+                        VStack(spacing: 0) {
+                            Text("\(totalCount) \(totalCount == 1 ? "result" : "results")")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .padding(.vertical, 20)
+                                .id("top")
+                            
+                            LazyVGrid(columns: columns, spacing: 16) {
+                                ForEach(Array(results.enumerated()), id: \.element.id) { index, card in
+                                    CardResultCell(card: card)
+                                        .onTapGesture {
+                                            selectedCardIndex = index
                                         }
-                                    }
+                                        .onAppear {
+                                            // Load next page when nearing the end
+                                            if index == results.count - 4 {
+                                                loadNextPageIfNeeded()
+                                            }
+                                            
+                                            // Detect if we're at the top
+                                            if index == 0 && isSearchBarCollapsed {
+                                                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                                                    isSearchBarCollapsed = false
+                                                }
+                                            }
+                                        }
+                                }
+                            }
+                            .padding(.horizontal)
+                            
+                            // Pagination status section
+                            if nextPageURL != nil || isLoadingNextPage || nextPageError != nil {
+                                paginationStatusView
+                                    .padding(.horizontal)
+                                    .padding(.vertical, 20)
+                            } else {
+                                // Add bottom padding when no pagination status
+                                Color.clear
+                                    .frame(height: 20)
                             }
                         }
-                        .padding(.horizontal)
-                        
-                        // Pagination status section
-                        if nextPageURL != nil || isLoadingNextPage || nextPageError != nil {
-                            paginationStatusView
-                                .padding(.horizontal)
-                                .padding(.vertical, 20)
-                        } else {
-                            // Add bottom padding when no pagination status
-                            Color.clear
-                                .frame(height: 20)
-                        }
                     }
+                    .simultaneousGesture(
+                        DragGesture(minimumDistance: 0)
+                            .onChanged { value in
+                                if !isDragging {
+                                    isDragging = true
+                                    lastDragValue = value.translation.height
+                                }
+                                
+                                let delta = value.translation.height - lastDragValue
+                                lastDragValue = value.translation.height
+                                
+                                // Scrolling down: translation becomes more positive, collapse
+                                if delta < -10 && !isSearchBarCollapsed {
+                                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                                        isSearchBarCollapsed = true
+                                    }
+                                }
+                            }
+                            .onEnded { value in
+                                isDragging = false
+                                lastDragValue = 0
+                                
+                                // Detect flick up gesture
+                                let velocity = value.predictedEndTranslation.height - value.translation.height
+                                print("Drag ended - velocity: \(velocity)")
+                                
+                                // If flicked up significantly, expand
+                                if velocity > 200 && isSearchBarCollapsed {
+                                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                                        isSearchBarCollapsed = false
+                                    }
+                                }
+                            }
+                    )
                 }
             }
             
@@ -355,6 +404,7 @@ struct CardResultCell: View {
         @State private var config = SearchConfiguration()
         @State private var warnings: [String] = []
         @State private var autocompleteProvider = AutocompleteProvider()
+        @State private var isCollapsed = false
         
         var body: some View {
             CardResultsView(
@@ -362,7 +412,8 @@ struct CardResultCell: View {
                 filters: $filters,
                 searchConfig: $config,
                 warnings: $warnings,
-                autocompleteProvider: autocompleteProvider
+                autocompleteProvider: autocompleteProvider,
+                isSearchBarCollapsed: $isCollapsed
             )
         }
     }

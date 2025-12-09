@@ -19,6 +19,7 @@ struct ContentView: View {
     @State private var pendingSelection: TextSelection?
     @State private var warnings: [String] = []
     @State private var showWarningsPopover = false
+    @State private var isSearchBarCollapsed = false
     @FocusState private var isSearchFocused: Bool
     
     private let searchService = CardSearchService()
@@ -37,7 +38,8 @@ struct ContentView: View {
                     filters: $filters,
                     searchConfig: $searchConfig,
                     warnings: $warnings,
-                    autocompleteProvider: autocompleteProvider
+                    autocompleteProvider: autocompleteProvider,
+                    isSearchBarCollapsed: $isSearchBarCollapsed
                 )
                 .opacity(isSearchFocused ? 0 : 1)
                 
@@ -55,42 +57,17 @@ struct ContentView: View {
             }
             .contentShape(Rectangle())
             .safeAreaInset(edge: .bottom) {
-                VStack(spacing: 0) {
-                    if !filters.isEmpty {
-                        HStack(alignment: .bottom) {
-                            if !warnings.isEmpty {
-                                WarningsPillView(
-                                    warnings: warnings,
-                                    isExpanded: $showWarningsPopover
-                                )
-                            }
-                            
-                            Spacer()
-                            
-                            Button(role: .destructive, action: {
-                                filters.removeAll()
-                                isSearchFocused = true
-                            }) {
-                                Text("Clear all")
-                                    .font(.subheadline)
-                                    .fontWeight(.medium)
-                                    .padding(.horizontal)
-                                    .padding(.vertical, 6)
-                            }
-                            .glassEffect(.regular.interactive())
-                        }
-                        .padding(.horizontal)
-                    }
-                    
-                    BottomBarFilterView(
-                        filters: $filters,
-                        inputText: $inputText,
-                        inputSelection: $inputSelection,
-                        pendingSelection: $pendingSelection,
-                        isSearchFocused: _isSearchFocused,
-                        onFilterEdit: handleFilterEdit
-                    )
-                }
+                BottomBarFilterView(
+                    filters: $filters,
+                    inputText: $inputText,
+                    inputSelection: $inputSelection,
+                    pendingSelection: $pendingSelection,
+                    isSearchFocused: _isSearchFocused,
+                    isCollapsed: $isSearchBarCollapsed,
+                    warnings: warnings,
+                    showWarningsPopover: $showWarningsPopover,
+                    onFilterEdit: handleFilterEdit,
+                )
             }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -209,55 +186,6 @@ struct ContentView: View {
             
         case .string(let string):
             inputText = string
-        }
-    }
-}
-
-// MARK: - Warnings Pill View
-
-private struct WarningsPillView: View {
-    let warnings: [String]
-    @Binding var isExpanded: Bool
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            if isExpanded {
-                ForEach(Array(warnings.enumerated()), id: \.offset) { index, warning in
-                    Text(warning)
-                        .font(.subheadline)
-                        .foregroundStyle(.orange)
-                        .multilineTextAlignment(.leading)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 12)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    
-                    if index < warnings.count - 1 {
-                        Divider()
-                            .padding(.horizontal, 12)
-                    }
-                }
-            } else {
-                Button {
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                        isExpanded = true
-                    }
-                } label: {
-                    Text(warnings.count == 1 ? "1 warning" : "\(warnings.count) warnings")
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                        .foregroundStyle(.orange)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 6)
-                }
-            }
-        }
-        .glassEffect(.regular.interactive(), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .onTapGesture {
-            if isExpanded {
-                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                    isExpanded = false
-                }
-            }
         }
     }
 }
