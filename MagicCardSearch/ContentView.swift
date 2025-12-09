@@ -56,36 +56,12 @@ struct ContentView: View {
             .safeAreaInset(edge: .bottom) {
                 VStack(spacing: 0) {
                     if !filters.isEmpty {
-                        HStack {
-                            // Warnings button
+                        HStack(alignment: .bottom) {
                             if !warnings.isEmpty {
-                                Button {
-                                    showWarningsPopover.toggle()
-                                } label: {
-                                    Text(warnings.count == 1 ? "1 warning" : "\(warnings.count) warnings")
-                                        .font(.subheadline)
-                                        .fontWeight(.medium)
-                                        .padding(.horizontal)
-                                        .padding(.vertical, 6)
-                                }
-                                .foregroundStyle(.orange)
-                                .glassEffect(.regular.interactive())
-                                .popover(isPresented: $showWarningsPopover) {
-                                    VStack(alignment: .leading, spacing: 0) {
-                                        ForEach(Array(warnings.enumerated()), id: \.offset) { index, warning in
-                                            Text(warning)
-                                                .font(.subheadline)
-                                                .padding()
-                                            
-                                            if index < warnings.count - 1 {
-                                                Divider()
-                                                    .padding(.horizontal)
-                                            }
-                                        }
-                                    }
-                                    .frame(maxWidth: 300)
-                                    .presentationCompactAdaptation(.popover)
-                                }
+                                WarningsPillView(
+                                    warnings: warnings,
+                                    isExpanded: $showWarningsPopover
+                                )
                             }
                             
                             Spacer()
@@ -216,6 +192,55 @@ struct ContentView: View {
             
         case .string(let string):
             inputText = string
+        }
+    }
+}
+
+// MARK: - Warnings Pill View
+
+private struct WarningsPillView: View {
+    let warnings: [String]
+    @Binding var isExpanded: Bool
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            if isExpanded {
+                ForEach(Array(warnings.enumerated()), id: \.offset) { index, warning in
+                    Text(warning)
+                        .font(.subheadline)
+                        .foregroundStyle(.orange)
+                        .multilineTextAlignment(.leading)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    
+                    if index < warnings.count - 1 {
+                        Divider()
+                            .padding(.horizontal, 12)
+                    }
+                }
+            } else {
+                Button {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                        isExpanded = true
+                    }
+                } label: {
+                    Text(warnings.count == 1 ? "1 warning" : "\(warnings.count) warnings")
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundStyle(.orange)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 6)
+                }
+            }
+        }
+        .glassEffect(.regular.interactive(), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .onTapGesture {
+            if isExpanded {
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                    isExpanded = false
+                }
+            }
         }
     }
 }
