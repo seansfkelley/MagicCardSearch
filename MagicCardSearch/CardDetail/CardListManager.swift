@@ -56,6 +56,17 @@ class CardListManager: ObservableObject {
         cards.contains { $0.id == cardId }
     }
     
+    /// Get sorted cards (alphabetically by name, then by release date)
+    var sortedCards: [CardListItem] {
+        cards.sorted()
+    }
+    
+    /// Clear all cards from the list
+    func clearAll() {
+        cards.removeAll()
+        saveCards()
+    }
+    
     // MARK: - Persistence
     
     private func loadCards() {

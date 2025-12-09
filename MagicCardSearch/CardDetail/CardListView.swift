@@ -33,7 +33,7 @@ struct CardListView: View {
                 
                 ToolbarItem(placement: .topBarTrailing) {
                     ShareLink(
-                        item: // TODO
+                        item: shareableText
                     ) {
                         Image(systemName: "square.and.arrow.up")
                     }
@@ -42,6 +42,18 @@ struct CardListView: View {
                 
             }
         }
+    }
+    
+    // MARK: - Shareable Text
+    
+    private var shareableText: String {
+        listManager.sortedCards.map { card in
+            return if let setCode = card.setCode {
+                "1 \(card.name) (\(setCode)"
+            } else {
+                "1 \(card.name)"
+            }
+        }.joined(separator: "\n")
     }
     
     // MARK: - Empty State
@@ -69,7 +81,7 @@ struct CardListView: View {
     
     private var cardListView: some View {
         List {
-            ForEach(listManager.cards) { card in
+            ForEach(listManager.sortedCards) { card in
                 CardListRow(card: card)
                     .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                         Button(role: .destructive) {
@@ -80,6 +92,27 @@ struct CardListView: View {
                             Label("Delete", systemImage: "trash")
                         }
                     }
+            }
+            
+            Section {
+                Button(role: .destructive) {
+                    // Clear all action will trigger on long press
+                } label: {
+                    HStack {
+                        Image(systemName: "trash")
+                        Text("Clear All")
+                    }
+                    .frame(maxWidth: .infinity)
+                    .foregroundStyle(list.isEmpty ? .gray : .red)
+                }
+                .simultaneousGesture(
+                    LongPressGesture(minimumDuration: 1)
+                        .onEnded { _ in
+                            withAnimation {
+                                listManager.clearAll()
+                            }
+                        }
+                )
             }
         }
         .listStyle(.insetGrouped)
