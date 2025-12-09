@@ -125,17 +125,7 @@ struct BottomBarFilterView: View {
                             ForEach(Array(filters.enumerated()), id: \.offset) { index, filter in
                                 FilterPillView(
                                     filter: filter,
-                                    onTap: {
-                                        isExpanded = true
-                                        onFilterEdit(filter)
-                                        filters.remove(at: index)
-                                    },
-                                    onDelete: {
-                                        filters.remove(at: index)
-                                        if filters.isEmpty {
-                                            onClearAll()
-                                        }
-                                    }
+                                    onTap: onExpandTap,
                                 )
                             }
                         }

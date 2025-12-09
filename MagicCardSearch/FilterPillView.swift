@@ -10,8 +10,14 @@ import SwiftUI
 struct FilterPillView: View {
     let filter: SearchFilter
     let onTap: () -> Void
-    let onDelete: () -> Void
+    let onDelete: (() -> Void)?
 
+    init(filter: SearchFilter, onTap: @escaping () -> Void, onDelete: (() -> Void)? = nil) {
+        self.filter = filter
+        self.onTap = onTap
+        self.onDelete = onDelete
+    }
+    
     var body: some View {
         HStack(spacing: 0) {
             Button(action: onTap) {
@@ -32,18 +38,20 @@ struct FilterPillView: View {
             }
             .buttonStyle(.plain)
             
-            Divider()
-                .frame(height: 20)
-            
-            Button(action: onDelete) {
-                Image(systemName: "xmark")
-                    .font(.caption)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(.secondary)
-                    .frame(width: 28)
-                    .frame(maxHeight: .infinity)
+            if let onDelete = onDelete {
+                Divider()
+                    .frame(height: 20)
+                
+                Button(action: onDelete) {
+                    Image(systemName: "xmark")
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(.secondary)
+                        .frame(width: 28)
+                        .frame(maxHeight: .infinity)
+                }
+                .buttonStyle(.plain)
             }
-            .buttonStyle(.plain)
         }
         .fixedSize(horizontal: true, vertical: false)
         .frame(height: 32)
