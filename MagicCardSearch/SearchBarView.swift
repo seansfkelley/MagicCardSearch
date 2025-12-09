@@ -67,19 +67,6 @@ struct SearchBarView: View {
                     }
                 }
             }
-            
-            if !isSearchFocused {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8) {
-                        ForEach(Array(filters.enumerated()), id: \.offset) { index, filter in
-                            FilterPillView(filter: filter)
-                        }
-                    }
-                    .padding(.horizontal, 4)
-                }
-                .clipShape(.capsule)
-    //            .frame(height: collapsedButtonSize)
-            }
         }
         .padding(.vertical)
         .padding(.horizontal)

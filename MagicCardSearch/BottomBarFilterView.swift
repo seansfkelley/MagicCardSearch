@@ -103,14 +103,41 @@ struct BottomBarFilterView: View {
                         Divider()
                             .padding(.horizontal)
                     }
-                    
+
                     SearchBarView(
                         filters: $filters,
                         inputText: $inputText,
                         inputSelection: $inputSelection,
                         isSearchFocused: _isSearchFocused
                     )
+                    // In order to use isSearchFocused as the one and only state management for
+                    // expanded/collapsed state, we need to (1) make sure that the TextField in this
+                    // component is always rendered so that it _can_ take focus, and (2) that we
+                    // don't conditionally create slightly different views depending on focus state.
+                    // An earlier implementation of this used the `if` modifier for the latter,
+                    // which triggered an infinite loop of observable changes. The workaround is
+                    // here: ternaries, with `frame` and `clipped` being called unconditionally.
+                    .frame(
+                        width: isSearchFocused || filters.isEmpty ? nil : 0,
+                        height: isSearchFocused || filters.isEmpty ? nil : 0
+                    )
+                    .clipped()
+                    
+                    if !isSearchFocused && !filters.isEmpty {
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 8) {
+                                ForEach(Array(filters.enumerated()), id: \.offset) { index, filter in
+                                    FilterPillView(filter: filter)
+                                }
+                            }
+                            .padding(.horizontal, 4)
+                        }
+                        .clipShape(.capsule)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: collapsedButtonSize)
+                    }
                 }
+                .contentShape(Rectangle())
                 .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 20))
                 .simultaneousGesture(
                     TapGesture()
