@@ -12,6 +12,7 @@ struct ContentView: View {
     @State private var inputText: String = ""
     @State private var showDisplaySheet = false
     @State private var showSyntaxReference = false
+    @State private var showCardList = false
     @State private var searchConfig = SearchConfiguration.load()
     @State private var pendingSearchConfig: SearchConfiguration?
     @State private var autocompleteProvider = AutocompleteProvider()
@@ -103,20 +104,22 @@ struct ContentView: View {
                 }
                 
                 ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        showCardList = true
+                    } label: {
+                        Image(systemName: "list.star")
+                    }
+                }
+                
+                ToolbarItem(placement: .topBarTrailing) {
                     ShareLink(
                         item: CardSearchService
                             .buildSearchURL(filters: filters, config: searchConfig, forAPI: false) ?? URL(
                                 string: "https://scryfall.com"
                             )!
                     ) {
-                        Label {
-                            Text("Share Search")
-                        } icon: {
-                            Image(systemName: "square.and.arrow.up")
-                                .font(.title2)
-                        }
+                        Image(systemName: "square.and.arrow.up")
                     }
-                    .labelStyle(.iconOnly)
                     .disabled(filters.isEmpty)
                 }
             }
@@ -138,6 +141,9 @@ struct ContentView: View {
         }
         .sheet(isPresented: $showSyntaxReference) {
             SyntaxReferenceView()
+        }
+        .sheet(isPresented: $showCardList) {
+            CardListView()
         }
         .simultaneousGesture(
             TapGesture()

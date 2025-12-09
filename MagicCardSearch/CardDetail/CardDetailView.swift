@@ -12,7 +12,7 @@ struct CardDetailView: View {
 
     @State private var relatedCardToShow: CardResult?
     @State private var isLoadingRelatedCard = false
-    @State private var showingListSheet = false
+    @ObservedObject private var listManager = CardListManager.shared
     private let cardSearchService = CardSearchService()
 
     var body: some View {
@@ -66,9 +66,10 @@ struct CardDetailView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
-                    showingListSheet = true
+                    let listItem = CardListItem(from: card)
+                    listManager.toggleCard(listItem)
                 } label: {
-                    Image(systemName: "list.bullet")
+                    Image(systemName: listManager.contains(cardId: card.id) ? "star.fill" : "star")
                 }
             }
             
@@ -77,22 +78,6 @@ struct CardDetailView: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     ShareLink(item: url)
                 }
-            }
-        }
-        .sheet(isPresented: $showingListSheet) {
-            NavigationStack {
-                Text("Coming soon")
-                    .navigationTitle("Lists")
-                    .navigationBarTitleDisplayMode(.inline)
-                    .toolbar {
-                        ToolbarItem(placement: .cancellationAction) {
-                            Button {
-                                showingListSheet = false
-                            } label: {
-                                Image(systemName: "xmark")
-                            }
-                        }
-                    }
             }
         }
         .sheet(item: $relatedCardToShow) { relatedCard in
