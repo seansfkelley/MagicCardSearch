@@ -16,54 +16,69 @@ struct SearchBarView: View {
     @State private var showSymbolPicker = false
 
     var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: "magnifyingglass")
-                .foregroundStyle(.secondary)
-
-            TextField(
-                filters.isEmpty ? "Search for cards..." : "Add filters...",
-                text: $inputText,
-                selection: $inputSelection
-            )
-            .textFieldStyle(.plain)
-            .focused($isSearchFocused)
-            .textInputAutocapitalization(.never)
-            .autocorrectionDisabled(true)
-            .textContentType(.none)
-            // ASCII means we don't get smart quotes so can parse double quotes properly.
-            .keyboardType(.asciiCapable)
-            .submitLabel(.search)
-            .onSubmit {
-                createNewFilterFromSearch(fallbackToNameFilter: true)
-            }
-
-            if !inputText.isEmpty {
-                Button(action: {
-                    inputText = ""
-                }) {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(.secondary)
-                        .imageScale(.large)
+        ZStack {
+            HStack(spacing: 12) {
+                Image(systemName: "magnifyingglass")
+                    .foregroundStyle(.secondary)
+                
+                TextField(
+                    filters.isEmpty ? "Search for cards..." : "Add filters...",
+                    text: $inputText,
+                    selection: $inputSelection
+                )
+                .textFieldStyle(.plain)
+                .focused($isSearchFocused)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled(true)
+                .textContentType(.none)
+                // ASCII means we don't get smart quotes so can parse double quotes properly.
+                .keyboardType(.asciiCapable)
+                .submitLabel(.search)
+                .onSubmit {
+                    createNewFilterFromSearch(fallbackToNameFilter: true)
                 }
-                .buttonStyle(.plain)
-            }
-
-            if isSearchFocused {
-                Button(action: {
-                    showSymbolPicker.toggle()
-                }) {
-                    Image(systemName: "curlybraces")
-                        .foregroundStyle(.secondary)
-                        .imageScale(.large)
-                }
-                .buttonStyle(.plain)
-                .popover(isPresented: $showSymbolPicker, arrowEdge: .bottom) {
-                    SymbolPickerView { symbol in
-                        insertSymbol(symbol)
-                        showSymbolPicker = false
+                
+                if !inputText.isEmpty {
+                    Button(action: {
+                        inputText = ""
+                    }) {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.secondary)
+                            .imageScale(.large)
                     }
-                    .presentationCompactAdaptation(.popover)
+                    .buttonStyle(.plain)
                 }
+                
+                if isSearchFocused {
+                    Button(action: {
+                        showSymbolPicker.toggle()
+                    }) {
+                        Image(systemName: "curlybraces")
+                            .foregroundStyle(.secondary)
+                            .imageScale(.large)
+                    }
+                    .buttonStyle(.plain)
+                    .popover(isPresented: $showSymbolPicker, arrowEdge: .bottom) {
+                        SymbolPickerView { symbol in
+                            insertSymbol(symbol)
+                            showSymbolPicker = false
+                        }
+                        .presentationCompactAdaptation(.popover)
+                    }
+                }
+            }
+            
+            if !isSearchFocused {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(Array(filters.enumerated()), id: \.offset) { index, filter in
+                            FilterPillView(filter: filter)
+                        }
+                    }
+                    .padding(.horizontal, 4)
+                }
+                .clipShape(.capsule)
+    //            .frame(height: collapsedButtonSize)
             }
         }
         .padding(.vertical)

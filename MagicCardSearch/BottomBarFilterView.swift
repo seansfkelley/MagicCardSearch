@@ -30,23 +30,6 @@ struct BottomBarFilterView: View {
         let lines: CGFloat = 4
         return (pillHeight + lineSpacing) * lines
     }
-    
-//    ScrollView(.horizontal, showsIndicators: false) {
-//        HStack(spacing: 8) {
-//            ForEach(Array(filters.enumerated()), id: \.offset) { index, filter in
-//                FilterPillView(
-//                    filter: filter,
-//                    onTap: {
-//                        isSearchFocused = true
-//                    }
-//                )
-//            }
-//        }
-//        .padding(.horizontal, 4)
-//    }
-//    .frame(height: collapsedButtonSize)
-//    .clipShape(.capsule)
-//    .glassEffect(.regular.interactive(), in: .capsule)
 
     var body: some View {
         VStack(spacing: 0) {
