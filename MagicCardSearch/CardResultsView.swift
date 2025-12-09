@@ -305,15 +305,16 @@ struct CardResultCell: View {
 
     var body: some View {
         ZStack(alignment: .trailing) {
-            cardImageView
-                .aspectRatio(0.7, contentMode: .fit)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-                .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
-                .rotation3DEffect(
-                    .degrees(showingBackFace ? 180 : 0),
-                    axis: (x: 0, y: 1, z: 0),
-                    perspective: 0.5
-                )
+            Group {
+                switch card {
+                case .regular:
+                    regularCardView
+                case .transforming(let transformingCard):
+                    transformingCardView(transformingCard)
+                }
+            }
+            .aspectRatio(0.7, contentMode: .fit)
+            .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
             
             // Flip button for transforming cards
             if case .transforming = card {
@@ -323,33 +324,123 @@ struct CardResultCell: View {
         }
     }
     
+    // MARK: - Regular Card
+    
     @ViewBuilder
-    private var cardImageView: some View {
-        Group {
-            if let imageUrl = currentImageUrl, let url = URL(string: imageUrl) {
-                AsyncImage(url: url) { phase in
-                    switch phase {
-                    case .empty:
-                        ProgressView()
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    case .success(let image):
-                        image
-                            .resizable()
-                            .aspectRatio(contentMode: .fill)
-                    case .failure:
-                        placeholderView
-                    @unknown default:
-                        placeholderView
-                    }
+    private var regularCardView: some View {
+        if let imageUrl = card.smallImageUrl, let url = URL(string: imageUrl) {
+            AsyncImage(url: url) { phase in
+                switch phase {
+                case .empty:
+                    ProgressView()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                case .success(let image):
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                case .failure:
+                    regularPlaceholder
+                @unknown default:
+                    regularPlaceholder
                 }
-            } else {
-                placeholderView
             }
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+        } else {
+            regularPlaceholder
         }
-        .rotation3DEffect(
-            .degrees(showingBackFace ? 180 : 0),
-            axis: (x: 0, y: 1, z: 0)
-        )
+    }
+    
+    private var regularPlaceholder: some View {
+        RoundedRectangle(cornerRadius: 12)
+            .fill(Color.gray.opacity(0.2))
+            .overlay(
+                VStack(spacing: 8) {
+                    Image(systemName: "photo")
+                        .font(.largeTitle)
+                        .foregroundStyle(.secondary)
+
+                    Text(card.name)
+                        .font(.caption)
+                        .foregroundStyle(.primary)
+                        .multilineTextAlignment(.center)
+                        .lineLimit(2)
+                }
+                .padding(8)
+            )
+    }
+    
+    // MARK: - Transforming Card
+    
+    @ViewBuilder
+    private func transformingCardView(_ transformingCard: TransformingCard) -> some View {
+        ZStack {
+            // Front face (visible at 0°, hidden at 180°)
+            cardFaceView(
+                imageUrl: transformingCard.frontFace.smallImageUrl,
+                name: transformingCard.frontFace.name
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .opacity(showingBackFace ? 0 : 1)
+            .rotation3DEffect(
+                .degrees(showingBackFace ? 180 : 0),
+                axis: (x: 0, y: 1, z: 0)
+            )
+            
+            // Back face (hidden at 0°, visible at 180°)
+            // Starts rotated 180° so it faces the opposite direction
+            cardFaceView(
+                imageUrl: transformingCard.backFace.smallImageUrl,
+                name: transformingCard.backFace.name
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .opacity(showingBackFace ? 1 : 0)
+            .rotation3DEffect(
+                .degrees(showingBackFace ? 0 : -180),
+                axis: (x: 0, y: 1, z: 0)
+            )
+        }
+    }
+    
+    @ViewBuilder
+    private func cardFaceView(imageUrl: String?, name: String) -> some View {
+        if let imageUrl = imageUrl, let url = URL(string: imageUrl) {
+            AsyncImage(url: url) { phase in
+                switch phase {
+                case .empty:
+                    ProgressView()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                case .success(let image):
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                case .failure:
+                    facePlaceholder(name: name)
+                @unknown default:
+                    facePlaceholder(name: name)
+                }
+            }
+        } else {
+            facePlaceholder(name: name)
+        }
+    }
+    
+    private func facePlaceholder(name: String) -> some View {
+        RoundedRectangle(cornerRadius: 12)
+            .fill(Color.gray.opacity(0.2))
+            .overlay(
+                VStack(spacing: 8) {
+                    Image(systemName: "photo")
+                        .font(.largeTitle)
+                        .foregroundStyle(.secondary)
+
+                    Text(name)
+                        .font(.caption)
+                        .foregroundStyle(.primary)
+                        .multilineTextAlignment(.center)
+                        .lineLimit(2)
+                }
+                .padding(8)
+            )
     }
     
     private var flipButton: some View {
@@ -366,43 +457,6 @@ struct CardResultCell: View {
         .buttonStyle(.glass)
         .buttonBorderShape(.circle)
         .shadow(color: .black.opacity(0.2), radius: 3, x: 0, y: 2)
-    }
-    
-    private var currentImageUrl: String? {
-        switch card {
-        case .regular:
-            return card.smallImageUrl
-        case .transforming(let transformingCard):
-            return showingBackFace ? transformingCard.backFace.smallImageUrl : transformingCard.frontFace.smallImageUrl
-        }
-    }
-    
-    private var currentCardName: String {
-        switch card {
-        case .regular:
-            return card.name
-        case .transforming(let transformingCard):
-            return showingBackFace ? transformingCard.backFace.name : transformingCard.frontFace.name
-        }
-    }
-
-    private var placeholderView: some View {
-        RoundedRectangle(cornerRadius: 12)
-            .fill(Color.gray.opacity(0.2))
-            .overlay(
-                VStack(spacing: 8) {
-                    Image(systemName: "photo")
-                        .font(.largeTitle)
-                        .foregroundStyle(.secondary)
-
-                    Text(currentCardName)
-                        .font(.caption)
-                        .foregroundStyle(.primary)
-                        .multilineTextAlignment(.center)
-                        .lineLimit(2)
-                }
-                .padding(8)
-            )
     }
 }
 
