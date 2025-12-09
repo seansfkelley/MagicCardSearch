@@ -11,157 +11,87 @@ enum CardResult: Identifiable, Codable {
     case regular(RegularCard)
     case transforming(TransformingCard)
     
+    // MARK: - Shared Properties (available on both card types)
+    
     var id: String {
-        switch self {
-        case .regular(let card):
-            return card.id
-        case .transforming(let card):
-            return card.id
-        }
+        field(regular: \.id, transforming: \.id)
     }
     
     var name: String {
-        switch self {
-        case .regular(let card):
-            return card.name
-        case .transforming(let card):
-            return card.name
-        }
-    }
-    
-    // Convenience accessors for regular cards
-    var smallImageUrl: String? {
-        switch self {
-        case .regular(let card):
-            return card.smallImageUrl
-        case .transforming(let card):
-            return card.frontFace.smallImageUrl
-        }
-    }
-    
-    var normalImageUrl: String? {
-        switch self {
-        case .regular(let card):
-            return card.normalImageUrl
-        case .transforming(let card):
-            return card.frontFace.normalImageUrl
-        }
-    }
-    
-    var largeImageUrl: String? {
-        switch self {
-        case .regular(let card):
-            return card.largeImageUrl
-        case .transforming(let card):
-            return card.frontFace.largeImageUrl
-        }
-    }
-    
-    var manaCost: String? {
-        switch self {
-        case .regular(let card):
-            return card.manaCost
-        case .transforming(let card):
-            return card.frontFace.manaCost
-        }
-    }
-    
-    var typeLine: String? {
-        switch self {
-        case .regular(let card):
-            return card.typeLine
-        case .transforming(let card):
-            return card.frontFace.typeLine
-        }
-    }
-    
-    var oracleText: String? {
-        switch self {
-        case .regular(let card):
-            return card.oracleText
-        case .transforming(let card):
-            return card.frontFace.oracleText
-        }
-    }
-    
-    var flavorText: String? {
-        switch self {
-        case .regular(let card):
-            return card.flavorText
-        case .transforming(let card):
-            return card.frontFace.flavorText
-        }
-    }
-    
-    var power: String? {
-        switch self {
-        case .regular(let card):
-            return card.power
-        case .transforming(let card):
-            return card.frontFace.power
-        }
-    }
-    
-    var toughness: String? {
-        switch self {
-        case .regular(let card):
-            return card.toughness
-        case .transforming(let card):
-            return card.frontFace.toughness
-        }
-    }
-    
-    var artist: String? {
-        switch self {
-        case .regular(let card):
-            return card.artist
-        case .transforming(let card):
-            return card.frontFace.artist
-        }
-    }
-    
-    var colors: [String]? {
-        switch self {
-        case .regular(let card):
-            return card.colors
-        case .transforming(let card):
-            return card.frontFace.colors
-        }
-    }
-    
-    var colorIndicator: [String]? {
-        switch self {
-        case .regular(let card):
-            return card.colorIndicator
-        case .transforming(let card):
-            return card.frontFace.colorIndicator
-        }
+        field(regular: \.name, transforming: \.name)
     }
     
     var legalities: [String: String]? {
-        switch self {
-        case .regular(let card):
-            return card.legalities
-        case .transforming(let card):
-            return card.legalities
-        }
+        field(regular: \.legalities, transforming: \.legalities)
     }
     
     var gameChanger: Bool? {
-        switch self {
-        case .regular(let card):
-            return card.gameChanger
-        case .transforming(let card):
-            return card.gameChanger
-        }
+        field(regular: \.gameChanger, transforming: \.gameChanger)
     }
     
     var allParts: [RelatedPart]? {
+        field(regular: \.allParts, transforming: \.allParts)
+    }
+    
+    // MARK: - Front Face Properties (for transforming cards, returns front face data)
+    
+    var smallImageUrl: String? {
+        field(regular: \.smallImageUrl, transforming: \.frontFace.smallImageUrl)
+    }
+    
+    var normalImageUrl: String? {
+        field(regular: \.normalImageUrl, transforming: \.frontFace.normalImageUrl)
+    }
+    
+    var largeImageUrl: String? {
+        field(regular: \.largeImageUrl, transforming: \.frontFace.largeImageUrl)
+    }
+    
+    var manaCost: String? {
+        field(regular: \.manaCost, transforming: \.frontFace.manaCost)
+    }
+    
+    var typeLine: String? {
+        field(regular: \.typeLine, transforming: \.frontFace.typeLine)
+    }
+    
+    var oracleText: String? {
+        field(regular: \.oracleText, transforming: \.frontFace.oracleText)
+    }
+    
+    var flavorText: String? {
+        field(regular: \.flavorText, transforming: \.frontFace.flavorText)
+    }
+    
+    var power: String? {
+        field(regular: \.power, transforming: \.frontFace.power)
+    }
+    
+    var toughness: String? {
+        field(regular: \.toughness, transforming: \.frontFace.toughness)
+    }
+    
+    var artist: String? {
+        field(regular: \.artist, transforming: \.frontFace.artist)
+    }
+    
+    var colors: [String]? {
+        field(regular: \.colors, transforming: \.frontFace.colors)
+    }
+    
+    var colorIndicator: [String]? {
+        field(regular: \.colorIndicator, transforming: \.frontFace.colorIndicator)
+    }
+    
+    // MARK: - Helper Methods
+    
+    private func field<T>(regular regularPath: KeyPath<RegularCard, T>,
+                          transforming transformingPath: KeyPath<TransformingCard, T>) -> T {
         switch self {
         case .regular(let card):
-            return card.allParts
+            return card[keyPath: regularPath]
         case .transforming(let card):
-            return card.allParts
+            return card[keyPath: transformingPath]
         }
     }
     
