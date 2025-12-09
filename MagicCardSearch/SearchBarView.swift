@@ -52,7 +52,7 @@ struct SearchBarView: View {
                 Button(action: {
                     showSymbolPicker.toggle()
                 }) {
-                    Image(systemName: "curlybraces.square")
+                    Image(systemName: "curlybraces")
                         .foregroundStyle(.secondary)
                         .imageScale(.large)
                 }
