@@ -12,9 +12,14 @@ struct CardResultsView: View {
     @Binding var filters: [SearchFilter]
     @Binding var searchConfig: SearchConfiguration
     @State private var results: [CardResult] = []
+    @State private var totalCount: Int = 0
+    @State private var nextPageURL: String?
     @State private var isLoading = false
+    @State private var isLoadingNextPage = false
+    @State private var nextPageError: SearchErrorState?
     @State private var selectedCardIndex: Int?
     @State private var searchTask: Task<Void, Never>?
+    @State private var errorState: SearchErrorState?
     
     private let service = CardSearchService()
     private let columns = [
@@ -32,6 +37,9 @@ struct CardResultsView: View {
                         systemImage: "text.magnifyingglass",
                         description: Text("Tap the search bar below and start typing to add filters")
                     )
+                } else if let error = errorState {
+                    // Error state
+                    errorView(for: error)
                 } else if results.isEmpty && !isLoading {
                     // Search performed but no results
                     ContentUnavailableView(
@@ -41,7 +49,7 @@ struct CardResultsView: View {
                     )
                 } else {
                     ScrollView {
-                        Text("\(results.count) \(results.count == 1 ? "result" : "results")")
+                        Text("\(totalCount) \(totalCount == 1 ? "result" : "results")")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                             .padding(.vertical, 20)
@@ -51,10 +59,26 @@ struct CardResultsView: View {
                                     .onTapGesture {
                                         selectedCardIndex = index
                                     }
+                                    .onAppear {
+                                        // Load next page when nearing the end
+                                        if index == results.count - 4 {
+                                            loadNextPageIfNeeded()
+                                        }
+                                    }
                             }
                         }
                         .padding(.horizontal)
-                        .padding(.bottom, 20)
+                        
+                        // Pagination status section
+                        if nextPageURL != nil || isLoadingNextPage || nextPageError != nil {
+                            paginationStatusView
+                                .padding(.horizontal)
+                                .padding(.vertical, 20)
+                        } else {
+                            // Add bottom padding when no pagination status
+                            Color.clear
+                                .frame(height: 20)
+                        }
                     }
                 }
             }
@@ -96,7 +120,17 @@ struct CardResultsView: View {
         )) { identifier in
             CardDetailNavigator(
                 cards: results,
-                initialIndex: identifier.index
+                initialIndex: identifier.index,
+                totalCount: totalCount,
+                hasMorePages: nextPageURL != nil,
+                isLoadingNextPage: isLoadingNextPage,
+                nextPageError: nextPageError,
+                onNearEnd: {
+                    loadNextPageIfNeeded()
+                },
+                onRetryNextPage: {
+                    retryNextPage()
+                }
             )
         }
     }
@@ -111,6 +145,9 @@ struct CardResultsView: View {
         
         guard !filters.isEmpty else {
             results = []
+            totalCount = 0
+            nextPageURL = nil
+            errorState = nil
             searchTask = nil
             return
         }
@@ -118,24 +155,124 @@ struct CardResultsView: View {
         print("Searching...")
         
         isLoading = true
+        errorState = nil
         
         searchTask = Task {
             do {
-                results = try await service.search(
+                let searchResult = try await service.search(
                     filters: filters,
                     config: searchConfig
                 )
+                results = searchResult.cards
+                totalCount = searchResult.totalCount
+                nextPageURL = searchResult.nextPageURL
+                errorState = nil
             } catch {
-                // Only print error if task wasn't cancelled
+                // Only handle error if task wasn't cancelled
                 if !Task.isCancelled {
                     print("Search error: \(error)")
+                    errorState = SearchErrorState(from: error)
                 }
                 results = []
+                totalCount = 0
+                nextPageURL = nil
             }
             isLoading = false
         }
     }
+    
+    private func loadNextPageIfNeeded() {
+        // Don't load if already loading or no more pages
+        guard !isLoadingNextPage, let nextURL = nextPageURL else {
+            return
+        }
+        
+        // Don't load if there's already an error showing
+        guard nextPageError == nil else {
+            return
+        }
+        
+        print("Loading next page...")
+        print(nextURL)
+        
+        isLoadingNextPage = true
+        
+        Task {
+            do {
+                let searchResult = try await service.fetchNextPage(from: nextURL)
+                results.append(contentsOf: searchResult.cards)
+                nextPageURL = searchResult.nextPageURL
+                nextPageError = nil
+            } catch {
+                print("Error loading next page: \(error)")
+                nextPageError = SearchErrorState(from: error)
+            }
+            isLoadingNextPage = false
+        }
+    }
+    
+    private func retryNextPage() {
+        nextPageError = nil
+        loadNextPageIfNeeded()
+    }
+    
+    @ViewBuilder
+    private var paginationStatusView: some View {
+        VStack(spacing: 16) {
+            if isLoadingNextPage {
+                VStack(spacing: 12) {
+                    ProgressView()
+                        .scaleEffect(1.2)
+                    Text("Loading more results...")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 30)
+            } else if let error = nextPageError {
+                VStack(spacing: 16) {
+                    Image(systemName: error.iconName)
+                        .font(.system(size: 40))
+                        .foregroundStyle(.secondary)
+                    
+                    VStack(spacing: 4) {
+                        Text(error.title)
+                            .font(.headline)
+                        Text(error.description)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                    }
+                    
+                    Button("Retry") {
+                        retryNextPage()
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 30)
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private func errorView(for errorState: SearchErrorState) -> some View {
+        ContentUnavailableView {
+            Label(errorState.title, systemImage: errorState.iconName)
+        } description: {
+            Text(errorState.description)
+        } actions: {
+            Button("Try Again") {
+                maybePerformSearch()
+            }
+            .buttonStyle(.borderedProminent)
+        }
+    }
 }
+
+// MARK: - Search Error State
+
+
 
 // MARK: - Sheet Identifier
 

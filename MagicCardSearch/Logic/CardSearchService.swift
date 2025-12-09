@@ -13,11 +13,23 @@ class CardSearchService {
     private static let cardByIdURL = "https://api.scryfall.com/cards"
     private static let webBaseURL = "https://scryfall.com/search"
     
-    func search(filters: [SearchFilter], config: SearchConfiguration) async throws -> [CardResult] {
+    func search(filters: [SearchFilter], config: SearchConfiguration) async throws -> SearchResult {
         guard let url = CardSearchService.buildSearchURL(filters: filters, config: config, forAPI: true) else {
-            return []
+            return SearchResult(cards: [], totalCount: 0, nextPageURL: nil)
         }
         
+        return try await fetchPage(from: url)
+    }
+    
+    func fetchNextPage(from urlString: String) async throws -> SearchResult {
+        guard let url = URL(string: urlString) else {
+            throw SearchError.invalidURL
+        }
+        
+        return try await fetchPage(from: url)
+    }
+    
+    private func fetchPage(from url: URL) async throws -> SearchResult {
         let (data, response) = try await URLSession.shared.data(from: url)
         
         guard let httpResponse = response as? HTTPURLResponse else {
@@ -31,7 +43,11 @@ class CardSearchService {
         let decoder = JSONDecoder()
         let searchResponse = try decoder.decode(ScryfallSearchResponse.self, from: data)
         
-        return searchResponse.data
+        return SearchResult(
+            cards: searchResponse.data,
+            totalCount: searchResponse.totalCards ?? searchResponse.data.count,
+            nextPageURL: searchResponse.nextPage
+        )
     }
     
     func fetchCard(byId id: String) async throws -> CardResult {
@@ -93,4 +109,12 @@ enum SearchError: LocalizedError {
             return "Server error: \(statusCode)"
         }
     }
+}
+
+// MARK: - Search Result
+
+struct SearchResult {
+    let cards: [CardResult]
+    let totalCount: Int
+    let nextPageURL: String?
 }
