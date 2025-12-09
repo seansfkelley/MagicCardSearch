@@ -13,7 +13,6 @@ struct CardResultsView: View {
     @Binding var searchConfig: SearchConfiguration
     @Binding var warnings: [String]
     var autocompleteProvider: AutocompleteProvider
-    @Binding var isSearchBarExpanded: Bool
     @State private var results: [CardResult] = []
     @State private var totalCount: Int = 0
     @State private var nextPageURL: String?
@@ -85,7 +84,6 @@ struct CardResultsView: View {
                         }
                     }
                 }
-                .onScrollPhaseChange(onScrollPhaseChange)
             }
 
             if isLoading {
@@ -139,28 +137,6 @@ struct CardResultsView: View {
                 }
             )
         }
-    }
-
-    private func onScrollPhaseChange(
-        previousPhase: ScrollPhase,
-        currentPhase: ScrollPhase,
-        context: ScrollPhaseChangeContext
-    ) {
-        if previousPhase == .idle && isSearchBarExpanded {
-            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                isSearchBarExpanded = false
-            }
-        }
-        
-        // TODO: Not sure if I want this behavior, since you can tap on the filter bar to expand it.
-//        if currentPhase == .idle
-//            && abs(context.geometry.contentOffset.y + context.geometry.contentInsets.top) < 0.001
-//            && !isSearchBarExpanded
-//        {
-//            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-//                isSearchBarExpanded = true
-//            }
-//        }
     }
 
     private func maybePerformSearch() {
@@ -471,7 +447,6 @@ struct CardResultCell: View {
         @State private var config = SearchConfiguration()
         @State private var warnings: [String] = []
         @State private var autocompleteProvider = AutocompleteProvider()
-        @State private var isExpanded = true
 
         var body: some View {
             CardResultsView(
@@ -480,7 +455,6 @@ struct CardResultCell: View {
                 searchConfig: $config,
                 warnings: $warnings,
                 autocompleteProvider: autocompleteProvider,
-                isSearchBarExpanded: $isExpanded
             )
         }
     }

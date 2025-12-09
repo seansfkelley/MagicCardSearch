@@ -133,7 +133,7 @@ struct SymbolPickerView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             SymbolGroupRow(
-                symbols: ["{T}", "{Q}", "{S}"],
+                symbols: ["{T}", "{Q}", "{S}", "{E}"],
                 onSymbolTapped: onSymbolSelected
             )
 

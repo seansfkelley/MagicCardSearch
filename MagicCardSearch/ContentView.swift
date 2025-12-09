@@ -19,7 +19,6 @@ struct ContentView: View {
     @State private var pendingSelection: TextSelection?
     @State private var warnings: [String] = []
     @State private var showWarningsPopover = false
-    @State private var isSearchBarExpanded = true
     @FocusState private var isSearchFocused: Bool
     
     private let searchService = CardSearchService()
@@ -39,7 +38,6 @@ struct ContentView: View {
                     searchConfig: $searchConfig,
                     warnings: $warnings,
                     autocompleteProvider: autocompleteProvider,
-                    isSearchBarExpanded: $isSearchBarExpanded
                 )
                 .opacity(isSearchFocused ? 0 : 1)
                 
@@ -63,7 +61,6 @@ struct ContentView: View {
                     inputSelection: $inputSelection,
                     pendingSelection: $pendingSelection,
                     isSearchFocused: _isSearchFocused,
-                    isExpanded: $isSearchBarExpanded,
                     warnings: warnings,
                     showWarningsPopover: $showWarningsPopover,
                     onFilterEdit: handleFilterEdit,
