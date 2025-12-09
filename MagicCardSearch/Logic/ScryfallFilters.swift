@@ -222,7 +222,7 @@ let filterFieldConfigurations: [String: FilterFieldConfiguration] = [
             "checkland", "dual", "fastland", "filterland", "gainland",
             "painland", "scryland", "shadowland", "slowland", "storageland",
             "tangoland", "canopyland", "bounceland", "manland", "reserved",
-            "full", "hires", "rebalanced", "promo", "spotlight"
+            "full", "hires", "rebalanced", "promo"
         ]),
         aliases: ["is"]
     ),
@@ -238,7 +238,7 @@ let filterFieldConfigurations: [String: FilterFieldConfiguration] = [
             "checkland", "dual", "fastland", "filterland", "gainland",
             "painland", "scryland", "shadowland", "slowland", "storageland",
             "tangoland", "canopyland", "bounceland", "manland", "reserved",
-            "full", "hires", "rebalanced", "promo", "spotlight"
+            "full", "hires", "rebalanced", "promo"
         ]),
         aliases: ["not"]
     ),

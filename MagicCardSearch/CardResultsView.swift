@@ -301,33 +301,88 @@ private struct SheetIdentifier: Identifiable {
 
 struct CardResultCell: View {
     let card: CardResult
+    @State private var showingBackFace = false
 
     var body: some View {
-        VStack {
-            Group {
-                if let imageUrl = card.smallImageUrl, let url = URL(string: imageUrl) {
-                    AsyncImage(url: url) { phase in
-                        switch phase {
-                        case .empty:
-                            ProgressView()
-                                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        case .success(let image):
-                            image
-                                .resizable()
-                                .aspectRatio(contentMode: .fill)
-                        case .failure:
-                            placeholderView
-                        @unknown default:
-                            placeholderView
-                        }
-                    }
-                } else {
-                    placeholderView
-                }
+        ZStack(alignment: .trailing) {
+            cardImageView
+                .aspectRatio(0.7, contentMode: .fit)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
+                .rotation3DEffect(
+                    .degrees(showingBackFace ? 180 : 0),
+                    axis: (x: 0, y: 1, z: 0),
+                    perspective: 0.5
+                )
+            
+            // Flip button for transforming cards
+            if case .transforming = card {
+                flipButton
+                    .padding(.trailing, 8)
             }
-            .aspectRatio(0.7, contentMode: .fit)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
-            .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
+        }
+    }
+    
+    @ViewBuilder
+    private var cardImageView: some View {
+        Group {
+            if let imageUrl = currentImageUrl, let url = URL(string: imageUrl) {
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                    case .empty:
+                        ProgressView()
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                    case .failure:
+                        placeholderView
+                    @unknown default:
+                        placeholderView
+                    }
+                }
+            } else {
+                placeholderView
+            }
+        }
+        .rotation3DEffect(
+            .degrees(showingBackFace ? 180 : 0),
+            axis: (x: 0, y: 1, z: 0)
+        )
+    }
+    
+    private var flipButton: some View {
+        Button {
+            withAnimation(.spring(response: 0.8, dampingFraction: 0.75)) {
+                showingBackFace.toggle()
+            }
+        } label: {
+            Image(systemName: "arrow.triangle.2.circlepath")
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(.primary)
+                .padding(8)
+        }
+        .buttonStyle(.glass)
+        .buttonBorderShape(.circle)
+        .shadow(color: .black.opacity(0.2), radius: 3, x: 0, y: 2)
+    }
+    
+    private var currentImageUrl: String? {
+        switch card {
+        case .regular:
+            return card.smallImageUrl
+        case .transforming(let transformingCard):
+            return showingBackFace ? transformingCard.backFace.smallImageUrl : transformingCard.frontFace.smallImageUrl
+        }
+    }
+    
+    private var currentCardName: String {
+        switch card {
+        case .regular:
+            return card.name
+        case .transforming(let transformingCard):
+            return showingBackFace ? transformingCard.backFace.name : transformingCard.frontFace.name
         }
     }
 
@@ -340,7 +395,7 @@ struct CardResultCell: View {
                         .font(.largeTitle)
                         .foregroundStyle(.secondary)
 
-                    Text(card.name)
+                    Text(currentCardName)
                         .font(.caption)
                         .foregroundStyle(.primary)
                         .multilineTextAlignment(.center)
