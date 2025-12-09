@@ -32,10 +32,16 @@ class AutocompleteProvider {
         let options: [String: Range<String.Index>?]
     }
     
+    struct SymbolSuggestion {
+        let prefix: String
+        let symbol: String
+    }
+    
     enum Suggestion {
         case history(HistorySuggestion)
         case filter(FilterTypeSuggestion)
         case enumeration(EnumerationSuggestion)
+        case symbol(SymbolSuggestion)
     }
 
     // MARK: - Properties
@@ -195,6 +201,13 @@ class AutocompleteProvider {
         if let enumerationSuggestions = checkForEnumerationSuggestions(trimmedSearchTerm) {
             results.append(enumerationSuggestions)
         }
+        
+        // Check for symbol suggestions
+        if let symbolSuggestion = checkForSymbolSuggestions(trimmedSearchTerm) {
+            results.append(symbolSuggestion)
+        }
+        
+        
 
         let historyLookup = Dictionary(uniqueKeysWithValues: availableHistory.map { ($0.filter, $0) })
         return Array(sortResults(results, historyLookup: historyLookup).prefix(10))
@@ -226,6 +239,19 @@ class AutocompleteProvider {
     }
 
     // MARK: - Private Helpers
+
+    private func checkForSymbolSuggestions(_ searchTerm: String) -> Suggestion? {
+        let pattern = /\{[a-zA-Z0-9\/]*$/
+        
+        guard let match = searchTerm.firstMatch(of: pattern) else {
+            return nil
+        }
+        
+        return .symbol(SymbolSuggestion(
+            prefix: String(searchTerm[..<match.range.lowerBound]),
+            symbol: String(searchTerm[match.range])
+        ))
+    }
 
     private func checkForEnumerationSuggestions(_ searchTerm: String) -> Suggestion? {
         // Some enumeration types, like rarity, are considered orderable.
