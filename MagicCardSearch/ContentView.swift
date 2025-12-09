@@ -68,6 +68,7 @@ struct ContentView: View {
                             
                             Button(role: .destructive, action: {
                                 filters.removeAll()
+                                isSearchFocused = true
                             }) {
                                 Text("Clear all")
                                     .font(.subheadline)

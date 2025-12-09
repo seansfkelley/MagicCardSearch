@@ -72,6 +72,12 @@ struct BottomBarFilterView: View {
                 pendingSelection = nil
             }
         }
+        .simultaneousGesture(
+            TapGesture()
+                .onEnded { _ in
+                    isSearchFocused = true
+                }
+        )
     }
 }
 
