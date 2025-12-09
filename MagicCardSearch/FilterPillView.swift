@@ -35,7 +35,7 @@ struct FilterPillView: View {
                         .fontWeight(.medium)
                 }
                 .padding(.leading, recognized ? 16 : 8)
-                .padding(.trailing, onDelete == nil ? 16 : 8)
+                .padding(.trailing, onDelete == nil ? 16 : 8h)
                 .padding(.vertical, 8)
             }
             .buttonStyle(.plain)

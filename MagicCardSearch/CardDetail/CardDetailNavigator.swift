@@ -126,7 +126,7 @@ struct CardDetailNavigator: View {
                 VStack(spacing: 16) {
                     ProgressView()
                         .scaleEffect(1.5)
-                    Text("Loading more cards...")
+                    Text("Loading more results...")
                         .font(.title3)
                         .foregroundStyle(.secondary)
                 }
@@ -158,7 +158,7 @@ struct CardDetailNavigator: View {
                 VStack(spacing: 16) {
                     ProgressView()
                         .scaleEffect(1.5)
-                    Text("Loading more cards...")
+                    Text("Loading more results...")
                         .font(.title3)
                         .foregroundStyle(.secondary)
                 }
