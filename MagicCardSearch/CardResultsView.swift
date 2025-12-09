@@ -421,7 +421,7 @@ struct CardResultCell: View {
     
     private var flipButton: some View {
         Button {
-            withAnimation(.spring(response: 0.8, dampingFraction: 0.75)) {
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
                 showingBackFace.toggle()
             }
         } label: {
