@@ -164,6 +164,23 @@ struct ContentView: View {
         .sheet(isPresented: $showSyntaxReference) {
             SyntaxReferenceView()
         }
+        .simultaneousGesture(
+            TapGesture()
+                .onEnded { _ in
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                        showWarningsPopover = false
+                    }
+                }
+        )
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 1)
+                .onChanged { _ in
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                        showWarningsPopover = false
+                    }
+                }
+        )
+            
     }
     
     // MARK: - Helper Methods
