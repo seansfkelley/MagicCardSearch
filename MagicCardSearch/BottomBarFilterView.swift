@@ -125,7 +125,10 @@ struct BottomBarFilterView: View {
                             ForEach(Array(filters.enumerated()), id: \.offset) { index, filter in
                                 FilterPillView(
                                     filter: filter,
-                                    onTap: onExpandTap,
+                                    onTap: {
+                                        onExpandTap()
+                                        isSearchFocused = true
+                                    }
                                 )
                             }
                         }
@@ -135,6 +138,10 @@ struct BottomBarFilterView: View {
                     .clipShape(.capsule)
                     .glassEffect(.regular.interactive(), in: .capsule)
                     .matchedGeometryEffect(id: "searchBar", in: animation)
+                    .onTapGesture {
+                        onExpandTap()
+                        isSearchFocused = true
+                    }
                     
                     if !filters.isEmpty {
                         Button(action: onClearAll) {

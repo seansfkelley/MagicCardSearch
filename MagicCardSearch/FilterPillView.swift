@@ -9,31 +9,33 @@ import SwiftUI
 
 struct FilterPillView: View {
     let filter: SearchFilter
-    let onTap: () -> Void
+    let onTap: (() -> Void)?
     let onDelete: (() -> Void)?
 
-    init(filter: SearchFilter, onTap: @escaping () -> Void, onDelete: (() -> Void)? = nil) {
+    init(filter: SearchFilter, onTap: (() -> Void)? = nil, onDelete: (() -> Void)? = nil) {
         self.filter = filter
         self.onTap = onTap
         self.onDelete = onDelete
     }
     
     var body: some View {
+        let recognized = isRecognizedFilter
+        
         HStack(spacing: 0) {
-            Button(action: onTap) {
+            Button(action: onTap ?? {}) {
                 HStack(spacing: 6) {
-                    if !isRecognizedFilter {
-                        Image(systemName: "exclamationmark.circle.fill")
+                    if !recognized {
+                        Image(systemName: "exclamationmark.triangle")
                             .font(.callout)
-                            .foregroundStyle(.red)
+                            .foregroundStyle(.orange)
                     }
                     
                     Text(filter.queryStringWithEditingRange.0)
                         .font(.subheadline)
                         .fontWeight(.medium)
                 }
-                .padding(.leading)
-                .padding(.trailing, 8)
+                .padding(.leading, recognized ? 16 : 8)
+                .padding(.trailing, onDelete == nil ? 16 : 8)
                 .padding(.vertical, 8)
             }
             .buttonStyle(.plain)

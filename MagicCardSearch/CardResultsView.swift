@@ -152,14 +152,15 @@ struct CardResultsView: View {
             }
         }
         
-        if currentPhase == .idle
-            && abs(context.geometry.contentOffset.y + context.geometry.contentInsets.top) < 0.001
-            && !isSearchBarExpanded
-        {
-            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                isSearchBarExpanded = true
-            }
-        }
+        // TODO: Not sure if I want this behavior, since you can tap on the filter bar to expand it.
+//        if currentPhase == .idle
+//            && abs(context.geometry.contentOffset.y + context.geometry.contentInsets.top) < 0.001
+//            && !isSearchBarExpanded
+//        {
+//            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+//                isSearchBarExpanded = true
+//            }
+//        }
     }
 
     private func maybePerformSearch() {
