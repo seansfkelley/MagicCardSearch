@@ -7,7 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		217EEB512EE7818400BBAF94 /* CARD_DETAIL_ENHANCEMENT_SUMMARY.md in Resources */ = {isa = PBXBuildFile; fileRef = 217EEB502EE7818400BBAF94 /* CARD_DETAIL_ENHANCEMENT_SUMMARY.md */; };
 		217EEB692EE7BE9400BBAF94 /* PAGINATION_IMPLEMENTATION.md in Resources */ = {isa = PBXBuildFile; fileRef = 217EEB682EE7BE9400BBAF94 /* PAGINATION_IMPLEMENTATION.md */; };
 		217EEB6B2EE7BF5C00BBAF94 /* ERROR_HANDLING_IMPLEMENTATION.md in Resources */ = {isa = PBXBuildFile; fileRef = 217EEB6A2EE7BF5C00BBAF94 /* ERROR_HANDLING_IMPLEMENTATION.md */; };
 		217EEB6D2EE7C0E200BBAF94 /* PAGINATION_LOADING_AND_ERROR_STATES.md in Resources */ = {isa = PBXBuildFile; fileRef = 217EEB6C2EE7C0E200BBAF94 /* PAGINATION_LOADING_AND_ERROR_STATES.md */; };
@@ -43,7 +42,6 @@
 		2137B5AD2EE139C60066BF7E /* MagicCardSearch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MagicCardSearch.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		2137B5BA2EE139C70066BF7E /* MagicCardSearchTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MagicCardSearchTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		2137B5C42EE139C70066BF7E /* MagicCardSearchUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MagicCardSearchUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		217EEB502EE7818400BBAF94 /* CARD_DETAIL_ENHANCEMENT_SUMMARY.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = CARD_DETAIL_ENHANCEMENT_SUMMARY.md; sourceTree = "<group>"; };
 		217EEB682EE7BE9400BBAF94 /* PAGINATION_IMPLEMENTATION.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = PAGINATION_IMPLEMENTATION.md; sourceTree = "<group>"; };
 		217EEB6A2EE7BF5C00BBAF94 /* ERROR_HANDLING_IMPLEMENTATION.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = ERROR_HANDLING_IMPLEMENTATION.md; sourceTree = "<group>"; };
 		217EEB6C2EE7C0E200BBAF94 /* PAGINATION_LOADING_AND_ERROR_STATES.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = PAGINATION_LOADING_AND_ERROR_STATES.md; sourceTree = "<group>"; };
@@ -137,7 +135,6 @@
 				217EEB6A2EE7BF5C00BBAF94 /* ERROR_HANDLING_IMPLEMENTATION.md */,
 				217EEB682EE7BE9400BBAF94 /* PAGINATION_IMPLEMENTATION.md */,
 				217EEB6C2EE7C0E200BBAF94 /* PAGINATION_LOADING_AND_ERROR_STATES.md */,
-				217EEB502EE7818400BBAF94 /* CARD_DETAIL_ENHANCEMENT_SUMMARY.md */,
 			);
 			sourceTree = "<group>";
 		};
@@ -312,7 +309,6 @@
 			files = (
 				217EEB692EE7BE9400BBAF94 /* PAGINATION_IMPLEMENTATION.md in Resources */,
 				217EEB6D2EE7C0E200BBAF94 /* PAGINATION_LOADING_AND_ERROR_STATES.md in Resources */,
-				217EEB512EE7818400BBAF94 /* CARD_DETAIL_ENHANCEMENT_SUMMARY.md in Resources */,
 				217EEB6B2EE7BF5C00BBAF94 /* ERROR_HANDLING_IMPLEMENTATION.md in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

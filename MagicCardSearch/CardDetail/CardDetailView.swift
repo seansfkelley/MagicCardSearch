@@ -37,10 +37,7 @@ struct CardDetailView: View {
                                 relatedCardToShow = nil
                             } label: {
                                 Image(systemName: "xmark")
-                                    .font(.body.weight(.semibold))
                             }
-                            .buttonStyle(.glass)
-                            .buttonBorderShape(.circle)
                         }
                     }
             }

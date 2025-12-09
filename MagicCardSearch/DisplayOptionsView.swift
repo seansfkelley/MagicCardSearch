@@ -75,10 +75,7 @@ struct DisplayOptionsView: View {
                         dismiss()
                     } label: {
                         Image(systemName: "xmark")
-                            .font(.body.weight(.semibold))
                     }
-                    .buttonStyle(.glass)
-                    .buttonBorderShape(.circle)
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button {
@@ -86,10 +83,8 @@ struct DisplayOptionsView: View {
                         dismiss()
                     } label: {
                         Image(systemName: "checkmark")
-                            .font(.body.weight(.semibold))
                     }
                     .buttonStyle(.glassProminent)
-                    .buttonBorderShape(.circle)
                 }
             }
         }
