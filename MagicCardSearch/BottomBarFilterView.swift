@@ -105,6 +105,7 @@ struct BottomBarFilterView: View {
                     }
                 )
             }
+            .background(Color(uiColor: .systemBackground))
         }
     }
 

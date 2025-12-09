@@ -22,7 +22,7 @@ struct CardDetailNavigator: View {
     var body: some View {
         NavigationStack {
             TabView(selection: $currentIndex) {
-                For0Each(Array(cards.enumerated()), id: \.element.id) { index, card in
+                ForEach(Array(cards.enumerated()), id: \.element.id) { index, card in
                     CardDetailView(card: card)
                         .tag(index)
                 }

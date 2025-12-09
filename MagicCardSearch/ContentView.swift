@@ -24,6 +24,12 @@ struct ContentView: View {
     var body: some View {
         NavigationStack {
             ZStack {
+                // Apparently required to get the floating search bar to respond to light/dark
+                // correctly; I guess it was pulling its base color from the default non-responsive
+                // (?) background color.
+                Color(uiColor: .systemBackground)
+                    .ignoresSafeArea()
+                
                 CardResultsView(
                     allowedToSearch: !isSearchFocused,
                     filters: $filters,
