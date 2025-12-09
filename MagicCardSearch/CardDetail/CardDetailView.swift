@@ -18,12 +18,48 @@ struct CardDetailView: View {
         ScrollView {
             VStack(spacing: 0) {
                 switch card {
-                case .regular:
-                    regularCardView
+                case .regular(let regularCard):
+                    cardFaceView(
+                        face: CardFace(from: regularCard),
+                        fullCardName: regularCard.name
+                    )
                 case .transforming(let transformingCard):
-                    transformingCardView(transformingCard)
+                    cardFaceView(
+                        face: transformingCard.frontFace,
+                        fullCardName: transformingCard.name
+                    )
+                    
+                    Spacer().frame(height: 24)
+                    
+                    cardFaceView(
+                        face: transformingCard.backFace,
+                        fullCardName: transformingCard.name
+                    )
+                }
+
+                if let legalities = card.legalities, !legalities.isEmpty {
+                    Divider()
+                        .padding(.horizontal)
+
+                    CardLegalitiesSection(
+                        legalities: legalities,
+                        isGameChanger: card.gameChanger ?? false
+                    )
+                }
+
+                if let allParts = card.allParts, !allParts.isEmpty {
+                    CardRelatedPartsSection(
+                        allParts: allParts,
+                        isLoadingRelatedCard: isLoadingRelatedCard,
+                        onPartTapped: { partId in
+                            Task {
+                                await loadRelatedCard(id: partId)
+                            }
+                        }
+                    )
                 }
             }
+            .background(Color(.systemBackground))
             .padding(.top)
         }
         .sheet(item: $relatedCardToShow) { relatedCard in
@@ -44,167 +80,45 @@ struct CardDetailView: View {
         }
     }
 
-    // MARK: - Regular Card View
-
-    private var regularCardView: some View {
-        VStack(spacing: 0) {
-            CardImageSection(card: card)
-
-            CardHeaderSection(card: card)
-
-            if let typeLine = card.typeLine, !typeLine.isEmpty {
-                Divider()
-                    .padding(.horizontal)
-
-                CardTypeLineSection(card: card, typeLine: typeLine)
-            }
-
-            Divider()
-                .padding(.horizontal)
-
-            CardTextSection(card: card)
-
-            if let power = card.power, let toughness = card.toughness {
-                Divider()
-                    .padding(.horizontal)
-
-                CardPowerToughnessSection(power: power, toughness: toughness)
-            }
-
-            if let artist = card.artist {
-                Divider()
-                    .padding(.horizontal)
-
-                CardArtistSection(artist: artist)
-            }
-
-            if let legalities = card.legalities, !legalities.isEmpty {
-                Divider()
-                    .padding(.horizontal)
-
-                CardLegalitiesSection(
-                    legalities: legalities,
-                    isGameChanger: card.gameChanger ?? false
-                )
-            }
-
-            if let allParts = card.allParts, !allParts.isEmpty {
-                CardRelatedPartsSection(
-                    allParts: allParts,
-                    isLoadingRelatedCard: isLoadingRelatedCard,
-                    onPartTapped: { partId in
-                        Task {
-                            await loadRelatedCard(id: partId)
-                        }
-                    }
-                )
-            }
-        }
-        .background(Color(.systemBackground))
-    }
-
-    // MARK: - Transforming Card View
-
-    private func transformingCardView(_ transformingCard: TransformingCard) -> some View {
+    // MARK: - Card Face View
+    
+    private func cardFaceView(face: CardFace, fullCardName: String) -> some View {
         VStack(spacing: 0) {
             CardFaceImageSection(
-                face: transformingCard.frontFace,
-                cardName: transformingCard.name,
-                label: "Front"
+                face: face,
+                fullCardName: fullCardName
             )
-
-            CardFaceHeaderSection(face: transformingCard.frontFace)
-
-            if let typeLine = transformingCard.frontFace.typeLine, !typeLine.isEmpty {
+            
+            CardFaceHeaderSection(face: face)
+            
+            if let typeLine = face.typeLine, !typeLine.isEmpty {
                 Divider()
                     .padding(.horizontal)
-
-                CardFaceTypeLineSection(face: transformingCard.frontFace, typeLine: typeLine)
+                
+                CardFaceTypeLineSection(face: face, typeLine: typeLine)
             }
-
-            Divider()
-                .padding(.horizontal)
-
-            CardFaceTextSection(face: transformingCard.frontFace)
-
-            if let power = transformingCard.frontFace.power,
-                let toughness = transformingCard.frontFace.toughness
-            {
+            
+            if face.oracleText != nil || face.flavorText != nil {
                 Divider()
                     .padding(.horizontal)
-
+                
+                CardFaceTextSection(face: face)
+            }
+            
+            if let power = face.power, let toughness = face.toughness {
+                Divider()
+                    .padding(.horizontal)
+                
                 CardPowerToughnessSection(power: power, toughness: toughness)
             }
-
-            if let artist = transformingCard.frontFace.artist {
+            
+            if let artist = face.artist {
                 Divider()
                     .padding(.horizontal)
-
+                
                 CardArtistSection(artist: artist)
-            }
-
-            Spacer().frame(height: 24)
-
-            CardFaceImageSection(
-                face: transformingCard.backFace,
-                cardName: transformingCard.name,
-                label: "Back"
-            )
-
-            CardFaceHeaderSection(face: transformingCard.backFace)
-
-            if let typeLine = transformingCard.backFace.typeLine, !typeLine.isEmpty {
-                Divider()
-                    .padding(.horizontal)
-
-                CardFaceTypeLineSection(face: transformingCard.backFace, typeLine: typeLine)
-            }
-
-            Divider()
-                .padding(.horizontal)
-
-            CardFaceTextSection(face: transformingCard.backFace)
-
-            if let power = transformingCard.backFace.power,
-                let toughness = transformingCard.backFace.toughness
-            {
-                Divider()
-                    .padding(.horizontal)
-
-                CardPowerToughnessSection(power: power, toughness: toughness)
-            }
-
-            if let artist = transformingCard.backFace.artist {
-                Divider()
-                    .padding(.horizontal)
-
-                CardArtistSection(artist: artist)
-            }
-
-            // Legalities (shared for the whole card)
-            if let legalities = transformingCard.legalities, !legalities.isEmpty {
-                Divider()
-                    .padding(.horizontal)
-
-                CardLegalitiesSection(
-                    legalities: legalities,
-                    isGameChanger: transformingCard.gameChanger ?? false
-                )
-            }
-
-            if let allParts = transformingCard.allParts, !allParts.isEmpty {
-                CardRelatedPartsSection(
-                    allParts: allParts,
-                    isLoadingRelatedCard: isLoadingRelatedCard,
-                    onPartTapped: { partId in
-                        Task {
-                            await loadRelatedCard(id: partId)
-                        }
-                    }
-                )
             }
         }
-        .background(Color(.systemBackground))
     }
 
     private func loadRelatedCard(id: String) async {
@@ -223,158 +137,28 @@ struct CardDetailView: View {
     }
 }
 
-// MARK: - Card Image Section
+// MARK: - CardFace Extension
 
-private struct CardImageSection: View {
-    let card: CardResult
-
-    var body: some View {
-        Group {
-            if let imageUrl = card.largeImageUrl, let url = URL(string: imageUrl) {
-                AsyncImage(url: url) { phase in
-                    switch phase {
-                    case .empty:
-                        ProgressView()
-                            .frame(maxWidth: .infinity, maxHeight: 400)
-                    case .success(let image):
-                        image
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .contextMenu {
-                                ShareLink(item: url, preview: SharePreview(card.name, image: image))
-                                
-                                Button {
-                                    // Copy the rendered image to pasteboard
-                                    if let uiImage = ImageRenderer(content: image).uiImage {
-                                        UIPasteboard.general.image = uiImage
-                                    }
-                                } label: {
-                                    Label("Copy", systemImage: "doc.on.doc")
-                                }
-                            }
-                    case .failure:
-                        CardImagePlaceholder(card: card)
-                    @unknown default:
-                        CardImagePlaceholder(card: card)
-                    }
-                }
-            } else {
-                CardImagePlaceholder(card: card)
-            }
-        }
-        .shadow(color: .black.opacity(0.2), radius: 8, x: 0, y: 4)
-        .padding(.horizontal)
-        .padding(.bottom, 24)
+extension CardFace {
+    /// Create a CardFace from a RegularCard
+    init(from card: RegularCard) {
+        self.name = card.name
+        self.smallImageUrl = card.smallImageUrl
+        self.normalImageUrl = card.normalImageUrl
+        self.largeImageUrl = card.largeImageUrl
+        self.manaCost = card.manaCost
+        self.typeLine = card.typeLine
+        self.oracleText = card.oracleText
+        self.flavorText = card.flavorText
+        self.power = card.power
+        self.toughness = card.toughness
+        self.artist = card.artist
+        self.colors = card.colors
+        self.colorIndicator = card.colorIndicator
     }
 }
 
-// MARK: - Card Image Placeholder
 
-private struct CardImagePlaceholder: View {
-    let card: CardResult
-
-    var body: some View {
-        RoundedRectangle(cornerRadius: 16)
-            .fill(Color.gray.opacity(0.2))
-            .aspectRatio(0.7, contentMode: .fit)
-            .overlay(
-                VStack(spacing: 12) {
-                    Image(systemName: "photo")
-                        .font(.system(size: 60))
-                        .foregroundStyle(.secondary)
-
-                    Text(card.name)
-                        .font(.title2)
-                        .fontWeight(.semibold)
-                        .multilineTextAlignment(.center)
-                }
-                .padding()
-            )
-    }
-}
-
-// MARK: - Card Header Section
-
-private struct CardHeaderSection: View {
-    let card: CardResult
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .top) {
-                Text(card.name)
-                    .font(.title2)
-                    .fontWeight(.bold)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-
-                if let manaCost = card.manaCost, !manaCost.isEmpty {
-                    ManaCostView(manaCost, size: 20)
-                }
-            }
-        }
-        .padding(.horizontal)
-        .padding(.vertical, 12)
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-}
-
-// MARK: - Card Type Line Section
-
-private struct CardTypeLineSection: View {
-    let card: CardResult
-    let typeLine: String
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 8) {
-                if let colorIndicator = card.colorIndicator, !colorIndicator.isEmpty {
-                    ColorIndicatorView(colors: colorIndicator)
-                }
-
-                Text(typeLine)
-                    .font(.body)
-            }
-        }
-        .padding(.horizontal)
-        .padding(.vertical, 12)
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-}
-
-// MARK: - Card Text Section
-
-private struct CardTextSection: View {
-    let card: CardResult
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            if let oracleText = card.oracleText, !oracleText.isEmpty {
-                OracleTextView(oracleText)
-            }
-
-            if let flavorText = card.flavorText, !flavorText.isEmpty {
-                VStack(alignment: .leading, spacing: 8) {
-                    ForEach(flavorText.components(separatedBy: "\n"), id: \.self) { line in
-                        if !line.isEmpty {
-                            Text(line)
-                                .font(.system(.body, design: .serif))
-                                .italic()
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                    }
-                }
-            }
-
-            if card.oracleText == nil && card.flavorText == nil {
-                Text("No text")
-                    .font(.body)
-                    .foregroundStyle(.secondary)
-            }
-        }
-        .padding(.horizontal)
-        .padding(.vertical, 12)
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-}
 
 // MARK: - Card Power/Toughness Section
 
@@ -490,8 +274,7 @@ private struct CardRelatedPartsSection: View {
 
 private struct CardFaceImageSection: View {
     let face: CardFace
-    let cardName: String
-    let label: String
+    let fullCardName: String
 
     var body: some View {
         Group {
@@ -517,18 +300,18 @@ private struct CardFaceImageSection: View {
                                 }
                             }
                     case .failure:
-                        CardFaceImagePlaceholder(face: face, cardName: cardName)
+                        CardFaceImagePlaceholder(face: face, cardName: fullCardName)
                     @unknown default:
-                        CardFaceImagePlaceholder(face: face, cardName: cardName)
+                        CardFaceImagePlaceholder(face: face, cardName: fullCardName)
                     }
                 }
             } else {
-                CardFaceImagePlaceholder(face: face, cardName: cardName)
+                CardFaceImagePlaceholder(face: face, cardName: fullCardName)
             }
         }
         .shadow(color: .black.opacity(0.2), radius: 8, x: 0, y: 4)
         .padding(.horizontal)
-        .padding(.bottom, 16)
+        .padding(.bottom, 24)
     }
 }
 
