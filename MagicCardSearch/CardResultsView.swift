@@ -12,6 +12,7 @@ struct CardResultsView: View {
     @Binding var filters: [SearchFilter]
     @Binding var searchConfig: SearchConfiguration
     @Binding var warnings: [String]
+    var autocompleteProvider: AutocompleteProvider
     @State private var results: [CardResult] = []
     @State private var totalCount: Int = 0
     @State private var nextPageURL: String?
@@ -158,6 +159,10 @@ struct CardResultsView: View {
         
         isLoading = true
         errorState = nil
+        
+        for filter in filters {
+            autocompleteProvider.recordFilterUsage(filter)
+        }
         
         searchTask = Task {
             do {
@@ -349,13 +354,15 @@ struct CardResultCell: View {
         ]
         @State private var config = SearchConfiguration()
         @State private var warnings: [String] = []
+        @State private var autocompleteProvider = AutocompleteProvider()
         
         var body: some View {
             CardResultsView(
                 allowedToSearch: true,
                 filters: $filters,
                 searchConfig: $config,
-                warnings: $warnings
+                warnings: $warnings,
+                autocompleteProvider: autocompleteProvider
             )
         }
     }

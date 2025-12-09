@@ -14,13 +14,13 @@ struct AutocompleteView: View {
     }
 
     let inputText: String
-    let suggestionProvider: AutocompleteProvider
+    let provider: AutocompleteProvider
     let filters: [SearchFilter]
     let onSuggestionTap: (AcceptedSuggestion) -> Void
 
     private var suggestions: [AutocompleteProvider.Suggestion] {
         // TODO: Cache the set conversion here.
-        suggestionProvider.suggestions(for: inputText, excluding: Set(filters))
+        provider.suggestions(for: inputText, excluding: Set(filters))
     }
 
     var body: some View {
@@ -32,9 +32,9 @@ struct AutocompleteView: View {
                         .swipeActions(edge: .leading, allowsFullSwipe: true) {
                             Button {
                                 if suggestion.isPinned {
-                                    suggestionProvider.unpinSearchFilter(suggestion.filter)
+                                    provider.unpinSearchFilter(suggestion.filter)
                                 } else {
-                                    suggestionProvider.pinSearchFilter(suggestion.filter)
+                                    provider.pinSearchFilter(suggestion.filter)
                                 }
                             } label: {
                                 if suggestion.isPinned {
@@ -47,7 +47,7 @@ struct AutocompleteView: View {
                         }
                         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                             Button(role: .destructive) {
-                                suggestionProvider.deleteSearchFilter(suggestion.filter)
+                                provider.deleteSearchFilter(suggestion.filter)
                             } label: {
                                 Label("Delete", systemImage: "trash")
                             }
@@ -259,7 +259,7 @@ struct HighlightedText: View {
 
     return AutocompleteView(
         inputText: "set",
-        suggestionProvider: provider,
+        provider: provider,
         filters: []
     ) { suggestion in
         print("Selected: \(suggestion)")
@@ -271,7 +271,7 @@ struct HighlightedText: View {
     
     return AutocompleteView(
         inputText: "format:",
-        suggestionProvider: provider,
+        provider: provider,
         filters: []
     ) { suggestion in
         print("Selected: \(suggestion)")
@@ -283,7 +283,7 @@ struct HighlightedText: View {
     
     return AutocompleteView(
         inputText: "rarity=my",
-        suggestionProvider: provider,
+        provider: provider,
         filters: []
     ) { suggestion in
         print("Selected: \(suggestion)")

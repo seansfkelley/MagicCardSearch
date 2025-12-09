@@ -13,7 +13,6 @@ struct BottomBarFilterView: View {
     @Binding var inputSelection: TextSelection?
     @Binding var pendingSelection: TextSelection?
     @FocusState var isSearchFocused: Bool
-    let historyProvider: AutocompleteProvider
     let onFilterEdit: (SearchFilter) -> Void
     
     // Calculate max height based on pill dimensions without hardcoding
@@ -60,7 +59,6 @@ struct BottomBarFilterView: View {
                 filters: $filters,
                 inputText: $inputText,
                 inputSelection: $inputSelection,
-                autocompleteProvider: historyProvider,
                 isSearchFocused: _isSearchFocused
             )
         }
@@ -105,7 +103,6 @@ struct BottomBarFilterView: View {
                     inputSelection: $inputSelection,
                     pendingSelection: $pendingSelection,
                     isSearchFocused: _isFocused,
-                    historyProvider: historyProvider,
                     onFilterEdit: { filter in
                         print("Editing filter: \(filter)")
                     }

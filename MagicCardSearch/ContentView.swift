@@ -14,7 +14,7 @@ struct ContentView: View {
     @State private var showSyntaxReference = false
     @State private var searchConfig = SearchConfiguration.load()
     @State private var pendingSearchConfig: SearchConfiguration?
-    @State private var historyProvider = AutocompleteProvider()
+    @State private var autocompleteProvider = AutocompleteProvider()
     @State private var inputSelection: TextSelection?
     @State private var pendingSelection: TextSelection?
     @State private var warnings: [String] = []
@@ -36,14 +36,15 @@ struct ContentView: View {
                     allowedToSearch: !isSearchFocused,
                     filters: $filters,
                     searchConfig: $searchConfig,
-                    warnings: $warnings
+                    warnings: $warnings,
+                    autocompleteProvider: autocompleteProvider
                 )
                 .opacity(isSearchFocused ? 0 : 1)
                 
                 if isSearchFocused {
                     AutocompleteView(
                         inputText: inputText,
-                        suggestionProvider: historyProvider,
+                        provider: autocompleteProvider,
                         filters: filters,
                         onSuggestionTap: { suggestion in
                             handleSuggestionTap(suggestion)
@@ -87,7 +88,6 @@ struct ContentView: View {
                         inputSelection: $inputSelection,
                         pendingSelection: $pendingSelection,
                         isSearchFocused: _isSearchFocused,
-                        historyProvider: historyProvider,
                         onFilterEdit: handleFilterEdit
                     )
                 }
@@ -205,7 +205,6 @@ struct ContentView: View {
         switch suggestion {
         case .filter(let filter):
             filters.append(filter)
-            historyProvider.recordFilterUsage(filter)
             inputText = ""
             
         case .string(let string):
