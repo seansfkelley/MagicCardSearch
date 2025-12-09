@@ -11,8 +11,6 @@ struct CardDetailView: View {
     let card: CardResult
     
     var body: some View {
-        let _ = print(card)
-        
         NavigationStack {
             ScrollView {
                 VStack(spacing: 0) {
@@ -117,12 +115,9 @@ struct CardDetailView: View {
                                 .padding(.horizontal)
                             
                             VStack(alignment: .leading, spacing: 8) {
-                                HStack {
-                                    Spacer()
-                                    Text("\(power)/\(toughness)")
-                                        .font(.title3)
-                                        .fontWeight(.semibold)
-                                }
+                                Text("\(power)/\(toughness)")
+                                    .font(.title3)
+                                    .fontWeight(.semibold)
                             }
                             .padding(.horizontal)
                             .padding(.vertical, 12)
