@@ -13,7 +13,7 @@ struct CardResultsView: View {
     @Binding var searchConfig: SearchConfiguration
     @Binding var warnings: [String]
     var autocompleteProvider: AutocompleteProvider
-    @Binding var isSearchBarCollapsed: Bool
+    @Binding var isSearchBarExpanded: Bool
     @State private var results: [CardResult] = []
     @State private var totalCount: Int = 0
     @State private var nextPageURL: String?
@@ -23,96 +23,76 @@ struct CardResultsView: View {
     @State private var selectedCardIndex: Int?
     @State private var searchTask: Task<Void, Never>?
     @State private var errorState: SearchErrorState?
-    @State private var lastScrollPosition: CGFloat = 0
-    @State private var scrollVelocity: CGFloat = 0
-    @State private var isInteracting = false
-    
+
     private let service = CardSearchService()
     private let columns = [
         GridItem(.flexible(), spacing: 16),
-        GridItem(.flexible(), spacing: 16)
+        GridItem(.flexible(), spacing: 16),
     ]
-    
+
     var body: some View {
         ZStack {
-            Group {
-                if filters.isEmpty {
-                    // Zero state: no filters added yet
-                    ContentUnavailableView(
-                        "Start Your Search",
-                        systemImage: "text.magnifyingglass",
-                        description: Text("Tap the search bar below and start typing to add filters")
-                    )
-                } else if let error = errorState {
-                    // Error state
-                    errorView(for: error)
-                } else if results.isEmpty && !isLoading {
-                    // Search performed but no results
-                    ContentUnavailableView(
-                        "No Results",
-                        systemImage: "magnifyingglass",
-                        description: Text("Try adjusting your search filters")
-                    )
-                } else {
-                    ScrollView {
-                        VStack(spacing: 0) {
-                            Text("\(totalCount) \(totalCount == 1 ? "result" : "results")")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                                .padding(.vertical, 20)
-                            
-                            LazyVGrid(columns: columns, spacing: 16) {
-                                ForEach(Array(results.enumerated()), id: \.element.id) { index, card in
-                                    CardResultCell(card: card)
-                                        .onTapGesture {
-                                            selectedCardIndex = index
+            if filters.isEmpty {
+                ContentUnavailableView(
+                    "Start Your Search",
+                    systemImage: "text.magnifyingglass",
+                    description: Text("Tap the search bar below and start typing to add filters")
+                )
+            } else if let error = errorState {
+                ContentUnavailableView {
+                    Label(error.title, systemImage: error.iconName)
+                } description: {
+                    Text(error.description)
+                } actions: {
+                    Button("Try Again") {
+                        maybePerformSearch()
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
+            } else if results.isEmpty && !isLoading {
+                ContentUnavailableView(
+                    "No Results",
+                    systemImage: "magnifyingglass",
+                    description: Text("Try adjusting your search filters")
+                )
+            } else {
+                ScrollView {
+                    VStack(spacing: 0) {
+                        Text("\(totalCount) \(totalCount == 1 ? "result" : "results")")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .padding(.vertical, 20)
+
+                        LazyVGrid(columns: columns, spacing: 16) {
+                            ForEach(Array(results.enumerated()), id: \.element.id) { index, card in
+                                CardResultCell(card: card)
+                                    .onTapGesture {
+                                        selectedCardIndex = index
+                                    }
+                                    .onAppear {
+                                        if index == results.count - 4 {
+                                            loadNextPageIfNeeded()
                                         }
-                                        .onAppear {
-                                            // Load next page when nearing the end
-                                            if index == results.count - 4 {
-                                                loadNextPageIfNeeded()
-                                            }
-                                            
-                                            // Detect if we're at the top
-                                            if index == 0 && isSearchBarCollapsed {
-                                                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                                                    isSearchBarCollapsed = false
-                                                }
-                                            }
-                                        }
-                                }
-                            }
-                            .padding(.horizontal)
-                            
-                            // Pagination status section
-                            if nextPageURL != nil || isLoadingNextPage || nextPageError != nil {
-                                paginationStatusView
-                                    .padding(.horizontal)
-                                    .padding(.vertical, 20)
-                            } else {
-                                // Add bottom padding when no pagination status
-                                Color.clear
-                                    .frame(height: 20)
+                                    }
                             }
                         }
-                    }
-                    .onScrollGeometryChange(for: CGFloat.self) { geometry in
-                        geometry.contentOffset.y
-                    } action: { oldValue, newValue in
-                        handleScrollChange(oldValue: oldValue, newValue: newValue)
-                    }
-                    .onScrollPhaseChange { oldPhase, newPhase in
-                        handleScrollPhaseChange(oldPhase: oldPhase, newPhase: newPhase)
+                        .padding(.horizontal)
+
+                        if nextPageURL != nil || isLoadingNextPage || nextPageError != nil {
+                            paginationStatusView
+                                .padding(.horizontal)
+                                .padding(.vertical, 20)
+                        }
                     }
                 }
+                .onScrollPhaseChange(onScrollPhaseChange)
             }
-            
-            // Loading overlay
+
             if isLoading {
                 Color.black.opacity(0.3)
                     .ignoresSafeArea()
                     .transition(.opacity)
-                
+
                 ProgressView()
                     .scaleEffect(1.5)
                     .progressViewStyle(.circular)
@@ -138,10 +118,12 @@ struct CardResultsView: View {
         .task {
             maybePerformSearch()
         }
-        .sheet(item: Binding(
-            get: { selectedCardIndex.map { SheetIdentifier(index: $0) } },
-            set: { selectedCardIndex = $0?.index }
-        )) { identifier in
+        .sheet(
+            item: Binding(
+                get: { selectedCardIndex.map { SheetIdentifier(index: $0) } },
+                set: { selectedCardIndex = $0?.index }
+            )
+        ) { identifier in
             CardDetailNavigator(
                 cards: results,
                 initialIndex: identifier.index,
@@ -158,60 +140,35 @@ struct CardResultsView: View {
             )
         }
     }
-    
-    private func handleScrollChange(oldValue: CGFloat, newValue: CGFloat) {
-        let delta = newValue - oldValue
-        
-        // Overscrolling at the top (negative offset), always expand
-        if newValue < 0 && isSearchBarCollapsed {
+
+    private func onScrollPhaseChange(
+        previousPhase: ScrollPhase,
+        currentPhase: ScrollPhase,
+        context: ScrollPhaseChangeContext
+    ) {
+        if previousPhase == .idle && isSearchBarExpanded {
             withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                isSearchBarCollapsed = false
+                isSearchBarExpanded = false
             }
-            lastScrollPosition = newValue
-            return
         }
         
-        // Scrolling down (positive delta) = collapse
-        // Collapse anytime we scroll down while finger is on screen
-        if delta > 5 && !isSearchBarCollapsed && isInteracting {
+        if currentPhase == .idle
+            && abs(context.geometry.contentOffset.y + context.geometry.contentInsets.top) < 0.001
+            && !isSearchBarExpanded
+        {
             withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                isSearchBarCollapsed = true
+                isSearchBarExpanded = true
             }
-        }
-        
-        lastScrollPosition = newValue
-    }
-    
-    private func handleScrollPhaseChange(oldPhase: ScrollPhase, newPhase: ScrollPhase) {
-        // Track if user is currently touching the screen
-        isInteracting = (newPhase == .interacting)
-        
-        // When user releases after scrolling (flick gesture)
-        if oldPhase == .interacting && newPhase == .decelerating {
-            let delta = lastScrollPosition - scrollVelocity
-            
-            // If scrolling upward (negative delta) with momentum, expand
-            if delta < -50 && isSearchBarCollapsed {
-                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                    isSearchBarCollapsed = false
-                }
-            }
-        }
-        
-        // Store the position when interaction starts for velocity calculation
-        if oldPhase != .interacting && newPhase == .interacting {
-            scrollVelocity = lastScrollPosition
         }
     }
-    
+
     private func maybePerformSearch() {
         guard allowedToSearch else {
             return
         }
-        
-        // Cancel any existing search
+
         searchTask?.cancel()
-        
+
         guard !filters.isEmpty else {
             results = []
             totalCount = 0
@@ -221,16 +178,16 @@ struct CardResultsView: View {
             warnings = []
             return
         }
-        
+
         print("Searching...")
-        
+
         isLoading = true
         errorState = nil
-        
+
         for filter in filters {
             autocompleteProvider.recordFilterUsage(filter)
         }
-        
+
         searchTask = Task {
             do {
                 let searchResult = try await service.search(
@@ -256,23 +213,23 @@ struct CardResultsView: View {
             isLoading = false
         }
     }
-    
+
     private func loadNextPageIfNeeded() {
         // Don't load if already loading or no more pages
         guard !isLoadingNextPage, let nextURL = nextPageURL else {
             return
         }
-        
+
         // Don't load if there's already an error showing
         guard nextPageError == nil else {
             return
         }
-        
+
         print("Loading next page...")
         print(nextURL)
-        
+
         isLoadingNextPage = true
-        
+
         Task {
             do {
                 let searchResult = try await service.fetchNextPage(from: nextURL)
@@ -286,12 +243,12 @@ struct CardResultsView: View {
             isLoadingNextPage = false
         }
     }
-    
+
     private func retryNextPage() {
         nextPageError = nil
         loadNextPageIfNeeded()
     }
-    
+
     @ViewBuilder
     private var paginationStatusView: some View {
         VStack(spacing: 16) {
@@ -310,7 +267,7 @@ struct CardResultsView: View {
                     Image(systemName: error.iconName)
                         .font(.system(size: 40))
                         .foregroundStyle(.secondary)
-                    
+
                     VStack(spacing: 4) {
                         Text(error.title)
                             .font(.headline)
@@ -319,7 +276,7 @@ struct CardResultsView: View {
                             .foregroundStyle(.secondary)
                             .multilineTextAlignment(.center)
                     }
-                    
+
                     Button("Retry") {
                         retryNextPage()
                     }
@@ -330,35 +287,7 @@ struct CardResultsView: View {
             }
         }
     }
-    
-    @ViewBuilder
-    private func errorView(for errorState: SearchErrorState) -> some View {
-        ContentUnavailableView {
-            Label(errorState.title, systemImage: errorState.iconName)
-        } description: {
-            Text(errorState.description)
-        } actions: {
-            Button("Try Again") {
-                maybePerformSearch()
-            }
-            .buttonStyle(.borderedProminent)
-        }
-    }
 }
-
-// MARK: - Scroll Offset Preference Key
-
-private struct ScrollOffsetPreferenceKey: PreferenceKey {
-    static var defaultValue: CGFloat = 0
-    
-    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
-        value = nextValue()
-    }
-}
-
-// MARK: - Search Error State
-
-
 
 // MARK: - Sheet Identifier
 
@@ -371,7 +300,7 @@ private struct SheetIdentifier: Identifiable {
 
 struct CardResultCell: View {
     let card: CardResult
-    
+
     var body: some View {
         VStack {
             Group {
@@ -400,7 +329,7 @@ struct CardResultCell: View {
             .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
         }
     }
-    
+
     private var placeholderView: some View {
         RoundedRectangle(cornerRadius: 12)
             .fill(Color.gray.opacity(0.2))
@@ -409,7 +338,7 @@ struct CardResultCell: View {
                     Image(systemName: "photo")
                         .font(.largeTitle)
                         .foregroundStyle(.secondary)
-                    
+
                     Text(card.name)
                         .font(.caption)
                         .foregroundStyle(.primary)
@@ -427,13 +356,13 @@ struct CardResultCell: View {
     struct PreviewWrapper: View {
         @State private var filters: [SearchFilter] = [
             SearchFilter.keyValue("set", .equal, "7ED"),
-            SearchFilter.keyValue("manavalue", .greaterThanOrEqual, "4")
+            SearchFilter.keyValue("manavalue", .greaterThanOrEqual, "4"),
         ]
         @State private var config = SearchConfiguration()
         @State private var warnings: [String] = []
         @State private var autocompleteProvider = AutocompleteProvider()
-        @State private var isCollapsed = false
-        
+        @State private var isExpanded = true
+
         var body: some View {
             CardResultsView(
                 allowedToSearch: true,
@@ -441,10 +370,10 @@ struct CardResultCell: View {
                 searchConfig: $config,
                 warnings: $warnings,
                 autocompleteProvider: autocompleteProvider,
-                isSearchBarCollapsed: $isCollapsed
+                isSearchBarExpanded: $isExpanded
             )
         }
     }
-    
+
     return PreviewWrapper()
 }

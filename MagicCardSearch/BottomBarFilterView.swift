@@ -13,7 +13,7 @@ struct BottomBarFilterView: View {
     @Binding var inputSelection: TextSelection?
     @Binding var pendingSelection: TextSelection?
     @FocusState var isSearchFocused: Bool
-    @Binding var isCollapsed: Bool
+    @Binding var isExpanded: Bool
     let warnings: [String]
     @Binding var showWarningsPopover: Bool
     let onFilterEdit: (SearchFilter) -> Void
@@ -34,88 +34,32 @@ struct BottomBarFilterView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Warnings and Clear All row (expanded state only)
-            if !filters.isEmpty && !isCollapsed {
-                HStack(alignment: .bottom) {
-                    if !warnings.isEmpty {
-                        WarningsPillView(
-                            warnings: warnings,
-                            isExpanded: $showWarningsPopover
-                        )
-                        .matchedGeometryEffect(id: "warnings", in: animation)
-                    }
-                    
-                    Spacer()
-                    
-                    Button(role: .destructive, action: onClearAll) {
-                        Text("Clear all")
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-                            .padding(.horizontal)
-                            .padding(.vertical, 6)
-                    }
-                    .glassEffect(.regular.interactive())
-                    .matchedGeometryEffect(id: "clearAll", in: animation)
-                }
-                .padding(.bottom, 8)
-            }
-            
-            if isCollapsed {
-                HStack(spacing: 12) {
-                    if !warnings.isEmpty {
-                        Button(action: {
-                            onExpandTap()
-                            showWarningsPopover = true
-                        }) {
-                            Image(systemName: "exclamationmark.triangle.fill")
-                                .foregroundStyle(.orange)
-                                .font(.system(size: 20))
-                                .frame(width: collapsedButtonSize, height: collapsedButtonSize)
+            if isExpanded {
+                if !filters.isEmpty {
+                    HStack(alignment: .bottom) {
+                        if !warnings.isEmpty {
+                            WarningsPillView(
+                                warnings: warnings,
+                                isExpanded: $showWarningsPopover
+                            )
+                            .matchedGeometryEffect(id: "warnings", in: animation)
                         }
-                        .glassEffect(.regular.interactive(), in: .circle)
-                        .matchedGeometryEffect(id: "warnings", in: animation)
-                    }
-                    
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 8) {
-                            ForEach(Array(filters.enumerated()), id: \.offset) { index, filter in
-                                FilterPillView(
-                                    filter: filter,
-                                    onTap: {
-                                        isCollapsed = false
-                                        onFilterEdit(filter)
-                                        filters.remove(at: index)
-                                    },
-                                    onDelete: {
-                                        filters.remove(at: index)
-                                        if filters.isEmpty {
-                                            onClearAll()
-                                        }
-                                    }
-                                )
-                            }
+                        
+                        Spacer()
+                        
+                        Button(role: .destructive, action: onClearAll) {
+                            Text("Clear all")
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                                .padding(.horizontal)
+                                .padding(.vertical, 6)
                         }
-                        .padding(.horizontal, 4)
-                    }
-                    .frame(height: collapsedButtonSize)
-                    .clipShape(.capsule)
-                    .glassEffect(.regular.interactive(), in: .capsule)
-                    .matchedGeometryEffect(id: "searchBar", in: animation)
-                    
-                    if !filters.isEmpty {
-                        Button(action: onClearAll) {
-                            Image(systemName: "xmark")
-                                .foregroundStyle(.red)
-                                .font(.system(size: 20))
-                                .frame(width: collapsedButtonSize, height: collapsedButtonSize)
-                        }
-                        .glassEffect(.regular.interactive(), in: .circle)
+                        .glassEffect(.regular.interactive())
                         .matchedGeometryEffect(id: "clearAll", in: animation)
                     }
+                    .padding(.bottom, 8)
                 }
-                .padding(.horizontal)
-                .padding(.vertical, 12)
-            } else {
+                
                 VStack(spacing: 0) {
                     if !filters.isEmpty {
                         ScrollView {
@@ -160,6 +104,61 @@ struct BottomBarFilterView: View {
                             isSearchFocused = true
                         }
                 )
+            } else {
+                HStack(spacing: 12) {
+                    if !warnings.isEmpty {
+                        Button(action: {
+                            onExpandTap()
+                            showWarningsPopover = true
+                        }) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundStyle(.orange)
+                                .font(.system(size: 20))
+                                .frame(width: collapsedButtonSize, height: collapsedButtonSize)
+                        }
+                        .glassEffect(.regular.interactive(), in: .circle)
+                        .matchedGeometryEffect(id: "warnings", in: animation)
+                    }
+                    
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            ForEach(Array(filters.enumerated()), id: \.offset) { index, filter in
+                                FilterPillView(
+                                    filter: filter,
+                                    onTap: {
+                                        isExpanded = true
+                                        onFilterEdit(filter)
+                                        filters.remove(at: index)
+                                    },
+                                    onDelete: {
+                                        filters.remove(at: index)
+                                        if filters.isEmpty {
+                                            onClearAll()
+                                        }
+                                    }
+                                )
+                            }
+                        }
+                        .padding(.horizontal, 4)
+                    }
+                    .frame(height: collapsedButtonSize)
+                    .clipShape(.capsule)
+                    .glassEffect(.regular.interactive(), in: .capsule)
+                    .matchedGeometryEffect(id: "searchBar", in: animation)
+                    
+                    if !filters.isEmpty {
+                        Button(action: onClearAll) {
+                            Image(systemName: "xmark")
+                                .foregroundStyle(.red)
+                                .font(.system(size: 20))
+                                .frame(width: collapsedButtonSize, height: collapsedButtonSize)
+                        }
+                        .glassEffect(.regular.interactive(), in: .circle)
+                        .matchedGeometryEffect(id: "clearAll", in: animation)
+                    }
+                }
+                .padding(.horizontal)
+                .padding(.vertical, 12)
             }
         }
         .padding()
@@ -175,13 +174,13 @@ struct BottomBarFilterView: View {
         filters.removeAll()
         inputText = ""
         inputSelection = nil
-        isCollapsed = false
+        isExpanded = true
         isSearchFocused = true
     }
     
     private func onExpandTap() {
         withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-            isCollapsed = false
+            isExpanded = true
         }
     }
 }
@@ -270,7 +269,7 @@ private struct WarningsPillView: View {
                     inputSelection: $inputSelection,
                     pendingSelection: $pendingSelection,
                     isSearchFocused: _isFocused,
-                    isCollapsed: $isCollapsed,
+                    isExpanded: $isCollapsed,
                     warnings: ["Warning 1", "Warning 2"],
                     showWarningsPopover: $showWarningsPopover,
                     onFilterEdit: { filter in
