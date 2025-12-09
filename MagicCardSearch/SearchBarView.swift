@@ -32,6 +32,7 @@ struct SearchBarView: View {
             .textContentType(.none)
             // ASCII means we don't get smart quotes so can parse double quotes properly.
             .keyboardType(.asciiCapable)
+            .submitLabel(.search)
             .onSubmit {
                 createNewFilterFromSearch(fallbackToNameFilter: true)
             }
