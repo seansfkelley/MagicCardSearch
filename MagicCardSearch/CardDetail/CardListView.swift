@@ -32,28 +32,27 @@ struct CardListView: View {
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
-                    VStack(spacing: 0) {
-                        List {
-                            ForEach(listManager.sortedCards) { card in
-                                CardListRow(card: card)
-                                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                                        Button(role: .destructive) {
-                                            withAnimation {
-                                                listManager.removeCard(withId: card.id)
-                                            }
-                                        } label: {
-                                            Label("Delete", systemImage: "trash")
-                                        }
+                    List {
+                        ForEach(listManager.sortedCards) { card in
+                            CardListRow(card: card)
+                                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                    Button(role: .destructive) {
+                                        listManager.removeCard(withId: card.id)
+                                    } label: {
+                                        Label("Delete", systemImage: "trash")
                                     }
-                            }
+                                }
                         }
-                        .listStyle(.insetGrouped)
                         
                         ClearAllButton {
                             listManager.clearAll()
                         }
-                        .padding()
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .listRowInsets(EdgeInsets())
+                        .listRowBackground(Color.clear)
                     }
+                    .listStyle(.insetGrouped)
                 }
             }
             .navigationTitle("Favorites")
@@ -107,11 +106,13 @@ private struct ClearAllButton: View {
                 Image(systemName: "trash")
                 Text("Clear All")
             }
+            .padding(.vertical, 12)
+            .frame(maxWidth: .infinity)
         }
         .foregroundStyle(isPressed ? .white : .red)
         .background(Capsule().fill(isPressed ? .red : .red.mix(with: .white, by: 0.9)))
         .scaleEffect(isPressed ? 1.1 : 1.0)
-        .animation(isPressed ? .easeOut(duration: longPressDuration) : .spring(duration: 0.2), value: isPressed)
+        .animation(isPressed ? .easeOut(duration: longPressDuration) : .easeIn(duration: 0.2), value: isPressed)
         .simultaneousGesture(
             DragGesture(minimumDistance: 0)
                 .onChanged { _ in
