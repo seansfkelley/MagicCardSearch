@@ -114,9 +114,10 @@ class AutocompleteProvider {
                 matchLength: Int
             )] = []
 
-        for (canonicalFilterType, config) in filterFieldConfigurations {
+        for (_, filterType) in scryfallFilterByType {
+            let canonicalFilterType = filterType.canonicalName
             var filterTypeCandidates = [canonicalFilterType]
-            filterTypeCandidates.append(contentsOf: config.aliases)
+            filterTypeCandidates.append(contentsOf: filterType.aliases)
 
             var hasExactMatch = false
             var bestMatch: (text: String, range: Range<String.Index>, matchLength: Int)? = nil
@@ -238,8 +239,8 @@ class AutocompleteProvider {
             let valuePart = String(searchTerm[operatorRange.upperBound...])
 
             // Check if filterPart matches an enumeration filter
-            if let config = configurationForKey(filterPart),
-                case .enumeration(let options) = config.fieldType
+            if let filterType = scryfallFilterByType[filterPart.lowercased()],
+                let options = filterType.enumerationValues
             {
 
                 // Filter and sort options based on valuePart

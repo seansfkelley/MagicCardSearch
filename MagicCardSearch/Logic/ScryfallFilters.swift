@@ -7,7 +7,7 @@
 
 import Foundation
 
-// MARK: - Filter Field Configuration
+// MARK: - Scryfall Filter Type
 
 struct ScryfallFilterType {
     let canonicalName: String
@@ -24,7 +24,7 @@ struct ScryfallFilterType {
     
     // TODO: Cache this.
     var names: Set<String> {
-        return [canonicalName] + aliases
+        return Set([canonicalName]).union(aliases)
     }
 }
 
@@ -49,7 +49,7 @@ private let scryfallIsEnumerationValues = Set([
     "gameday", "prerelease", "release", "fnm", "judge_gift", "arena_league",
     "player_rewards", "media_insert", "instore", "convention", "set_promo",
     // Format Legality
-    "commander", "brawler", "companion", "duelcommander", "reserved"
+    "commander", "brawler", "companion", "duelcommander", "reserved",
     // Border, Frame, Foil & Resolution
     "full", "foil", "nonfoil", "etched", "glossy", "hires", "universesbeyond",
     // Games, Promos, & Spotlights
@@ -65,7 +65,7 @@ private let scryfallIsEnumerationValues = Set([
 
 // MARK: - Filter Definitions
 // translated from https://scryfall.com/docs/syntax and kept in the same order/categories
-private let scryfallFilterTypes: [ScryfallFilterType] = [
+let scryfallFilterTypes: [ScryfallFilterType] = [
     // MARK: - Color and Color Identity
     .init("color", ["c"]),
     .init("identity", ["id"]),
@@ -105,7 +105,7 @@ private let scryfallFilterTypes: [ScryfallFilterType] = [
     // see also `is`
     
     // MARK: - Rarity
-    .init("rarity", ["r"], enumerationValues: ["common", "uncommon", "rare", "mythic", "special", "bonus"])
+    .init("rarity", ["r"], enumerationValues: ["common", "uncommon", "rare", "mythic", "special", "bonus"]),
     // see also `new` and `in`
     
     // MARK: - Sets and Blocks
@@ -119,7 +119,7 @@ private let scryfallFilterTypes: [ScryfallFilterType] = [
         "masters", "funny", "commander", "duel_deck", "from_the_vault", "spellbook", "premium_deck",
         // specialized types
         "alchemy", "archenemy", "masterpiece", "memorabilia", "planechase", "promo", "starter", "token", "treasure_chest", "vanguard",
-    ])
+    ]),
     // see also `is` and `in`
     
     // MARK: - Cubes
@@ -144,7 +144,7 @@ private let scryfallFilterTypes: [ScryfallFilterType] = [
     .init("artist", ["a"], supportsNumeric: true),
     .init("flavor", ["ft"]),
     .init("watermark", ["wm"]),
-    .init("illustrations", supportsNumeric: true)
+    .init("illustrations", supportsNumeric: true),
     // see also `has` and `new`
     
     // MARK: - Border, Frame, Foil & Resolution
@@ -234,36 +234,16 @@ private let scryfallFilterTypes: [ScryfallFilterType] = [
     ])
 ]
 
-// MARK: - Configuration Lookup
+// MARK: - Derived Constants
 
-func configurationForKey(_ key: String) -> FilterFieldConfiguration? {
-    let lowercasedKey = key.lowercased()
-    
-    if let config = filterFieldConfigurations[lowercasedKey] {
-        return config
-    }
-
-    for (_, config) in filterFieldConfigurations {
-        if config.aliases.contains(lowercasedKey) {
-            return config
+let scryfallFilterByType: [String: ScryfallFilterType] = {
+    var lookup: [String: ScryfallFilterType] = [:]
+    for filterType in scryfallFilterTypes {
+        lookup[filterType.canonicalName] = filterType
+        for alias in filterType.aliases {
+            assert(lookup[alias] == nil)
+            lookup[alias] = filterType
         }
     }
-    
-    return nil
-}
-
-func canonicalKey(for key: String) -> String {
-    let lowercasedKey = key.lowercased()
-    
-    if filterFieldConfigurations[lowercasedKey] != nil {
-        return lowercasedKey
-    }
-    
-    for (primaryKey, config) in filterFieldConfigurations {
-        if config.aliases.contains(lowercasedKey) {
-            return primaryKey
-        }
-    }
-    
-    return lowercasedKey
-}
+    return lookup
+}()

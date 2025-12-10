@@ -63,7 +63,7 @@ struct FilterPillView: View {
     private var isRecognizedFilter: Bool {
         return switch (filter) {
         case .name: true
-        case .keyValue(let key, _, _): configurationForKey(key) != nil
+        case .keyValue(let key, _, _): scryfallFilterByType[key] != nil
         }
     }
 }
