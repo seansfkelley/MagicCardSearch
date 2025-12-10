@@ -61,6 +61,10 @@ enum CardResult: Identifiable, Codable {
         field(regular: \.releasedAt, transforming: \.releasedAt)
     }
     
+    var rulingsUri: String? {
+        field(regular: \.rulingsUri, transforming: \.rulingsUri)
+    }
+    
     // MARK: - Front Face Properties (for transforming cards, returns front face data)
     
     var smallImageUrl: String? {
@@ -182,6 +186,7 @@ struct RegularCard: Identifiable, Codable {
     let rarity: String?
     let lang: String?
     let releasedAt: String?
+    let rulingsUri: String?
     
     enum CodingKeys: String, CodingKey {
         case id
@@ -206,6 +211,7 @@ struct RegularCard: Identifiable, Codable {
         case rarity
         case lang
         case releasedAt = "released_at"
+        case rulingsUri = "rulings_uri"
     }
     
     enum ImageUriKeys: String, CodingKey {
@@ -221,7 +227,7 @@ struct RegularCard: Identifiable, Codable {
          colors: [String]? = nil, colorIndicator: [String]? = nil, legalities: [String: String]? = nil,
          gameChanger: Bool? = nil, allParts: [RelatedPart]? = nil, scryfallUri: String? = nil,
          setCode: String? = nil, setName: String? = nil, collectorNumber: String? = nil,
-         rarity: String? = nil, lang: String? = nil, releasedAt: String? = nil) {
+         rarity: String? = nil, lang: String? = nil, releasedAt: String? = nil, rulingsUri: String? = nil) {
         self.id = id
         self.name = name
         self.smallImageUrl = smallImageUrl
@@ -246,6 +252,7 @@ struct RegularCard: Identifiable, Codable {
         self.rarity = rarity
         self.lang = lang
         self.releasedAt = releasedAt
+        self.rulingsUri = rulingsUri
     }
     
     init(from decoder: Decoder) throws {
@@ -283,6 +290,7 @@ struct RegularCard: Identifiable, Codable {
         rarity = try? container.decode(String.self, forKey: .rarity)
         lang = try? container.decode(String.self, forKey: .lang)
         releasedAt = try? container.decode(String.self, forKey: .releasedAt)
+        rulingsUri = try? container.decode(String.self, forKey: .rulingsUri)
     }
     
     func encode(to encoder: Encoder) throws {
@@ -310,6 +318,7 @@ struct TransformingCard: Identifiable, Codable {
     let rarity: String?
     let lang: String?
     let releasedAt: String?
+    let rulingsUri: String?
     
     enum CodingKeys: String, CodingKey {
         case id
@@ -326,6 +335,7 @@ struct TransformingCard: Identifiable, Codable {
         case rarity
         case lang
         case releasedAt = "released_at"
+        case rulingsUri = "rulings_uri"
     }
     
     init(from decoder: Decoder) throws {
@@ -355,6 +365,7 @@ struct TransformingCard: Identifiable, Codable {
         rarity = try? container.decode(String.self, forKey: .rarity)
         lang = try? container.decode(String.self, forKey: .lang)
         releasedAt = try? container.decode(String.self, forKey: .releasedAt)
+        rulingsUri = try? container.decode(String.self, forKey: .rulingsUri)
     }
     
     func encode(to encoder: Encoder) throws {
@@ -447,6 +458,49 @@ struct RelatedPart: Identifiable, Codable {
         case name
         case typeLine = "type_line"
     }
+}
+
+// MARK: - Ruling
+
+struct Ruling: Identifiable, Codable {
+    let source: String
+    let publishedAt: Date
+    let comment: String
+    
+    var id: String { publishedAt.ISO8601Format() + comment }
+    
+    enum CodingKeys: String, CodingKey {
+        case source
+        case publishedAt = "published_at"
+        case comment
+    }
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        source = try container.decode(String.self, forKey: .source)
+        comment = try container.decode(String.self, forKey: .comment)
+        
+        let dateString = try container.decode(String.self, forKey: .publishedAt)
+        // Parse ISO 8601 date format (yyyy-MM-dd)
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withFullDate]
+        
+        if let date = formatter.date(from: dateString) {
+            publishedAt = date
+        } else {
+            throw DecodingError.dataCorruptedError(
+                forKey: .publishedAt,
+                in: container,
+                debugDescription: "Date string does not match expected format"
+            )
+        }
+    }
+}
+
+// MARK: - Scryfall Rulings Response
+
+struct ScryfallRulingsResponse: Codable {
+    let data: [Ruling]
 }
 
 // MARK: - Scryfall API Response

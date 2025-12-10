@@ -13,9 +13,12 @@ struct CardDetailView: View {
 
     @State private var relatedCardToShow: CardResult?
     @State private var isLoadingRelatedCard = false
+    @State private var rulings: [Ruling] = []
+    @State private var isLoadingRulings = false
+    @State private var rulingsError: Error?
     @ObservedObject private var listManager = CardListManager.shared
     private let cardSearchService = CardSearchService()
-
+    private let rulingsService = RulingsService.shared
     var body: some View {
         ScrollView {
             VStack(spacing: 0) {
@@ -77,9 +80,34 @@ struct CardDetailView: View {
                         }
                     )
                 }
+
+                if let rulingsUri = card.rulingsUri, (isLoadingRulings || rulingsError != nil || !rulings.isEmpty) {
+                    Divider()
+                        .padding(.horizontal)
+                    
+                    CardRulingsSection(
+                        rulings: rulings,
+                        isLoading: isLoadingRulings,
+                        error: rulingsError,
+                        onRetry: {
+                            Task {
+                                await loadRulings(from: rulingsUri)
+                            }
+                        }
+                    )
+                }
+                
+                Divider()
+                    .padding(.horizontal)
             }
             .background(Color(.systemBackground))
             .padding(.top)
+        }
+        .task {
+            // Load rulings when view appears
+            if let rulingsUri = card.rulingsUri {
+                await loadRulings(from: rulingsUri)
+            }
         }
         .toolbar {
             if isCurrentlyVisible {
@@ -171,6 +199,19 @@ struct CardDetailView: View {
         } catch {
             // TODO: Handle error appropriately (e.g., show alert)
             print("Error loading related card: \(error)")
+        }
+    }
+    
+    private func loadRulings(from urlString: String) async {
+        isLoadingRulings = true
+        rulingsError = nil
+        defer { isLoadingRulings = false }
+        
+        do {
+            rulings = try await rulingsService.fetchRulings(from: urlString)
+        } catch {
+            rulingsError = error
+            print("Error loading rulings: \(error)")
         }
     }
 }
@@ -395,6 +436,94 @@ private struct CardRelatedPartsSection: View {
         // TODO: wtf. There has got to be a way to tell the list to just be its own
         // natural height.
         .frame(height: CGFloat(allParts.count) * 60 + 60)
+    }
+}
+
+// MARK: - Card Rulings Section
+
+private struct CardRulingsSection: View {
+    let rulings: [Ruling]
+    let isLoading: Bool
+    let error: Error?
+    let onRetry: () -> Void
+    
+    @State private var isExpanded = false
+
+    var body: some View {
+        DisclosureGroup(isExpanded: $isExpanded) {
+            VStack(alignment: .leading, spacing: 16) {
+                if isLoading {
+                    HStack {
+                        Text("Loading rulings...")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(.top, 4)
+                } else if let error = error {
+                    HStack(spacing: 12) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Failed to load rulings")
+                                .font(.body)
+                                .foregroundStyle(.secondary)
+                            Text(error.localizedDescription)
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
+                        }
+                        
+                        Spacer()
+                        
+                        Button(action: onRetry) {
+                            Image(systemName: "arrow.clockwise")
+                                .font(.caption)
+                                .foregroundStyle(.blue)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    .padding(.top, 4)
+                } else if rulings.isEmpty {
+                    Text("No rulings available")
+                        .font(.body)
+                        .foregroundStyle(.secondary)
+                        .padding(.top, 4)
+                } else {
+                    ForEach(rulings) { ruling in
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(ruling.comment)
+                                .font(.body)
+                                .fixedSize(horizontal: false, vertical: true)
+                            
+                            Text(ruling.publishedAt, format: .dateTime.year().month().day())
+                                .font(.caption2)
+                                .foregroundStyle(.tertiary)
+                        }
+                        .padding(.top, ruling.id == rulings.first?.id ? 4 : 12)
+                    }
+                }
+            }
+        } label: {
+            HStack {
+                Text("Rulings")
+                    .font(.headline)
+                    .fontWeight(.semibold)
+                
+                if !isLoading && error == nil && !rulings.isEmpty {
+                    Text("(\(rulings.count))")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                
+                Spacer()
+                
+                if isLoading {
+                    ProgressView()
+                        .controlSize(.small)
+                }
+            }
+        }
+        .tint(.primary)
+        .padding(.horizontal)
+        .padding(.vertical, 12)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
