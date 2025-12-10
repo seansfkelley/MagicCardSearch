@@ -56,30 +56,28 @@ struct SearchConfiguration: Equatable, Codable {
         case toughness = "Toughness"
         case artist = "Artist Name"
         case edhrec = "EDHREC Rank"
-        case review = "Set Review"
         
         // Use the enum case name itself as the API key
         var apiValue: String {
             String(describing: self)
         }
         
-        /// Convert to ScryfallKit's SortMode for API calls
+        // swiftlint:disable:next cyclomatic_complexity
         func toScryfallKitSortMode() -> ScryfallKit.SortMode? {
-            switch self {
-            case .name: return .name
-            case .released: return .released
-            case .set: return .set
-            case .rarity: return .rarity
-            case .color: return .color
-            case .usd: return .usd
-            case .tix: return .tix
-            case .eur: return .eur
-            case .cmc: return .cmc
-            case .power: return .power
-            case .toughness: return .toughness
-            case .artist: return .artist
-            case .edhrec: return .edhrec
-            case .review: return nil // Not supported by ScryfallKit, will use default
+            return switch self {
+            case .name: .name
+            case .released: .released
+            case .set: .set
+            case .rarity: .rarity
+            case .color: .color
+            case .usd: .usd
+            case .tix: .tix
+            case .eur: .eur
+            case .cmc: .cmc
+            case .power: .power
+            case .toughness: .toughness
+            case .artist: .artist
+            case .edhrec: .edhrec
             }
         }
     }

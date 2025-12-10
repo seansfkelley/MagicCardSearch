@@ -152,8 +152,7 @@ struct CardDetailView: View {
     
     // MARK: - Single-Faced Card View
     
-    @ViewBuilder
-    private var singleFacedCardView: some View {
+    @ViewBuilder private var singleFacedCardView: some View {
         // Image Section
         if let imageUrl = card.normalImageURL, let url = URL(string: imageUrl) {
             AsyncImage(url: url) { phase in

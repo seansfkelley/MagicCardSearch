@@ -345,8 +345,7 @@ struct CardResultCell: View {
     
     // MARK: - Transforming Card
     
-    @ViewBuilder
-    private var transformingCardView: some View {
+    @ViewBuilder private var transformingCardView: some View {
         ZStack {
             // Front face (visible at 0°, hidden at 180°)
             if let frontFace = card.frontFace {

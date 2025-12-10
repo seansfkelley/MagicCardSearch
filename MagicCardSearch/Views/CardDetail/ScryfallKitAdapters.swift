@@ -16,12 +16,6 @@ struct RelatedPart: Identifiable {
     let id: String
     let name: String
     let typeLine: String?
-    
-    init(id: String, name: String, typeLine: String?) {
-        self.id = id
-        self.name = name
-        self.typeLine = typeLine
-    }
 }
 
 /// Adapter to convert ScryfallKit's Card.RelatedCard to our RelatedPart

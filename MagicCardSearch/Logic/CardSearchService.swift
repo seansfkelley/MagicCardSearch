@@ -50,17 +50,17 @@ class CardSearchService {
         }
         
         // Extract query parameters
-        let query = queryItems.first(where: { $0.name == "q" })?.value ?? ""
-        let page = queryItems.first(where: { $0.name == "page" }).flatMap { Int($0.value ?? "") }
+        let query = queryItems.first { $0.name == "q" }?.value ?? ""
+        let page = queryItems.first { $0.name == "page" }.flatMap { Int($0.value ?? "") }
         
         // Extract optional parameters
-        let uniqueValue = queryItems.first(where: { $0.name == "unique" })?.value
+        let uniqueValue = queryItems.first { $0.name == "unique" }?.value
         let unique = uniqueValue.flatMap { UniqueMode(rawValue: $0) }
         
-        let orderValue = queryItems.first(where: { $0.name == "order" })?.value
+        let orderValue = queryItems.first { $0.name == "order" }?.value
         let order = orderValue.flatMap { SortMode(rawValue: $0) }
         
-        let dirValue = queryItems.first(where: { $0.name == "dir" })?.value
+        let dirValue = queryItems.first { $0.name == "dir" }?.value
         let sortDirection = dirValue.flatMap { SortDirection(rawValue: $0) }
         
         let result = try await client.searchCards(
