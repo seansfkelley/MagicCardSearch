@@ -12,6 +12,7 @@ struct CardListView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var editMode: EditMode = .inactive
     @State private var selectedCards: Set<String> = []
+    @State private var detailSheetState: SheetState?
     
     private var isEditing: Bool {
         return editMode == .active
@@ -39,16 +40,25 @@ struct CardListView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
                     List(selection: $selectedCards) {
-                        ForEach(listManager.sortedCards) { card in
-                            CardListRow(card: card)
-                                .tag(card.id)
-                                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                                    Button(role: .destructive) {
-                                        listManager.removeCard(withId: card.id)
-                                    } label: {
-                                        Label("Delete", systemImage: "trash")
-                                    }
+                        ForEach(Array(listManager.sortedCards.enumerated()), id: \.element.id) { index, card in
+                            Button {
+                                if !isEditing {
+                                    detailSheetState = SheetState(index: index, cards: listManager.sortedCards)
                                 }
+                            } label: {
+                                CardListRow(card: card)
+                            }
+                            .buttonStyle(.plain)
+                            .tag(card.id)
+                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                Button(role: .destructive) {
+                                    withAnimation {
+                                        listManager.removeCard(withId: card.id)
+                                    }
+                                } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
+                            }
                         }
                     }
                     .listStyle(.insetGrouped)
@@ -112,6 +122,7 @@ struct CardListView: View {
                         } label: {
                             Image(systemName: "checklist")
                         }
+                        .disabled(listManager.cards.isEmpty)
                     }
                     
                     ToolbarItem(placement: .topBarTrailing) {
@@ -125,6 +136,26 @@ struct CardListView: View {
                 }
             }
         }
+        .sheet(item: $detailSheetState) { state in
+            CardDetailNavigatorFromList(
+                cards: state.cards,
+                initialIndex: state.index
+            )
+        }
+    }
+    
+    // Helper struct to make sheet item identifiable
+    struct SheetState: Identifiable {
+        let id: String
+        let index: Int
+        let cards: [CardListItem]
+        
+        init(index: Int, cards: [CardListItem]) {
+            self.index = index
+            self.cards = cards
+            // Use the card ID at this index as a stable identifier
+            self.id = cards.indices.contains(index) ? cards[index].id : UUID().uuidString
+        }
     }
 
     // MARK: - Shareable Text
@@ -137,6 +168,99 @@ struct CardListView: View {
                 "1 \(card.name)"
             }
         }.joined(separator: "\n")
+    }
+}
+
+// MARK: - Card Detail Navigator From List
+
+private struct CardDetailNavigatorFromList: View {
+    let cards: [CardListItem]
+    let initialIndex: Int
+    
+    @State private var fullCards: [CardResult] = []
+    @State private var isLoading = true
+    @State private var error: Error?
+    @Environment(\.dismiss) private var dismiss
+    
+    private let cardSearchService = CardSearchService()
+    
+    var body: some View {
+        NavigationStack {
+            Group {
+                if isLoading {
+                    VStack(spacing: 16) {
+                        ProgressView()
+                            .scaleEffect(1.5)
+                        Text("Loading card details...")
+                            .font(.title3)
+                            .foregroundStyle(.secondary)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else if let error = error {
+                    VStack(spacing: 16) {
+                        Image(systemName: "exclamationmark.triangle")
+                            .font(.system(size: 60))
+                            .foregroundStyle(.secondary)
+                        
+                        Text("Failed to load card details")
+                            .font(.title2)
+                            .fontWeight(.semibold)
+                        
+                        Text(error.localizedDescription)
+                            .font(.body)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 32)
+                        
+                        Button("Try Again") {
+                            Task {
+                                await loadCards()
+                            }
+                        }
+                        .buttonStyle(.borderedProminent)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else if !fullCards.isEmpty {
+                    CardDetailNavigator(
+                        cards: fullCards,
+                        initialIndex: initialIndex,
+                        totalCount: fullCards.count
+                    )
+                } else {
+                    Text("No cards to display")
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
+            }
+            .navigationTitle("Cards")
+            .navigationBarTitleDisplayMode(.inline)
+        }
+        .task {
+            await loadCards()
+        }
+    }
+    
+    private func loadCards() async {
+        isLoading = true
+        error = nil
+        
+        print("Loading \(cards.count) cards from list...")
+        
+        do {
+            // Fetch full card details for all cards in the list
+            var loadedCards: [CardResult] = []
+            for card in cards {
+                print("Fetching card: \(card.name) (ID: \(card.id))")
+                let fullCard = try await cardSearchService.fetchCard(byId: card.id)
+                loadedCards.append(fullCard)
+            }
+            fullCards = loadedCards
+            print("Successfully loaded \(fullCards.count) cards")
+        } catch {
+            print("Error loading cards: \(error)")
+            self.error = error
+        }
+        
+        isLoading = false
     }
 }
 
