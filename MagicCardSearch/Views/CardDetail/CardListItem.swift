@@ -14,14 +14,18 @@ struct CardListItem: Identifiable, Codable, Equatable, Hashable, Comparable {
     let name: String
     let typeLine: String?
     let smallImageUrl: String?
-    let setCode: String?
-    let releasedAt: String?
+    let setCode: String
+    let setName: String
+    let collectorNumber: String
+    let releasedAt: String
     
     init(from card: Card) {
         self.id = card.id
         self.name = card.name
         self.typeLine = card.typeLine
         self.setCode = card.set
+        self.setName = card.setName
+        self.collectorNumber = card.collectorNumber
         self.releasedAt = card.releasedAt
         self.smallImageUrl = card.primaryImageUris?.small
     }
@@ -33,11 +37,10 @@ struct CardListItem: Identifiable, Codable, Equatable, Hashable, Comparable {
             return lhs.name < rhs.name
         }
         
-        // If names are equal, sort by release date (most recent first)
-        guard let lhsDate = lhs.releasedAt, let rhsDate = rhs.releasedAt else {
-            return lhs.id < rhs.id // Fallback to ID if no dates
+        if lhs.releasedAt == rhs.releasedAt {
+            return lhs.id < rhs.id
         }
         
-        return lhsDate > rhsDate
+        return lhs.releasedAt > rhs.releasedAt
     }
 }

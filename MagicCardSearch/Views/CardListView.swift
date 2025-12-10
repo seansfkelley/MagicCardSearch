@@ -166,14 +166,7 @@ struct CardListView: View {
     // MARK: - Shareable Text
 
     private var shareableText: String {
-        listManager.sortedCards.map { card in
-            return if let setCode = card.setCode {
-                "1 \(card.name) (\(setCode)"
-            } else {
-                "1 \(card.name)"
-            }
-        }
-        .joined(separator: "\n")
+        listManager.sortedCards.map { "1 \($0.name) (\($0.setCode.uppercased())" }.joined(separator: "\n")
     }
 }
 
@@ -272,7 +265,7 @@ private struct CardListRow: View {
     let card: CardListItem
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 10) {
             // Card Image
             Group {
                 if let imageUrl = card.smallImageUrl, let url = URL(string: imageUrl) {
@@ -286,7 +279,7 @@ private struct CardListRow: View {
                                 .resizable()
                                 .aspectRatio(contentMode: .fill)
                                 .frame(width: 60, height: 84)
-                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                                .clipShape(RoundedRectangle(cornerRadius: 6))
                         case .failure:
                             imagePlaceholder
                         @unknown default:
@@ -311,15 +304,35 @@ private struct CardListRow: View {
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                 }
+                
+                HStack(spacing: 4) {
+                    SetIconView(setCode: card.setCode, size: 12)
+                    Text(card.setCode.uppercased())
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                    Text("•")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Text("#\(card.collectorNumber)")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                    Text("•")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Text(card.setName)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
             }
 
             Spacer(minLength: 0)
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, 2)
     }
 
     private var imagePlaceholder: some View {
-        RoundedRectangle(cornerRadius: 8)
+        RoundedRectangle(cornerRadius: 6)
             .fill(Color.gray.opacity(0.2))
             .frame(width: 60, height: 84)
             .overlay(
