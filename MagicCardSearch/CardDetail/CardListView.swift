@@ -95,27 +95,51 @@ struct CardListView: View {
             }
             
             Section {
-                Button(role: .destructive) {
-                    // Clear all action will trigger on long press
-                } label: {
-                    HStack {
-                        Image(systemName: "trash")
-                        Text("Clear All")
+                ClearAllButton {
+                    withAnimation {
+                        listManager.clearAll()
                     }
-                    .frame(maxWidth: .infinity)
-                    .foregroundStyle(list.isEmpty ? .gray : .red)
                 }
-                .simultaneousGesture(
-                    LongPressGesture(minimumDuration: 1)
-                        .onEnded { _ in
-                            withAnimation {
-                                listManager.clearAll()
-                            }
-                        }
-                )
             }
         }
         .listStyle(.insetGrouped)
+    }
+}
+
+// MARK: - Clear All Button
+
+private struct ClearAllButton: View {
+    let onClear: () -> Void
+    
+    @State private var isPressed = false
+    
+    private let longPressDuration: Double = 1.0
+    
+    var body: some View {
+        Button(action: {}) {
+            HStack {
+                Image(systemName: "trash")
+                Text("Clear All")
+            }
+        }
+        .scaleEffect(isPressed ? 1.1 : 1.0)
+        .animation(isPressed ? .easeOut(duration: longPressDuration) : .spring(duration: 0.2), value: isPressed)
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 0)
+                .onChanged { _ in
+                    isPressed = true
+                }
+                .onEnded { _ in
+                    isPressed = false
+                }
+        )
+        .simultaneousGesture(
+            LongPressGesture(minimumDuration: longPressDuration)
+                .onEnded { _ in
+                    isPressed = false
+                    onClear()
+                }
+        )
     }
 }
 
@@ -191,4 +215,13 @@ private struct CardListRow: View {
 
 #Preview("Empty State") {
     CardListView()
+}
+
+#Preview("Clear All Button") {
+    ClearAllButton(
+        onClear: {
+            print("Cleared!")
+        }
+    )
+    .buttonStyle(.bordered)
 }
