@@ -49,7 +49,24 @@ struct CardDetailView: View {
                     )
                 }
 
+                // Set Information Section
+                if card.setCode != nil || card.setName != nil || card.collectorNumber != nil || card.rarity != nil || card.lang != nil {
+                    Divider()
+                        .padding(.horizontal)
+
+                    CardSetInfoSection(
+                        setCode: card.setCode,
+                        setName: card.setName,
+                        collectorNumber: card.collectorNumber,
+                        rarity: card.rarity,
+                        lang: card.lang
+                    )
+                }
+
                 if let allParts = card.allParts, !allParts.isEmpty {
+                    Divider()
+                        .padding(.horizontal)
+                    
                     CardRelatedPartsSection(
                         allParts: allParts,
                         isLoadingRelatedCard: isLoadingRelatedCard,
@@ -235,6 +252,96 @@ private struct CardLegalitiesSection: View {
         .padding(.horizontal)
         .padding(.vertical, 12)
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+// MARK: - Card Set Information Section
+
+private struct CardSetInfoSection: View {
+    let setCode: String?
+    let setName: String?
+    let collectorNumber: String?
+    let rarity: String?
+    let lang: String?
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            if let setName = setName {
+                HStack(spacing: 12) {
+                    if let setCode = setCode {
+                        SetIconView(setCode: setCode)
+                    }
+                    
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(setName)
+                            .font(.body)
+                            .fontWeight(.medium)
+                        
+                        HStack(spacing: 8) {
+                            if let setCode = setCode {
+                                Text(setCode.uppercased())
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                            
+                            if let collectorNumber = collectorNumber {
+                                Text("#\(collectorNumber)")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                            
+                            if let rarity = rarity {
+                                Text("•")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                HStack(spacing: 4) {
+                                    Text(rarity.capitalized)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                            
+                            if let lang = lang {
+                                Text("•")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                HStack(spacing: 4) {
+                                    Text(languageDisplay(for: lang))
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        .padding(.horizontal)
+        .padding(.vertical, 12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+    
+    private func languageDisplay(for lang: String) -> String {
+        let languages: [String: String] = [
+            "en": "English",
+            "es": "Spanish",
+            "fr": "French",
+            "de": "German",
+            "it": "Italian",
+            "pt": "Portuguese",
+            "ja": "Japanese",
+            "ko": "Korean",
+            "ru": "Russian",
+            "zhs": "Simplified Chinese",
+            "zht": "Traditional Chinese",
+            "he": "Hebrew",
+            "la": "Latin",
+            "grc": "Ancient Greek",
+            "ar": "Arabic",
+            "sa": "Sanskrit",
+            "px": "Phyrexian"
+        ]
+        return languages[lang.lowercased()] ?? lang.capitalized
     }
 }
 

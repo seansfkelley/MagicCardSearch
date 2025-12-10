@@ -41,6 +41,22 @@ enum CardResult: Identifiable, Codable {
         field(regular: \.setCode, transforming: \.setCode)
     }
     
+    var setName: String? {
+        field(regular: \.setName, transforming: \.setName)
+    }
+    
+    var collectorNumber: String? {
+        field(regular: \.collectorNumber, transforming: \.collectorNumber)
+    }
+    
+    var rarity: String? {
+        field(regular: \.rarity, transforming: \.rarity)
+    }
+    
+    var lang: String? {
+        field(regular: \.lang, transforming: \.lang)
+    }
+    
     var releasedAt: String? {
         field(regular: \.releasedAt, transforming: \.releasedAt)
     }
@@ -161,6 +177,10 @@ struct RegularCard: Identifiable, Codable {
     let allParts: [RelatedPart]?
     let scryfallUri: String?
     let setCode: String?
+    let setName: String?
+    let collectorNumber: String?
+    let rarity: String?
+    let lang: String?
     let releasedAt: String?
     
     enum CodingKeys: String, CodingKey {
@@ -181,6 +201,10 @@ struct RegularCard: Identifiable, Codable {
         case allParts = "all_parts"
         case scryfallUri = "scryfall_uri"
         case setCode = "set"
+        case setName = "set_name"
+        case collectorNumber = "collector_number"
+        case rarity
+        case lang
         case releasedAt = "released_at"
     }
     
@@ -196,7 +220,8 @@ struct RegularCard: Identifiable, Codable {
          power: String? = nil, toughness: String? = nil, artist: String? = nil,
          colors: [String]? = nil, colorIndicator: [String]? = nil, legalities: [String: String]? = nil,
          gameChanger: Bool? = nil, allParts: [RelatedPart]? = nil, scryfallUri: String? = nil,
-         setCode: String? = nil, releasedAt: String? = nil) {
+         setCode: String? = nil, setName: String? = nil, collectorNumber: String? = nil,
+         rarity: String? = nil, lang: String? = nil, releasedAt: String? = nil) {
         self.id = id
         self.name = name
         self.smallImageUrl = smallImageUrl
@@ -216,6 +241,10 @@ struct RegularCard: Identifiable, Codable {
         self.allParts = allParts
         self.scryfallUri = scryfallUri
         self.setCode = setCode
+        self.setName = setName
+        self.collectorNumber = collectorNumber
+        self.rarity = rarity
+        self.lang = lang
         self.releasedAt = releasedAt
     }
     
@@ -249,6 +278,10 @@ struct RegularCard: Identifiable, Codable {
         allParts = try? container.decode([RelatedPart].self, forKey: .allParts)
         scryfallUri = try? container.decode(String.self, forKey: .scryfallUri)
         setCode = try? container.decode(String.self, forKey: .setCode)
+        setName = try? container.decode(String.self, forKey: .setName)
+        collectorNumber = try? container.decode(String.self, forKey: .collectorNumber)
+        rarity = try? container.decode(String.self, forKey: .rarity)
+        lang = try? container.decode(String.self, forKey: .lang)
         releasedAt = try? container.decode(String.self, forKey: .releasedAt)
     }
     
@@ -272,6 +305,10 @@ struct TransformingCard: Identifiable, Codable {
     let allParts: [RelatedPart]?
     let scryfallUri: String?
     let setCode: String?
+    let setName: String?
+    let collectorNumber: String?
+    let rarity: String?
+    let lang: String?
     let releasedAt: String?
     
     enum CodingKeys: String, CodingKey {
@@ -284,6 +321,10 @@ struct TransformingCard: Identifiable, Codable {
         case allParts = "all_parts"
         case scryfallUri = "scryfall_uri"
         case setCode = "set"
+        case setName = "set_name"
+        case collectorNumber = "collector_number"
+        case rarity
+        case lang
         case releasedAt = "released_at"
     }
     
@@ -309,6 +350,10 @@ struct TransformingCard: Identifiable, Codable {
         allParts = try? container.decode([RelatedPart].self, forKey: .allParts)
         scryfallUri = try? container.decode(String.self, forKey: .scryfallUri)
         setCode = try? container.decode(String.self, forKey: .setCode)
+        setName = try? container.decode(String.self, forKey: .setName)
+        collectorNumber = try? container.decode(String.self, forKey: .collectorNumber)
+        rarity = try? container.decode(String.self, forKey: .rarity)
+        lang = try? container.decode(String.self, forKey: .lang)
         releasedAt = try? container.decode(String.self, forKey: .releasedAt)
     }
     
