@@ -10,7 +10,13 @@ import SwiftUI
 struct CardListView: View {
     @ObservedObject var listManager = CardListManager.shared
     @Environment(\.dismiss) private var dismiss
+    @State private var editMode: EditMode = .inactive
+    @State private var selectedCards: Set<String> = []
     
+    private var isEditing: Bool {
+        return editMode == .active
+    }
+
     var body: some View {
         NavigationStack {
             Group {
@@ -19,11 +25,11 @@ struct CardListView: View {
                         Image(systemName: "star.slash")
                             .font(.system(size: 60))
                             .foregroundStyle(.secondary)
-                        
+
                         Text("No Cards Saved")
                             .font(.title2)
                             .fontWeight(.semibold)
-                        
+
                         Text("Tap the star button on any card to add it to your list.")
                             .font(.body)
                             .foregroundStyle(.secondary)
@@ -32,9 +38,10 @@ struct CardListView: View {
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
-                    List {
+                    List(selection: $selectedCards) {
                         ForEach(listManager.sortedCards) { card in
                             CardListRow(card: card)
+                                .tag(card.id)
                                 .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                                     Button(role: .destructive) {
                                         listManager.removeCard(withId: card.id)
@@ -43,16 +50,9 @@ struct CardListView: View {
                                     }
                                 }
                         }
-                        
-                        ClearAllButton {
-                            listManager.clearAll()
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                        .listRowInsets(EdgeInsets())
-                        .listRowBackground(Color.clear)
                     }
                     .listStyle(.insetGrouped)
+                    .environment(\.editMode, $editMode)
                 }
             }
             .navigationTitle("Favorites")
@@ -65,21 +65,70 @@ struct CardListView: View {
                         Image(systemName: "xmark")
                     }
                 }
-                
-                ToolbarItem(placement: .topBarTrailing) {
-                    ShareLink(
-                        item: shareableText
-                    ) {
-                        Image(systemName: "square.and.arrow.up")
+
+                if isEditing {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            withAnimation {
+                                editMode = .inactive
+                                selectedCards.removeAll()
+                            }
+                        } label: {
+                            Text("Done")
+                        }
                     }
-                    .disabled(listManager.cards.isEmpty)
+                    
+                    ToolbarItemGroup(placement: .bottomBar) {
+                        Button {
+                            withAnimation {
+                                selectedCards = Set(listManager.sortedCards.map(\.id))
+                            }
+                        } label: {
+                            Text("Select All")
+                        }
+                        .disabled(selectedCards.count == listManager.cards.count)
+
+                        Spacer()
+
+                        Button(role: .destructive) {
+                            withAnimation {
+                                for cardId in selectedCards {
+                                    listManager.removeCard(withId: cardId)
+                                }
+                                selectedCards.removeAll()
+                                editMode = .inactive
+                            }
+                        } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
+                        .disabled(selectedCards.isEmpty)
+                    }
+                } else {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            withAnimation {
+                                editMode = .active
+                            }
+                        } label: {
+                            Image(systemName: "checklist")
+                        }
+                    }
+                    
+                    ToolbarItem(placement: .topBarTrailing) {
+                        ShareLink(
+                            item: shareableText
+                        ) {
+                            Image(systemName: "square.and.arrow.up")
+                        }
+                        .disabled(listManager.cards.isEmpty)
+                    }
                 }
             }
         }
     }
-    
+
     // MARK: - Shareable Text
-    
+
     private var shareableText: String {
         listManager.sortedCards.map { card in
             return if let setCode = card.setCode {
@@ -91,52 +140,11 @@ struct CardListView: View {
     }
 }
 
-// MARK: - Clear All Button
-
-private struct ClearAllButton: View {
-    let onClear: () -> Void
-    
-    @State private var isPressed = false
-    
-    private let longPressDuration: Double = 1.0
-    
-    var body: some View {
-        Button(action: {}) {
-            HStack {
-                Image(systemName: "trash")
-                Text("Clear All")
-            }
-            .padding(.vertical, 12)
-            .frame(maxWidth: .infinity)
-        }
-        .foregroundStyle(isPressed ? .white : .red)
-        .background(Capsule().fill(isPressed ? .red : .red.mix(with: .white, by: 0.9)))
-        .scaleEffect(isPressed ? 1.1 : 1.0)
-        .animation(isPressed ? .easeOut(duration: longPressDuration) : .easeIn(duration: 0.2), value: isPressed)
-        .simultaneousGesture(
-            DragGesture(minimumDistance: 0)
-                .onChanged { _ in
-                    isPressed = true
-                }
-                .onEnded { _ in
-                    isPressed = false
-                }
-        )
-        .simultaneousGesture(
-            LongPressGesture(minimumDuration: longPressDuration)
-                .onEnded { _ in
-                    isPressed = false
-                    onClear()
-                }
-        )
-    }
-}
-
 // MARK: - Card List Row
 
 private struct CardListRow: View {
     let card: CardListItem
-    
+
     var body: some View {
         HStack(spacing: 12) {
             // Card Image
@@ -163,14 +171,14 @@ private struct CardListRow: View {
                     imagePlaceholder
                 }
             }
-            
+
             // Card Info
             VStack(alignment: .leading, spacing: 4) {
                 Text(card.name)
                     .font(.body)
                     .fontWeight(.medium)
                     .lineLimit(2)
-                
+
                 if let typeLine = card.typeLine {
                     Text(typeLine)
                         .font(.caption)
@@ -178,12 +186,12 @@ private struct CardListRow: View {
                         .lineLimit(1)
                 }
             }
-            
+
             Spacer(minLength: 0)
         }
         .padding(.vertical, 4)
     }
-    
+
     private var imagePlaceholder: some View {
         RoundedRectangle(cornerRadius: 8)
             .fill(Color.gray.opacity(0.2))
@@ -204,13 +212,4 @@ private struct CardListRow: View {
 
 #Preview("Empty State") {
     CardListView()
-}
-
-#Preview("Clear All Button") {
-    ClearAllButton(
-        onClear: {
-            print("Cleared!")
-        }
-    )
-    .buttonStyle(.bordered)
 }
