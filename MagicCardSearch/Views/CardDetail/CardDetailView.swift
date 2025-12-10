@@ -467,46 +467,52 @@ private struct CardRelatedPartsSection: View {
     let onPartTapped: (UUID) -> Void
 
     var body: some View {
-        List {
-            Section("Related Parts") {
-                ForEach(otherParts) { part in
-                    Button {
-                        onPartTapped(part.id)
-                    } label: {
-                        HStack {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(part.name)
-                                    .font(.body)
-                                    .foregroundStyle(.primary)
+        VStack(alignment: .leading, spacing: 0) {
+            Text("Related Parts")
+                .font(.headline)
+                .fontWeight(.semibold)
+                .padding(.horizontal)
+                .padding(.vertical, 12)
+            
+            ForEach(otherParts.sorted { $0.name < $1.name }) { part in
+                Button {
+                    onPartTapped(part.id)
+                } label: {
+                    HStack {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(part.name)
+                                .font(.body)
+                                .foregroundStyle(.primary)
 
-                                Text(part.typeLine)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-
-                            Spacer()
-
-                            if isLoadingRelatedCard {
-                                ProgressView()
-                                    .controlSize(.small)
-                            } else {
-                                Image(systemName: "chevron.right")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
+                            Text(part.typeLine)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
                         }
-                        .contentShape(Rectangle())
+
+                        Spacer()
+
+                        if isLoadingRelatedCard {
+                            ProgressView()
+                                .controlSize(.small)
+                        } else {
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
                     }
-                    .buttonStyle(.plain)
-                    .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                    .padding(.horizontal)
+                    .padding(.vertical, 12)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                
+                if part.id != otherParts.last?.id {
+                    Divider()
+                        .padding(.leading)
                 }
             }
         }
-        .listStyle(.insetGrouped)
-        .scrollDisabled(true)
-        // TODO: wtf. There has got to be a way to tell the list to just be its own
-        // natural height.
-        .frame(height: CGFloat(otherParts.count) * 60 + 60)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
