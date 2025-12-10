@@ -15,15 +15,51 @@ struct CardListView: View {
         NavigationStack {
             Group {
                 if listManager.cards.isEmpty {
-                    emptyStateView
+                    VStack(spacing: 16) {
+                        Image(systemName: "star.slash")
+                            .font(.system(size: 60))
+                            .foregroundStyle(.secondary)
+                        
+                        Text("No Cards Saved")
+                            .font(.title2)
+                            .fontWeight(.semibold)
+                        
+                        Text("Tap the star button on any card to add it to your list.")
+                            .font(.body)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 32)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
-                    cardListView
+                    VStack(spacing: 0) {
+                        List {
+                            ForEach(listManager.sortedCards) { card in
+                                CardListRow(card: card)
+                                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                        Button(role: .destructive) {
+                                            withAnimation {
+                                                listManager.removeCard(withId: card.id)
+                                            }
+                                        } label: {
+                                            Label("Delete", systemImage: "trash")
+                                        }
+                                    }
+                            }
+                        }
+                        .listStyle(.insetGrouped)
+                        
+                        ClearAllButton {
+                            listManager.clearAll()
+                        }
+                        .padding()
+                    }
                 }
             }
             .navigationTitle("Favorites")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
+                ToolbarItem(placement: .topBarLeading) {
                     Button {
                         dismiss()
                     } label: {
@@ -39,7 +75,6 @@ struct CardListView: View {
                     }
                     .disabled(listManager.cards.isEmpty)
                 }
-                
             }
         }
     }
@@ -54,55 +89,6 @@ struct CardListView: View {
                 "1 \(card.name)"
             }
         }.joined(separator: "\n")
-    }
-    
-    // MARK: - Empty State
-    
-    private var emptyStateView: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "star.slash")
-                .font(.system(size: 60))
-                .foregroundStyle(.secondary)
-            
-            Text("No Cards Saved")
-                .font(.title2)
-                .fontWeight(.semibold)
-            
-            Text("Tap the star button on any card to add it to your list.")
-                .font(.body)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 32)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-    
-    // MARK: - Card List
-    
-    private var cardListView: some View {
-        List {
-            ForEach(listManager.sortedCards) { card in
-                CardListRow(card: card)
-                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                        Button(role: .destructive) {
-                            withAnimation {
-                                listManager.removeCard(withId: card.id)
-                            }
-                        } label: {
-                            Label("Delete", systemImage: "trash")
-                        }
-                    }
-            }
-            
-            Section {
-                ClearAllButton {
-                    withAnimation {
-                        listManager.clearAll()
-                    }
-                }
-            }
-        }
-        .listStyle(.insetGrouped)
     }
 }
 
@@ -122,6 +108,8 @@ private struct ClearAllButton: View {
                 Text("Clear All")
             }
         }
+        .foregroundStyle(isPressed ? .white : .red)
+        .background(Capsule().fill(isPressed ? .red : .red.mix(with: .white, by: 0.9)))
         .scaleEffect(isPressed ? 1.1 : 1.0)
         .animation(isPressed ? .easeOut(duration: longPressDuration) : .spring(duration: 0.2), value: isPressed)
         .simultaneousGesture(
