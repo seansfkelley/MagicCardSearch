@@ -9,6 +9,7 @@ import SwiftUI
 
 struct CardDetailView: View {
     let card: CardResult
+    var isCurrentlyVisible: Bool = true
 
     @State private var relatedCardToShow: CardResult?
     @State private var isLoadingRelatedCard = false
@@ -64,19 +65,21 @@ struct CardDetailView: View {
             .padding(.top)
         }
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    let listItem = CardListItem(from: card)
-                    listManager.toggleCard(listItem)
-                } label: {
-                    Image(systemName: listManager.contains(cardId: card.id) ? "star.fill" : "star")
-                }
-            }
-            
-            if let scryfallUri = card.scryfallUri,
-               let url = URL(string: scryfallUri) {
+            if isCurrentlyVisible {
                 ToolbarItem(placement: .topBarTrailing) {
-                    ShareLink(item: url)
+                    Button {
+                        let listItem = CardListItem(from: card)
+                        listManager.toggleCard(listItem)
+                    } label: {
+                        Image(systemName: listManager.contains(cardId: card.id) ? "star.fill" : "star")
+                    }
+                }
+                
+                if let scryfallUri = card.scryfallUri,
+                   let url = URL(string: scryfallUri) {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        ShareLink(item: url)
+                    }
                 }
             }
         }

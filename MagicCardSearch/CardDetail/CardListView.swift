@@ -185,54 +185,50 @@ private struct CardDetailNavigatorFromList: View {
     private let cardSearchService = CardSearchService()
     
     var body: some View {
-        NavigationStack {
-            Group {
-                if isLoading {
-                    VStack(spacing: 16) {
-                        ProgressView()
-                            .scaleEffect(1.5)
-                        Text("Loading card details...")
-                            .font(.title3)
-                            .foregroundStyle(.secondary)
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else if let error = error {
-                    VStack(spacing: 16) {
-                        Image(systemName: "exclamationmark.triangle")
-                            .font(.system(size: 60))
-                            .foregroundStyle(.secondary)
-                        
-                        Text("Failed to load card details")
-                            .font(.title2)
-                            .fontWeight(.semibold)
-                        
-                        Text(error.localizedDescription)
-                            .font(.body)
-                            .foregroundStyle(.secondary)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, 32)
-                        
-                        Button("Try Again") {
-                            Task {
-                                await loadCards()
-                            }
-                        }
-                        .buttonStyle(.borderedProminent)
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else if !fullCards.isEmpty {
-                    CardDetailNavigator(
-                        cards: fullCards,
-                        initialIndex: initialIndex,
-                        totalCount: fullCards.count
-                    )
-                } else {
-                    Text("No cards to display")
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        Group {
+            if isLoading {
+                VStack(spacing: 16) {
+                    ProgressView()
+                        .scaleEffect(1.5)
+                    Text("Loading card details...")
+                        .font(.title3)
+                        .foregroundStyle(.secondary)
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if let error = error {
+                VStack(spacing: 16) {
+                    Image(systemName: "exclamationmark.triangle")
+                        .font(.system(size: 60))
+                        .foregroundStyle(.secondary)
+                    
+                    Text("Failed to load card details")
+                        .font(.title2)
+                        .fontWeight(.semibold)
+                    
+                    Text(error.localizedDescription)
+                        .font(.body)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 32)
+                    
+                    Button("Try Again") {
+                        Task {
+                            await loadCards()
+                        }
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if !fullCards.isEmpty {
+                CardDetailNavigator(
+                    cards: fullCards,
+                    initialIndex: initialIndex,
+                    totalCount: fullCards.count
+                )
+            } else {
+                Text("No cards to display")
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-            .navigationTitle("Cards")
-            .navigationBarTitleDisplayMode(.inline)
         }
         .task {
             await loadCards()

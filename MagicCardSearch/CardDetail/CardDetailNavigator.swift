@@ -46,7 +46,7 @@ struct CardDetailNavigator: View {
                 ScrollView(.horizontal) {
                     LazyHStack(spacing: 0) {
                         ForEach(Array(cards.enumerated()), id: \.element.id) { index, card in
-                            CardDetailView(card: card)
+                            CardDetailView(card: card, isCurrentlyVisible: index == currentIndex)
                                 .frame(width: geometry.size.width, height: geometry.size.height)
                                 .containerRelativeFrame(.horizontal)
                                 .id(index)
