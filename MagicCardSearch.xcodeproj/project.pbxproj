@@ -37,6 +37,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		211396112EE9E39500093873 /* CLAUDE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = CLAUDE.md; sourceTree = "<group>"; };
 		2137B5AD2EE139C60066BF7E /* MagicCardSearch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MagicCardSearch.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		2137B5BA2EE139C70066BF7E /* MagicCardSearchTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MagicCardSearchTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		2137B5C42EE139C70066BF7E /* MagicCardSearchUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MagicCardSearchUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -122,6 +123,7 @@
 			isa = PBXGroup;
 			children = (
 				21D3976C2EE23306008B3EFD /* README.md */,
+				211396112EE9E39500093873 /* CLAUDE.md */,
 				21D397682EE232F0008B3EFD /* Citron */,
 				2137B5AF2EE139C60066BF7E /* MagicCardSearch */,
 				2137B5BD2EE139C70066BF7E /* MagicCardSearchTests */,
