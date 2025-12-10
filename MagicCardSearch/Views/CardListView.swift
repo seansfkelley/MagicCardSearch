@@ -65,7 +65,7 @@ struct CardListView: View {
                     .environment(\.editMode, $editMode)
                 }
             }
-            .navigationTitle("Favorites")
+            .navigationTitle("Saved Cards")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {

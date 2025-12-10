@@ -106,7 +106,7 @@ struct ContentView: View {
                     Button {
                         showCardList = true
                     } label: {
-                        Image(systemName: "list.star")
+                        Image(systemName: "bookmark.circle")
                     }
                 }
                 

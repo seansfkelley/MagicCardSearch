@@ -114,7 +114,7 @@ struct CardDetailView: View {
                         let listItem = CardListItem(from: card)
                         listManager.toggleCard(listItem)
                     } label: {
-                        Image(systemName: listManager.contains(cardId: card.id) ? "star.fill" : "star")
+                        Image(systemName: listManager.contains(cardId: card.id) ? "bookmark.fill" : "bookmark")
                     }
                 }
                 
@@ -1086,7 +1086,7 @@ private struct MinimalCardDetailView: View {
                             let listItem = CardListItem(from: card)
                             listManager.toggleCard(listItem)
                         } label: {
-                            Image(systemName: listManager.contains(cardId: card.id) ? "star.fill" : "star")
+                            Image(systemName: listManager.contains(cardId: card.id) ? "bookmark.fill" : "bookmark")
                         }
                     }
                     
