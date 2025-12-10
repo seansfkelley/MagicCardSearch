@@ -88,7 +88,7 @@ struct CardListView: View {
                     }
                     
                     ToolbarItemGroup(placement: .bottomBar) {
-                        let areAllSelected = selectedCards.count == listManager.cards.count;
+                        let areAllSelected = selectedCards.count == listManager.cards.count
                         
                         Button {
                             withAnimation {

@@ -30,7 +30,6 @@ enum IndicatorColor: String {
     }
 }
 
-
 struct ColorIndicatorView: View {
     let colors: [String]
     let size: CGFloat
@@ -83,7 +82,7 @@ struct ColorIndicatorView: View {
                         .init(color: left.uiColor, location: 0.0),
                         .init(color: left.uiColor, location: 0.5),
                         .init(color: right.uiColor, location: 0.5),
-                        .init(color: right.uiColor, location: 1.0)
+                        .init(color: right.uiColor, location: 1.0),
                     ],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing

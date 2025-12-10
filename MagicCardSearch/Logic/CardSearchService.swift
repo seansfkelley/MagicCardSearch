@@ -86,7 +86,7 @@ class CardSearchService {
             URLQueryItem(name: "q", value: queryString),
             URLQueryItem(name: "unique", value: config.uniqueMode.apiValue),
             URLQueryItem(name: "order", value: config.sortField.apiValue),
-            URLQueryItem(name: "dir", value: config.sortOrder.apiValue)
+            URLQueryItem(name: "dir", value: config.sortOrder.apiValue),
         ]
         
         return components.url

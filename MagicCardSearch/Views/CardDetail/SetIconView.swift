@@ -102,7 +102,6 @@ struct SetIconView: View {
                 self.renderedImage = uiImage
                 self.isLoading = false
             }
-            
         } catch {
             print("SetIconView: Error loading SVG for set \(setCode): \(error)")
             await MainActor.run {

@@ -5,7 +5,6 @@
 //  Created by Sean Kelley on 2025-12-08.
 //
 
-
 import SwiftUI
 
 // The weird order here is because the column view goes English reading order, and it's a lot easier
@@ -55,7 +54,7 @@ struct LegalityGridView: View {
     var body: some View {
         LazyVGrid(columns: [
             GridItem(.flexible(), spacing: 12),
-            GridItem(.flexible(), spacing: 12)
+            GridItem(.flexible(), spacing: 12),
         ], spacing: 12) {
             ForEach(Format.allCases, id: \.self) { format in
                 if let apiLegality = legalities[format.apiKey], let legality = Legality.fromApiValue(apiLegality) {

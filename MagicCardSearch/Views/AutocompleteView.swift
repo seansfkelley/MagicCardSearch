@@ -25,7 +25,7 @@ struct AutocompleteView: View {
 
     var body: some View {
         List {
-            ForEach(Array(suggestions.enumerated()), id: \.offset) { index, suggestion in
+            ForEach(Array(suggestions.enumerated()), id: \.offset) { _, suggestion in
                 switch suggestion {
                 case .history(let suggestion):
                     historyRow(suggestion)
@@ -102,9 +102,9 @@ struct AutocompleteView: View {
                     highlightRange: suggestion.matchRange
                 )
                 
-                ComparisonButtonGroup(onButtonTap: { comparison in
+                ComparisonButtonGroup { comparison in
                     onSuggestionTap(.string("\(suggestion.filterType)\(comparison.rawValue)"))
-                })
+                }
             }
 
             Spacer(minLength: 0)
@@ -126,13 +126,12 @@ struct AutocompleteView: View {
                 
                 ScrollView(.horizontal, showsIndicators: false) {
                     EnumerationButtonGroup(
-                        options: options,
-                        onButtonTap: { option in
+                        options: options
+                    ) { option in
                             onSuggestionTap(
                                 .filter(.keyValue(suggestion.filterType, suggestion.comparison, option))
                             )
-                        }
-                    )
+                    }
                 }
             }
 
@@ -224,8 +223,7 @@ struct HighlightedText: View {
     }
 
     private func buildAttributedString(text: String, highlightRange: Range<String.Index>)
-        -> AttributedString
-    {
+        -> AttributedString {
         var attributedString = AttributedString(text)
 
         // Convert String.Index range to AttributedString.Index range

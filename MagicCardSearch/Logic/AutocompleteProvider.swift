@@ -54,7 +54,7 @@ class AutocompleteProvider {
 
     // TODO: This implementation sucks.
     func recordFilterUsage(_ filter: SearchFilter) {
-        let wasPinned = history.first(where: { $0.filter == filter })?.isPinned ?? false
+        let wasPinned = history.first { $0.filter == filter }?.isPinned ?? false
 
         history.removeAll { $0.filter == filter }
 
@@ -73,15 +73,14 @@ class AutocompleteProvider {
     }
 
     func suggestions(for searchTerm: String, excluding excludedFilters: Set<SearchFilter> = Set())
-        -> [Suggestion]
-    {
+        -> [Suggestion] {
         let availableHistory = history.filter { !excludedFilters.contains($0.filter) }
 
         let trimmedSearchTerm = searchTerm.trimmingCharacters(in: .whitespaces)
 
         if trimmedSearchTerm.isEmpty {
             return Array(
-                sortResults(availableHistory.map { 
+                sortResults(availableHistory.map {
                     Suggestion.history(HistorySuggestion(
                         filter: $0.filter,
                         isPinned: $0.isPinned,
@@ -120,7 +119,7 @@ class AutocompleteProvider {
             filterTypeCandidates.append(contentsOf: filterType.aliases)
 
             var hasExactMatch = false
-            var bestMatch: (text: String, range: Range<String.Index>, matchLength: Int)? = nil
+            var bestMatch: (text: String, range: Range<String.Index>, matchLength: Int)?
 
             for candidate in filterTypeCandidates {
                 // Check for exact match (case insensitive)
@@ -142,8 +141,7 @@ class AutocompleteProvider {
                                 && candidate == canonicalFilterType)
                             || (matchLength == existing.matchLength
                                 && existing.text != canonicalFilterType
-                                && candidate.count < existing.text.count)
-                        {
+                                && candidate.count < existing.text.count) {
                             bestMatch = (candidate, range, matchLength)
                         }
                     } else {
@@ -240,9 +238,7 @@ class AutocompleteProvider {
 
             // Check if filterPart matches an enumeration filter
             if let filterType = scryfallFilterByType[filterPart.lowercased()],
-                let options = filterType.enumerationValues
-            {
-
+                let options = filterType.enumerationValues {
                 // Filter and sort options based on valuePart
                 var matchingOptions: [(option: String, range: Range<String.Index>?)] = []
 
@@ -295,8 +291,7 @@ class AutocompleteProvider {
     private func sortResults(_ results: [Suggestion], historyLookup: [SearchFilter: HistoryEntry]) -> [Suggestion] {
         return results.sorted { lhs, rhs in
             if case Suggestion.history(let lhHistory) = lhs,
-                case Suggestion.history(let rhHistory) = rhs
-            {
+                case Suggestion.history(let rhHistory) = rhs {
                 if lhHistory.isPinned != rhHistory.isPinned {
                     return lhHistory.isPinned
                 }
@@ -317,7 +312,7 @@ class AutocompleteProvider {
     }
 
     func deleteSearchFilter(_ filter: SearchFilter) {
-        history.removeAll(where: { $0.filter == filter })
+        history.removeAll { $0.filter == filter }
         saveHistory()
     }
 

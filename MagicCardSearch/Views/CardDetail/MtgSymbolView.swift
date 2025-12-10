@@ -32,7 +32,6 @@ enum ManaColor: String {
     }
 }
 
-
 private let baseSymbolCodes = Set([
     // Colors/colorless mana
     "w", "u", "b", "r", "g", "c",
@@ -45,7 +44,7 @@ private let baseSymbolCodes = Set([
     "p",
 
     // Other symbols
-    "s", "t", "q"
+    "s", "t", "q",
 ])
 
 private let noncircledSymbolCodes = Set(["e", "chaos"])
@@ -183,8 +182,6 @@ struct MtgSymbolView: View {
             .foregroundStyle(.secondary)
     }
 }
-
-
 
 #Preview("All Mana Symbols") {
     ScrollView {

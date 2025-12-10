@@ -20,7 +20,7 @@ struct CardDetailNavigator: View {
     @State private var scrollPosition: Int?
     @Environment(\.dismiss) private var dismiss
     
-    init(cards: [CardResult], 
+    init(cards: [CardResult],
          initialIndex: Int,
          totalCount: Int = 0,
          hasMorePages: Bool = false,

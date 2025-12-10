@@ -103,7 +103,7 @@ struct SearchBarView: View {
                 inputText.replaceSubrange(range, with: symbol)
                 let location = inputText.index(range.lowerBound, offsetBy: symbol.count)
                 inputSelection = .init(range: location..<location)
-            case .multiSelection(_):
+            case .multiSelection:
                 // TODO: how or why
                 fallthrough
             @unknown default:
@@ -158,12 +158,12 @@ struct SymbolPickerView: View {
             )
 
             SymbolGroupRow(
-                symbols: ["{2/W}", "{2/U}", "{2/B}", "{2/R}", "{2/G}",],
+                symbols: ["{2/W}", "{2/U}", "{2/B}", "{2/R}", "{2/G}" ],
                 onSymbolTapped: onSymbolSelected
             )
 
             SymbolGroupRow(
-                symbols: ["{W/P}", "{U/P}", "{B/P}", "{R/P}", "{G/P}",],
+                symbols: ["{W/P}", "{U/P}", "{B/P}", "{R/P}", "{G/P}" ],
                 onSymbolTapped: onSymbolSelected
             )
         }

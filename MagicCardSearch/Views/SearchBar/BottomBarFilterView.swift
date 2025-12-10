@@ -126,7 +126,7 @@ struct BottomBarFilterView: View {
                     if !isSearchFocused && !filters.isEmpty {
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 8) {
-                                ForEach(Array(filters.enumerated()), id: \.offset) { index, filter in
+                                ForEach(Array(filters.enumerated()), id: \.offset) { _, filter in
                                     FilterPillView(filter: filter)
                                 }
                             }
@@ -258,11 +258,10 @@ private struct WarningsPillView: View {
                     pendingSelection: $pendingSelection,
                     isSearchFocused: _isFocused,
                     warnings: ["Warning 1", "Warning 2"],
-                    showWarningsPopover: $showWarningsPopover,
-                    onFilterEdit: { filter in
+                    showWarningsPopover: $showWarningsPopover
+                ) { filter in
                         print("Editing filter: \(filter)")
-                    }
-                )
+                }
             }
             .background(Color(uiColor: .systemBackground))
         }

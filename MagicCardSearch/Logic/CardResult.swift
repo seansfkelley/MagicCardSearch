@@ -140,7 +140,7 @@ enum CardResult: Identifiable, Codable {
         
         // Check if this is a double-faced card
         if let layout = layout,
-           (layout == "transform" || layout == "modal_dfc" || layout == "reversible_card"),
+           layout == "transform" || layout == "modal_dfc" || layout == "reversible_card",
            let cardFaces = try? container.decode([CardFace].self, forKey: .cardFaces),
            cardFaces.count >= 2 {
             self = .transforming(try TransformingCard(from: decoder))

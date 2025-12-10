@@ -72,29 +72,27 @@ struct CardDetailView: View {
                     
                     CardRelatedPartsSection(
                         allParts: allParts,
-                        isLoadingRelatedCard: isLoadingRelatedCard,
-                        onPartTapped: { partId in
+                        isLoadingRelatedCard: isLoadingRelatedCard
+                    ) { partId in
                             Task {
                                 await loadRelatedCard(id: partId)
                             }
-                        }
-                    )
+                    }
                 }
 
-                if let rulingsUri = card.rulingsUri, (isLoadingRulings || rulingsError != nil || !rulings.isEmpty) {
+                if let rulingsUri = card.rulingsUri, isLoadingRulings || rulingsError != nil || !rulings.isEmpty {
                     Divider()
                         .padding(.horizontal)
                     
                     CardRulingsSection(
                         rulings: rulings,
                         isLoading: isLoadingRulings,
-                        error: rulingsError,
-                        onRetry: {
+                        error: rulingsError
+                    ) {
                             Task {
                                 await loadRulings(from: rulingsUri)
                             }
-                        }
-                    )
+                    }
                 }
                 
                 Divider()
@@ -237,8 +235,6 @@ extension CardFace {
     }
 }
 
-
-
 // MARK: - Card Power/Toughness Section
 
 private struct CardPowerToughnessSection: View {
@@ -380,7 +376,7 @@ private struct CardSetInfoSection: View {
             "grc": "Ancient Greek",
             "ar": "Arabic",
             "sa": "Sanskrit",
-            "px": "Phyrexian"
+            "px": "Phyrexian",
         ]
         return languages[lang.lowercased()] ?? lang.capitalized
     }

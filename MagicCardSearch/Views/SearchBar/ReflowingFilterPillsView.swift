@@ -54,11 +54,10 @@ struct ReflowingFilterPillsView: View {
         var body: some View {
             VStack {
                 ReflowingFilterPillsView(
-                    filters: $filters,
-                    onFilterEdit: { filter in
+                    filters: $filters
+                ) { filter in
                         print("Editing filter: \(filter.queryStringWithEditingRange.0)")
-                    }
-                )
+                }
                 Spacer()
             }
         }

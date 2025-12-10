@@ -46,12 +46,11 @@ struct ContentView: View {
                     AutocompleteView(
                         inputText: inputText,
                         provider: autocompleteProvider,
-                        filters: filters,
-                        onSuggestionTap: { suggestion in
+                        filters: filters
+                    ) { suggestion in
                             handleSuggestionTap(suggestion)
                             inputSelection = TextSelection(insertionPoint: inputText.endIndex)
-                        }
-                    )
+                    }
                 }
             }
             .contentShape(Rectangle())
@@ -161,7 +160,6 @@ struct ContentView: View {
                     }
                 }
         )
-            
     }
     
     // MARK: - Helper Methods

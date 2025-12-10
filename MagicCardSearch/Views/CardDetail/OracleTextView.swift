@@ -35,7 +35,7 @@ private struct LineView: View {
     var body: some View {
         let (rules, reminder) = splitReminderText(line)
         let prettyRules = buildLineText(rules)
-            .font(.system(size: fontSize));
+            .font(.system(size: fontSize))
         let prettyReminder = buildLineText(reminder)
             .font(.system(size: fontSize, design: .serif))
             .italic()

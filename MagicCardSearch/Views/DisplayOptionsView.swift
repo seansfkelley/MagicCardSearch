@@ -12,7 +12,7 @@ struct DisplayOptionsView: View {
     @Binding var searchConfig: SearchConfiguration
     
     // Local state that will only be applied on confirmation
-    @State private var workingConfig: SearchConfiguration = SearchConfiguration()
+    @State private var workingConfig = SearchConfiguration()
     
     init(searchConfig: Binding<SearchConfiguration>) {
         self._searchConfig = searchConfig

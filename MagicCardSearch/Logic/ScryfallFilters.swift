@@ -31,7 +31,7 @@ struct ScryfallFilterType {
 private let scryfallSupportedFormats = Set([
     "standard", "future", "historic", "timeless", "gladiator", "pioneer", "modern", "legacy",
     "pauper", "vintage", "penny", "commander", "oathbreaker", "standardbrawl", "brawl",
-    "alchemy", "paupercommander", "duel", "oldschool", "premodern", "predh"
+    "alchemy", "paupercommander", "duel", "oldschool", "premodern", "predh",
 ])
 
 private let scryfallIsEnumerationValues = Set([
@@ -60,7 +60,7 @@ private let scryfallIsEnumerationValues = Set([
     "bikeland", "cycleland", "bicycleland", "bounceland", "karoo", "canopyland", "canland",
     "checkland", "dual", "fastland", "fetchland", "filterland", "gainland", "painland",
     "scryland", "surveilland", "shadowland", "shockland", "storageland", "creatureland",
-    "triland", "tangoland", "battleland", "masterpiece"
+    "triland", "tangoland", "battleland", "masterpiece",
 ])
 
 // MARK: - Filter Definitions
@@ -125,7 +125,7 @@ let scryfallFilterTypes: [ScryfallFilterType] = [
     // MARK: - Cubes
     .init("cube", enumerationValues: [
         "arena", "grixis", "legacy", "chuck", "twisted", "april", "protour", "uncommon",
-        "modern", "amaz", "tinkerer", "livethedream", "chromatic", "vintage", "apcube"
+        "modern", "amaz", "tinkerer", "livethedream", "chromatic", "vintage", "apcube",
     ]),
     
     // MARK: - Format Legality
@@ -231,7 +231,7 @@ let scryfallFilterTypes: [ScryfallFilterType] = [
         "paper", "arena", "mtgo",
         // Languages
         // empty -- we don't enumerate the languages
-    ])
+    ]),
 ]
 
 // MARK: - Derived Constants
