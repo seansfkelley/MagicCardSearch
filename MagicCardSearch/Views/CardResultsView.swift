@@ -302,7 +302,7 @@ struct CardResultCell: View {
     // MARK: - Regular Card
     
     @ViewBuilder private var regularCardView: some View {
-        if let imageUrl = card.smallImageURL, let url = URL(string: imageUrl) {
+        if let imageUrl = card.smallImageUrl, let url = URL(string: imageUrl) {
             AsyncImage(url: url) { phase in
                 switch phase {
                 case .empty:
@@ -347,11 +347,10 @@ struct CardResultCell: View {
     
     @ViewBuilder private var transformingCardView: some View {
         ZStack {
-            // Front face (visible at 0°, hidden at 180°)
-            if let frontFace = card.frontFace {
+            if let (front, back) = card.bothFaces {
                 cardFaceView(
-                    imageUrl: frontFace.imageUris?.small,
-                    name: frontFace.name
+                    imageUrl: front.imageUris?.small,
+                    name: front.name
                 )
                 .clipShape(RoundedRectangle(cornerRadius: 12))
                 .opacity(showingBackFace ? 0 : 1)
@@ -359,14 +358,9 @@ struct CardResultCell: View {
                     .degrees(showingBackFace ? 180 : 0),
                     axis: (x: 0, y: 1, z: 0)
                 )
-            }
-            
-            // Back face (hidden at 0°, visible at 180°)
-            // Starts rotated 180° so it faces the opposite direction
-            if let backFace = card.backFace {
                 cardFaceView(
-                    imageUrl: backFace.imageUris?.small,
-                    name: backFace.name
+                    imageUrl: back.imageUris?.small,
+                    name: back.name
                 )
                 .clipShape(RoundedRectangle(cornerRadius: 12))
                 .opacity(showingBackFace ? 1 : 0)

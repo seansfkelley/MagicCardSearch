@@ -6,35 +6,21 @@
 //
 
 import SwiftUI
+import ScryfallKit
 
-enum IndicatorColor: String {
-    case white = "WhiteIndicatorColor"
-    case blue = "BlueIndicatorColor"
-    case black = "BlackIndicatorColor"
-    case red = "RedIndicatorColor"
-    case green = "GreenIndicatorColor"
-
-    static func fromSymbolCode(_ code: String) -> IndicatorColor? {
-        return switch code.lowercased() {
-        case "w": .white
-        case "u": .blue
-        case "b": .black
-        case "r": .red
-        case "g": .green
-        default: nil
-        }
-    }
-    
-    var uiColor: Color {
-        return Color(self.rawValue)
-    }
-}
+let indicatorUiColor: [Card.Color: Color] = [
+    .W: Color("WhiteIndicatorColor"),
+    .U: Color("BlueIndicatorColor"),
+    .B: Color("BlackIndicatorColor"),
+    .R: Color("RedIndicatorColor"),
+    .G: Color("GreenIndicatorColor"),
+]
 
 struct ColorIndicatorView: View {
-    let colors: [String]
+    let colors: [Card.Color]
     let size: CGFloat
     
-    init(colors: [String], size: CGFloat = 12) {
+    init(colors: [Card.Color], size: CGFloat = 12) {
         self.colors = colors
         self.size = size
     }
@@ -45,15 +31,15 @@ struct ColorIndicatorView: View {
             EmptyView()
             
         case 1:
-            if let color = IndicatorColor.fromSymbolCode(colors[0]) {
+            if let color = indicatorUiColor[colors[0]] {
                 single(color)
             } else {
                 unknown()
             }
             
         case 2:
-            if let left = IndicatorColor.fromSymbolCode(colors[0]),
-               let right = IndicatorColor.fromSymbolCode(colors[1]) {
+            if let left = indicatorUiColor[colors[0]],
+               let right = indicatorUiColor[colors[1]] {
                 double(left, right)
             } else {
                 unknown()
@@ -64,9 +50,9 @@ struct ColorIndicatorView: View {
         }
     }
     
-    private func single(_ color: IndicatorColor) -> some View {
+    private func single(_ color: Color) -> some View {
         Circle()
-            .fill(color.uiColor)
+            .fill(color)
             .frame(width: size, height: size)
             .overlay(
                 Circle()
@@ -74,15 +60,15 @@ struct ColorIndicatorView: View {
             )
     }
     
-    private func double(_ left: IndicatorColor, _ right: IndicatorColor) -> some View {
+    private func double(_ left: Color, _ right: Color) -> some View {
         Circle()
             .fill(
                 LinearGradient(
                     stops: [
-                        .init(color: left.uiColor, location: 0.0),
-                        .init(color: left.uiColor, location: 0.5),
-                        .init(color: right.uiColor, location: 0.5),
-                        .init(color: right.uiColor, location: 1.0),
+                        .init(color: left, location: 0.0),
+                        .init(color: left, location: 0.5),
+                        .init(color: right, location: 0.5),
+                        .init(color: right, location: 1.0),
                     ],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
@@ -121,26 +107,26 @@ struct ColorIndicatorView: View {
         
         HStack(spacing: 8) {
             Text("One color:")
-            ColorIndicatorView(colors: ["U"], size: 20)
+            ColorIndicatorView(colors: [.U], size: 20)
         }
         
         HStack(spacing: 8) {
             Text("Two colors:")
-            ColorIndicatorView(colors: ["W", "U"], size: 20)
+            ColorIndicatorView(colors: [.W, .U], size: 20)
         }
         
         HStack(spacing: 8) {
             Text("Three colors:")
-            ColorIndicatorView(colors: ["W", "U", "B"], size: 20)
+            ColorIndicatorView(colors: [.W, .U, .B], size: 20)
         }
         
         HStack(spacing: 8) {
             Text("Each color:")
-            ColorIndicatorView(colors: ["W"], size: 20)
-            ColorIndicatorView(colors: ["U"], size: 20)
-            ColorIndicatorView(colors: ["B"], size: 20)
-            ColorIndicatorView(colors: ["R"], size: 20)
-            ColorIndicatorView(colors: ["G"], size: 20)
+            ColorIndicatorView(colors: [.W], size: 20)
+            ColorIndicatorView(colors: [.U], size: 20)
+            ColorIndicatorView(colors: [.B], size: 20)
+            ColorIndicatorView(colors: [.R], size: 20)
+            ColorIndicatorView(colors: [.G], size: 20)
         }
     }
     .padding()

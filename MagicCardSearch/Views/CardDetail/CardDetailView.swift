@@ -26,25 +26,19 @@ struct CardDetailView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 0) {
-                if card.isDoubleFaced {
-                    // Double-faced card: show both faces
-                    if let frontFace = card.frontFace {
-                        cardFaceView(
-                            face: frontFace,
-                            fullCardName: card.name
-                        )
-                    }
-                    
+                if let (front, back) = card.bothFaces {
+                    cardFaceView(
+                        face: front,
+                        fullCardName: card.name
+                    )
+                
                     Spacer().frame(height: 24)
-                    
-                    if let backFace = card.backFace {
-                        cardFaceView(
-                            face: backFace,
-                            fullCardName: card.name
-                        )
-                    }
+                
+                    cardFaceView(
+                        face: back,
+                        fullCardName: card.name
+                    )
                 } else {
-                    // Single-faced card
                     singleFacedCardView
                 }
 
@@ -75,7 +69,7 @@ struct CardDetailView: View {
                         .padding(.horizontal)
                     
                     CardRelatedPartsSection(
-                        allParts: allParts.map { RelatedPartAdapter(from: $0) },
+                        allParts: allParts,
                         isLoadingRelatedCard: isLoadingRelatedCard
                     ) { partId in
                         Task {
@@ -84,17 +78,17 @@ struct CardDetailView: View {
                     }
                 }
 
-                if let rulingsUri = card.rulingsURI, isLoadingRulings || rulingsError != nil || !rulings.isEmpty {
+                if isLoadingRulings || rulingsError != nil || !rulings.isEmpty {
                     Divider()
                         .padding(.horizontal)
                     
                     CardRulingsSection(
-                        rulings: rulings.map { RulingAdapter(from: $0) },
+                        rulings: rulings,
                         isLoading: isLoadingRulings,
                         error: rulingsError
                     ) {
                         Task {
-                            await loadRulings(from: rulingsUri)
+                            await loadRulings(from: card.rulingsUri)
                         }
                     }
                 }
@@ -106,10 +100,7 @@ struct CardDetailView: View {
             .padding(.top)
         }
         .task {
-            // Load rulings when view appears
-            if let rulingsUri = card.rulingsUri {
-                await loadRulings(from: rulingsUri)
-            }
+            await loadRulings(from: card.rulingsUri)
         }
         .toolbar {
             if isCurrentlyVisible {
@@ -122,8 +113,7 @@ struct CardDetailView: View {
                     }
                 }
                 
-                if let scryfallUri = card.scryfallUri,
-                   let url = URL(string: scryfallUri) {
+                if let url = URL(string: card.scryfallUri) {
                     ToolbarItem(placement: .topBarTrailing) {
                         ShareLink(item: url)
                     }
@@ -152,7 +142,7 @@ struct CardDetailView: View {
     
     @ViewBuilder private var singleFacedCardView: some View {
         // Image Section
-        if let imageUrl = card.normalImageURL, let url = URL(string: imageUrl) {
+        if let imageUrl = card.normalImageUrl, let url = URL(string: imageUrl) {
             AsyncImage(url: url) { phase in
                 switch phase {
                 case .empty:
@@ -174,7 +164,6 @@ struct CardDetailView: View {
             imagePlaceholder
         }
         
-        // Header (name and mana cost)
         VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .top) {
                 Text(card.name)
@@ -182,7 +171,7 @@ struct CardDetailView: View {
                     .fontWeight(.bold)
                     .frame(maxWidth: .infinity, alignment: .leading)
 
-                if let manaCost = card.displayManaCost, !manaCost.isEmpty {
+                if let manaCost = card.manaCost, !manaCost.isEmpty {
                     ManaCostView(manaCost, size: 20)
                 }
             }
@@ -191,14 +180,13 @@ struct CardDetailView: View {
         .padding(.vertical, 12)
         .frame(maxWidth: .infinity, alignment: .leading)
         
-        // Type Line
-        if let typeLine = card.displayTypeLine {
+        if let typeLine = card.typeLine {
             Divider()
                 .padding(.horizontal)
             
             VStack(alignment: .leading, spacing: 8) {
                 HStack(spacing: 8) {
-                    if let colorIndicator = card.displayColorIndicator, !colorIndicator.isEmpty {
+                    if let colorIndicator = card.colorIndicator, !colorIndicator.isEmpty {
                         ColorIndicatorView(colors: colorIndicator)
                     }
 
@@ -216,11 +204,11 @@ struct CardDetailView: View {
             .padding(.horizontal)
         
         VStack(alignment: .leading, spacing: 12) {
-            if let oracleText = card.displayOracleText, !oracleText.isEmpty {
+            if let oracleText = card.oracleText, !oracleText.isEmpty {
                 OracleTextView(oracleText)
             }
 
-            if let flavorText = card.displayFlavorText, !flavorText.isEmpty {
+            if let flavorText = card.flavorText, !flavorText.isEmpty {
                 VStack(alignment: .leading, spacing: 8) {
                     ForEach(flavorText.components(separatedBy: "\n"), id: \.self) { line in
                         if !line.isEmpty {
@@ -232,27 +220,19 @@ struct CardDetailView: View {
                     }
                 }
             }
-
-            if card.displayOracleText == nil && card.displayFlavorText == nil {
-                Text("No text")
-                    .font(.body)
-                    .foregroundStyle(.secondary)
-            }
         }
         .padding(.horizontal)
         .padding(.vertical, 12)
         .frame(maxWidth: .infinity, alignment: .leading)
         
-        // Power/Toughness
-        if let power = card.displayPower, let toughness = card.displayToughness {
+        if let power = card.power, let toughness = card.toughness {
             Divider()
                 .padding(.horizontal)
             
             CardPowerToughnessSection(power: power, toughness: toughness)
         }
         
-        // Artist
-        if let artist = card.displayArtist {
+        if let artist = card.artist {
             Divider()
                 .padding(.horizontal)
             
@@ -414,55 +394,41 @@ private struct CardSetInfoSection: View {
     let setName: String
     let collectorNumber: String
     let rarity: Card.Rarity
-    let lang: String?
+    let lang: String
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            if let setName = setName {
-                HStack(spacing: 12) {
-                    if let setCode = setCode {
-                        SetIconView(setCode: setCode)
-                    }
+            HStack(spacing: 12) {
+                SetIconView(setCode: setCode)
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(setName)
+                        .font(.body)
+                        .fontWeight(.medium)
                     
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(setName)
-                            .font(.body)
-                            .fontWeight(.medium)
+                    HStack(spacing: 8) {
+                        Text(setCode.uppercased())
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                         
-                        HStack(spacing: 8) {
-                            if let setCode = setCode {
-                                Text(setCode.uppercased())
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                            
-                            if let collectorNumber = collectorNumber {
-                                Text("#\(collectorNumber)")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                            
-                            if let rarity = rarity {
-                                Text("•")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                HStack(spacing: 4) {
-                                    Text(rarity.rawValue.capitalized)
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
-                            }
-                            
-                            if let lang = lang {
-                                Text("•")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                HStack(spacing: 4) {
-                                    Text(languageDisplay(for: lang))
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
-                            }
+                        Text("#\(collectorNumber)")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Text("•")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        HStack(spacing: 4) {
+                            Text(rarity.rawValue.capitalized)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        Text("•")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        HStack(spacing: 4) {
+                            Text(languageDisplay(for: lang))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
                         }
                     }
                 }
@@ -500,7 +466,7 @@ private struct CardSetInfoSection: View {
 // MARK: - Card Related Parts Section
 
 private struct CardRelatedPartsSection: View {
-    let allParts: [RelatedPart]
+    let allParts: [Card.RelatedCard]
     let isLoadingRelatedCard: Bool
     let onPartTapped: (UUID) -> Void
 
@@ -517,11 +483,9 @@ private struct CardRelatedPartsSection: View {
                                     .font(.body)
                                     .foregroundStyle(.primary)
 
-                                if let typeLine = part.typeLine {
-                                    Text(typeLine)
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
+                                Text(part.typeLine)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
                             }
 
                             Spacer()
@@ -603,9 +567,11 @@ private struct CardRulingsSection: View {
                                 .font(.body)
                                 .fixedSize(horizontal: false, vertical: true)
                             
-                            Text(ruling.publishedAt, format: .dateTime.year().month().day())
-                                .font(.caption2)
-                                .foregroundStyle(.tertiary)
+                            if let date = ruling.publishedAtAsDate {
+                                Text(date, format: .dateTime.year().month().day())
+                                    .font(.caption2)
+                                    .foregroundStyle(.tertiary)
+                            }
                         }
                         .padding(.top, ruling.id == rulings.first?.id ? 4 : 12)
                     }
@@ -742,7 +708,7 @@ private struct CardFaceTypeLineSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
-                if let colorIndicator = face.colorIndicatorAsStrings, !colorIndicator.isEmpty {
+                if let colorIndicator = face.colorIndicator, !colorIndicator.isEmpty {
                     ColorIndicatorView(colors: colorIndicator)
                 }
 

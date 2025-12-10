@@ -93,7 +93,6 @@ struct CardDetailNavigator: View {
             if let newValue {
                 currentIndex = newValue
                 
-                // Trigger pagination when within 3 items of the end
                 if newValue >= cards.count - 3 {
                     onNearEnd?()
                 }
