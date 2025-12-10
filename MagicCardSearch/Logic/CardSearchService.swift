@@ -1,4 +1,5 @@
 //
+//
 //  CardSearchService.swift
 //  MagicCardSearch
 //
@@ -6,71 +7,80 @@
 //
 
 import Foundation
+import ScryfallKit
 
 @MainActor
 class CardSearchService {
-    private static let apiBaseURL = "https://api.scryfall.com/cards/search"
-    private static let cardByIdURL = "https://api.scryfall.com/cards"
     private static let webBaseURL = "https://scryfall.com/search"
+    private let client: ScryfallClient
+    
+    init() {
+        self.client = ScryfallClient(networkLogLevel: .minimal)
+    }
     
     func search(filters: [SearchFilter], config: SearchConfiguration) async throws -> SearchResult {
-        guard let url = CardSearchService.buildSearchURL(filters: filters, config: config, forAPI: true) else {
+        let queryString = filters.map { $0.queryStringWithEditingRange.0 }.joined(separator: " ")
+        
+        guard !queryString.isEmpty else {
             return SearchResult(cards: [], totalCount: 0, nextPageURL: nil, warnings: [])
         }
         
-        return try await fetchPage(from: url)
-    }
-    
-    func fetchNextPage(from urlString: String) async throws -> SearchResult {
-        guard let url = URL(string: urlString) else {
-            throw SearchError.invalidURL
-        }
-        
-        return try await fetchPage(from: url)
-    }
-    
-    private func fetchPage(from url: URL) async throws -> SearchResult {
-        let (data, response) = try await URLSession.shared.data(from: url)
-        
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw SearchError.invalidResponse
-        }
-        
-        guard httpResponse.statusCode == 200 else {
-            throw SearchError.httpError(statusCode: httpResponse.statusCode)
-        }
-        
-        let decoder = JSONDecoder()
-        let searchResponse = try decoder.decode(ScryfallSearchResponse.self, from: data)
+        let result = try await client.searchCards(
+            query: queryString,
+            unique: config.uniqueMode.toScryfallKitUniqueMode(),
+            order: config.sortField.toScryfallKitSortMode(),
+            sortDirection: config.sortOrder.toScryfallKitSortDirection()
+        )
         
         return SearchResult(
-            cards: searchResponse.data,
-            totalCount: searchResponse.totalCards ?? searchResponse.data.count,
-            nextPageURL: searchResponse.nextPage,
-            warnings: searchResponse.warnings ?? []
+            cards: result.data,
+            totalCount: result.totalCards ?? result.data.count,
+            nextPageURL: result.nextPage,
+            warnings: result.warnings ?? []
         )
     }
     
-    func fetchCard(byId id: String) async throws -> CardResult {
-        let urlString = "\(CardSearchService.cardByIdURL)/\(id)"
-        guard let url = URL(string: urlString) else {
+    func fetchNextPage(from urlString: String) async throws -> SearchResult {
+        // ScryfallKit doesn't expose a direct "fetch from URL" method,
+        // so we need to parse the URL and extract parameters
+        guard let url = URL(string: urlString),
+              let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+              let queryItems = components.queryItems else {
             throw SearchError.invalidURL
         }
         
-        let (data, response) = try await URLSession.shared.data(from: url)
+        // Extract query parameters
+        let query = queryItems.first(where: { $0.name == "q" })?.value ?? ""
+        let page = queryItems.first(where: { $0.name == "page" }).flatMap { Int($0.value ?? "") }
         
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw SearchError.invalidResponse
-        }
+        // Extract optional parameters
+        let uniqueValue = queryItems.first(where: { $0.name == "unique" })?.value
+        let unique = uniqueValue.flatMap { UniqueMode(rawValue: $0) }
         
-        guard httpResponse.statusCode == 200 else {
-            throw SearchError.httpError(statusCode: httpResponse.statusCode)
-        }
+        let orderValue = queryItems.first(where: { $0.name == "order" })?.value
+        let order = orderValue.flatMap { SortMode(rawValue: $0) }
         
-        let decoder = JSONDecoder()
-        let card = try decoder.decode(CardResult.self, from: data)
+        let dirValue = queryItems.first(where: { $0.name == "dir" })?.value
+        let sortDirection = dirValue.flatMap { SortDirection(rawValue: $0) }
         
-        return card
+        let result = try await client.searchCards(
+            query: query,
+            unique: unique,
+            order: order,
+            sortDirection: sortDirection,
+            page: page
+        )
+        
+        return SearchResult(
+            cards: result.data,
+            totalCount: result.totalCards ?? result.data.count,
+            nextPageURL: result.nextPage,
+            warnings: result.warnings ?? []
+        )
+    }
+    
+    func fetchCard(byId id: String) async throws -> Card {
+        return try await client.getCard(identifier: .scryfallID(id))
     }
     
     static func buildSearchURL(filters: [SearchFilter], config: SearchConfiguration, forAPI: Bool) -> URL? {
@@ -80,7 +90,8 @@ class CardSearchService {
             return nil
         }
         
-        let baseURL = forAPI ? apiBaseURL : webBaseURL
+        // For sharing, always build the web URL
+        let baseURL = webBaseURL
         var components = URLComponents(string: baseURL)!
         components.queryItems = [
             URLQueryItem(name: "q", value: queryString),
@@ -115,7 +126,7 @@ enum SearchError: LocalizedError {
 // MARK: - Search Result
 
 struct SearchResult {
-    let cards: [CardResult]
+    let cards: [Card]
     let totalCount: Int
     let nextPageURL: String?
     let warnings: [String]

@@ -6,42 +6,47 @@
 //
 
 import Foundation
+import ScryfallKit
 
 @MainActor
 class RulingsService {
     static let shared = RulingsService()
     
-    private var cache: [String: [Ruling]] = [:]
+    private let client: ScryfallClient
+    private var cache: [String: [Card.Ruling]] = [:]
     
-    private init() {}
+    private init() {
+        self.client = ScryfallClient(networkLogLevel: .minimal)
+    }
     
-    func fetchRulings(from urlString: String) async throws -> [Ruling] {
+    /// Fetch rulings for a card by ID
+    func fetchRulings(cardId: String) async throws -> [Card.Ruling] {
         // Check cache first
-        if let cached = cache[urlString] {
+        if let cached = cache[cardId] {
             return cached
         }
         
-        guard let url = URL(string: urlString) else {
+        let rulings = try await client.getRulings(identifier: .scryfallID(id: cardId))
+        
+        // Cache the result
+        cache[cardId] = rulings
+        
+        return rulings
+    }
+    
+    /// Legacy method that accepts a URL string (extracts card ID from it)
+    func fetchRulings(from urlString: String) async throws -> [Card.Ruling] {
+        // Extract card ID from URL
+        // Example: https://api.scryfall.com/cards/{id}/rulings
+        guard let url = URL(string: urlString),
+              let pathComponents = URLComponents(url: url, resolvingAgainstBaseURL: false)?.path.components(separatedBy: "/"),
+              let idIndex = pathComponents.firstIndex(of: "cards"),
+              idIndex + 1 < pathComponents.count else {
             throw RulingsError.invalidURL
         }
         
-        let (data, response) = try await URLSession.shared.data(from: url)
-        
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw RulingsError.invalidResponse
-        }
-        
-        guard httpResponse.statusCode == 200 else {
-            throw RulingsError.httpError(statusCode: httpResponse.statusCode)
-        }
-        
-        let decoder = JSONDecoder()
-        let rulingsResponse = try decoder.decode(ScryfallRulingsResponse.self, from: data)
-        
-        // Cache the result
-        cache[urlString] = rulingsResponse.data
-        
-        return rulingsResponse.data
+        let cardId = pathComponents[idIndex + 1]
+        return try await fetchRulings(cardId: cardId)
     }
 }
 

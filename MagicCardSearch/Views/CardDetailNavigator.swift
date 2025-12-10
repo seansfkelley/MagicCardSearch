@@ -5,9 +5,10 @@
 //  Created by Sean Kelley on 2025-12-05.
 //
 import SwiftUI
+import ScryfallKit
 
 struct CardDetailNavigator: View {
-    let cards: [CardResult]
+    let cards: [Card]
     let initialIndex: Int
     let totalCount: Int
     let hasMorePages: Bool
@@ -20,7 +21,7 @@ struct CardDetailNavigator: View {
     @State private var scrollPosition: Int?
     @Environment(\.dismiss) private var dismiss
     
-    init(cards: [CardResult],
+    init(cards: [Card],
          initialIndex: Int,
          totalCount: Int = 0,
          hasMorePages: Bool = false,
@@ -108,7 +109,7 @@ struct CardDetailNavigator: View {
         }
     }
     
-    private var currentCard: CardResult? {
+    private var currentCard: Card? {
         guard currentIndex >= 0 && currentIndex < cards.count else {
             return nil
         }

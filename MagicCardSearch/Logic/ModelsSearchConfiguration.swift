@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import ScryfallKit
 
 struct SearchConfiguration: Equatable, Codable {
     var uniqueMode: UniqueMode = .cards
@@ -30,6 +31,15 @@ struct SearchConfiguration: Equatable, Codable {
         var apiValue: String {
             String(describing: self)
         }
+        
+        /// Convert to ScryfallKit's UniqueMode for API calls
+        func toScryfallKitUniqueMode() -> ScryfallKit.UniqueMode {
+            switch self {
+            case .cards: return .cards
+            case .prints: return .prints
+            case .art: return .art
+            }
+        }
     }
     
     enum SortField: String, CaseIterable, Codable {
@@ -52,6 +62,26 @@ struct SearchConfiguration: Equatable, Codable {
         var apiValue: String {
             String(describing: self)
         }
+        
+        /// Convert to ScryfallKit's SortMode for API calls
+        func toScryfallKitSortMode() -> ScryfallKit.SortMode? {
+            switch self {
+            case .name: return .name
+            case .released: return .released
+            case .set: return .set
+            case .rarity: return .rarity
+            case .color: return .color
+            case .usd: return .usd
+            case .tix: return .tix
+            case .eur: return .eur
+            case .cmc: return .cmc
+            case .power: return .power
+            case .toughness: return .toughness
+            case .artist: return .artist
+            case .edhrec: return .edhrec
+            case .review: return nil // Not supported by ScryfallKit, will use default
+            }
+        }
     }
     
     enum SortOrder: String, CaseIterable, Codable {
@@ -64,6 +94,15 @@ struct SearchConfiguration: Equatable, Codable {
             case .auto: return "auto"
             case .ascending: return "asc"
             case .descending: return "desc"
+            }
+        }
+        
+        /// Convert to ScryfallKit's SortDirection for API calls
+        func toScryfallKitSortDirection() -> ScryfallKit.SortDirection {
+            switch self {
+            case .auto: return .auto
+            case .ascending: return .asc
+            case .descending: return .desc
             }
         }
     }

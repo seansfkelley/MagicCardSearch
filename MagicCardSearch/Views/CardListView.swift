@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import ScryfallKit
 
 struct CardListView: View {
     @ObservedObject var listManager = CardListManager.shared
@@ -182,7 +183,7 @@ private struct CardDetailNavigatorFromList: View {
     let cards: [CardListItem]
     let initialIndex: Int
     
-    @State private var fullCards: [CardResult] = []
+    @State private var fullCards: [Card] = []
     @State private var isLoading = true
     @State private var error: Error?
     @Environment(\.dismiss) private var dismiss
@@ -248,7 +249,7 @@ private struct CardDetailNavigatorFromList: View {
         
         do {
             // Fetch full card details for all cards in the list
-            var loadedCards: [CardResult] = []
+            var loadedCards: [Card] = []
             for card in cards {
                 print("Fetching card: \(card.name) (ID: \(card.id))")
                 let fullCard = try await cardSearchService.fetchCard(byId: card.id)

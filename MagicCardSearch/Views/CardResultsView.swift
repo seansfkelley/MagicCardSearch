@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import ScryfallKit
 
 struct CardResultsView: View {
     var allowedToSearch: Bool
@@ -13,7 +14,7 @@ struct CardResultsView: View {
     @Binding var searchConfig: SearchConfiguration
     @Binding var warnings: [String]
     var autocompleteProvider: AutocompleteProvider
-    @State private var results: [CardResult] = []
+    @State private var results: [Card] = []
     @State private var totalCount: Int = 0
     @State private var nextPageURL: String?
     @State private var isLoading = false
@@ -275,24 +276,23 @@ private struct SheetIdentifier: Identifiable {
 // MARK: - Card Result Cell
 
 struct CardResultCell: View {
-    let card: CardResult
+    let card: Card
     @State private var showingBackFace = false
 
     var body: some View {
         ZStack(alignment: .trailing) {
             Group {
-                switch card {
-                case .regular:
+                if card.isDoubleFaced {
+                    transformingCardView
+                } else {
                     regularCardView
-                case .transforming(let transformingCard):
-                    transformingCardView(transformingCard)
                 }
             }
             .aspectRatio(0.7, contentMode: .fit)
             .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
             
-            // Flip button for transforming cards
-            if case .transforming = card {
+            // Flip button for double-faced cards
+            if card.isDoubleFaced {
                 flipButton
                     .padding(.trailing, 8)
             }
@@ -302,7 +302,7 @@ struct CardResultCell: View {
     // MARK: - Regular Card
     
     @ViewBuilder private var regularCardView: some View {
-        if let imageUrl = card.smallImageUrl, let url = URL(string: imageUrl) {
+        if let imageUrl = card.smallImageURL, let url = URL(string: imageUrl) {
             AsyncImage(url: url) { phase in
                 switch phase {
                 case .empty:
@@ -346,32 +346,36 @@ struct CardResultCell: View {
     // MARK: - Transforming Card
     
     @ViewBuilder
-    private func transformingCardView(_ transformingCard: TransformingCard) -> some View {
+    private var transformingCardView: some View {
         ZStack {
             // Front face (visible at 0°, hidden at 180°)
-            cardFaceView(
-                imageUrl: transformingCard.frontFace.smallImageUrl,
-                name: transformingCard.frontFace.name
-            )
-            .clipShape(RoundedRectangle(cornerRadius: 12))
-            .opacity(showingBackFace ? 0 : 1)
-            .rotation3DEffect(
-                .degrees(showingBackFace ? 180 : 0),
-                axis: (x: 0, y: 1, z: 0)
-            )
+            if let frontFace = card.frontFace {
+                cardFaceView(
+                    imageUrl: frontFace.imageUris?.small,
+                    name: frontFace.name
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .opacity(showingBackFace ? 0 : 1)
+                .rotation3DEffect(
+                    .degrees(showingBackFace ? 180 : 0),
+                    axis: (x: 0, y: 1, z: 0)
+                )
+            }
             
             // Back face (hidden at 0°, visible at 180°)
             // Starts rotated 180° so it faces the opposite direction
-            cardFaceView(
-                imageUrl: transformingCard.backFace.smallImageUrl,
-                name: transformingCard.backFace.name
-            )
-            .clipShape(RoundedRectangle(cornerRadius: 12))
-            .opacity(showingBackFace ? 1 : 0)
-            .rotation3DEffect(
-                .degrees(showingBackFace ? 0 : -180),
-                axis: (x: 0, y: 1, z: 0)
-            )
+            if let backFace = card.backFace {
+                cardFaceView(
+                    imageUrl: backFace.imageUris?.small,
+                    name: backFace.name
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .opacity(showingBackFace ? 1 : 0)
+                .rotation3DEffect(
+                    .degrees(showingBackFace ? 0 : -180),
+                    axis: (x: 0, y: 1, z: 0)
+                )
+            }
         }
     }
     

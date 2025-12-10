@@ -8,62 +8,66 @@
 // swiftlint:disable file_length
 
 import SwiftUI
+import ScryfallKit
 
 struct CardDetailView: View {
-    let card: CardResult
+    let card: Card
     var isCurrentlyVisible: Bool = true
 
-    @State private var relatedCardToShow: CardResult?
+    @State private var relatedCardToShow: Card?
     @State private var isLoadingRelatedCard = false
-    @State private var rulings: [Ruling] = []
+    @State private var rulings: [Card.Ruling] = []
     @State private var isLoadingRulings = false
     @State private var rulingsError: Error?
     @ObservedObject private var listManager = CardListManager.shared
     private let cardSearchService = CardSearchService()
     private let rulingsService = RulingsService.shared
+    
     var body: some View {
         ScrollView {
             VStack(spacing: 0) {
-                switch card {
-                case .regular(let regularCard):
-                    cardFaceView(
-                        face: CardFace(from: regularCard),
-                        fullCardName: regularCard.name
-                    )
-                case .transforming(let transformingCard):
-                    cardFaceView(
-                        face: transformingCard.frontFace,
-                        fullCardName: transformingCard.name
-                    )
+                if card.isDoubleFaced {
+                    // Double-faced card: show both faces
+                    if let frontFace = card.frontFace {
+                        cardFaceView(
+                            face: frontFace,
+                            fullCardName: card.name
+                        )
+                    }
                     
                     Spacer().frame(height: 24)
                     
-                    cardFaceView(
-                        face: transformingCard.backFace,
-                        fullCardName: transformingCard.name
-                    )
+                    if let backFace = card.backFace {
+                        cardFaceView(
+                            face: backFace,
+                            fullCardName: card.name
+                        )
+                    }
+                } else {
+                    // Single-faced card
+                    singleFacedCardView
                 }
 
-                if let legalities = card.legalities, !legalities.isEmpty {
+                if let legalities = card.legalitiesDict, !legalities.isEmpty {
                     Divider()
                         .padding(.horizontal)
 
                     CardLegalitiesSection(
                         legalities: legalities,
-                        isGameChanger: card.gameChanger ?? false
+                        isGameChanger: false
                     )
                 }
 
                 // Set Information Section
-                if card.setCode != nil || card.setName != nil || card.collectorNumber != nil || card.rarity != nil || card.lang != nil {
+                if card.set != nil || card.setName != nil || card.collectorNumber != nil || card.rarity != nil || card.lang != nil {
                     Divider()
                         .padding(.horizontal)
 
                     CardSetInfoSection(
-                        setCode: card.setCode,
+                        setCode: card.set,
                         setName: card.setName,
                         collectorNumber: card.collectorNumber,
-                        rarity: card.rarity,
+                        rarity: card.rarity?.rawValue,
                         lang: card.lang
                     )
                 }
@@ -73,27 +77,27 @@ struct CardDetailView: View {
                         .padding(.horizontal)
                     
                     CardRelatedPartsSection(
-                        allParts: allParts,
+                        allParts: allParts.map { RelatedPartAdapter(from: $0) },
                         isLoadingRelatedCard: isLoadingRelatedCard
                     ) { partId in
-                            Task {
-                                await loadRelatedCard(id: partId)
-                            }
+                        Task {
+                            await loadRelatedCard(id: partId)
+                        }
                     }
                 }
 
-                if let rulingsUri = card.rulingsUri, isLoadingRulings || rulingsError != nil || !rulings.isEmpty {
+                if let rulingsUri = card.rulingsURI, isLoadingRulings || rulingsError != nil || !rulings.isEmpty {
                     Divider()
                         .padding(.horizontal)
                     
                     CardRulingsSection(
-                        rulings: rulings,
+                        rulings: rulings.map { RulingAdapter(from: $0) },
                         isLoading: isLoadingRulings,
                         error: rulingsError
                     ) {
-                            Task {
-                                await loadRulings(from: rulingsUri)
-                            }
+                        Task {
+                            await loadRulings(from: rulingsUri)
+                        }
                     }
                 }
                 
@@ -105,7 +109,7 @@ struct CardDetailView: View {
         }
         .task {
             // Load rulings when view appears
-            if let rulingsUri = card.rulingsUri {
+            if let rulingsUri = card.rulingsURI {
                 await loadRulings(from: rulingsUri)
             }
         }
@@ -120,7 +124,7 @@ struct CardDetailView: View {
                     }
                 }
                 
-                if let scryfallUri = card.scryfallUri,
+                if let scryfallUri = card.scryfallURI,
                    let url = URL(string: scryfallUri) {
                     ToolbarItem(placement: .topBarTrailing) {
                         ShareLink(item: url)
@@ -145,10 +149,143 @@ struct CardDetailView: View {
             }
         }
     }
+    
+    // MARK: - Single-Faced Card View
+    
+    @ViewBuilder
+    private var singleFacedCardView: some View {
+        // Image Section
+        if let imageUrl = card.normalImageURL, let url = URL(string: imageUrl) {
+            AsyncImage(url: url) { phase in
+                switch phase {
+                case .empty:
+                    ProgressView()
+                        .frame(height: 400)
+                case .success(let image):
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .padding(.horizontal)
+                case .failure:
+                    imagePlaceholder
+                @unknown default:
+                    imagePlaceholder
+                }
+            }
+        } else {
+            imagePlaceholder
+        }
+        
+        // Header (name and mana cost)
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .top) {
+                Text(card.name)
+                    .font(.title2)
+                    .fontWeight(.bold)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                if let manaCost = card.displayManaCost, !manaCost.isEmpty {
+                    ManaCostView(manaCost, size: 20)
+                }
+            }
+        }
+        .padding(.horizontal)
+        .padding(.vertical, 12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        
+        // Type Line
+        if let typeLine = card.displayTypeLine {
+            Divider()
+                .padding(.horizontal)
+            
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 8) {
+                    if let colorIndicator = card.displayColorIndicator, !colorIndicator.isEmpty {
+                        ColorIndicatorView(colors: colorIndicator)
+                    }
+
+                    Text(typeLine)
+                        .font(.body)
+                }
+            }
+            .padding(.horizontal)
+            .padding(.vertical, 12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        
+        // Oracle/Flavor Text
+        Divider()
+            .padding(.horizontal)
+        
+        VStack(alignment: .leading, spacing: 12) {
+            if let oracleText = card.displayOracleText, !oracleText.isEmpty {
+                OracleTextView(oracleText)
+            }
+
+            if let flavorText = card.displayFlavorText, !flavorText.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    ForEach(flavorText.components(separatedBy: "\n"), id: \.self) { line in
+                        if !line.isEmpty {
+                            Text(line)
+                                .font(.system(.body, design: .serif))
+                                .italic()
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                }
+            }
+
+            if card.displayOracleText == nil && card.displayFlavorText == nil {
+                Text("No text")
+                    .font(.body)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(.horizontal)
+        .padding(.vertical, 12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        
+        // Power/Toughness
+        if let power = card.displayPower, let toughness = card.displayToughness {
+            Divider()
+                .padding(.horizontal)
+            
+            CardPowerToughnessSection(power: power, toughness: toughness)
+        }
+        
+        // Artist
+        if let artist = card.displayArtist {
+            Divider()
+                .padding(.horizontal)
+            
+            CardArtistSection(artist: artist)
+        }
+    }
+    
+    private var imagePlaceholder: some View {
+        RoundedRectangle(cornerRadius: 12)
+            .fill(Color.gray.opacity(0.2))
+            .frame(height: 400)
+            .overlay(
+                VStack(spacing: 16) {
+                    Image(systemName: "photo")
+                        .font(.system(size: 60))
+                        .foregroundStyle(.secondary)
+                    
+                    Text(card.name)
+                        .font(.title3)
+                        .foregroundStyle(.primary)
+                        .multilineTextAlignment(.center)
+                }
+                .padding()
+            )
+            .padding(.horizontal)
+    }
 
     // MARK: - Card Face View
     
-    private func cardFaceView(face: CardFace, fullCardName: String) -> some View {
+    private func cardFaceView(face: Card.Face, fullCardName: String) -> some View {
         VStack(spacing: 0) {
             CardFaceImageSection(
                 face: face,
@@ -213,27 +350,6 @@ struct CardDetailView: View {
             rulingsError = error
             print("Error loading rulings: \(error)")
         }
-    }
-}
-
-// MARK: - CardFace Extension
-
-extension CardFace {
-    /// Create a CardFace from a RegularCard
-    init(from card: RegularCard) {
-        self.name = card.name
-        self.smallImageUrl = card.smallImageUrl
-        self.normalImageUrl = card.normalImageUrl
-        self.largeImageUrl = card.largeImageUrl
-        self.manaCost = card.manaCost
-        self.typeLine = card.typeLine
-        self.oracleText = card.oracleText
-        self.flavorText = card.flavorText
-        self.power = card.power
-        self.toughness = card.toughness
-        self.artist = card.artist
-        self.colors = card.colors
-        self.colorIndicator = card.colorIndicator
     }
 }
 
@@ -528,12 +644,12 @@ private struct CardRulingsSection: View {
 // MARK: - Card Face Image Section
 
 private struct CardFaceImageSection: View {
-    let face: CardFace
+    let face: Card.Face
     let fullCardName: String
 
     var body: some View {
         Group {
-            if let imageUrl = face.largeImageUrl, let url = URL(string: imageUrl) {
+            if let imageUrl = face.imageUris?.large, let url = URL(string: imageUrl) {
                 AsyncImage(url: url) { phase in
                     switch phase {
                     case .empty:
@@ -573,7 +689,7 @@ private struct CardFaceImageSection: View {
 // MARK: - Card Face Image Placeholder
 
 private struct CardFaceImagePlaceholder: View {
-    let face: CardFace
+    let face: Card.Face
     let cardName: String
 
     var body: some View {
@@ -599,7 +715,7 @@ private struct CardFaceImagePlaceholder: View {
 // MARK: - Card Face Header Section
 
 private struct CardFaceHeaderSection: View {
-    let face: CardFace
+    let face: Card.Face
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -609,8 +725,8 @@ private struct CardFaceHeaderSection: View {
                     .fontWeight(.bold)
                     .frame(maxWidth: .infinity, alignment: .leading)
 
-                if let manaCost = face.manaCost, !manaCost.isEmpty {
-                    ManaCostView(manaCost, size: 20)
+                if !face.manaCost.isEmpty {
+                    ManaCostView(face.manaCost, size: 20)
                 }
             }
         }
@@ -623,13 +739,13 @@ private struct CardFaceHeaderSection: View {
 // MARK: - Card Face Type Line Section
 
 private struct CardFaceTypeLineSection: View {
-    let face: CardFace
+    let face: Card.Face
     let typeLine: String
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
-                if let colorIndicator = face.colorIndicator, !colorIndicator.isEmpty {
+                if let colorIndicator = face.colorIndicatorAsStrings, !colorIndicator.isEmpty {
                     ColorIndicatorView(colors: colorIndicator)
                 }
 
@@ -646,7 +762,7 @@ private struct CardFaceTypeLineSection: View {
 // MARK: - Card Face Text Section
 
 private struct CardFaceTextSection: View {
-    let face: CardFace
+    let face: Card.Face
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
