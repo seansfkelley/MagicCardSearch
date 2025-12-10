@@ -73,26 +73,14 @@ struct ContentView: View {
                             pendingSearchConfig = searchConfig
                             showDisplaySheet = true
                         } label: {
-                            Label {
-                                Text("Sort & Display")
-                            } icon: {
-                                Image(systemName: "arrow.up.arrow.down")
-                                    .font(.title2)
-                            }
+                            Image(systemName: "arrow.up.arrow.down")
                         }
-                        .labelStyle(.iconOnly)
                         
                         Button {
                             showSyntaxReference = true
                         } label: {
-                            Label {
-                                Text("Syntax Reference")
-                            } icon: {
-                                Image(systemName: "book")
-                                    .font(.title2)
-                            }
+                            Image(systemName: "book")
                         }
-                        .labelStyle(.iconOnly)
                     }
                 }
                 
@@ -119,7 +107,7 @@ struct ContentView: View {
                     ) {
                         Image(systemName: "square.and.arrow.up")
                     }
-                    .disabled(filters.isEmpty)
+                    .disabled(filters.isEmpty || isSearchFocused)
                 }
             }
             .toolbarBackground(.hidden, for: .navigationBar)
