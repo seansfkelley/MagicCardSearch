@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		213F299A2EE9285400E058DB /* SVGKitSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 213F29992EE9285400E058DB /* SVGKitSwift */; };
+		21A5FC7A2EE9E76E0034E695 /* .swiftlint.yml in Resources */ = {isa = PBXBuildFile; fileRef = 21A5FC512EE9E76E0034E695 /* .swiftlint.yml */; };
 		21A856BD2EE3AAE400E72541 /* ScryfallKit in Frameworks */ = {isa = PBXBuildFile; productRef = 21A856BC2EE3AAE400E72541 /* ScryfallKit */; };
 		21D3972C2EE225C5008B3EFD /* WrappingHStack in Frameworks */ = {isa = PBXBuildFile; productRef = 21D3972B2EE225C5008B3EFD /* WrappingHStack */; };
 /* End PBXBuildFile section */
@@ -41,6 +42,7 @@
 		2137B5AD2EE139C60066BF7E /* MagicCardSearch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MagicCardSearch.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		2137B5BA2EE139C70066BF7E /* MagicCardSearchTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MagicCardSearchTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		2137B5C42EE139C70066BF7E /* MagicCardSearchUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MagicCardSearchUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		21A5FC512EE9E76E0034E695 /* .swiftlint.yml */ = {isa = PBXFileReference; lastKnownFileType = text.yaml; path = .swiftlint.yml; sourceTree = "<group>"; };
 		21D3976C2EE23306008B3EFD /* README.md */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = README.md; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -124,6 +126,7 @@
 			children = (
 				21D3976C2EE23306008B3EFD /* README.md */,
 				211396112EE9E39500093873 /* CLAUDE.md */,
+				21A5FC512EE9E76E0034E695 /* .swiftlint.yml */,
 				21D397682EE232F0008B3EFD /* Citron */,
 				2137B5AF2EE139C60066BF7E /* MagicCardSearch */,
 				2137B5BD2EE139C70066BF7E /* MagicCardSearchTests */,
@@ -184,6 +187,7 @@
 			buildRules = (
 			);
 			dependencies = (
+				21A5FCA92EE9E81E0034E695 /* PBXTargetDependency */,
 				21A815F82EE2340000282ED3 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
@@ -211,6 +215,7 @@
 			buildRules = (
 			);
 			dependencies = (
+				21A5FCAB2EE9E82E0034E695 /* PBXTargetDependency */,
 				2137B5BC2EE139C70066BF7E /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
@@ -234,6 +239,7 @@
 			buildRules = (
 			);
 			dependencies = (
+				21A5FCAD2EE9E8320034E695 /* PBXTargetDependency */,
 				2137B5C62EE139C70066BF7E /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
@@ -285,6 +291,7 @@
 				21D3972A2EE225C5008B3EFD /* XCRemoteSwiftPackageReference "WrappingHStack" */,
 				21A856BA2EE3AA9200E72541 /* XCRemoteSwiftPackageReference "ScryfallKit" */,
 				213F29982EE9285400E058DB /* XCRemoteSwiftPackageReference "SVGKit" */,
+				21A5FCA72EE9E7FA0034E695 /* XCRemoteSwiftPackageReference "SwiftLintPlugins" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 2137B5AE2EE139C60066BF7E /* Products */;
@@ -304,6 +311,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				21A5FC7A2EE9E76E0034E695 /* .swiftlint.yml in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -380,6 +388,18 @@
 			isa = PBXTargetDependency;
 			target = 2137B5AC2EE139C60066BF7E /* MagicCardSearch */;
 			targetProxy = 2137B5C52EE139C70066BF7E /* PBXContainerItemProxy */;
+		};
+		21A5FCA92EE9E81E0034E695 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			productRef = 21A5FCA82EE9E81E0034E695 /* SwiftLintBuildToolPlugin */;
+		};
+		21A5FCAB2EE9E82E0034E695 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			productRef = 21A5FCAA2EE9E82E0034E695 /* SwiftLintBuildToolPlugin */;
+		};
+		21A5FCAD2EE9E8320034E695 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			productRef = 21A5FCAC2EE9E8320034E695 /* SwiftLintBuildToolPlugin */;
 		};
 		21A815F82EE2340000282ED3 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
@@ -747,6 +767,14 @@
 				minimumVersion = 3.0.0;
 			};
 		};
+		21A5FCA72EE9E7FA0034E695 /* XCRemoteSwiftPackageReference "SwiftLintPlugins" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/SimplyDanny/SwiftLintPlugins";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.62.2;
+			};
+		};
 		21A856BA2EE3AA9200E72541 /* XCRemoteSwiftPackageReference "ScryfallKit" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/JacobHearst/ScryfallKit";
@@ -770,6 +798,21 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 213F29982EE9285400E058DB /* XCRemoteSwiftPackageReference "SVGKit" */;
 			productName = SVGKitSwift;
+		};
+		21A5FCA82EE9E81E0034E695 /* SwiftLintBuildToolPlugin */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 21A5FCA72EE9E7FA0034E695 /* XCRemoteSwiftPackageReference "SwiftLintPlugins" */;
+			productName = "plugin:SwiftLintBuildToolPlugin";
+		};
+		21A5FCAA2EE9E82E0034E695 /* SwiftLintBuildToolPlugin */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 21A5FCA72EE9E7FA0034E695 /* XCRemoteSwiftPackageReference "SwiftLintPlugins" */;
+			productName = "plugin:SwiftLintBuildToolPlugin";
+		};
+		21A5FCAC2EE9E8320034E695 /* SwiftLintBuildToolPlugin */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 21A5FCA72EE9E7FA0034E695 /* XCRemoteSwiftPackageReference "SwiftLintPlugins" */;
+			productName = "plugin:SwiftLintBuildToolPlugin";
 		};
 		21A856BC2EE3AAE400E72541 /* ScryfallKit */ = {
 			isa = XCSwiftPackageProductDependency;
