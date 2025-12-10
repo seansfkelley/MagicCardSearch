@@ -30,6 +30,7 @@ struct OracleTextView: View {
 private struct LineView: View {
     let line: String
     let fontSize: CGFloat
+    @Environment(\.colorScheme) private var colorScheme
     
     var body: some View {
         let (rules, reminder) = splitReminderText(line)
@@ -82,7 +83,8 @@ private struct LineView: View {
     // TODO: Can this be done with the TextRenderer protocol or something instead of
     // rendering it to a temporary image?
     private func renderSymbol(_ symbol: String) -> Image? {
-        let renderer = ImageRenderer(content: MtgSymbolView(symbol, size: fontSize))
+        let renderer = ImageRenderer(content: MtgSymbolView(symbol, size: fontSize)
+            .environment(\.colorScheme, colorScheme))
         renderer.scale = 3.0
         if let uiImage = renderer.uiImage {
             return Image(uiImage: uiImage)
