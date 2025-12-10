@@ -92,6 +92,8 @@ identifier_name:
     - q
     - i
     - j
+    - x
+    - "y"
 
 trailing_comma:
   severity: error

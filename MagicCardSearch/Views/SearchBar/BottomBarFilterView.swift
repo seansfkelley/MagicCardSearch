@@ -16,10 +16,12 @@ struct BottomBarFilterView: View {
     let warnings: [String]
     @Binding var showWarningsPopover: Bool
     let onFilterEdit: (SearchFilter) -> Void
+    @State var searchIconOpacity: CGFloat = 1
     
     @Namespace private var animation
     
     private let collapsedButtonSize: CGFloat = 44
+    private let searchIconFadeExtent: CGFloat = 24
     
     // Calculate max height based on pill dimensions without hardcoding
     // Each pill is 32pt tall with 8pt spacing = 40pt per line
@@ -129,11 +131,13 @@ struct BottomBarFilterView: View {
                                 Image(systemName: "magnifyingglass")
                                     .foregroundStyle(.secondary)
                                     .padding(12)
+                                    .opacity(searchIconOpacity)
                                 Spacer()
                             }
                             
                             ScrollView(.horizontal, showsIndicators: false) {
                                 HStack(spacing: 8) {
+                                    // Just a spacer of the right size!
                                     Image(systemName: "magnifyingglass")
                                         .foregroundStyle(.clear)
                                         .padding(.trailing, 4)
@@ -144,6 +148,15 @@ struct BottomBarFilterView: View {
                                 }
                                 .padding(.horizontal, 4)
                             }
+                            .onScrollGeometryChange(
+                                for: CGFloat.self,
+                                of: { geometry in
+                                    let x = geometry.contentOffset.x
+                                    return x > searchIconFadeExtent ? searchIconFadeExtent : x < 0 ? 0 : x
+                                },
+                                action: { _, currentValue in
+                                    searchIconOpacity = (searchIconFadeExtent - currentValue) / searchIconFadeExtent
+                                })
                             .clipShape(.capsule)
                             .frame(maxWidth: .infinity)
                             .frame(height: collapsedButtonSize)
