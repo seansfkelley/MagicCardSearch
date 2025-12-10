@@ -19,11 +19,11 @@ enum SearchFilter: Equatable, Hashable, Codable {
     // TODO: This and the previous method should be single-quote aware too, probably.
     var queryStringWithEditingRange: (String, Range<String.Index>) {
         switch self {
-        case .name(let n):
-            return if n.contains(" ") {
-                ("\"\(n)\"", n.index(after: n.startIndex)..<n.index(before: n.endIndex))
+        case .name(let name):
+            return if name.contains(" ") {
+                ("\"\(name)\"", name.index(after: name.startIndex)..<name.index(before: name.endIndex))
             } else {
-                (n, n.startIndex..<n.endIndex)
+                (name, name.startIndex..<name.endIndex)
             }
         case .keyValue(let key, let comparison, let value):
             let prefix = "\(key)\(comparison.symbol)"
@@ -86,8 +86,8 @@ private let lexer = CitronLexer<LexedTokenData>(rules: [
 
 private func parse(_ input: String) throws -> SearchFilter {
     let parser = MagicCardSearchGrammar()
-    try lexer.tokenize(input) { t, c in
-        try parser.consume(token: t, code: c)
+    try lexer.tokenize(input) { token, code in
+        try parser.consume(token: token, code: code)
     }
     return try parser.endParsing()
 }

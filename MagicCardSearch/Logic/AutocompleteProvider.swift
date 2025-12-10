@@ -32,6 +32,14 @@ class AutocompleteProvider {
         let options: [String: Range<String.Index>?]
     }
     
+    struct FilterTypeMatch {
+        let canonicalType: String
+        let displayText: String
+        let range: Range<String.Index>
+        let isExactMatch: Bool
+        let matchLength: Int
+    }
+    
     enum Suggestion {
         case history(HistorySuggestion)
         case filter(FilterTypeSuggestion)
@@ -72,6 +80,8 @@ class AutocompleteProvider {
         saveHistory()
     }
 
+    // TODO: yikes
+    // swiftlint:disable cyclomatic_complexity function_body_length
     func suggestions(for searchTerm: String, excluding excludedFilters: Set<SearchFilter> = Set())
         -> [Suggestion] {
         let availableHistory = history.filter { !excludedFilters.contains($0.filter) }
@@ -104,14 +114,7 @@ class AutocompleteProvider {
         }
 
         // Collect filter type matches with their match quality
-        var filterTypeMatches:
-            [(
-                canonicalType: String,
-                displayText: String,
-                range: Range<String.Index>,
-                isExactMatch: Bool,
-                matchLength: Int
-            )] = []
+        var filterTypeMatches: [FilterTypeMatch] = []
 
         for (_, filterType) in scryfallFilterByType {
             let canonicalFilterType = filterType.canonicalName
@@ -151,15 +154,13 @@ class AutocompleteProvider {
             }
 
             if let (candidate, range, matchLength) = bestMatch {
-                filterTypeMatches.append(
-                    (
-                        canonicalType: canonicalFilterType,
-                        displayText: candidate,
-                        range: range,
-                        isExactMatch: hasExactMatch,
-                        matchLength: matchLength
-                    )
-                )
+                filterTypeMatches.append(FilterTypeMatch(
+                    canonicalType: canonicalFilterType,
+                    displayText: candidate,
+                    range: range,
+                    isExactMatch: hasExactMatch,
+                    matchLength: matchLength
+                ))
             }
         }
 
@@ -198,6 +199,7 @@ class AutocompleteProvider {
         let historyLookup = Dictionary(uniqueKeysWithValues: availableHistory.map { ($0.filter, $0) })
         return Array(sortResults(results, historyLookup: historyLookup).prefix(10))
     }
+    // swiftlint:enable cyclomatic_complexity function_body_length
 
     // TODO: Weird interface; improve it. Also, slow.
     func pinSearchFilter(_ filter: SearchFilter) {
@@ -226,6 +228,8 @@ class AutocompleteProvider {
 
     // MARK: - Private Helpers
 
+    // TODO: yikes again
+    // swiftlint:disable cyclomatic_complexity
     private func checkForEnumerationSuggestions(_ searchTerm: String) -> Suggestion? {
         // Some enumeration types, like rarity, are considered orderable.
         for op in ["!=", ">=", ">", "<=", "<", ":", "="] {
@@ -287,6 +291,7 @@ class AutocompleteProvider {
 
         return nil
     }
+    // swiftlint:enable cyclomatic_complexity
 
     private func sortResults(_ results: [Suggestion], historyLookup: [SearchFilter: HistoryEntry]) -> [Suggestion] {
         return results.sorted { lhs, rhs in

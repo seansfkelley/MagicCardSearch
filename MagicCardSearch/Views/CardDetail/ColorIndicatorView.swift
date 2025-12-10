@@ -14,8 +14,8 @@ enum IndicatorColor: String {
     case red = "RedIndicatorColor"
     case green = "GreenIndicatorColor"
 
-    static func fromSymbolCode(_ s: String) -> IndicatorColor? {
-        return switch s.lowercased() {
+    static func fromSymbolCode(_ code: String) -> IndicatorColor? {
+        return switch code.lowercased() {
         case "w": .white
         case "u": .blue
         case "b": .black

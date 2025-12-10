@@ -220,14 +220,33 @@ struct RegularCard: Identifiable, Codable {
         case large
     }
     
-    init(id: String, name: String, smallImageUrl: String? = nil, normalImageUrl: String? = nil,
-         largeImageUrl: String? = nil, manaCost: String? = nil,
-         typeLine: String? = nil, oracleText: String? = nil, flavorText: String? = nil,
-         power: String? = nil, toughness: String? = nil, artist: String? = nil,
-         colors: [String]? = nil, colorIndicator: [String]? = nil, legalities: [String: String]? = nil,
-         gameChanger: Bool? = nil, allParts: [RelatedPart]? = nil, scryfallUri: String? = nil,
-         setCode: String? = nil, setName: String? = nil, collectorNumber: String? = nil,
-         rarity: String? = nil, lang: String? = nil, releasedAt: String? = nil, rulingsUri: String? = nil) {
+    init(
+        id: String,
+        name: String,
+        smallImageUrl: String? = nil,
+        normalImageUrl: String? = nil,
+        largeImageUrl: String? = nil,
+        manaCost: String? = nil,
+        typeLine: String? = nil,
+        oracleText: String? = nil,
+        flavorText: String? = nil,
+        power: String? = nil,
+        toughness: String? = nil,
+        artist: String? = nil,
+        colors: [String]? = nil,
+        colorIndicator: [String]? = nil,
+        legalities: [String: String]? = nil,
+        gameChanger: Bool? = nil,
+        allParts: [RelatedPart]? = nil,
+        scryfallUri: String? = nil,
+        setCode: String? = nil,
+        setName: String? = nil,
+        collectorNumber: String? = nil,
+        rarity: String? = nil,
+        lang: String? = nil,
+        releasedAt: String? = nil,
+        rulingsUri: String? = nil,
+    ) {
         self.id = id
         self.name = name
         self.smallImageUrl = smallImageUrl

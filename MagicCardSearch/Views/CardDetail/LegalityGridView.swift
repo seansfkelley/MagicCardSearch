@@ -36,8 +36,8 @@ private enum Legality: String {
     case banned = "Banned"
     case unknown = "Unknown"
     
-    static func fromApiValue(_ s: String) -> Legality? {
-        return switch s.lowercased() {
+    static func fromApiValue(_ apiValue: String) -> Legality? {
+        return switch apiValue.lowercased() {
         case "legal": .legal
         case "not_legal": .notLegal
         case "restricted": .restricted

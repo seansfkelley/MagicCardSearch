@@ -226,8 +226,7 @@ struct CardResultsView: View {
         loadNextPageIfNeeded()
     }
 
-    @ViewBuilder
-    private var paginationStatusView: some View {
+    @ViewBuilder private var paginationStatusView: some View {
         VStack(spacing: 16) {
             if isLoadingNextPage {
                 VStack(spacing: 12) {
@@ -302,8 +301,7 @@ struct CardResultCell: View {
     
     // MARK: - Regular Card
     
-    @ViewBuilder
-    private var regularCardView: some View {
+    @ViewBuilder private var regularCardView: some View {
         if let imageUrl = card.smallImageUrl, let url = URL(string: imageUrl) {
             AsyncImage(url: url) { phase in
                 switch phase {

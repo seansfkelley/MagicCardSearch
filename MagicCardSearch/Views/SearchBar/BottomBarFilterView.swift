@@ -161,8 +161,8 @@ struct BottomBarFilterView: View {
         .padding(.horizontal)
         .padding(.bottom)
         .onChange(of: isSearchFocused) { _, _ in
-            if let s = pendingSelection {
-                inputSelection = s
+            if let selection = pendingSelection {
+                inputSelection = selection
                 pendingSelection = nil
             }
         }

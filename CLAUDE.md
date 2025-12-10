@@ -20,3 +20,7 @@ This is an iOS app for searching the library of Magic: The Gathering ("MTG" or "
 
 - Scryfall is an advanced MTG search engine with a robust query language.  
 - The API documentation can be found at https://scryfall.com/docs/api.
+
+## Tools
+
+- Run SwiftLint after your changes and ensure they adhere to the style.

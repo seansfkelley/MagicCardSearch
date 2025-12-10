@@ -15,8 +15,8 @@ enum ManaColor: String {
     case green = "GreenManaColor"
     case colorless = "ColorlessManaColor"
 
-    static func fromSymbolCode(_ s: String) -> ManaColor? {
-        return switch s.lowercased() {
+    static func fromSymbolCode(_ code: String) -> ManaColor? {
+        return switch code.lowercased() {
         case "w": .white
         case "u": .blue
         case "b": .black

@@ -105,6 +105,7 @@ struct SearchBarView: View {
                 inputSelection = .init(range: location..<location)
             case .multiSelection:
                 // TODO: how or why
+                // swiftlint:disable:next fallthrough
                 fallthrough
             @unknown default:
                 inputText += symbol

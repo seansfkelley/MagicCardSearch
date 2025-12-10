@@ -5,6 +5,8 @@
 //  Created by Sean Kelley on 2025-12-08.
 //
 
+// swiftlint:disable file_length
+
 import SwiftUI
 
 struct CardDetailView: View {

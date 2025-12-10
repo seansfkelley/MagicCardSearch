@@ -171,7 +171,8 @@ struct CardListView: View {
             } else {
                 "1 \(card.name)"
             }
-        }.joined(separator: "\n")
+        }
+        .joined(separator: "\n")
     }
 }
 
