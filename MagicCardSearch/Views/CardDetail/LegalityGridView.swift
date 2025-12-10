@@ -10,68 +10,42 @@ import ScryfallKit
 
 // The weird order here is because the column view goes English reading order, and it's a lot easier
 // to get it to do the right thing like this than trying to flow it down the columns.
-private enum Format: String, CaseIterable {
-    case standard = "Standard"
-    case alchemy = "Alchemy"
-    case pioneer = "Pioneer"
-    case historic = "Historic"
-    case modern = "Modern"
-    case brawl = "Brawl"
-    case legacy = "Legacy"
-    case timeless = "Timeless"
-    case vintage = "Vintage"
-    case pauper = "Pauper"
-    case commander = "Commander"
-    case penny = "Penny"
-    case oathbreaker = "Oathbreaker"
-    
-    var apiKey: String {
-        return String(describing: self)
-    }
-}
-
-private enum Legality: String {
-    case legal = "Legal"
-    case notLegal = "Not Legal"
-    case restricted = "Restricted"
-    case banned = "Banned"
-    case unknown = "Unknown"
-    
-    static func fromApiValue(_ apiValue: String) -> Legality? {
-        return switch apiValue.lowercased() {
-        case "legal": .legal
-        case "not_legal": .notLegal
-        case "restricted": .restricted
-        case "banned": .banned
-        default: .unknown
-        }
-    }
-}
+private let orderedFormats: [Format] = [
+    .standard,
+    .pioneer,
+    .historic,
+    .modern,
+    .brawl,
+    .legacy,
+    .vintage,
+    .pauper,
+    .commander,
+    .penny,
+]
 
 struct LegalityGridView: View {
-    let legalities: Card.Legalities
-    let isGameChanger: Bool
+    let card: Card
     
     var body: some View {
         LazyVGrid(columns: [
             GridItem(.flexible(), spacing: 12),
             GridItem(.flexible(), spacing: 12),
         ], spacing: 12) {
-            // TODO: Restore this.
-//            ForEach(Format.allCases, id: \.self) { format in
-//                if let apiLegality = legalities[format.apiKey], let legality = Legality.fromApiValue(apiLegality) {
-//                    LegalityItemView(format: format, legality: legality, isGameChanger: isGameChanger)
-//                } else {
-//                    LegalityItemView(format: format, legality: .unknown, isGameChanger: isGameChanger)
-//                }
-//            }
+            ForEach(orderedFormats, id: \.self) { format in
+                LegalityItemView(
+                    format: format,
+                    legality: card.getLegality(for: format),
+                    // TODO: ScryfallKit doesn't have this field, but it should.
+                    isGameChanger: false,
+                )
+            }
         }
     }
 }
 
 private struct LegalityItemView: View {
     let format: Format
-    let legality: Legality
+    let legality: Card.Legality
     let isGameChanger: Bool
     
     var body: some View {
@@ -86,17 +60,17 @@ private struct LegalityItemView: View {
                         .foregroundStyle(.white)
                 )
             
-            Text(format.rawValue)
+            Text(format.label)
                 .font(.subheadline)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
     
     private var legalityDisplayText: String {
-        if format == .commander && legality == .legal && isGameChanger {
-            return "Legal/GC"
+        return if format == .commander && isGameChanger {
+            "\(legality.label)/GC"
         } else {
-            return legality.rawValue
+            legality.label
         }
     }
     
@@ -107,7 +81,7 @@ private struct LegalityItemView: View {
         } else {
             return switch legality {
             case .legal: .green
-            case .notLegal, .unknown: .gray
+            case .notLegal: .gray
             case .restricted: .orange
             case .banned: .red
             }

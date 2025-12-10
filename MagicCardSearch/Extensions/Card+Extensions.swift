@@ -20,20 +20,8 @@ extension Card {
         bothFaces != nil
     }
     
-    var smallImageUrl: String? {
-        field(\.imageUris?.small, \.imageUris?.small)
-    }
-    
-    var normalImageUrl: String? {
-        field(\.imageUris?.normal, \.imageUris?.normal)
-    }
-    
-    var largeImageUrl: String? {
-        field(\.imageUris?.large, \.imageUris?.large)
-    }
-    
-    var typeLine: String? {
-        field(\.typeLine, \.typeLine)
+    var primaryImageUris: Card.ImageUris? {
+        field(\.imageUris, \.imageUris)
     }
     
     private func field<T>(_ normalPath: KeyPath<Card, T>,

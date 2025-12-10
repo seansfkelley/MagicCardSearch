@@ -302,7 +302,7 @@ struct CardResultCell: View {
     // MARK: - Regular Card
     
     @ViewBuilder private var regularCardView: some View {
-        if let imageUrl = card.smallImageUrl, let url = URL(string: imageUrl) {
+        if let imageUrl = card.primaryImageUris?.small, let url = URL(string: imageUrl) {
             AsyncImage(url: url) { phase in
                 switch phase {
                 case .empty:

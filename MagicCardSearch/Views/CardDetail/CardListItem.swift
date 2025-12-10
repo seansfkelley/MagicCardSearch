@@ -9,7 +9,6 @@
 import Foundation
 import ScryfallKit
 
-/// A lightweight, serializable representation of a card for the favorites list
 struct CardListItem: Identifiable, Codable, Equatable, Hashable, Comparable {
     let id: UUID
     let name: String
@@ -18,25 +17,17 @@ struct CardListItem: Identifiable, Codable, Equatable, Hashable, Comparable {
     let setCode: String?
     let releasedAt: String?
     
-    /// Initialize from a ScryfallKit Card
     init(from card: Card) {
         self.id = card.id
         self.name = card.name
         self.typeLine = card.typeLine
         self.setCode = card.set
         self.releasedAt = card.releasedAt
-        
-        // For double-faced cards, prefer the front face image
-        if let cardFaces = card.cardFaces, let firstFace = cardFaces.first {
-            self.smallImageUrl = firstFace.imageUris?.small
-        } else {
-            self.smallImageUrl = card.imageUris?.small
-        }
+        self.smallImageUrl = card.primaryImageUris?.small
     }
     
     // MARK: - Comparable
     
-    /// Sort by name, then by release date
     static func < (lhs: CardListItem, rhs: CardListItem) -> Bool {
         if lhs.name != rhs.name {
             return lhs.name < rhs.name

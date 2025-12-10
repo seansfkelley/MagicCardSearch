@@ -45,24 +45,18 @@ struct CardDetailView: View {
                 Divider()
                     .padding(.horizontal)
 
-                CardLegalitiesSection(
-                    legalities: card.legalities,
-                    isGameChanger: false
+                CardLegalitiesSection(card: card)
+
+                Divider()
+                    .padding(.horizontal)
+
+                CardSetInfoSection(
+                    setCode: card.set,
+                    setName: card.setName,
+                    collectorNumber: card.collectorNumber,
+                    rarity: card.rarity,
+                    lang: card.lang
                 )
-
-                // Set Information Section
-                if card.set != nil || card.setName != nil || card.collectorNumber != nil || card.rarity != nil || card.lang != nil {
-                    Divider()
-                        .padding(.horizontal)
-
-                    CardSetInfoSection(
-                        setCode: card.set,
-                        setName: card.setName,
-                        collectorNumber: card.collectorNumber,
-                        rarity: card.rarity,
-                        lang: card.lang
-                    )
-                }
 
                 if let allParts = card.allParts, !allParts.isEmpty {
                     Divider()
@@ -142,7 +136,7 @@ struct CardDetailView: View {
     
     @ViewBuilder private var singleFacedCardView: some View {
         // Image Section
-        if let imageUrl = card.normalImageUrl, let url = URL(string: imageUrl) {
+        if let imageUrl = card.primaryImageUris?.normal, let url = URL(string: imageUrl) {
             AsyncImage(url: url) { phase in
                 switch phase {
                 case .empty:
@@ -374,12 +368,11 @@ private struct CardArtistSection: View {
 // MARK: - Card Legalities Section
 
 private struct CardLegalitiesSection: View {
-    let legalities: Card.Legalities
-    let isGameChanger: Bool
+    let card: Card
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            LegalityGridView(legalities: legalities, isGameChanger: isGameChanger)
+            LegalityGridView(card: card)
         }
         .padding(.horizontal)
         .padding(.vertical, 12)
