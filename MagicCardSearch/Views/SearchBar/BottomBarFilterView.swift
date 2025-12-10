@@ -124,17 +124,30 @@ struct BottomBarFilterView: View {
                     .clipped()
                     
                     if !isSearchFocused && !filters.isEmpty {
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 8) {
-                                ForEach(Array(filters.enumerated()), id: \.offset) { _, filter in
-                                    FilterPillView(filter: filter)
-                                }
+                        ZStack {
+                            HStack {
+                                Image(systemName: "magnifyingglass")
+                                    .foregroundStyle(.secondary)
+                                    .padding(12)
+                                Spacer()
                             }
-                            .padding(.horizontal, 4)
+                            
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "magnifyingglass")
+                                        .foregroundStyle(.clear)
+                                        .padding(.trailing, 4)
+                                    
+                                    ForEach(Array(filters.enumerated()), id: \.offset) { _, filter in
+                                        FilterPillView(filter: filter)
+                                    }
+                                }
+                                .padding(.horizontal, 4)
+                            }
+                            .clipShape(.capsule)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: collapsedButtonSize)
                         }
-                        .clipShape(.capsule)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: collapsedButtonSize)
                     }
                 }
                 .contentShape(Rectangle())
