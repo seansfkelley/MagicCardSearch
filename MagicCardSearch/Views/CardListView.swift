@@ -41,24 +41,23 @@ struct CardListView: View {
                 } else {
                     List(selection: $selectedCards) {
                         ForEach(Array(listManager.sortedCards.enumerated()), id: \.element.id) { index, card in
-                            Button {
-                                if !isEditing {
-                                    detailSheetState = SheetState(index: index, cards: listManager.sortedCards)
-                                }
-                            } label: {
-                                CardListRow(card: card)
-                            }
-                            .buttonStyle(.plain)
-                            .tag(card.id)
-                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                                Button(role: .destructive) {
-                                    withAnimation {
-                                        listManager.removeCard(withId: card.id)
+                            CardListRow(card: card)
+                                .contentShape(Rectangle())
+                                .onTapGesture {
+                                    if !isEditing {
+                                        detailSheetState = SheetState(index: index, cards: listManager.sortedCards)
                                     }
-                                } label: {
-                                    Label("Delete", systemImage: "trash")
                                 }
-                            }
+                                .tag(card.id)
+                                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                    Button(role: .destructive) {
+                                        withAnimation {
+                                            listManager.removeCard(withId: card.id)
+                                        }
+                                    } label: {
+                                        Label("Delete", systemImage: "trash")
+                                    }
+                                }
                         }
                     }
                     .listStyle(.insetGrouped)
