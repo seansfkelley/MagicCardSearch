@@ -26,12 +26,12 @@ class RulingsService {
             return cached
         }
         
-        let rulings = try await client.getRulings(identifier: .scryfallID(id: cardId))
+        let rulings = try await client.getRulings(.scryfallID(id: cardId))
         
         // Cache the result
-        cache[cardId] = rulings
+        cache[cardId] = rulings.data
         
-        return rulings
+        return rulings.data
     }
     
     /// Legacy method that accepts a URL string (extracts card ID from it)

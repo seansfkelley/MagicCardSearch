@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import ScryfallKit
 
 // The weird order here is because the column view goes English reading order, and it's a lot easier
 // to get it to do the right thing like this than trying to flow it down the columns.
@@ -48,7 +49,7 @@ private enum Legality: String {
 }
 
 struct LegalityGridView: View {
-    let legalities: [String: String]
+    let legalities: Card.Legalities
     let isGameChanger: Bool
     
     var body: some View {
@@ -56,13 +57,14 @@ struct LegalityGridView: View {
             GridItem(.flexible(), spacing: 12),
             GridItem(.flexible(), spacing: 12),
         ], spacing: 12) {
-            ForEach(Format.allCases, id: \.self) { format in
-                if let apiLegality = legalities[format.apiKey], let legality = Legality.fromApiValue(apiLegality) {
-                    LegalityItemView(format: format, legality: legality, isGameChanger: isGameChanger)
-                } else {
-                    LegalityItemView(format: format, legality: .unknown, isGameChanger: isGameChanger)
-                }
-            }
+            // TODO: Restore this.
+//            ForEach(Format.allCases, id: \.self) { format in
+//                if let apiLegality = legalities[format.apiKey], let legality = Legality.fromApiValue(apiLegality) {
+//                    LegalityItemView(format: format, legality: legality, isGameChanger: isGameChanger)
+//                } else {
+//                    LegalityItemView(format: format, legality: .unknown, isGameChanger: isGameChanger)
+//                }
+//            }
         }
     }
 }

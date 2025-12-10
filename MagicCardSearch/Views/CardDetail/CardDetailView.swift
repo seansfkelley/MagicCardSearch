@@ -48,15 +48,13 @@ struct CardDetailView: View {
                     singleFacedCardView
                 }
 
-                if let legalities = card.legalitiesDict, !legalities.isEmpty {
-                    Divider()
-                        .padding(.horizontal)
+                Divider()
+                    .padding(.horizontal)
 
-                    CardLegalitiesSection(
-                        legalities: legalities,
-                        isGameChanger: false
-                    )
-                }
+                CardLegalitiesSection(
+                    legalities: card.legalities,
+                    isGameChanger: false
+                )
 
                 // Set Information Section
                 if card.set != nil || card.setName != nil || card.collectorNumber != nil || card.rarity != nil || card.lang != nil {
@@ -67,7 +65,7 @@ struct CardDetailView: View {
                         setCode: card.set,
                         setName: card.setName,
                         collectorNumber: card.collectorNumber,
-                        rarity: card.rarity?.rawValue,
+                        rarity: card.rarity,
                         lang: card.lang
                     )
                 }
@@ -109,7 +107,7 @@ struct CardDetailView: View {
         }
         .task {
             // Load rulings when view appears
-            if let rulingsUri = card.rulingsURI {
+            if let rulingsUri = card.rulingsUri {
                 await loadRulings(from: rulingsUri)
             }
         }
@@ -124,7 +122,7 @@ struct CardDetailView: View {
                     }
                 }
                 
-                if let scryfallUri = card.scryfallURI,
+                if let scryfallUri = card.scryfallUri,
                    let url = URL(string: scryfallUri) {
                     ToolbarItem(placement: .topBarTrailing) {
                         ShareLink(item: url)
@@ -323,7 +321,7 @@ struct CardDetailView: View {
         }
     }
 
-    private func loadRelatedCard(id: String) async {
+    private func loadRelatedCard(id: UUID) async {
         print("Loading related card...")
 
         isLoadingRelatedCard = true
@@ -396,7 +394,7 @@ private struct CardArtistSection: View {
 // MARK: - Card Legalities Section
 
 private struct CardLegalitiesSection: View {
-    let legalities: [String: String]
+    let legalities: Card.Legalities
     let isGameChanger: Bool
 
     var body: some View {
@@ -412,10 +410,10 @@ private struct CardLegalitiesSection: View {
 // MARK: - Card Set Information Section
 
 private struct CardSetInfoSection: View {
-    let setCode: String?
-    let setName: String?
-    let collectorNumber: String?
-    let rarity: String?
+    let setCode: String
+    let setName: String
+    let collectorNumber: String
+    let rarity: Card.Rarity
     let lang: String?
     
     var body: some View {
@@ -449,7 +447,7 @@ private struct CardSetInfoSection: View {
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                                 HStack(spacing: 4) {
-                                    Text(rarity.capitalized)
+                                    Text(rarity.rawValue.capitalized)
                                         .font(.caption)
                                         .foregroundStyle(.secondary)
                                 }
@@ -504,7 +502,7 @@ private struct CardSetInfoSection: View {
 private struct CardRelatedPartsSection: View {
     let allParts: [RelatedPart]
     let isLoadingRelatedCard: Bool
-    let onPartTapped: (String) -> Void
+    let onPartTapped: (UUID) -> Void
 
     var body: some View {
         List {
@@ -555,7 +553,7 @@ private struct CardRelatedPartsSection: View {
 // MARK: - Card Rulings Section
 
 private struct CardRulingsSection: View {
-    let rulings: [Ruling]
+    let rulings: [Card.Ruling]
     let isLoading: Bool
     let error: Error?
     let onRetry: () -> Void

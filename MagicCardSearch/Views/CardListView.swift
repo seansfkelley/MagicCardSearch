@@ -12,7 +12,7 @@ struct CardListView: View {
     @ObservedObject var listManager = CardListManager.shared
     @Environment(\.dismiss) private var dismiss
     @State private var editMode: EditMode = .inactive
-    @State private var selectedCards: Set<String> = []
+    @State private var selectedCards: Set<UUID> = []
     @State private var detailSheetState: SheetState?
     
     private var isEditing: Bool {
@@ -151,7 +151,7 @@ struct CardListView: View {
     
     // Helper struct to make sheet item identifiable
     struct SheetState: Identifiable {
-        let id: String
+        let id: UUID
         let index: Int
         let cards: [CardListItem]
         
@@ -159,7 +159,7 @@ struct CardListView: View {
             self.index = index
             self.cards = cards
             // Use the card ID at this index as a stable identifier
-            self.id = cards.indices.contains(index) ? cards[index].id : UUID().uuidString
+            self.id = cards.indices.contains(index) ? cards[index].id : UUID()
         }
     }
 

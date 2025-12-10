@@ -13,14 +13,14 @@ import ScryfallKit
 /// A lightweight adapter that conforms to the old RelatedPart interface
 /// but wraps ScryfallKit's RelatedCard type
 struct RelatedPart: Identifiable {
-    let id: String
+    let id: UUID
     let name: String
     let typeLine: String?
 }
 
 /// Adapter to convert ScryfallKit's Card.RelatedCard to our RelatedPart
 struct RelatedPartAdapter: Identifiable {
-    let id: String
+    let id: UUID
     let name: String
     let typeLine: String?
     

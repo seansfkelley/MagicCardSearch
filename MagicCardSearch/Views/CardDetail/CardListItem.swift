@@ -2,61 +2,51 @@
 //  CardListItem.swift
 //  MagicCardSearch
 //
-//  Created by Sean Kelley on 2025-12-09.
+//  A serializable wrapper for persisting card information to disk.
+//  Does not persist the full ScryfallKit Card object.
 //
 
 import Foundation
+import ScryfallKit
 
-/// A lightweight representation of a card for storage in the user's card list
-struct CardListItem: Identifiable, Codable, Equatable, Comparable {
-    let id: String // Scryfall ID
+/// A lightweight, serializable representation of a card for the favorites list
+struct CardListItem: Identifiable, Codable, Equatable, Hashable, Comparable {
+    let id: UUID
     let name: String
     let typeLine: String?
     let smallImageUrl: String?
     let setCode: String?
-    let releasedAt: String? // ISO 8601 date string
+    let releasedAt: String?
     
-    init(id: String, name: String, typeLine: String?, smallImageUrl: String?, setCode: String? = nil, releasedAt: String? = nil) {
-        self.id = id
-        self.name = name
-        self.typeLine = typeLine
-        self.smallImageUrl = smallImageUrl
-        self.setCode = setCode
-        self.releasedAt = releasedAt
-    }
-    
-    /// Create a CardListItem from a CardResult
-    init(from card: CardResult) {
+    /// Initialize from a ScryfallKit Card
+    init(from card: Card) {
         self.id = card.id
         self.name = card.name
         self.typeLine = card.typeLine
-        self.smallImageUrl = card.smallImageUrl
-        self.setCode = card.setCode
+        self.setCode = card.set
         self.releasedAt = card.releasedAt
+        
+        // For double-faced cards, prefer the front face image
+        if let cardFaces = card.cardFaces, let firstFace = cardFaces.first {
+            self.smallImageUrl = firstFace.imageUris?.small
+        } else {
+            self.smallImageUrl = card.imageUris?.small
+        }
     }
     
     // MARK: - Comparable
     
+    /// Sort by name, then by release date
     static func < (lhs: CardListItem, rhs: CardListItem) -> Bool {
-        // First sort by name
         if lhs.name != rhs.name {
-            return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+            return lhs.name < rhs.name
         }
         
-        // If names match, sort by release date (newer first)
-        if let lhsDate = lhs.releasedAt, let rhsDate = rhs.releasedAt {
-            return lhsDate > rhsDate
+        // If names are equal, sort by release date (most recent first)
+        guard let lhsDate = lhs.releasedAt, let rhsDate = rhs.releasedAt else {
+            return lhs.id < rhs.id // Fallback to ID if no dates
         }
         
-        // If one has a date and the other doesn't, prefer the one with a date
-        if lhs.releasedAt != nil {
-            return true
-        }
-        if rhs.releasedAt != nil {
-            return false
-        }
-        
-        // Fallback to ID comparison for stability
-        return lhs.id < rhs.id
+        return lhsDate > rhsDate
     }
 }

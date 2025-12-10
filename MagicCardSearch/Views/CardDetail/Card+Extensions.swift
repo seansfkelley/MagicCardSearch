@@ -120,19 +120,6 @@ extension Card {
         }
         return colorIndicator?.map { $0.rawValue }
     }
-    
-    /// Convert legalities dictionary to match the old format (if needed)
-    var legalitiesDict: [String: String]? {
-        guard let legalities = legalities else { return nil }
-        
-        // ScryfallKit's legalities is already a dictionary of [String: Card.Legality]
-        // We need to convert Card.Legality enum to String
-        var result: [String: String] = [:]
-        for (format, legality) in legalities {
-            result[format] = legality.rawValue
-        }
-        return result
-    }
 }
 
 extension Card.Face {

@@ -79,8 +79,8 @@ class CardSearchService {
         )
     }
     
-    func fetchCard(byId id: String) async throws -> Card {
-        return try await client.getCard(identifier: .scryfallID(id))
+    func fetchCard(byId id: UUID) async throws -> Card {
+        return try await client.getCard(identifier: .scryfallID(id: id.uuidString))
     }
     
     static func buildSearchURL(filters: [SearchFilter], config: SearchConfiguration, forAPI: Bool) -> URL? {

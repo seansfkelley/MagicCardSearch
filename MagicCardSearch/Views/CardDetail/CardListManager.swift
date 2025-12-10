@@ -37,7 +37,7 @@ class CardListManager: ObservableObject {
     }
     
     /// Remove a card from the list by ID
-    func removeCard(withId id: String) {
+    func removeCard(withId id: UUID) {
         cards.removeAll { $0.id == id }
         saveCards()
     }
@@ -52,7 +52,7 @@ class CardListManager: ObservableObject {
     }
     
     /// Check if a card is in the list
-    func contains(cardId: String) -> Bool {
+    func contains(cardId: UUID) -> Bool {
         cards.contains { $0.id == cardId }
     }
     
