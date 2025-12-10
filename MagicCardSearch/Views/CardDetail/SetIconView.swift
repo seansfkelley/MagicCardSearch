@@ -17,6 +17,8 @@ private let setIconCache: NSCache<NSString, UIImage> = {
 
 struct SetIconView: View {
     let setCode: String
+    var size: CGFloat = 32
+    
     @State private var renderedImage: UIImage?
     @State private var isLoading = true
     
@@ -27,15 +29,15 @@ struct SetIconView: View {
                     .resizable()
                     .renderingMode(.template)
                     .aspectRatio(contentMode: .fit)
-                    .frame(width: 32, height: 32)
+                    .frame(width: size, height: size)
             } else if isLoading {
                 ProgressView()
-                    .frame(width: 32, height: 32)
+                    .frame(width: size, height: size)
             } else {
                 Image(systemName: "square.stack.3d.up")
                     .resizable()
                     .aspectRatio(contentMode: .fit)
-                    .frame(width: 32, height: 32)
+                    .frame(width: size, height: size)
                     .foregroundStyle(.secondary)
             }
         }
@@ -45,7 +47,7 @@ struct SetIconView: View {
     }
     
     private func loadAndRenderSVG() async {
-        let cacheKey = setCode.lowercased() as NSString
+        let cacheKey = "\(setCode.lowercased())_\(Int(size))" as NSString
         
         // Check cache first
         if let cachedImage = setIconCache.object(forKey: cacheKey) {
@@ -57,10 +59,8 @@ struct SetIconView: View {
         }
         
         let urlString = "https://svgs.scryfall.io/sets/\(setCode.lowercased()).svg"
-        print("SetIconView: Fetching \(urlString)")
         
         guard let url = URL(string: urlString) else {
-            print("SetIconView: Invalid URL for set code: \(setCode)")
             await MainActor.run { isLoading = false }
             return
         }
@@ -70,7 +70,6 @@ struct SetIconView: View {
             
             // Parse and render SVG
             guard let svgImage = SVGKImage(data: data) else {
-                print("SetIconView: Failed to parse SVG for set: \(setCode)")
                 await MainActor.run { isLoading = false }
                 return
             }
@@ -78,12 +77,11 @@ struct SetIconView: View {
             // Get the original SVG size to preserve aspect ratio
             let originalSize = svgImage.size
             
-            // Scale to fit within 32pt while maintaining aspect ratio
-            let targetHeight: CGFloat = 32
+            // Scale to fit within target size while maintaining aspect ratio
             let aspectRatio = originalSize.width / originalSize.height
             let scaledSize = CGSize(
-                width: targetHeight * aspectRatio,
-                height: targetHeight
+                width: size * aspectRatio,
+                height: size
             )
             
             // Set the scaled size
@@ -91,7 +89,6 @@ struct SetIconView: View {
             
             // Convert to UIImage
             guard let uiImage = svgImage.uiImage else {
-                print("SetIconView: Failed to convert SVG to UIImage for set: \(setCode)")
                 await MainActor.run { isLoading = false }
                 return
             }
@@ -104,7 +101,6 @@ struct SetIconView: View {
                 self.isLoading = false
             }
         } catch {
-            print("SetIconView: Error loading SVG for set \(setCode): \(error)")
             await MainActor.run {
                 self.isLoading = false
             }

@@ -8,8 +8,6 @@ import Foundation
 import ScryfallKit
 
 extension Card.Ruling {
-    /// Parses the `publishedAt` string field into a `Date` object.
-    /// The Scryfall API returns dates in ISO 8601 format (YYYY-MM-DD).
     var publishedAtAsDate: Date? {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withFullDate]

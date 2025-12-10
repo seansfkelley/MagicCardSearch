@@ -83,6 +83,26 @@ class CardSearchService {
         return try await client.getCard(identifier: .scryfallID(id: id.uuidString))
     }
     
+    // TODO: This is actually searching for all prints, not as generic as it sounds.
+    func searchCardsByOracleId(_ oracleId: String) async throws -> [Card] {
+        var allCards: [Card] = []
+        var nextPageURL: String?
+        
+        // Fetch first page
+        let firstResult = try await client.searchCards(query: "oracleID:\(oracleId)", unique: .prints, order: .released, includeExtras: true)
+        allCards.append(contentsOf: firstResult.data)
+        nextPageURL = firstResult.nextPage
+        
+        // Fetch remaining pages if they exist
+        while let pageURL = nextPageURL {
+            let pageResult = try await fetchNextPage(from: pageURL)
+            allCards.append(contentsOf: pageResult.cards)
+            nextPageURL = pageResult.nextPageURL
+        }
+        
+        return allCards
+    }
+    
     static func buildSearchURL(filters: [SearchFilter], config: SearchConfiguration, forAPI: Bool) -> URL? {
         let queryString = filters.map { $0.queryStringWithEditingRange.0 }.joined(separator: " ")
         
