@@ -57,6 +57,7 @@ struct SetIconView: View {
         }
         
         let urlString = "https://svgs.scryfall.io/sets/\(setCode.lowercased()).svg"
+        print("SetIconView: Fetching \(urlString)")
         
         guard let url = URL(string: urlString) else {
             print("SetIconView: Invalid URL for set code: \(setCode)")

@@ -59,15 +59,18 @@ struct CardDetailView: View {
                 )
 
                 if let allParts = card.allParts, !allParts.isEmpty {
-                    Divider()
-                        .padding(.horizontal)
-                    
-                    CardRelatedPartsSection(
-                        allParts: allParts,
-                        isLoadingRelatedCard: isLoadingRelatedCard
-                    ) { partId in
-                        Task {
-                            await loadRelatedCard(id: partId)
+                    let otherParts = allParts.filter { $0.id != card.id }
+                    if !otherParts.isEmpty {
+                        Divider()
+                            .padding(.horizontal)
+                        
+                        CardRelatedPartsSection(
+                            otherParts: otherParts,
+                            isLoadingRelatedCard: isLoadingRelatedCard
+                        ) { partId in
+                            Task {
+                                await loadRelatedCard(id: partId)
+                            }
                         }
                     }
                 }
@@ -459,14 +462,14 @@ private struct CardSetInfoSection: View {
 // MARK: - Card Related Parts Section
 
 private struct CardRelatedPartsSection: View {
-    let allParts: [Card.RelatedCard]
+    let otherParts: [Card.RelatedCard]
     let isLoadingRelatedCard: Bool
     let onPartTapped: (UUID) -> Void
 
     var body: some View {
         List {
             Section("Related Parts") {
-                ForEach(allParts) { part in
+                ForEach(otherParts) { part in
                     Button {
                         onPartTapped(part.id)
                     } label: {
@@ -503,7 +506,7 @@ private struct CardRelatedPartsSection: View {
         .scrollDisabled(true)
         // TODO: wtf. There has got to be a way to tell the list to just be its own
         // natural height.
-        .frame(height: CGFloat(allParts.count) * 60 + 60)
+        .frame(height: CGFloat(otherParts.count) * 60 + 60)
     }
 }
 
