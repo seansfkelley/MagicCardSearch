@@ -147,7 +147,6 @@ class AutocompleteProvider {
 
     // MARK: - Private Helpers
 
-    // TODO: yikes
     // swiftlint:disable:next cyclomatic_complexity function_body_length
     internal static func getFilterTypeSuggestions(_ searchTerm: String) -> [FilterTypeSuggestion] {
         guard let match = try? /^(-?)([a-zA-Z]+)$/.wholeMatch(in: searchTerm) else {
@@ -221,7 +220,6 @@ class AutocompleteProvider {
         return suggestions
     }
     
-    // TODO: yikes again
     internal static func getEnumerationSuggestion(_ searchTerm: String) -> EnumerationSuggestion? {
         // Some enumeration types, like rarity, are considered orderable, hence the comparison operators here.
         guard let match = try? /^(-?)([a-zA-Z]+)(:|=|!=|>=|>|<=|<)/.prefixMatch(in: searchTerm) else {
