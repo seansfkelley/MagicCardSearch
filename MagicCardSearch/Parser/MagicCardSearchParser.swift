@@ -45,7 +45,6 @@ enum SearchFilterContent: Equatable, Hashable, Codable {
     
     var queryStringWithEditingRange: (String, Range<String.Index>) {
         switch self {
-        // TODO: isExact
         case .name(let name, let isExact):
             var prefix = ""
             var suffix = ""
@@ -59,11 +58,11 @@ enum SearchFilterContent: Equatable, Hashable, Codable {
             let prefixedName = "\(prefix)\(name)"
             return (
                 "\(prefixedName)\(suffix)",
-                prefix.endIndex..<prefixedName.endIndex
+                prefix.endIndex..<prefixedName.endIndex,
             )
         case .regex(let key, let comparison, let regex):
             let prefix = "\(key)\(comparison.symbol)"
-            let formatted = "\(prefix)\"\(regex)\""
+            let formatted = "\(prefix)\(regex)"
             return (
                 formatted,
                 formatted.index(after: prefix.endIndex)..<formatted.index(before: formatted.endIndex)
@@ -125,8 +124,12 @@ internal func parseComparison(_ input: String) -> LexedTokenData? {
     return (input, .Comparison)
 }
 
-internal func parseUnmatched(_ input: String) -> LexedTokenData? {
-    return (input, .Unmatched)
+internal func parseSingleNonPairing(_ input: String) -> LexedTokenData? {
+    return (input, .SingleNonPairing)
+}
+
+internal func parseUnclosedPairing(_ input: String) -> LexedTokenData? {
+    return (input, .UnclosedPairing)
 }
 
 private func parse(_ input: String) throws -> SearchFilter {
@@ -138,7 +141,8 @@ private func parse(_ input: String) throws -> SearchFilter {
         .string("-", ("-", .Minus)),
         .regexPattern(#"<=|<|>=|>|!=|=|:"#, parseComparison),
         .string("!", ("!", .Bang)), // must come after operators!
-        .regexPattern(#"."#, parseUnmatched),
+        .regexPattern(#"[^'"/ \t\n]"#, parseSingleNonPairing), // TODO: Can do a class of whitespace better than this?
+        .regexPattern(#"['"/]"#, parseUnclosedPairing),
     ])
     
     let parser = MagicCardSearchGrammar()

@@ -11,7 +11,9 @@ struct MagicCardSearchParserTests {
         ("'foo'", .basic(.name("foo", false))),
         ("foo:”bar", .basic(.keyValue("foo", .including, "”bar"))), // TODO: Normalize smart quotes.
         ("foo", .basic(.name("foo", false))),
+        ("teferi's", .basic(.name("teferi's", false))),
         ("{p}", .basic(.name("{p}", false))),
+        ("m>{p/r}{g}", .basic(.keyValue("m", .greaterThan, "{p/r}{g}"))),
         ("!\"Lightning Bolt\"", .basic(.name("Lightning Bolt", true))),
         ("!Fire", .basic(.name("Fire", true))),
         ("Fire!", .basic(.name("Fire!", false))),
@@ -24,6 +26,7 @@ struct MagicCardSearchParserTests {
     
     @Test("from (nil)", arguments: [
         "foo:\"",
+        "foo:/incomplete regex",
         "foo: bar",
         "\"foo",
         "'foo",
@@ -37,13 +40,17 @@ struct MagicCardSearchParserTests {
 struct SearchFilterTests {
     @Test<[(SearchFilter, String, Range<Int>)]>("toQueryStringWithEditingRange", arguments: [
         (.basic(.keyValue("foo", .including, "bar")), "foo:bar", 4..<7),
-        // TODO: More of these.
+        (.negated(.keyValue("foo", .including, "bar")), "-foo:bar", 5..<8),
+        (.basic(.regex("foo", .including, "/this is my regex/")), "foo:/this is my regex/", 5..<21),
+        (.basic(.name("foo with bar", true)), "!\"foo with bar\"", 2..<14),
     ])
     func toQueryStringWithEditingRange(filter: SearchFilter, string: String, editableRange: Range<Int>) throws {
-        let indexRange =
+        let range =
             String.Index.init(encodedOffset: editableRange.lowerBound)
             ..<
             String.Index.init(encodedOffset: editableRange.upperBound)
-        #expect(filter.queryStringWithEditingRange == (string, indexRange))
+        let (actualString, actualRange) = filter.queryStringWithEditingRange
+        #expect(actualString == string)
+        #expect(actualRange == range, "wanted highlight on `\(string[range])` but got `\(actualString[actualRange])`")
     }
 }
