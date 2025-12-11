@@ -17,6 +17,16 @@ struct AutocompleteView: View {
     let provider: AutocompleteProvider
     let filters: [SearchFilter]
     let onSuggestionTap: (AcceptedSuggestion) -> Void
+    
+    private let orderedComparisons: [Comparison] = [
+        .including,
+        .equal,
+        .lessThan,
+        .lessThanOrEqual,
+        .greaterThanOrEqual,
+        .greaterThan,
+        .notEqual,
+    ]
 
     private var suggestions: [AutocompleteProvider.Suggestion] {
         // TODO: Cache the set conversion here.
@@ -96,20 +106,14 @@ struct AutocompleteView: View {
             Image(systemName: "line.3.horizontal.decrease.circle")
                 .foregroundStyle(.secondary)
 
-            VStack(alignment: .leading, spacing: 6) {
-                HighlightedText(
-                    text: suggestion.filterType,
-                    highlightRange: suggestion.matchRange
-                )
-                
-                ComparisonButtonGroup { comparison in
-                    onSuggestionTap(.string("\(suggestion.filterType)\(comparison.rawValue)"))
-                }
+            HorizontallyScrollablePillSelector(
+                label: suggestion.filterType,
+                labelRange: suggestion.matchRange,
+                options: orderedComparisons,
+            ) { comparison in
+                onSuggestionTap(.string("\(suggestion.filterType)\(comparison.rawValue)"))
             }
-
-            Spacer(minLength: 0)
         }
-        .padding(.vertical, 4)
     }
     
     private func enumerationRow(_ suggestion: AutocompleteProvider.EnumerationSuggestion) -> some View {
@@ -119,32 +123,36 @@ struct AutocompleteView: View {
 
             HorizontallyScrollablePillSelector(
                 label: "\(suggestion.filterType)\(suggestion.comparison.rawValue)",
-                options: suggestion.options as [any PillSelectorOption]
+                labelRange: nil,
+                options: suggestion.options
             ) { option in
                     onSuggestionTap(
                         .filter(.basic(.keyValue(suggestion.filterType, suggestion.comparison, option)))
                     )
             }
-
-            Spacer(minLength: 0)
         }
-        .padding(.vertical, 4)
     }
 }
 
 // MARK: - Filter Type Picker
 
 private protocol PillSelectorOption {
-    var value: String { get }
+    associatedtype Value: Hashable
+    
+    var value: Value { get }
+    var label: String { get }
     var range: Range<String.Index>? { get }
 }
 
-extension AutocompleteProvider.EnumerationSuggestion.Option: PillSelectorOption {}
+extension AutocompleteProvider.EnumerationSuggestion.Option: PillSelectorOption {
+    var label: String { value }
+}
 
-private struct HorizontallyScrollablePillSelector: View {
+private struct HorizontallyScrollablePillSelector<T: PillSelectorOption>: View {
     let label: String
-    let options: [PillSelectorOption]
-    let onTapOption: (String) -> Void
+    let labelRange: Range<String.Index>?
+    let options: [T]
+    let onTapOption: (T.Value) -> Void
     
     // TODO: This should be based on the width of the label element.
     private let labelFadeExtent: CGFloat = 50
@@ -152,13 +160,15 @@ private struct HorizontallyScrollablePillSelector: View {
     
     var body: some View {
         ZStack(alignment: .leading) {
-            Text(label)
+            HighlightedText(text: label, highlightRange: labelRange)
                 .foregroundStyle(.primary)
                 .opacity(labelOpacity)
+                .padding(.trailing, 8)
             
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
-                    Text(label)
+                    HighlightedText(text: label, highlightRange: labelRange)
+                        .padding(.trailing, 8)
                         .hidden()
                     
                     ForEach(options, id: \.value) { option in
@@ -166,16 +176,18 @@ private struct HorizontallyScrollablePillSelector: View {
                             onTapOption(option.value)
                         } label: {
                             HighlightedText(
-                                text: option.value,
+                                text: option.label,
                                 highlightRange: option.range,
                             )
+                            .frame(minWidth: 30)
                         }
+                        // Unfortunately this makes it slightly transparent, so you can see the
+                        // label overlapping the first pills as you scroll over the label.
                         .buttonStyle(.bordered)
                         .tint(.blue)
                     }
                 }
             }
-            .background(.clear)
             .onScrollGeometryChange(
                 for: CGFloat.self,
                 of: { geometry in
@@ -206,38 +218,10 @@ private struct HorizontallyScrollablePillSelector: View {
     }
 }
 
-private struct ComparisonButtonGroup: View {
-    let onButtonTap: (Comparison) -> Void
-    
-    private let orderedComparisons: [Comparison] = [
-        .including,
-        .equal,
-        .notEqual,
-        .lessThan,
-        .lessThanOrEqual,
-        .greaterThan,
-        .greaterThanOrEqual,
-    ]
-    
-    var body: some View {
-        HStack {
-            ForEach(Array(orderedComparisons.enumerated()), id: \.offset) { _, option in
-                Button {
-                    onButtonTap(option)
-                } label: {
-                    Text(option.rawValue)
-                        .font(.body)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
-                        .background(Color.accentColor.opacity(0.15))
-                        .foregroundStyle(.primary)
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                }
-                .buttonStyle(.plain)
-                .padding(.horizontal, 0)
-            }
-        }
-    }
+extension Comparison: PillSelectorOption {
+    var value: Comparison { self }
+    var label: String { rawValue }
+    var range: Range<String.Index>? { nil }
 }
 
 // MARK: - Highlighted Text View
