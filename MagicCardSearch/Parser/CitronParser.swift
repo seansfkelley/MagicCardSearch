@@ -23,7 +23,7 @@ public protocol CitronParser: AnyObject {
 
     // Token code: An enum representing the terminals. The raw value shall
     // be equal to the symbol code representing the terminal.
-    associatedtype CitronTokenCode: RawRepresentable, Hashable where CitronTokenCode.RawValue == CitronSymbolNumber
+    associatedtype CitronTokenCode: RawRepresentable, Hashable, Sendable where CitronTokenCode.RawValue == CitronSymbolNumber
 
     // Non-terminal code: An enum representing the terminals. The raw value shall
     // be equal to the symbol code representing the terminal.
@@ -37,7 +37,7 @@ public protocol CitronParser: AnyObject {
 
     // Token: The type representing a terminal, defined using %token_type in the grammar.
     // ParseTOKENTYPE in lemon.
-    associatedtype CitronToken
+    associatedtype CitronToken: Sendable
 
     // Symbol: An enum type representing any terminal or non-terminal symbol.
     // YYMINORTYPE in lemon.
@@ -145,7 +145,7 @@ public protocol CitronParser: AnyObject {
 
 // Error handling
 
-public enum _CitronParserError<Token: Sendable, TokenCode>: Error {
+public enum _CitronParserError<Token: Sendable, TokenCode: Sendable>: Error {
     case syntaxErrorAt(token: Token, tokenCode: TokenCode)
     case unexpectedEndOfInput
     case stackOverflow
@@ -153,7 +153,7 @@ public enum _CitronParserError<Token: Sendable, TokenCode>: Error {
 
 public protocol CitronParserError : Error { }
 
-public class _CitronParserUnexpectedTokenError<Token, TokenCode> : CitronParserError {
+final public class _CitronParserUnexpectedTokenError<Token: Sendable, TokenCode: Sendable> : CitronParserError {
     public let token: Token
     public let tokenCode: TokenCode
     init(token: Token, tokenCode: TokenCode) {
@@ -162,10 +162,10 @@ public class _CitronParserUnexpectedTokenError<Token, TokenCode> : CitronParserE
     }
 }
 
-public class CitronParserUnexpectedEndOfInputError : CitronParserError {
+final public class CitronParserUnexpectedEndOfInputError : CitronParserError {
 }
 
-public class CitronParserStackOverflowError : CitronParserError {
+final public class CitronParserStackOverflowError : CitronParserError {
 }
 
 // Parser actions and states
