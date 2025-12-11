@@ -7,8 +7,8 @@
 
 // swiftlint:disable file_length
 
-import SwiftUI
 import ScryfallKit
+import SwiftUI
 
 struct CardDetailView: View {
     let card: Card
@@ -22,7 +22,7 @@ struct CardDetailView: View {
     @ObservedObject private var listManager = CardListManager.shared
     private let cardSearchService = CardSearchService()
     private let rulingsService = RulingsService.shared
-    
+
     var body: some View {
         ScrollView {
             VStack(spacing: 0) {
@@ -31,9 +31,9 @@ struct CardDetailView: View {
                         face: front,
                         fullCardName: card.name
                     )
-                
+
                     Spacer().frame(height: 24)
-                
+
                     cardFaceView(
                         face: back,
                         fullCardName: card.name
@@ -73,7 +73,7 @@ struct CardDetailView: View {
                     if !otherParts.isEmpty {
                         Divider()
                             .padding(.horizontal)
-                        
+
                         CardRelatedPartsSection(
                             otherParts: otherParts,
                             isLoadingRelatedCard: isLoadingRelatedCard
@@ -88,7 +88,7 @@ struct CardDetailView: View {
                 if isLoadingRulings || rulingsError != nil || !rulings.isEmpty {
                     Divider()
                         .padding(.horizontal)
-                    
+
                     CardRulingsSection(
                         rulings: rulings,
                         isLoading: isLoadingRulings,
@@ -99,7 +99,7 @@ struct CardDetailView: View {
                         }
                     }
                 }
-                
+
                 Divider()
                     .padding(.horizontal)
             }
@@ -116,10 +116,13 @@ struct CardDetailView: View {
                         let listItem = CardListItem(from: card)
                         listManager.toggleCard(listItem)
                     } label: {
-                        Image(systemName: listManager.contains(cardId: card.id) ? "bookmark.fill" : "bookmark")
+                        Image(
+                            systemName: listManager.contains(cardId: card.id)
+                                ? "bookmark.fill" : "bookmark"
+                        )
                     }
                 }
-                
+
                 if let url = URL(string: card.scryfallUri) {
                     ToolbarItem(placement: .topBarTrailing) {
                         ShareLink(item: url)
@@ -144,9 +147,9 @@ struct CardDetailView: View {
             }
         }
     }
-    
+
     // MARK: - Single-Faced Card View
-    
+
     @ViewBuilder private var singleFacedCardView: some View {
         // Image Section
         if let imageUrl = card.primaryImageUris?.normal, let url = URL(string: imageUrl) {
@@ -170,7 +173,7 @@ struct CardDetailView: View {
         } else {
             imagePlaceholder
         }
-        
+
         VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .top) {
                 Text(card.name)
@@ -186,11 +189,11 @@ struct CardDetailView: View {
         .padding(.horizontal)
         .padding(.vertical, 12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        
+
         if let typeLine = card.typeLine {
             Divider()
                 .padding(.horizontal)
-            
+
             VStack(alignment: .leading, spacing: 8) {
                 HStack(spacing: 8) {
                     if let colorIndicator = card.colorIndicator, !colorIndicator.isEmpty {
@@ -205,48 +208,51 @@ struct CardDetailView: View {
             .padding(.vertical, 12)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
-        
-        // Oracle/Flavor Text
-        Divider()
-            .padding(.horizontal)
-        
-        VStack(alignment: .leading, spacing: 12) {
-            if let oracleText = card.oracleText, !oracleText.isEmpty {
-                OracleTextView(oracleText)
-            }
 
-            if let flavorText = card.flavorText, !flavorText.isEmpty {
-                VStack(alignment: .leading, spacing: 8) {
-                    ForEach(flavorText.components(separatedBy: "\n"), id: \.self) { line in
-                        if !line.isEmpty {
-                            Text(line)
-                                .font(.system(.body, design: .serif))
-                                .italic()
-                                .fixedSize(horizontal: false, vertical: true)
+        if let oracleText = card.oracleText,
+            let flavorText = card.flavorText,
+            !oracleText.isEmpty || !flavorText.isEmpty {
+            Divider()
+                .padding(.horizontal)
+
+            VStack(alignment: .leading, spacing: 12) {
+                if let oracleText = card.oracleText, !oracleText.isEmpty {
+                    OracleTextView(oracleText)
+                }
+
+                if let flavorText = card.flavorText, !flavorText.isEmpty {
+                    VStack(alignment: .leading, spacing: 8) {
+                        ForEach(flavorText.components(separatedBy: "\n"), id: \.self) { line in
+                            if !line.isEmpty {
+                                Text(line)
+                                    .font(.system(.body, design: .serif))
+                                    .italic()
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
                         }
                     }
                 }
             }
+            .padding(.horizontal)
+            .padding(.vertical, 12)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(.horizontal)
-        .padding(.vertical, 12)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        
+
         if let power = card.power, let toughness = card.toughness {
             Divider()
                 .padding(.horizontal)
-            
+
             CardPowerToughnessSection(power: power, toughness: toughness)
         }
-        
+
         if let artist = card.artist {
             Divider()
                 .padding(.horizontal)
-            
+
             CardArtistSection(artist: artist)
         }
     }
-    
+
     private var imagePlaceholder: some View {
         RoundedRectangle(cornerRadius: 12)
             .fill(Color.gray.opacity(0.2))
@@ -256,7 +262,7 @@ struct CardDetailView: View {
                     Image(systemName: "photo")
                         .font(.system(size: 60))
                         .foregroundStyle(.secondary)
-                    
+
                     Text(card.name)
                         .font(.title3)
                         .foregroundStyle(.primary)
@@ -268,41 +274,41 @@ struct CardDetailView: View {
     }
 
     // MARK: - Card Face View
-    
+
     private func cardFaceView(face: Card.Face, fullCardName: String) -> some View {
         VStack(spacing: 0) {
             CardFaceImageSection(
                 face: face,
                 fullCardName: fullCardName
             )
-            
+
             CardFaceHeaderSection(face: face)
-            
+
             if let typeLine = face.typeLine, !typeLine.isEmpty {
                 Divider()
                     .padding(.horizontal)
-                
+
                 CardFaceTypeLineSection(face: face, typeLine: typeLine)
             }
-            
+
             if face.oracleText != nil || face.flavorText != nil {
                 Divider()
                     .padding(.horizontal)
-                
+
                 CardFaceTextSection(face: face)
             }
-            
+
             if let power = face.power, let toughness = face.toughness {
                 Divider()
                     .padding(.horizontal)
-                
+
                 CardPowerToughnessSection(power: power, toughness: toughness)
             }
-            
+
             if let artist = face.artist {
                 Divider()
                     .padding(.horizontal)
-                
+
                 CardArtistSection(artist: artist)
             }
         }
@@ -322,14 +328,17 @@ struct CardDetailView: View {
             print("Error loading related card: \(error)")
         }
     }
-    
+
     private func loadRulings(from urlString: String) async {
         isLoadingRulings = true
         rulingsError = nil
         defer { isLoadingRulings = false }
-        
+
         do {
-            rulings = try await rulingsService.fetchRulings(from: urlString, oracleId: card.oracleId)
+            rulings = try await rulingsService.fetchRulings(
+                from: urlString,
+                oracleId: card.oracleId
+            )
         } catch {
             rulingsError = error
             print("Error loading rulings: \(error)")
@@ -401,22 +410,22 @@ private struct CardSetInfoSection: View {
     let collectorNumber: String
     let rarity: Card.Rarity
     let lang: String
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 12) {
                 SetIconView(setCode: setCode)
-                
+
                 VStack(alignment: .leading, spacing: 4) {
                     Text(setName)
                         .font(.body)
                         .fontWeight(.medium)
-                    
+
                     HStack(spacing: 8) {
                         Text(setCode.uppercased())
                             .font(.caption)
                             .foregroundStyle(.secondary)
-                        
+
                         Text("#\(collectorNumber)")
                             .font(.caption)
                             .foregroundStyle(.secondary)
@@ -444,7 +453,7 @@ private struct CardSetInfoSection: View {
         .padding(.vertical, 12)
         .frame(maxWidth: .infinity, alignment: .leading)
     }
-    
+
     private func languageDisplay(for lang: String) -> String {
         let languages: [String: String] = [
             "en": "English",
@@ -483,7 +492,7 @@ private struct CardRelatedPartsSection: View {
                 .fontWeight(.semibold)
                 .padding(.horizontal)
                 .padding(.vertical, 12)
-            
+
             ForEach(otherParts.sorted { $0.name < $1.name }) { part in
                 Button {
                     onPartTapped(part.id)
@@ -515,7 +524,7 @@ private struct CardRelatedPartsSection: View {
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                
+
                 if part.id != otherParts.last?.id {
                     Divider()
                         .padding(.leading)
@@ -533,7 +542,7 @@ private struct CardRulingsSection: View {
     let isLoading: Bool
     let error: Error?
     let onRetry: () -> Void
-    
+
     @State private var isExpanded = false
 
     var body: some View {
@@ -556,9 +565,9 @@ private struct CardRulingsSection: View {
                                 .font(.caption)
                                 .foregroundStyle(.tertiary)
                         }
-                        
+
                         Spacer()
-                        
+
                         Button(action: onRetry) {
                             Image(systemName: "arrow.clockwise")
                                 .font(.caption)
@@ -578,7 +587,7 @@ private struct CardRulingsSection: View {
                             Text(ruling.comment)
                                 .font(.body)
                                 .fixedSize(horizontal: false, vertical: true)
-                            
+
                             if let date = ruling.publishedAtAsDate {
                                 Text(date, format: .dateTime.year().month().day())
                                     .font(.caption2)
@@ -594,15 +603,15 @@ private struct CardRulingsSection: View {
                 Text("Rulings")
                     .font(.headline)
                     .fontWeight(.semibold)
-                
+
                 if !isLoading && error == nil && !rulings.isEmpty {
                     Text("(\(rulings.count))")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
-                
+
                 Spacer()
-                
+
                 if isLoading {
                     ProgressView()
                         .controlSize(.small)
@@ -636,7 +645,7 @@ private struct CardFaceImageSection: View {
                             .aspectRatio(contentMode: .fit)
                             .contextMenu {
                                 ShareLink(item: url, preview: SharePreview(face.name, image: image))
-                                
+
                                 Button {
                                     if let uiImage = ImageRenderer(content: image).uiImage {
                                         UIPasteboard.general.image = uiImage
@@ -775,9 +784,9 @@ private struct CardFaceTextSection: View {
 private struct CardOtherPrintsSection: View {
     let oracleId: String
     let currentCardId: UUID
-    
+
     @State private var showingPrintsSheet = false
-    
+
     var body: some View {
         Button {
             showingPrintsSheet = true
@@ -786,9 +795,9 @@ private struct CardOtherPrintsSection: View {
                 Text("All Prints")
                     .font(.body)
                     .foregroundStyle(.primary)
-                
+
                 Spacer()
-                
+
                 Image(systemName: "chevron.right")
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -809,19 +818,19 @@ private struct CardOtherPrintsSection: View {
 private struct CardPrintsListView: View {
     let oracleId: String
     let currentCardId: UUID
-    
+
     @State private var prints: [Card] = []
     @State private var isLoading = true
     @State private var error: Error?
     @State private var selectedCardIndex: Int?
     @Environment(\.dismiss) private var dismiss
-    
+
     private let cardSearchService = CardSearchService()
     private let columns = [
         GridItem(.flexible(), spacing: 12),
         GridItem(.flexible(), spacing: 12),
     ]
-    
+
     private var scryfallSearchURL: URL? {
         let baseURL = "https://scryfall.com/search"
         var components = URLComponents(string: baseURL)
@@ -832,7 +841,7 @@ private struct CardPrintsListView: View {
         ]
         return components?.url
     }
-    
+
     var body: some View {
         NavigationStack {
             Group {
@@ -850,17 +859,17 @@ private struct CardPrintsListView: View {
                         Image(systemName: "exclamationmark.triangle")
                             .font(.system(size: 60))
                             .foregroundStyle(.secondary)
-                        
+
                         Text("Failed to load prints")
                             .font(.title2)
                             .fontWeight(.semibold)
-                        
+
                         Text(error.localizedDescription)
                             .font(.body)
                             .foregroundStyle(.secondary)
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, 32)
-                        
+
                         Button("Try Again") {
                             Task {
                                 await loadPrints()
@@ -874,11 +883,11 @@ private struct CardPrintsListView: View {
                         Image(systemName: "rectangle.on.rectangle.slash")
                             .font(.system(size: 60))
                             .foregroundStyle(.secondary)
-                        
+
                         Text("No Prints Found")
                             .font(.title2)
                             .fontWeight(.semibold)
-                        
+
                         Text("This card doesn't have any printings.")
                             .font(.body)
                             .foregroundStyle(.secondary)
@@ -890,10 +899,13 @@ private struct CardPrintsListView: View {
                     ScrollView {
                         LazyVGrid(columns: columns, spacing: 12) {
                             ForEach(Array(prints.enumerated()), id: \.element.id) { index, card in
-                                CardPrintGridItem(card: card, isCurrentPrint: card.id == currentCardId)
-                                    .onTapGesture {
-                                        selectedCardIndex = index
-                                    }
+                                CardPrintGridItem(
+                                    card: card,
+                                    isCurrentPrint: card.id == currentCardId
+                                )
+                                .onTapGesture {
+                                    selectedCardIndex = index
+                                }
                             }
                         }
                         .padding()
@@ -910,7 +922,7 @@ private struct CardPrintsListView: View {
                         Image(systemName: "xmark")
                     }
                 }
-                
+
                 if let url = scryfallSearchURL {
                     ToolbarItem(placement: .topBarTrailing) {
                         ShareLink(item: url)
@@ -933,11 +945,11 @@ private struct CardPrintsListView: View {
             )
         }
     }
-    
+
     private func loadPrints() async {
         isLoading = true
         error = nil
-        
+
         do {
             prints = try await cardSearchService.searchCardsByOracleId(oracleId)
             print("Loaded \(prints.count) prints for oracle ID: \(oracleId)")
@@ -945,7 +957,7 @@ private struct CardPrintsListView: View {
             print("Error loading prints: \(error)")
             self.error = error
         }
-        
+
         isLoading = false
     }
 }
@@ -960,7 +972,7 @@ private struct SheetIdentifier: Identifiable {
 private struct CardPrintGridItem: View {
     let card: Card
     let isCurrentPrint: Bool
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             // Card Image
@@ -987,27 +999,27 @@ private struct CardPrintGridItem: View {
                     imagePlaceholder
                 }
             }
-            
+
             // Set Info
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 6) {
                     SetIconView(setCode: card.set, size: 14)
-                    
+
                     Text(card.set.uppercased())
                         .font(.caption)
                         .fontWeight(.medium)
-                    
+
                     if let releasedAt = card.releasedAtAsDate {
                         Text("•")
                             .font(.caption2)
                             .foregroundStyle(.secondary)
-                        
+
                         Text(releasedAt, format: .dateTime.year().month().day())
                             .font(.caption2)
                             .foregroundStyle(.secondary)
                     }
                 }
-                
+
                 Text(card.setName)
                     .font(.caption2)
                     .foregroundStyle(.secondary)
@@ -1015,7 +1027,7 @@ private struct CardPrintGridItem: View {
             }
         }
     }
-    
+
     private var imagePlaceholder: some View {
         RoundedRectangle(cornerRadius: 8)
             .fill(Color.gray.opacity(0.2))
@@ -1033,26 +1045,26 @@ private struct CardPrintGridItem: View {
 private struct MinimalCardDetailView: View {
     let cards: [Card]
     let initialIndex: Int
-    
+
     @State private var currentIndex: Int
     @State private var scrollPosition: Int?
     @ObservedObject private var listManager = CardListManager.shared
     @Environment(\.dismiss) private var dismiss
-    
+
     init(cards: [Card], initialIndex: Int) {
         self.cards = cards
         self.initialIndex = initialIndex
         self._currentIndex = State(initialValue: initialIndex)
         self._scrollPosition = State(initialValue: initialIndex)
     }
-    
+
     private var currentCard: Card? {
         guard currentIndex >= 0 && currentIndex < cards.count else {
             return nil
         }
         return cards[currentIndex]
     }
-    
+
     var body: some View {
         NavigationStack {
             GeometryReader { geometry in
@@ -1081,17 +1093,20 @@ private struct MinimalCardDetailView: View {
                         Image(systemName: "xmark")
                     }
                 }
-                
+
                 if let card = currentCard {
                     ToolbarItem(placement: .topBarTrailing) {
                         Button {
                             let listItem = CardListItem(from: card)
                             listManager.toggleCard(listItem)
                         } label: {
-                            Image(systemName: listManager.contains(cardId: card.id) ? "bookmark.fill" : "bookmark")
+                            Image(
+                                systemName: listManager.contains(cardId: card.id)
+                                    ? "bookmark.fill" : "bookmark"
+                            )
                         }
                     }
-                    
+
                     if let url = URL(string: card.scryfallUri) {
                         ToolbarItem(placement: .topBarTrailing) {
                             ShareLink(item: url)
@@ -1124,7 +1139,7 @@ private struct MinimalCardDetailView: View {
 
 private struct MinimalCardDetailContent: View {
     let card: Card
-    
+
     var body: some View {
         ScrollView {
             VStack(spacing: 0) {
@@ -1142,8 +1157,11 @@ private struct MinimalCardDetailContent: View {
                                 .clipShape(RoundedRectangle(cornerRadius: 12))
                                 .padding(.horizontal)
                                 .contextMenu {
-                                    ShareLink(item: url, preview: SharePreview(card.name, image: image))
-                                    
+                                    ShareLink(
+                                        item: url,
+                                        preview: SharePreview(card.name, image: image)
+                                    )
+
                                     Button {
                                         if let uiImage = ImageRenderer(content: image).uiImage {
                                             UIPasteboard.general.image = uiImage
@@ -1161,38 +1179,38 @@ private struct MinimalCardDetailContent: View {
                 } else {
                     cardImagePlaceholder
                 }
-                
+
                 VStack(alignment: .leading, spacing: 12) {
                     HStack(spacing: 12) {
                         SetIconView(setCode: card.set)
-                        
+
                         VStack(alignment: .leading, spacing: 4) {
                             Text(card.setName)
                                 .font(.body)
                                 .fontWeight(.medium)
-                            
+
                             HStack(spacing: 8) {
                                 Text(card.set.uppercased())
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
-                                
+
                                 Text("#\(card.collectorNumber)")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
-                                
+
                                 Text("•")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
-                                
+
                                 Text(card.rarity.rawValue.capitalized)
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
-                                
+
                                 if let releasedAt = card.releasedAtAsDate {
                                     Text("•")
                                         .font(.caption)
                                         .foregroundStyle(.secondary)
-                                    
+
                                     Text(releasedAt, format: .dateTime.year().month().day())
                                         .font(.caption)
                                         .foregroundStyle(.secondary)
@@ -1204,13 +1222,13 @@ private struct MinimalCardDetailContent: View {
                 .padding(.horizontal)
                 .padding(.vertical, 12)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                
+
                 Spacer().frame(height: 40)
             }
             .padding(.top)
         }
     }
-    
+
     private var cardImagePlaceholder: some View {
         RoundedRectangle(cornerRadius: 12)
             .fill(Color.gray.opacity(0.2))
@@ -1220,7 +1238,7 @@ private struct MinimalCardDetailContent: View {
                     Image(systemName: "photo")
                         .font(.system(size: 60))
                         .foregroundStyle(.secondary)
-                    
+
                     Text(card.name)
                         .font(.title3)
                         .foregroundStyle(.primary)
