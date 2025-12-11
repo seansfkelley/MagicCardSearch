@@ -29,7 +29,7 @@ class AutocompleteProvider {
     struct EnumerationSuggestion {
         let filterType: String
         let comparison: Comparison
-        let options: [String: Range<String.Index>?]
+        let options: [(String, Range<String.Index>?)]
     }
     
     struct FilterTypeMatch {
@@ -153,11 +153,11 @@ class AutocompleteProvider {
     // TODO: yikes
     // swiftlint:disable:next cyclomatic_complexity function_body_length
     private func checkForFilterTypeSuggestions(_ searchTerm: String) -> [Suggestion] {
-        var filterTypeMatches: [FilterTypeMatch] = []
-        
-        guard let match = /^(-?)([a-zA-Z]+)$/.wholeMatch(in: searchTerm) else {
+        guard let match = try? /^(-?)([a-zA-Z]+)$/.wholeMatch(in: searchTerm) else {
             return []
         }
+        
+        var filterTypeMatches: [FilterTypeMatch] = []
         
         let (_, negated, filterName) = match.output
         
@@ -221,76 +221,56 @@ class AutocompleteProvider {
 
         // TODO: Why does this seem to be sorting in reverse?
         return filterTypeMatches.reversed().map {
-            .filter(FilterTypeSuggestion(
-                filterType: "\(negated)\"($0.displayText)",
-                // TODO: negated makes this incorrectly offset, probably, because we don't match against it.
-                matchRange: $0.range
+            let text = "\(negated)\($0.displayText)"
+            return .filter(FilterTypeSuggestion(
+                filterType: text,
+                matchRange: negated.isEmpty ? $0.range : text.index(after: $0.range.lowerBound)..<text.index(after: $0.range.upperBound)
             ))
         }
     }
     
     // TODO: yikes again
-    // swiftlint:disable:next cyclomatic_complexity
     private func checkForEnumerationSuggestions(_ searchTerm: String) -> Suggestion? {
-        // Some enumeration types, like rarity, are considered orderable.
-        for op in ["!=", ">=", ">", "<=", "<", ":", "="] {
-            guard let operatorRange = searchTerm.range(of: op) else {
-                continue
-            }
-
-            let filterPart = String(searchTerm[..<operatorRange.lowerBound])
-            let valuePart = String(searchTerm[operatorRange.upperBound...])
-
-            // Check if filterPart matches an enumeration filter
-            if let filterType = scryfallFilterByType[filterPart.lowercased()],
-                let options = filterType.enumerationValues {
-                // Filter and sort options based on valuePart
-                var matchingOptions: [(option: String, range: Range<String.Index>?)] = []
-
-                if valuePart.isEmpty {
-                    // Return all options if no value part
-                    matchingOptions = options.sorted { $0.count < $1.count }.map { ($0, nil) }
-                } else {
-                    // Find matching options
-                    var matches: [(option: String, range: Range<String.Index>)] = []
-
-                    for option in options {
-                        if let range = option.range(of: valuePart, options: .caseInsensitive) {
-                            matches.append((option, range))
-                        }
-                    }
-
-                    // Sort by length (shortest first)
-                    matches.sort { $0.option.count < $1.option.count }
-                    matchingOptions = matches.map { ($0.option, $0.range as Range<String.Index>?) }
-                }
-
-                if !matchingOptions.isEmpty {
-                    let comparison: Comparison
-                    switch op {
-                    case "=":
-                        comparison = .equal
-                    case "!=":
-                        comparison = .notEqual
-                    case ":":
-                        comparison = .including
-                    default:
-                        comparison = .including
-                    }
-                    
-                    return .enumeration(EnumerationSuggestion(
-                        filterType: filterPart,
-                        comparison: comparison,
-                        options: Dictionary(uniqueKeysWithValues: matchingOptions.map { ($0.option, $0.range) })
-                    ))
-                }
-            }
-
-            // Once we find an operator, stop searching
-            break
+        // Some enumeration types, like rarity, are considered orderable, hence the comparison operators here.
+        guard let match = try? /^(-?)([a-zA-Z]+)(:|=|!=|>=|>|<=|<)/.prefixMatch(in: searchTerm) else {
+            return nil
         }
+        
+        let (_, negated, filterTypeName, comparisonOperator) = match.output
+        let value = searchTerm[match.range.upperBound...]
+        
+        if let filterType = scryfallFilterByType[filterTypeName.lowercased()], let options = filterType.enumerationValues {
+            var matchingOptions: [(option: String, range: Range<String.Index>?)] = []
 
-        return nil
+            if value.isEmpty {
+                matchingOptions = options.sorted().map { ($0, nil) }
+            } else {
+                var matches: [(option: String, range: Range<String.Index>)] = []
+
+                for option in options {
+                    if let range = option.range(of: value, options: .caseInsensitive) {
+                        matches.append((option, range))
+                    }
+                }
+
+                matches.sort { $0.option.count < $1.option.count }
+                matchingOptions = matches.map { ($0.option, $0.range) }
+            }
+
+            if !matchingOptions.isEmpty {
+                let comparison = Comparison(rawValue: String(comparisonOperator))
+                assert(comparison != nil) // if it is, programmer error on the regex or enumeration type
+                return .enumeration(EnumerationSuggestion(
+                    filterType: "\(negated)\(filterTypeName)",
+                    comparison: comparison!,
+                    options: matchingOptions,
+                ))
+            } else {
+                return nil
+            }
+        } else {
+            return nil
+        }
     }
 
     private func sortResults(_ results: [Suggestion], historyLookup: [SearchFilter: HistoryEntry]) -> [Suggestion] {

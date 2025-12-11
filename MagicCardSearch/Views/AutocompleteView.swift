@@ -113,10 +113,7 @@ struct AutocompleteView: View {
     }
     
     private func enumerationRow(_ suggestion: AutocompleteProvider.EnumerationSuggestion) -> some View {
-        let options = Array(suggestion.options.map { ($0.key, $0.value) })
-            .sorted { $0.0.count < $1.0.count } // Sort by length
-        
-        return HStack(spacing: 12) {
+        HStack(spacing: 12) {
             Image(systemName: "list.bullet.circle")
                 .foregroundStyle(.secondary)
 
@@ -126,7 +123,7 @@ struct AutocompleteView: View {
                 
                 ScrollView(.horizontal, showsIndicators: false) {
                     EnumerationButtonGroup(
-                        options: options
+                        options: suggestion.options
                     ) { option in
                             onSuggestionTap(
                                 .filter(.basic(.keyValue(suggestion.filterType, suggestion.comparison, option)))
