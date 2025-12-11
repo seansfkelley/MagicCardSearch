@@ -277,157 +277,28 @@ private struct SheetIdentifier: Identifiable {
 
 struct CardResultCell: View {
     let card: Card
-    @State private var showingBackFace = false
 
     var body: some View {
-        ZStack(alignment: .trailing) {
-            Group {
-                if card.isDoubleFaced {
-                    transformingCardView
-                } else {
-                    regularCardView
-                }
-            }
-            .aspectRatio(0.7, contentMode: .fit)
-            .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
-            
-            // Flip button for double-faced cards
-            if card.isDoubleFaced {
-                flipButton
-                    .padding(.trailing, 8)
-            }
-        }
-    }
-    
-    // MARK: - Regular Card
-    
-    @ViewBuilder private var regularCardView: some View {
-        if let imageUrl = card.primaryImageUris?.small, let url = URL(string: imageUrl) {
-            AsyncImage(url: url) { phase in
-                switch phase {
-                case .empty:
-                    ProgressView()
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                case .success(let image):
-                    image
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                case .failure:
-                    regularPlaceholder
-                @unknown default:
-                    regularPlaceholder
-                }
-            }
-            .clipShape(RoundedRectangle(cornerRadius: 12))
-        } else {
-            regularPlaceholder
-        }
-    }
-    
-    private var regularPlaceholder: some View {
-        RoundedRectangle(cornerRadius: 12)
-            .fill(Color.gray.opacity(0.2))
-            .overlay(
-                VStack(spacing: 8) {
-                    Image(systemName: "photo")
-                        .font(.largeTitle)
-                        .foregroundStyle(.secondary)
-
-                    Text(card.name)
-                        .font(.caption)
-                        .foregroundStyle(.primary)
-                        .multilineTextAlignment(.center)
-                        .lineLimit(2)
-                }
-                .padding(8)
-            )
-    }
-    
-    // MARK: - Transforming Card
-    
-    @ViewBuilder private var transformingCardView: some View {
-        ZStack {
+        Group {
             if let (front, back) = card.bothFaces {
-                cardFaceView(
-                    imageUrl: front.imageUris?.small,
-                    name: front.name
+                FlipCardView(
+                    frontFace: front,
+                    backFace: back,
+                    imageQuality: .small,
+                    aspectFit: false
+                )
+            } else {
+                CardFaceImageView(
+                    face: card,
+                    imageQuality: .small,
+                    aspectFit: false,
+                    showContextMenu: false
                 )
                 .clipShape(RoundedRectangle(cornerRadius: 12))
-                .opacity(showingBackFace ? 0 : 1)
-                .rotation3DEffect(
-                    .degrees(showingBackFace ? 180 : 0),
-                    axis: (x: 0, y: 1, z: 0)
-                )
-                cardFaceView(
-                    imageUrl: back.imageUris?.small,
-                    name: back.name
-                )
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-                .opacity(showingBackFace ? 1 : 0)
-                .rotation3DEffect(
-                    .degrees(showingBackFace ? 0 : -180),
-                    axis: (x: 0, y: 1, z: 0)
-                )
             }
         }
-    }
-    
-    @ViewBuilder
-    private func cardFaceView(imageUrl: String?, name: String) -> some View {
-        if let imageUrl = imageUrl, let url = URL(string: imageUrl) {
-            AsyncImage(url: url) { phase in
-                switch phase {
-                case .empty:
-                    ProgressView()
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                case .success(let image):
-                    image
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                case .failure:
-                    facePlaceholder(name: name)
-                @unknown default:
-                    facePlaceholder(name: name)
-                }
-            }
-        } else {
-            facePlaceholder(name: name)
-        }
-    }
-    
-    private func facePlaceholder(name: String) -> some View {
-        RoundedRectangle(cornerRadius: 12)
-            .fill(Color.gray.opacity(0.2))
-            .overlay(
-                VStack(spacing: 8) {
-                    Image(systemName: "photo")
-                        .font(.largeTitle)
-                        .foregroundStyle(.secondary)
-
-                    Text(name)
-                        .font(.caption)
-                        .foregroundStyle(.primary)
-                        .multilineTextAlignment(.center)
-                        .lineLimit(2)
-                }
-                .padding(8)
-            )
-    }
-    
-    private var flipButton: some View {
-        Button {
-            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                showingBackFace.toggle()
-            }
-        } label: {
-            Image(systemName: "arrow.triangle.2.circlepath")
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(.primary)
-                .padding(8)
-        }
-        .buttonStyle(.glass)
-        .buttonBorderShape(.circle)
-        .shadow(color: .black.opacity(0.2), radius: 3, x: 0, y: 2)
+        .aspectRatio(0.7, contentMode: .fit)
+        .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
     }
 }
 

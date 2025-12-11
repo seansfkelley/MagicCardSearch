@@ -27,19 +27,35 @@ struct CardDetailView: View {
         ScrollView {
             VStack(spacing: 0) {
                 if let (front, back) = card.bothFaces {
-                    cardFaceView(
-                        face: front,
-                        fullCardName: card.name
+                    FlipCardView(
+                        frontFace: front,
+                        backFace: back,
+                        imageQuality: .large,
+                        aspectFit: true
                     )
-
-                    Spacer().frame(height: 24)
-
-                    cardFaceView(
-                        face: back,
-                        fullCardName: card.name
-                    )
+                    .shadow(color: .black.opacity(0.2), radius: 8, x: 0, y: 4)
+                    .padding(.horizontal)
+                    .padding(.bottom, 24)
                 } else {
-                    singleFacedCardView
+                    CardFaceImageView(
+                        face: card,
+                        imageQuality: .large,
+                        aspectFit: true,
+                        showContextMenu: true
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .shadow(color: .black.opacity(0.2), radius: 8, x: 0, y: 4)
+                    .padding(.horizontal)
+                    .padding(.bottom, 24)
+                }
+
+                if let (front, back) = card.bothFaces {
+                    cardFaceDetailsView(face: front, showArtist: front.artist != back.artist)
+                    Divider()
+                        .padding(.horizontal)
+                    cardFaceDetailsView(face: back)
+                } else {
+                    cardFaceDetailsView(face: card)
                 }
 
                 Divider()
@@ -148,41 +164,20 @@ struct CardDetailView: View {
         }
     }
 
-    // MARK: - Single-Faced Card View
-
-    @ViewBuilder private var singleFacedCardView: some View {
-        // Image Section
-        if let imageUrl = card.primaryImageUris?.normal, let url = URL(string: imageUrl) {
-            AsyncImage(url: url) { phase in
-                switch phase {
-                case .empty:
-                    ProgressView()
-                        .frame(height: 400)
-                case .success(let image):
-                    image
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                        .padding(.horizontal)
-                case .failure:
-                    imagePlaceholder
-                @unknown default:
-                    imagePlaceholder
-                }
-            }
-        } else {
-            imagePlaceholder
-        }
-
+    // MARK: - Card Face Details View
+    
+    // swiftlint:disable function_body_length
+    @ViewBuilder
+    private func cardFaceDetailsView(face: CardFaceDisplayable, showArtist: Bool = true) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .top) {
-                Text(card.name)
+                Text(face.name)
                     .font(.title2)
                     .fontWeight(.bold)
                     .frame(maxWidth: .infinity, alignment: .leading)
 
-                if let manaCost = card.manaCost, !manaCost.isEmpty {
-                    ManaCostView(manaCost, size: 20)
+                if !face.displayableManaCost.isEmpty {
+                    ManaCostView(face.displayableManaCost, size: 20)
                 }
             }
         }
@@ -190,13 +185,13 @@ struct CardDetailView: View {
         .padding(.vertical, 12)
         .frame(maxWidth: .infinity, alignment: .leading)
 
-        if let typeLine = card.typeLine {
+        if let typeLine = face.typeLine, !typeLine.isEmpty {
             Divider()
                 .padding(.horizontal)
 
             VStack(alignment: .leading, spacing: 8) {
                 HStack(spacing: 8) {
-                    if let colorIndicator = card.colorIndicator, !colorIndicator.isEmpty {
+                    if let colorIndicator = face.colorIndicator, !colorIndicator.isEmpty {
                         ColorIndicatorView(colors: colorIndicator)
                     }
 
@@ -209,18 +204,16 @@ struct CardDetailView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
         }
 
-        if let oracleText = card.oracleText,
-            let flavorText = card.flavorText,
-            !oracleText.isEmpty || !flavorText.isEmpty {
+        if let oracleText = face.oracleText, let flavorText = face.flavorText, !oracleText.isEmpty || !flavorText.isEmpty {
             Divider()
                 .padding(.horizontal)
 
             VStack(alignment: .leading, spacing: 12) {
-                if let oracleText = card.oracleText, !oracleText.isEmpty {
+                if !oracleText.isEmpty {
                     OracleTextView(oracleText)
                 }
 
-                if let flavorText = card.flavorText, !flavorText.isEmpty {
+                if !flavorText.isEmpty {
                     VStack(alignment: .leading, spacing: 8) {
                         ForEach(flavorText.components(separatedBy: "\n"), id: \.self) { line in
                             if !line.isEmpty {
@@ -238,81 +231,21 @@ struct CardDetailView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
         }
 
-        if let power = card.power, let toughness = card.toughness {
+        if let power = face.power, let toughness = face.toughness {
             Divider()
                 .padding(.horizontal)
 
             CardPowerToughnessSection(power: power, toughness: toughness)
         }
 
-        if let artist = card.artist {
+        if showArtist, let artist = face.artist {
             Divider()
                 .padding(.horizontal)
 
             CardArtistSection(artist: artist)
         }
     }
-
-    private var imagePlaceholder: some View {
-        RoundedRectangle(cornerRadius: 12)
-            .fill(Color.gray.opacity(0.2))
-            .frame(height: 400)
-            .overlay(
-                VStack(spacing: 16) {
-                    Image(systemName: "photo")
-                        .font(.system(size: 60))
-                        .foregroundStyle(.secondary)
-
-                    Text(card.name)
-                        .font(.title3)
-                        .foregroundStyle(.primary)
-                        .multilineTextAlignment(.center)
-                }
-                .padding()
-            )
-            .padding(.horizontal)
-    }
-
-    // MARK: - Card Face View
-
-    private func cardFaceView(face: Card.Face, fullCardName: String) -> some View {
-        VStack(spacing: 0) {
-            CardFaceImageSection(
-                face: face,
-                fullCardName: fullCardName
-            )
-
-            CardFaceHeaderSection(face: face)
-
-            if let typeLine = face.typeLine, !typeLine.isEmpty {
-                Divider()
-                    .padding(.horizontal)
-
-                CardFaceTypeLineSection(face: face, typeLine: typeLine)
-            }
-
-            if face.oracleText != nil || face.flavorText != nil {
-                Divider()
-                    .padding(.horizontal)
-
-                CardFaceTextSection(face: face)
-            }
-
-            if let power = face.power, let toughness = face.toughness {
-                Divider()
-                    .padding(.horizontal)
-
-                CardPowerToughnessSection(power: power, toughness: toughness)
-            }
-
-            if let artist = face.artist {
-                Divider()
-                    .padding(.horizontal)
-
-                CardArtistSection(artist: artist)
-            }
-        }
-    }
+    // swiftlint:enable function_body_length
 
     private func loadRelatedCard(id: UUID) async {
         print("Loading related card...")
@@ -625,160 +558,6 @@ private struct CardRulingsSection: View {
     }
 }
 
-// MARK: - Card Face Image Section
-
-private struct CardFaceImageSection: View {
-    let face: Card.Face
-    let fullCardName: String
-
-    var body: some View {
-        Group {
-            if let imageUrl = face.imageUris?.large, let url = URL(string: imageUrl) {
-                AsyncImage(url: url) { phase in
-                    switch phase {
-                    case .empty:
-                        ProgressView()
-                            .frame(maxWidth: .infinity, maxHeight: 400)
-                    case .success(let image):
-                        image
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .contextMenu {
-                                ShareLink(item: url, preview: SharePreview(face.name, image: image))
-
-                                Button {
-                                    if let uiImage = ImageRenderer(content: image).uiImage {
-                                        UIPasteboard.general.image = uiImage
-                                    }
-                                } label: {
-                                    Label("Copy", systemImage: "doc.on.doc")
-                                }
-                            }
-                    case .failure:
-                        CardFaceImagePlaceholder(face: face, cardName: fullCardName)
-                    @unknown default:
-                        CardFaceImagePlaceholder(face: face, cardName: fullCardName)
-                    }
-                }
-            } else {
-                CardFaceImagePlaceholder(face: face, cardName: fullCardName)
-            }
-        }
-        .shadow(color: .black.opacity(0.2), radius: 8, x: 0, y: 4)
-        .padding(.horizontal)
-        .padding(.bottom, 24)
-    }
-}
-
-// MARK: - Card Face Image Placeholder
-
-private struct CardFaceImagePlaceholder: View {
-    let face: Card.Face
-    let cardName: String
-
-    var body: some View {
-        RoundedRectangle(cornerRadius: 16)
-            .fill(Color.gray.opacity(0.2))
-            .aspectRatio(0.7, contentMode: .fit)
-            .overlay(
-                VStack(spacing: 12) {
-                    Image(systemName: "photo")
-                        .font(.system(size: 60))
-                        .foregroundStyle(.secondary)
-
-                    Text(face.name)
-                        .font(.title2)
-                        .fontWeight(.semibold)
-                        .multilineTextAlignment(.center)
-                }
-                .padding()
-            )
-    }
-}
-
-// MARK: - Card Face Header Section
-
-private struct CardFaceHeaderSection: View {
-    let face: Card.Face
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .top) {
-                Text(face.name)
-                    .font(.title2)
-                    .fontWeight(.bold)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-
-                if !face.manaCost.isEmpty {
-                    ManaCostView(face.manaCost, size: 20)
-                }
-            }
-        }
-        .padding(.horizontal)
-        .padding(.vertical, 12)
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-}
-
-// MARK: - Card Face Type Line Section
-
-private struct CardFaceTypeLineSection: View {
-    let face: Card.Face
-    let typeLine: String
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 8) {
-                if let colorIndicator = face.colorIndicator, !colorIndicator.isEmpty {
-                    ColorIndicatorView(colors: colorIndicator)
-                }
-
-                Text(typeLine)
-                    .font(.body)
-            }
-        }
-        .padding(.horizontal)
-        .padding(.vertical, 12)
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-}
-
-// MARK: - Card Face Text Section
-
-private struct CardFaceTextSection: View {
-    let face: Card.Face
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            if let oracleText = face.oracleText, !oracleText.isEmpty {
-                OracleTextView(oracleText)
-            }
-
-            if let flavorText = face.flavorText, !flavorText.isEmpty {
-                VStack(alignment: .leading, spacing: 8) {
-                    ForEach(flavorText.components(separatedBy: "\n"), id: \.self) { line in
-                        if !line.isEmpty {
-                            Text(line)
-                                .font(.system(.body, design: .serif))
-                                .italic()
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                    }
-                }
-            }
-
-            if face.oracleText == nil && face.flavorText == nil {
-                Text("No text")
-                    .font(.body)
-                    .foregroundStyle(.secondary)
-            }
-        }
-        .padding(.horizontal)
-        .padding(.vertical, 12)
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-}
-
 // MARK: - Card Other Prints Section
 
 private struct CardOtherPrintsSection: View {
@@ -844,91 +623,24 @@ private struct CardPrintsListView: View {
 
     var body: some View {
         NavigationStack {
-            Group {
-                if isLoading {
-                    VStack(spacing: 16) {
-                        ProgressView()
-                            .scaleEffect(1.5)
-                        Text("Loading prints...")
-                            .font(.title3)
-                            .foregroundStyle(.secondary)
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else if let error = error {
-                    VStack(spacing: 16) {
-                        Image(systemName: "exclamationmark.triangle")
-                            .font(.system(size: 60))
-                            .foregroundStyle(.secondary)
-
-                        Text("Failed to load prints")
-                            .font(.title2)
-                            .fontWeight(.semibold)
-
-                        Text(error.localizedDescription)
-                            .font(.body)
-                            .foregroundStyle(.secondary)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, 32)
-
-                        Button("Try Again") {
-                            Task {
-                                await loadPrints()
-                            }
+            contentView
+                .navigationTitle("All Prints")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button {
+                            dismiss()
+                        } label: {
+                            Image(systemName: "xmark")
                         }
-                        .buttonStyle(.borderedProminent)
                     }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else if prints.isEmpty {
-                    VStack(spacing: 16) {
-                        Image(systemName: "rectangle.on.rectangle.slash")
-                            .font(.system(size: 60))
-                            .foregroundStyle(.secondary)
 
-                        Text("No Prints Found")
-                            .font(.title2)
-                            .fontWeight(.semibold)
-
-                        Text("This card doesn't have any printings.")
-                            .font(.body)
-                            .foregroundStyle(.secondary)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, 32)
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else {
-                    ScrollView {
-                        LazyVGrid(columns: columns, spacing: 12) {
-                            ForEach(Array(prints.enumerated()), id: \.element.id) { index, card in
-                                CardPrintGridItem(
-                                    card: card,
-                                    isCurrentPrint: card.id == currentCardId
-                                )
-                                .onTapGesture {
-                                    selectedCardIndex = index
-                                }
-                            }
+                    if let url = scryfallSearchURL {
+                        ToolbarItem(placement: .topBarTrailing) {
+                            ShareLink(item: url)
                         }
-                        .padding()
                     }
                 }
-            }
-            .navigationTitle("All Prints")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button {
-                        dismiss()
-                    } label: {
-                        Image(systemName: "xmark")
-                    }
-                }
-
-                if let url = scryfallSearchURL {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        ShareLink(item: url)
-                    }
-                }
-            }
         }
         .task {
             await loadPrints()
@@ -943,6 +655,91 @@ private struct CardPrintsListView: View {
                 cards: prints,
                 initialIndex: identifier.index
             )
+        }
+    }
+    
+    @ViewBuilder private var contentView: some View {
+        if isLoading {
+            loadingView
+        } else if let error = error {
+            errorView(error: error)
+        } else if prints.isEmpty {
+            emptyView
+        } else {
+            printsGridView
+        }
+    }
+    
+    private var loadingView: some View {
+        VStack(spacing: 16) {
+            ProgressView()
+                .scaleEffect(1.5)
+            Text("Loading prints...")
+                .font(.title3)
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+    
+    private func errorView(error: Error) -> some View {
+        VStack(spacing: 16) {
+            Image(systemName: "exclamationmark.triangle")
+                .font(.system(size: 60))
+                .foregroundStyle(.secondary)
+
+            Text("Failed to load prints")
+                .font(.title2)
+                .fontWeight(.semibold)
+
+            Text(error.localizedDescription)
+                .font(.body)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 32)
+
+            Button("Try Again") {
+                Task {
+                    await loadPrints()
+                }
+            }
+            .buttonStyle(.borderedProminent)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+    
+    private var emptyView: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "rectangle.on.rectangle.slash")
+                .font(.system(size: 60))
+                .foregroundStyle(.secondary)
+
+            Text("No Prints Found")
+                .font(.title2)
+                .fontWeight(.semibold)
+
+            Text("This card doesn't have any printings.")
+                .font(.body)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 32)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+    
+    private var printsGridView: some View {
+        ScrollView {
+            LazyVGrid(columns: columns, spacing: 12) {
+                ForEach(Array(prints.enumerated()), id: \.element.id) { index, card in
+                    CardPrintGridItem(
+                        card: card,
+                        isCurrentPrint: card.id == currentCardId
+                    )
+                    .onTapGesture {
+                        selectedCardIndex = index
+                    }
+                }
+            }
+            .padding()
         }
     }
 
@@ -976,28 +773,22 @@ private struct CardPrintGridItem: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             // Card Image
-            Group {
-                if let imageUrl = card.primaryImageUris?.normal, let url = URL(string: imageUrl) {
-                    AsyncImage(url: url) { phase in
-                        switch phase {
-                        case .empty:
-                            ProgressView()
-                                .frame(maxWidth: .infinity)
-                                .aspectRatio(0.7, contentMode: .fit)
-                        case .success(let image):
-                            image
-                                .resizable()
-                                .aspectRatio(contentMode: .fit)
-                                .clipShape(RoundedRectangle(cornerRadius: 8))
-                        case .failure:
-                            imagePlaceholder
-                        @unknown default:
-                            imagePlaceholder
-                        }
-                    }
-                } else {
-                    imagePlaceholder
-                }
+            if let (front, back) = card.bothFaces {
+                FlipCardView(
+                    frontFace: front,
+                    backFace: back,
+                    imageQuality: .normal,
+                    aspectFit: true
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+            } else {
+                CardFaceImageView(
+                    face: card,
+                    imageQuality: .normal,
+                    aspectFit: true,
+                    showContextMenu: false
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 8))
             }
 
             // Set Info
@@ -1026,17 +817,6 @@ private struct CardPrintGridItem: View {
                     .lineLimit(1)
             }
         }
-    }
-
-    private var imagePlaceholder: some View {
-        RoundedRectangle(cornerRadius: 8)
-            .fill(Color.gray.opacity(0.2))
-            .aspectRatio(0.7, contentMode: .fit)
-            .overlay(
-                Image(systemName: "photo")
-                    .font(.title3)
-                    .foregroundStyle(.secondary)
-            )
     }
 }
 
@@ -1071,10 +851,43 @@ private struct MinimalCardDetailView: View {
                 ScrollView(.horizontal) {
                     LazyHStack(spacing: 0) {
                         ForEach(Array(cards.enumerated()), id: \.element.id) { index, card in
-                            MinimalCardDetailContent(card: card)
-                                .frame(width: geometry.size.width, height: geometry.size.height)
-                                .containerRelativeFrame(.horizontal)
-                                .id(index)
+                            ScrollView {
+                                VStack(spacing: 0) {
+                                    if let (front, back) = card.bothFaces {
+                                        FlipCardView(
+                                            frontFace: front,
+                                            backFace: back,
+                                            imageQuality: .large,
+                                            aspectFit: true
+                                        )
+                                        .padding(.horizontal)
+                                        .padding(.top)
+                                    } else {
+                                        CardFaceImageView(
+                                            face: card,
+                                            imageQuality: .large,
+                                            aspectFit: true,
+                                            showContextMenu: true
+                                        )
+                                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                                        .padding(.horizontal)
+                                        .padding(.top)
+                                    }
+                                    
+                                    CardSetInfoSection(
+                                        setCode: card.set,
+                                        setName: card.setName,
+                                        collectorNumber: card.collectorNumber,
+                                        rarity: card.rarity,
+                                        lang: card.lang
+                                    )
+                                    
+                                    Spacer().frame(height: 40)
+                                }
+                            }
+                            .frame(width: geometry.size.width, height: geometry.size.height)
+                            .containerRelativeFrame(.horizontal)
+                            .id(index)
                         }
                     }
                     .scrollTargetLayout()
@@ -1132,120 +945,5 @@ private struct MinimalCardDetailView: View {
                 currentIndex = newValue
             }
         }
-    }
-}
-
-// MARK: - Minimal Card Detail Content
-
-private struct MinimalCardDetailContent: View {
-    let card: Card
-
-    var body: some View {
-        ScrollView {
-            VStack(spacing: 0) {
-                // Large image with context menu
-                if let imageUrl = card.primaryImageUris?.large, let url = URL(string: imageUrl) {
-                    AsyncImage(url: url) { phase in
-                        switch phase {
-                        case .empty:
-                            ProgressView()
-                                .frame(height: 500)
-                        case .success(let image):
-                            image
-                                .resizable()
-                                .aspectRatio(contentMode: .fit)
-                                .clipShape(RoundedRectangle(cornerRadius: 12))
-                                .padding(.horizontal)
-                                .contextMenu {
-                                    ShareLink(
-                                        item: url,
-                                        preview: SharePreview(card.name, image: image)
-                                    )
-
-                                    Button {
-                                        if let uiImage = ImageRenderer(content: image).uiImage {
-                                            UIPasteboard.general.image = uiImage
-                                        }
-                                    } label: {
-                                        Label("Copy", systemImage: "doc.on.doc")
-                                    }
-                                }
-                        case .failure:
-                            cardImagePlaceholder
-                        @unknown default:
-                            cardImagePlaceholder
-                        }
-                    }
-                } else {
-                    cardImagePlaceholder
-                }
-
-                VStack(alignment: .leading, spacing: 12) {
-                    HStack(spacing: 12) {
-                        SetIconView(setCode: card.set)
-
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(card.setName)
-                                .font(.body)
-                                .fontWeight(.medium)
-
-                            HStack(spacing: 8) {
-                                Text(card.set.uppercased())
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-
-                                Text("#\(card.collectorNumber)")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-
-                                Text("•")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-
-                                Text(card.rarity.rawValue.capitalized)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-
-                                if let releasedAt = card.releasedAtAsDate {
-                                    Text("•")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-
-                                    Text(releasedAt, format: .dateTime.year().month().day())
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
-                            }
-                        }
-                    }
-                }
-                .padding(.horizontal)
-                .padding(.vertical, 12)
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-                Spacer().frame(height: 40)
-            }
-            .padding(.top)
-        }
-    }
-
-    private var cardImagePlaceholder: some View {
-        RoundedRectangle(cornerRadius: 12)
-            .fill(Color.gray.opacity(0.2))
-            .frame(height: 500)
-            .overlay(
-                VStack(spacing: 16) {
-                    Image(systemName: "photo")
-                        .font(.system(size: 60))
-                        .foregroundStyle(.secondary)
-
-                    Text(card.name)
-                        .font(.title3)
-                        .foregroundStyle(.primary)
-                        .multilineTextAlignment(.center)
-                }
-                .padding()
-            )
-            .padding(.horizontal)
     }
 }
