@@ -29,10 +29,10 @@ enum SearchFilter: Equatable, Hashable, Codable {
         }
     }
     
-    var contents: SearchFilterContent {
+    var isKnownFilterType: Bool {
         return switch self {
-        case .basic(let content): content
-        case .negated(let content): content
+        case .basic(let content): content.isKnownFilterType
+        case .negated(let content): content.isKnownFilterType
         }
     }
 }
@@ -82,6 +82,14 @@ enum SearchFilterContent: Equatable, Hashable, Codable {
                     prefix.endIndex..<formatted.endIndex
                 )
             }
+        }
+    }
+    
+    var isKnownFilterType: Bool {
+        return switch self {
+        case .name: true
+        case .regex(let key, _, _): scryfallFilterByType[key.lowercased()] != nil
+        case .keyValue(let key, _, _): scryfallFilterByType[key.lowercased()] != nil
         }
     }
 }

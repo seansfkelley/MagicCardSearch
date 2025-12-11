@@ -19,12 +19,10 @@ struct FilterPillView: View {
     }
     
     var body: some View {
-        let recognized = isRecognizedFilter
-        
         HStack(spacing: 0) {
             Button(action: onTap ?? {}) {
                 HStack(spacing: 6) {
-                    if !recognized {
+                    if !filter.isKnownFilterType {
                         Image(systemName: "exclamationmark.triangle")
                             .font(.callout)
                             .foregroundStyle(.orange)
@@ -34,7 +32,7 @@ struct FilterPillView: View {
                         .font(.subheadline)
                         .fontWeight(.medium)
                 }
-                .padding(.leading, recognized ? 16 : 8)
+                .padding(.leading, filter.isKnownFilterType ? 16 : 8)
                 .padding(.trailing, onDelete == nil ? 16 : 8)
                 .padding(.vertical, 8)
             }
@@ -58,13 +56,5 @@ struct FilterPillView: View {
         .fixedSize(horizontal: true, vertical: false)
         .frame(height: 32)
         .glassEffect(.regular.interactive(), in: .capsule)
-    }
-    
-    private var isRecognizedFilter: Bool {
-        return switch filter.contents {
-        case .name: true
-        case .regex(let key, _, _): scryfallFilterByType[key] != nil
-        case .keyValue(let key, _, _): scryfallFilterByType[key] != nil
-        }
     }
 }
