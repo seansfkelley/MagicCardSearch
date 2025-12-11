@@ -153,16 +153,20 @@ class AutocompleteProvider {
     // TODO: yikes
     // swiftlint:disable:next cyclomatic_complexity function_body_length
     private func checkForFilterTypeSuggestions(_ searchTerm: String) -> [Suggestion] {
-        // Collect filter type matches with their match quality
         var filterTypeMatches: [FilterTypeMatch] = []
-
-        for (_, filterType) in scryfallFilterByType {
+        
+        guard let match = /^(-?)([a-zA-Z]+)$/.wholeMatch(in: searchTerm) else {
+            return []
+        }
+        
+        let (_, negated, filterName) = match.output
+        
+        for filterType in scryfallFilterTypes {
             var hasExactMatch = false
             var bestMatch: (text: String, range: Range<String.Index>, matchLength: Int)?
-
+            
             for candidate in filterType.names {
-                // Check for exact match (case insensitive)
-                if candidate.caseInsensitiveCompare(searchTerm) == .orderedSame {
+                if candidate.caseInsensitiveCompare(filterName) == .orderedSame {
                     hasExactMatch = true
                     bestMatch = (
                         candidate, candidate.startIndex..<candidate.endIndex, candidate.count
@@ -170,9 +174,8 @@ class AutocompleteProvider {
                     break
                 }
 
-                // Check for partial match
-                if let range = candidate.range(of: searchTerm, options: .caseInsensitive) {
-                    let matchLength = searchTerm.count
+                if let range = candidate.range(of: filterName, options: .caseInsensitive) {
+                    let matchLength = filterName.count
 
                     if let existing = bestMatch {
                         if matchLength > existing.matchLength
@@ -200,29 +203,27 @@ class AutocompleteProvider {
             }
         }
 
-        // Sort filter type matches: exact matches first, then by descending match length
         filterTypeMatches.sort { lhs, rhs in
             if lhs.isExactMatch != rhs.isExactMatch {
                 return lhs.isExactMatch  // Exact matches first
             }
             if lhs.matchLength != rhs.matchLength {
-                return lhs.matchLength > rhs.matchLength  // Longer matches first (descending)
+                return lhs.matchLength > rhs.matchLength
             }
-            // Tie-breaker: prefer canonical names
             if lhs.displayText == lhs.canonicalType && rhs.displayText != rhs.canonicalType {
                 return true
             }
             if lhs.displayText != lhs.canonicalType && rhs.displayText == rhs.canonicalType {
                 return false
             }
-            // Final tie-breaker: shorter text
             return lhs.displayText.count < rhs.displayText.count
         }
 
         // TODO: Why does this seem to be sorting in reverse?
         return filterTypeMatches.reversed().map {
             .filter(FilterTypeSuggestion(
-                filterType: $0.displayText,
+                filterType: "\(negated)\"($0.displayText)",
+                // TODO: negated makes this incorrectly offset, probably, because we don't match against it.
                 matchRange: $0.range
             ))
         }
