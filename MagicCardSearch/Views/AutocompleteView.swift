@@ -118,17 +118,13 @@ struct AutocompleteView: View {
                 .foregroundStyle(.secondary)
 
             VStack(alignment: .leading, spacing: 6) {
-                Text("\(suggestion.filterType)\(suggestion.comparison.rawValue)")
-                    .foregroundStyle(.primary)
-                
-                ScrollView(.horizontal, showsIndicators: false) {
-                    EnumerationButtonGroup(
-                        options: suggestion.options
-                    ) { option in
-                            onSuggestionTap(
-                                .filter(.basic(.keyValue(suggestion.filterType, suggestion.comparison, option)))
-                            )
-                    }
+                EnumerationButtonGroup(
+                    label: "\(suggestion.filterType)\(suggestion.comparison.rawValue)",
+                    options: suggestion.options
+                ) { option in
+                        onSuggestionTap(
+                            .filter(.basic(.keyValue(suggestion.filterType, suggestion.comparison, option)))
+                        )
                 }
             }
 
@@ -141,30 +137,70 @@ struct AutocompleteView: View {
 // MARK: - Filter Type Picker
 
 private struct EnumerationButtonGroup: View {
+    let label: String
     let options: [AutocompleteProvider.EnumerationSuggestion.Option]
     let onButtonTap: (String) -> Void
     
+    private let searchIconFadeExtent: CGFloat = 44
+    @State var labelOpacity: CGFloat = 1
+    
     var body: some View {
-        HStack(spacing: 8) {
-            ForEach(options, id: \.value) { option in
-                Button {
-                    onButtonTap(option.value)
-                } label: {
-                    HighlightedText(
-                        text: option.value,
-                        highlightRange: option.range,
-                    )
-                    .font(.body)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(Color.accentColor.opacity(0.15))
-                    .foregroundStyle(.primary)
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
+        ZStack(alignment: .leading) {
+            Text(label)
+                .foregroundStyle(.primary)
+                .opacity(labelOpacity)
+            
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    Text(label)
+                        .hidden()
+                    
+                    ForEach(options, id: \.value) { option in
+                        Button {
+                            onButtonTap(option.value)
+                        } label: {
+                            HighlightedText(
+                                text: option.value,
+                                highlightRange: option.range,
+                            )
+                            .font(.body)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(.secondary)
+                            .foregroundStyle(.primary)
+                            .clipShape(.capsule)
+                        }
+                        .buttonStyle(.plain)
+                    }
                 }
-                .buttonStyle(.plain)
+            }
+            .onScrollGeometryChange(
+                for: CGFloat.self,
+                of: { geometry in
+                    let x = geometry.contentOffset.x
+                    return x > searchIconFadeExtent ? searchIconFadeExtent : x < 0 ? 0 : x
+                },
+                action: { _, currentValue in
+                    labelOpacity = (searchIconFadeExtent - currentValue) / searchIconFadeExtent
+                })
+            .mask {
+                HStack(spacing: 0) {
+                    LinearGradient(
+                        colors: [.clear, .black],
+                        startPoint: .leading,
+                        endPoint: .trailing,
+                    )
+                    .frame(width: 20)
+                    Rectangle()
+                    LinearGradient(
+                        colors: [.black, .clear],
+                        startPoint: .leading,
+                        endPoint: .trailing,
+                    )
+                    .frame(width: 20)
+                }
             }
         }
-        .padding(.horizontal, 2)
     }
 }
 
@@ -276,7 +312,7 @@ struct HighlightedText: View {
     let provider = AutocompleteProvider()
     
     return AutocompleteView(
-        inputText: "rarity=my",
+        inputText: "format=m",
         provider: provider,
         filters: []
     ) { suggestion in
