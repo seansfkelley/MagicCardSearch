@@ -89,18 +89,22 @@ struct CardListView: View {
                     }
                     
                     ToolbarItemGroup(placement: .bottomBar) {
-                        let areAllSelected = selectedCards.count == listManager.cards.count
-                        
-                        Button {
-                            withAnimation {
-                                if areAllSelected {
+                        if selectedCards.count == listManager.cards.count {
+                            Button {
+                                withAnimation {
                                     selectedCards.removeAll()
-                                } else {
+                                }
+                            } label: {
+                                Text("Deselect All")
+                            }
+                        } else {
+                            Button {
+                                withAnimation {
                                     selectedCards = Set(listManager.sortedCards.map(\.id))
                                 }
+                            } label: {
+                                Text("Select All")
                             }
-                        } label: {
-                            Text(areAllSelected ? "Deselect All" : "Select All")
                         }
 
                         Spacer()
