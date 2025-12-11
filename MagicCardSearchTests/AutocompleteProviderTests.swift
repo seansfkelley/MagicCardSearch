@@ -50,22 +50,78 @@ struct AutocompleteProviderTests {
             )
         ),
         (
-            // non-enumerable yields no options
+            // case-insensitive
+            "foRMat>=lESs",
+            .init(filterType: "format", comparison: .greaterThanOrEqual, options: [.init(value: "timeless", range: indexRange(4, 8))])
+        ),
+        (
+            // non-enumerable filter type yields no options
             "oracle=",
             nil
         ),
         (
-            // incomplete operators yield no suggestions
+            // incomplete filter types yield no suggestions
             "form",
             nil,
         ),
         (
-            // unknown operators yield no suggestions
+            // unknown filter types yield no suggestions
             "foobar:",
+            nil,
+        ),
+        (
+            // incomplete operator is not completeable
+            "format!",
             nil,
         ),
     ])
     func getEnumerationSuggestions(input: String, expected: AutocompleteProvider.EnumerationSuggestion?) {
         #expect(AutocompleteProvider.getEnumerationSuggestion(input) == expected)
+    }
+    
+    @Test<[(String, [AutocompleteProvider.FilterTypeSuggestion])]>("getFilterTypeSuggestions", arguments: [
+        (
+            // prefix of a filter returns that filter
+            "forma",
+            [.init(filterType: "format", matchRange: indexRange(0, 5))],
+        ),
+        (
+            // substrings matching multiple filters return them all, shortest first
+            "print",
+            [
+                .init(filterType: "prints", matchRange: indexRange(0, 5)),
+                .init(filterType: "paperprints", matchRange: indexRange(5, 10)),
+            ],
+        ),
+        (
+            // exact match of an alias returns the alias before other matching filters, and does not return the canonical name
+            "fo",
+            [
+                .init(filterType: "fo", matchRange: indexRange(0, 2)),
+                .init(filterType: "format", matchRange: indexRange(0, 2)),
+            ],
+        ),
+        (
+            // unmatching string returns nothing
+            "foobar",
+            [],
+        ),
+        (
+            // negation does not affect the behavior, but is included in the result
+            "-fo",
+            [
+                .init(filterType: "-fo", matchRange: indexRange(0, 3)),
+                .init(filterType: "-format", matchRange: indexRange(0, 3)),
+            ],
+        ),
+        (
+            // case-insensitive
+            "ForMa",
+            [.init(filterType: "format", matchRange: indexRange(0, 5))],
+        ),
+    ]
+)
+    func getFilterTypeSuggestions(input: String, expected: [AutocompleteProvider.FilterTypeSuggestion]) {
+        #expect(AutocompleteProvider.getFilterTypeSuggestions(input) == expected)
     }
 }

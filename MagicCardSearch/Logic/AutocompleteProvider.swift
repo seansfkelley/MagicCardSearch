@@ -23,7 +23,7 @@ class AutocompleteProvider {
     
     struct FilterTypeSuggestion: Equatable {
         let filterType: String
-        let matchRange: Range<String.Index>?
+        let matchRange: Range<String.Index>
     }
     
     struct EnumerationSuggestion: Equatable {
@@ -37,18 +37,18 @@ class AutocompleteProvider {
         let options: [Option]
     }
     
-    struct FilterTypeMatch {
+    enum Suggestion {
+        case history(HistorySuggestion)
+        case filter(FilterTypeSuggestion)
+        case enumeration(EnumerationSuggestion)
+    }
+    
+    private struct FilterTypeMatch {
         let canonicalType: String
         let displayText: String
         let range: Range<String.Index>
         let isExactMatch: Bool
         let matchLength: Int
-    }
-    
-    enum Suggestion {
-        case history(HistorySuggestion)
-        case filter(FilterTypeSuggestion)
-        case enumeration(EnumerationSuggestion)
     }
 
     // MARK: - Properties
@@ -224,12 +224,11 @@ class AutocompleteProvider {
             return lhs.displayText.count < rhs.displayText.count
         }
 
-        // TODO: Why does this seem to be sorting in reverse?
-        return filterTypeMatches.reversed().map {
+        return filterTypeMatches.map {
             let text = "\(negated)\($0.displayText)"
             return FilterTypeSuggestion(
                 filterType: text,
-                matchRange: negated.isEmpty ? $0.range : text.index(after: $0.range.lowerBound)..<text.index(after: $0.range.upperBound)
+                matchRange: negated.isEmpty ? $0.range : $0.range.lowerBound..<text.index(after: $0.range.upperBound)
             )
         }
     }
@@ -266,7 +265,7 @@ class AutocompleteProvider {
                 let comparison = Comparison(rawValue: String(comparisonOperator))
                 assert(comparison != nil) // if it is, programmer error on the regex or enumeration type
                 return EnumerationSuggestion(
-                    filterType: "\(negated)\(filterTypeName)",
+                    filterType: "\(negated)\(filterTypeName.lowercased())",
                     comparison: comparison!,
                     options: matchingOptions,
                 )
