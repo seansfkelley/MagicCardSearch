@@ -35,15 +35,20 @@ struct BottomBarFilterView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            if isSearchFocused {
-                HStack(alignment: .bottom) {
-                    WarningsPillView(
-                        warnings: warnings,
-                        mode: .pill,
-                        isExpanded: $showWarningsPopover
-                    )
-                    .matchedGeometryEffect(id: "warnings", in: animation)
-                    
+            HStack(alignment: .bottom) {
+                WarningsPillView(
+                    warnings: warnings,
+                    mode: .pill,
+                    isExpanded: $showWarningsPopover
+                )
+                .if(!isSearchFocused && !showWarningsPopover) { view in
+                    view
+                        .matchedGeometryEffect(id: "warnings", in: animation)
+                        .frame(width: 0, height: 0)
+                        .clipped()
+                }
+                
+                if isSearchFocused {
                     Spacer()
                     
                     ClearAllButton(
@@ -53,17 +58,20 @@ struct BottomBarFilterView: View {
                     )
                     .matchedGeometryEffect(id: "clearAll", in: animation)
                 }
-                .padding(.bottom, 8)
             }
+            .padding(.bottom, isSearchFocused || showWarningsPopover ? 8 : 0)
             
             HStack {
-                if !isSearchFocused {
-                    WarningsPillView(
-                        warnings: warnings,
-                        mode: .icon(collapsedButtonSize),
-                        isExpanded: $showWarningsPopover
-                    )
-                    .matchedGeometryEffect(id: "warnings", in: animation)
+                WarningsPillView(
+                    warnings: warnings,
+                    mode: .icon(collapsedButtonSize),
+                    isExpanded: $showWarningsPopover
+                )
+                .if(isSearchFocused || showWarningsPopover) { view in
+                    view
+                        .matchedGeometryEffect(id: "warnings", in: animation)
+                        .frame(width: 0, height: 0)
+                        .clipped()
                 }
                 
                 VStack(spacing: 0) {
@@ -114,7 +122,7 @@ struct BottomBarFilterView: View {
                     )
                     .clipped()
                     
-                    if !isSearchFocused && !filters.isEmpty {
+                    if !isSearchFocused {
                         ZStack {
                             HStack {
                                 Image(systemName: "magnifyingglass")
@@ -126,10 +134,9 @@ struct BottomBarFilterView: View {
                             
                             ScrollView(.horizontal, showsIndicators: false) {
                                 HStack(spacing: 8) {
-                                    // Just a spacer of the right size!
                                     Image(systemName: "magnifyingglass")
-                                        .foregroundStyle(.clear)
                                         .padding(.trailing, 12)
+                                        .hidden()
                                     
                                     ForEach(Array(filters.enumerated()), id: \.offset) { _, filter in
                                         FilterPillView(filter: filter)
