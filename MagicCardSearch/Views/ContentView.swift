@@ -113,6 +113,9 @@ struct ContentView: View {
             .toolbarBackground(.hidden, for: .navigationBar)
             .navigationBarTitleDisplayMode(.inline)
         }
+        .onChange(of: filters) {
+            warnings = []
+        }
         .sheet(isPresented: $showDisplaySheet, onDismiss: {
             if let pending = pendingSearchConfig, pending != searchConfig {
                 searchConfig = pending
