@@ -62,7 +62,7 @@ private let scryfallIsEnumerationValues = Set([
     "scryland", "surveilland", "shadowland", "shockland", "storageland", "creatureland",
     "triland", "tangoland", "battleland", "masterpiece",
     // Not listed in the documentation, but discovered/mentioned elsewhere
-    "gamechanger",
+    "gamechanger", "reversible",
 ])
 
 // MARK: - Filter Definitions
