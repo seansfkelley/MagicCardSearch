@@ -36,16 +36,13 @@ struct BottomBarFilterView: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack(alignment: .bottom) {
-                WarningsPillView(
-                    warnings: warnings,
-                    mode: .pill,
-                    isExpanded: $showWarningsPopover
-                )
-                .if(!isSearchFocused && !showWarningsPopover) { view in
-                    view
-                        .matchedGeometryEffect(id: "warnings", in: animation)
-                        .frame(width: 0, height: 0)
-                        .clipped()
+                if isSearchFocused || showWarningsPopover {
+                    WarningsPillView(
+                        warnings: warnings,
+                        mode: .pill,
+                        isExpanded: $showWarningsPopover
+                    )
+                    .matchedGeometryEffect(id: "warnings", in: animation)
                 }
                 
                 if isSearchFocused {
@@ -62,16 +59,13 @@ struct BottomBarFilterView: View {
             .padding(.bottom, isSearchFocused || showWarningsPopover ? 8 : 0)
             
             HStack {
-                WarningsPillView(
-                    warnings: warnings,
-                    mode: .icon(collapsedButtonSize),
-                    isExpanded: $showWarningsPopover
-                )
-                .if(isSearchFocused || showWarningsPopover) { view in
-                    view
-                        .matchedGeometryEffect(id: "warnings", in: animation)
-                        .frame(width: 0, height: 0)
-                        .clipped()
+                if !isSearchFocused && !showWarningsPopover {
+                    WarningsPillView(
+                        warnings: warnings,
+                        mode: .icon(collapsedButtonSize),
+                        isExpanded: $showWarningsPopover
+                    )
+                    .matchedGeometryEffect(id: "warnings", in: animation)
                 }
                 
                 VStack(spacing: 0) {
@@ -122,7 +116,7 @@ struct BottomBarFilterView: View {
                     )
                     .clipped()
                     
-                    if !isSearchFocused {
+                    if !isSearchFocused && !filters.isEmpty {
                         ZStack {
                             HStack {
                                 Image(systemName: "magnifyingglass")
@@ -169,6 +163,10 @@ struct BottomBarFilterView: View {
                 )
                 
                 if !isSearchFocused {
+                    // No idea why this is here when there is no equivalent for the warnings view,
+                    // which doesn't seem to need it to keep itself spaced out from the pills view.
+                    Spacer()
+                    
                     ClearAllButton(
                         filters: filters,
                         mode: .icon(collapsedButtonSize),
@@ -210,54 +208,52 @@ private struct WarningsPillView: View {
     var body: some View {
         if warnings.isEmpty {
             EmptyView()
-        } else {
+        } else if isExpanded {
             VStack(alignment: .leading, spacing: 0) {
-                if isExpanded {
-                    ForEach(Array(warnings.enumerated()), id: \.offset) { index, warning in
-                        Text(warning)
-                            .font(.subheadline)
-                            .foregroundStyle(.orange)
-                            .multilineTextAlignment(.leading)
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 12)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                        
-                        if index < warnings.count - 1 {
-                            Divider()
-                                .padding(.horizontal, 12)
-                        }
-                    }
-                    .glassEffect(.regular.interactive(), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-                } else {
-                    Button(action: {
-                        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                            isExpanded = true
-                        }
-                    }) {
-                        switch mode {
-                        case .icon(let size):
-                            Image(systemName: "exclamationmark.triangle.fill")
-                                .foregroundStyle(.orange)
-                                .font(.system(size: 20))
-                                .frame(width: size, height: size)
-                                .glassEffect(.regular.interactive(), in: .circle)
-                        case .pill:
-                            Text(warnings.count == 1 ? "1 warning" : "\(warnings.count) warnings")
-                                .font(.subheadline)
-                                .fontWeight(.medium)
-                                .foregroundStyle(.orange)
-                                .padding(.horizontal, 16)
-                                .padding(.vertical, 6)
-                                .glassEffect(.regular.interactive(), in: .capsule)
-                        }
+                ForEach(Array(warnings.enumerated()), id: \.offset) { index, warning in
+                    Text(warning)
+                        .font(.subheadline)
+                        .foregroundStyle(.orange)
+                        .multilineTextAlignment(.leading)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    
+                    if index < warnings.count - 1 {
+                        Divider()
+                            .padding(.horizontal, 12)
                     }
                 }
             }
             .onTapGesture {
                 if isExpanded {
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                    withAnimation(.spring(response: 0.2, dampingFraction: 0.8)) {
                         isExpanded = false
                     }
+                }
+            }
+            .glassEffect(.regular.interactive(), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        } else {
+            Button(action: {
+                withAnimation(.spring(response: 0.2, dampingFraction: 0.8)) {
+                    isExpanded = true
+                }
+            }) {
+                switch mode {
+                case .icon(let size):
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.orange)
+                        .font(.system(size: 20))
+                        .frame(width: size, height: size)
+                        .glassEffect(.regular.interactive(), in: .circle)
+                case .pill:
+                    Text(warnings.count == 1 ? "1 warning" : "\(warnings.count) warnings")
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundStyle(.orange)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 6)
+                        .glassEffect(.regular.interactive(), in: .capsule)
                 }
             }
         }
