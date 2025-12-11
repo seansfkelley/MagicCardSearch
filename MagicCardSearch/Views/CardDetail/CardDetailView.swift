@@ -207,8 +207,11 @@ struct CardDetailView: View {
             .padding(.vertical, 12)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
-
-        if let oracleText = face.oracleText, let flavorText = face.flavorText, !oracleText.isEmpty || !flavorText.isEmpty {
+        
+        let oracleText = face.oracleText ?? ""
+        let flavorText = face.flavorText ?? ""
+        
+        if !oracleText.isEmpty || !flavorText.isEmpty {
             Divider()
                 .padding(.horizontal)
 

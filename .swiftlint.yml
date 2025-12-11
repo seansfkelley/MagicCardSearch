@@ -1,5 +1,6 @@
 excluded:
   - .build
+  - scratch/
   - DerivedData
   - .swiftpm
   - Package.swift
