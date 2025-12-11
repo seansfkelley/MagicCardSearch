@@ -81,7 +81,6 @@ class AutocompleteProvider {
     }
 
     // TODO: yikes
-    // swiftlint:disable cyclomatic_complexity function_body_length
     func suggestions(for searchTerm: String, excluding excludedFilters: Set<SearchFilter> = Set())
         -> [Suggestion] {
         let availableHistory = history.filter { !excludedFilters.contains($0.filter) }
@@ -113,83 +112,7 @@ class AutocompleteProvider {
             }
         }
 
-        // Collect filter type matches with their match quality
-        var filterTypeMatches: [FilterTypeMatch] = []
-
-        for (_, filterType) in scryfallFilterByType {
-            let canonicalFilterType = filterType.canonicalName
-            var filterTypeCandidates = [canonicalFilterType]
-            filterTypeCandidates.append(contentsOf: filterType.aliases)
-
-            var hasExactMatch = false
-            var bestMatch: (text: String, range: Range<String.Index>, matchLength: Int)?
-
-            for candidate in filterTypeCandidates {
-                // Check for exact match (case insensitive)
-                if candidate.caseInsensitiveCompare(trimmedSearchTerm) == .orderedSame {
-                    hasExactMatch = true
-                    bestMatch = (
-                        candidate, candidate.startIndex..<candidate.endIndex, candidate.count
-                    )
-                    break
-                }
-
-                // Check for partial match
-                if let range = candidate.range(of: trimmedSearchTerm, options: .caseInsensitive) {
-                    let matchLength = trimmedSearchTerm.count
-
-                    if let existing = bestMatch {
-                        if matchLength > existing.matchLength
-                            || (matchLength == existing.matchLength
-                                && candidate == canonicalFilterType)
-                            || (matchLength == existing.matchLength
-                                && existing.text != canonicalFilterType
-                                && candidate.count < existing.text.count) {
-                            bestMatch = (candidate, range, matchLength)
-                        }
-                    } else {
-                        bestMatch = (candidate, range, matchLength)
-                    }
-                }
-            }
-
-            if let (candidate, range, matchLength) = bestMatch {
-                filterTypeMatches.append(FilterTypeMatch(
-                    canonicalType: canonicalFilterType,
-                    displayText: candidate,
-                    range: range,
-                    isExactMatch: hasExactMatch,
-                    matchLength: matchLength
-                ))
-            }
-        }
-
-        // Sort filter type matches: exact matches first, then by descending match length
-        filterTypeMatches.sort { lhs, rhs in
-            if lhs.isExactMatch != rhs.isExactMatch {
-                return lhs.isExactMatch  // Exact matches first
-            }
-            if lhs.matchLength != rhs.matchLength {
-                return lhs.matchLength > rhs.matchLength  // Longer matches first (descending)
-            }
-            // Tie-breaker: prefer canonical names
-            if lhs.displayText == lhs.canonicalType && rhs.displayText != rhs.canonicalType {
-                return true
-            }
-            if lhs.displayText != lhs.canonicalType && rhs.displayText == rhs.canonicalType {
-                return false
-            }
-            // Final tie-breaker: shorter text
-            return lhs.displayText.count < rhs.displayText.count
-        }
-
-        // TODO: Why does this seem to be sorting in reverse?
-        for match in filterTypeMatches.reversed() {
-            results.append(.filter(FilterTypeSuggestion(
-                filterType: match.displayText,
-                matchRange: match.range
-            )))
-        }
+        results.append(contentsOf: checkForFilterTypeSuggestions(trimmedSearchTerm))
 
         // Check for enumeration-type filter suggestions
         if let enumerationSuggestions = checkForEnumerationSuggestions(trimmedSearchTerm) {
@@ -199,7 +122,6 @@ class AutocompleteProvider {
         let historyLookup = Dictionary(uniqueKeysWithValues: availableHistory.map { ($0.filter, $0) })
         return Array(sortResults(results, historyLookup: historyLookup).prefix(10))
     }
-    // swiftlint:enable cyclomatic_complexity function_body_length
 
     // TODO: Weird interface; improve it. Also, slow.
     func pinSearchFilter(_ filter: SearchFilter) {
@@ -228,8 +150,86 @@ class AutocompleteProvider {
 
     // MARK: - Private Helpers
 
+    // TODO: yikes
+    // swiftlint:disable:next cyclomatic_complexity function_body_length
+    private func checkForFilterTypeSuggestions(_ searchTerm: String) -> [Suggestion] {
+        // Collect filter type matches with their match quality
+        var filterTypeMatches: [FilterTypeMatch] = []
+
+        for (_, filterType) in scryfallFilterByType {
+            var hasExactMatch = false
+            var bestMatch: (text: String, range: Range<String.Index>, matchLength: Int)?
+
+            for candidate in filterType.names {
+                // Check for exact match (case insensitive)
+                if candidate.caseInsensitiveCompare(searchTerm) == .orderedSame {
+                    hasExactMatch = true
+                    bestMatch = (
+                        candidate, candidate.startIndex..<candidate.endIndex, candidate.count
+                    )
+                    break
+                }
+
+                // Check for partial match
+                if let range = candidate.range(of: searchTerm, options: .caseInsensitive) {
+                    let matchLength = searchTerm.count
+
+                    if let existing = bestMatch {
+                        if matchLength > existing.matchLength
+                            || (matchLength == existing.matchLength
+                                && candidate == filterType.canonicalName)
+                            || (matchLength == existing.matchLength
+                                && existing.text != filterType.canonicalName
+                                && candidate.count < existing.text.count) {
+                            bestMatch = (candidate, range, matchLength)
+                        }
+                    } else {
+                        bestMatch = (candidate, range, matchLength)
+                    }
+                }
+            }
+
+            if let (candidate, range, matchLength) = bestMatch {
+                filterTypeMatches.append(FilterTypeMatch(
+                    canonicalType: filterType.canonicalName,
+                    displayText: candidate,
+                    range: range,
+                    isExactMatch: hasExactMatch,
+                    matchLength: matchLength
+                ))
+            }
+        }
+
+        // Sort filter type matches: exact matches first, then by descending match length
+        filterTypeMatches.sort { lhs, rhs in
+            if lhs.isExactMatch != rhs.isExactMatch {
+                return lhs.isExactMatch  // Exact matches first
+            }
+            if lhs.matchLength != rhs.matchLength {
+                return lhs.matchLength > rhs.matchLength  // Longer matches first (descending)
+            }
+            // Tie-breaker: prefer canonical names
+            if lhs.displayText == lhs.canonicalType && rhs.displayText != rhs.canonicalType {
+                return true
+            }
+            if lhs.displayText != lhs.canonicalType && rhs.displayText == rhs.canonicalType {
+                return false
+            }
+            // Final tie-breaker: shorter text
+            return lhs.displayText.count < rhs.displayText.count
+        }
+
+        // TODO: Why does this seem to be sorting in reverse?
+        return filterTypeMatches.reversed().map {
+            .filter(FilterTypeSuggestion(
+                filterType: $0.displayText,
+                matchRange: $0.range
+            ))
+        }
+    }
+    
     // TODO: yikes again
-    // swiftlint:disable cyclomatic_complexity
+    // swiftlint:disable:next cyclomatic_complexity
     private func checkForEnumerationSuggestions(_ searchTerm: String) -> Suggestion? {
         // Some enumeration types, like rarity, are considered orderable.
         for op in ["!=", ">=", ">", "<=", "<", ":", "="] {
@@ -291,7 +291,6 @@ class AutocompleteProvider {
 
         return nil
     }
-    // swiftlint:enable cyclomatic_complexity
 
     private func sortResults(_ results: [Suggestion], historyLookup: [SearchFilter: HistoryEntry]) -> [Suggestion] {
         return results.sorted { lhs, rhs in
