@@ -8,14 +8,6 @@
 import SwiftUI
 import ScryfallKit
 
-let indicatorUiColor: [Card.Color: Color] = [
-    .W: Color("WhiteIndicatorColor"),
-    .U: Color("BlueIndicatorColor"),
-    .B: Color("BlackIndicatorColor"),
-    .R: Color("RedIndicatorColor"),
-    .G: Color("GreenIndicatorColor"),
-]
-
 struct ColorIndicatorView: View {
     let colors: [Card.Color]
     let size: CGFloat
@@ -31,15 +23,15 @@ struct ColorIndicatorView: View {
             EmptyView()
             
         case 1:
-            if let color = indicatorUiColor[colors[0]] {
+            if let color = colors[0].indicatorUiColor {
                 single(color)
             } else {
                 unknown()
             }
             
         case 2:
-            if let left = indicatorUiColor[colors[0]],
-               let right = indicatorUiColor[colors[1]] {
+            if let left = colors[0].indicatorUiColor,
+               let right = colors[1].indicatorUiColor {
                 double(left, right)
             } else {
                 unknown()

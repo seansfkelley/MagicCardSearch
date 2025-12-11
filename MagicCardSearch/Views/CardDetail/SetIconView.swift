@@ -8,14 +8,13 @@
 import SwiftUI
 import SVGKit
 
-// Global cache for rendered set icons - NSCache is thread-safe and handles memory automatically
-private let setIconCache: NSCache<NSString, UIImage> = {
-    let cache = NSCache<NSString, UIImage>()
-    cache.countLimit = 100
-    return cache
-}()
-
 struct SetIconView: View {
+    private static let setIconCache: NSCache<NSString, UIImage> = {
+        let cache = NSCache<NSString, UIImage>()
+        cache.countLimit = 100
+        return cache
+    }()
+    
     let setCode: String
     var size: CGFloat = 32
     
@@ -50,7 +49,7 @@ struct SetIconView: View {
         let cacheKey = "\(setCode.lowercased())_\(Int(size))" as NSString
         
         // Check cache first
-        if let cachedImage = setIconCache.object(forKey: cacheKey) {
+        if let cachedImage = SetIconView.setIconCache.object(forKey: cacheKey) {
             await MainActor.run {
                 self.renderedImage = cachedImage
                 self.isLoading = false
@@ -94,7 +93,7 @@ struct SetIconView: View {
             }
             
             // Cache the rendered image
-            setIconCache.setObject(uiImage, forKey: cacheKey)
+            SetIconView.setIconCache.setObject(uiImage, forKey: cacheKey)
             
             await MainActor.run {
                 self.renderedImage = uiImage

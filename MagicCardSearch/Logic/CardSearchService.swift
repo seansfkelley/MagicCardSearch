@@ -12,7 +12,9 @@ import ScryfallKit
 @MainActor
 class CardSearchService {
     private static let webBaseURL = "https://scryfall.com/search"
-    private let client: ScryfallClient
+    
+    // FIXME: delete when I rip out the entire network layer
+    nonisolated(unsafe) private let client: ScryfallClient
     
     init() {
         self.client = ScryfallClient(networkLogLevel: .minimal)
@@ -40,7 +42,7 @@ class CardSearchService {
         )
     }
     
-    func fetchNextPage(from urlString: String) async throws -> SearchResult {
+    nonisolated func fetchNextPage(from urlString: String) async throws -> SearchResult {
         // ScryfallKit doesn't expose a direct "fetch from URL" method,
         // so we need to parse the URL and extract parameters
         guard let url = URL(string: urlString),

@@ -98,22 +98,22 @@ internal func parseWhitespace(_ input: String) -> LexedTokenData? {
     return (.void, .Whitespace)
 }
 
-private let lexer = CitronLexer<LexedTokenData>(rules: [
-    .string("-", (.void, .Minus)),
-    .string(":", (.void, .Including)),
-    .string("!=", (.void, .NotEqual)),
-    .string("<=", (.void, .LessThanOrEqual)),
-    .string("<", (.void, .LessThan)),
-    .string(">=", (.void, .GreaterThanOrEqual)),
-    .string(">", (.void, .GreaterThan)),
-    .string("=", (.void, .Equal)),
-    .string("'", (.void, .SingleQuote)),
-    .string("\"", (.void, .DoubleQuote)),
-    .regexPattern("[^'\" =><!:-]+", parseTerm),
-    .regexPattern("\\s+", parseWhitespace),
-])
-
 private func parse(_ input: String) throws -> SearchFilter {
+    let lexer = CitronLexer<LexedTokenData>(rules: [
+        .string("-", (.void, .Minus)),
+        .string(":", (.void, .Including)),
+        .string("!=", (.void, .NotEqual)),
+        .string("<=", (.void, .LessThanOrEqual)),
+        .string("<", (.void, .LessThan)),
+        .string(">=", (.void, .GreaterThanOrEqual)),
+        .string(">", (.void, .GreaterThan)),
+        .string("=", (.void, .Equal)),
+        .string("'", (.void, .SingleQuote)),
+        .string("\"", (.void, .DoubleQuote)),
+        .regexPattern("[^'\" =><!:-]+", parseTerm),
+        .regexPattern("\\s+", parseWhitespace),
+    ])
+    
     let parser = MagicCardSearchGrammar()
     try lexer.tokenize(input) { token, code in
         try parser.consume(token: token, code: code)

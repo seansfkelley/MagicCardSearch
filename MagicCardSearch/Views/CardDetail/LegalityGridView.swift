@@ -8,23 +8,23 @@
 import SwiftUI
 import ScryfallKit
 
-// The weird order here is because the column view goes English reading order, and it's a lot easier
-// to get it to do the right thing like this than trying to flow it down the columns.
-private let orderedFormats: [Format] = [
-    .standard,
-    .pioneer,
-    .historic,
-    .modern,
-    .brawl,
-    .legacy,
-    .vintage,
-    .pauper,
-    .commander,
-    .penny,
-]
-
 struct LegalityGridView: View {
     let card: Card
+    
+    // The weird order here is because the column view goes English reading order, and it's a lot
+    // easier to get it to do the right thing like this than trying to flow it down the columns.
+    private let orderedFormats: [Format] = [
+        .standard,
+        .pioneer,
+        .historic,
+        .modern,
+        .brawl,
+        .legacy,
+        .vintage,
+        .pauper,
+        .commander,
+        .penny,
+    ]
     
     var body: some View {
         LazyVGrid(columns: [

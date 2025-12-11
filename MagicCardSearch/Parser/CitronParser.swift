@@ -145,7 +145,7 @@ public protocol CitronParser: AnyObject {
 
 // Error handling
 
-public enum _CitronParserError<Token, TokenCode>: Error {
+public enum _CitronParserError<Token: Sendable, TokenCode>: Error {
     case syntaxErrorAt(token: Token, tokenCode: TokenCode)
     case unexpectedEndOfInput
     case stackOverflow
