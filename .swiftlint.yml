@@ -123,7 +123,7 @@ large_tuple:
 
 trailing_whitespace:
   ignores_empty_lines: true
-  ignores_comments: false
+  ignores_comments: true
 
 strict: true
 
