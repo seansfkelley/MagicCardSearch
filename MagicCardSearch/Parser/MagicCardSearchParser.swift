@@ -72,7 +72,7 @@ enum SearchFilterContent: Equatable, Hashable, Codable {
     }
 }
 
-enum Comparison: String, Codable, Hashable {
+enum Comparison: String, Codable, Hashable, Equatable {
     case including = ":"
     case equal = "="
     case notEqual = "!="

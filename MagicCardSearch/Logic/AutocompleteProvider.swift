@@ -15,21 +15,26 @@ class AutocompleteProvider {
         let isPinned: Bool
     }
     
-    struct HistorySuggestion {
+    struct HistorySuggestion: Equatable {
         let filter: SearchFilter
         let isPinned: Bool
         let matchRange: Range<String.Index>?
     }
     
-    struct FilterTypeSuggestion {
+    struct FilterTypeSuggestion: Equatable {
         let filterType: String
         let matchRange: Range<String.Index>?
     }
     
-    struct EnumerationSuggestion {
+    struct EnumerationSuggestion: Equatable {
+        struct Option: Equatable {
+            let value: String
+            let range: Range<String.Index>?
+        }
+        
         let filterType: String
         let comparison: Comparison
-        let options: [(String, Range<String.Index>?)]
+        let options: [Option]
     }
     
     struct FilterTypeMatch {
@@ -112,11 +117,11 @@ class AutocompleteProvider {
             }
         }
 
-        results.append(contentsOf: checkForFilterTypeSuggestions(trimmedSearchTerm))
+        results.append(contentsOf: AutocompleteProvider.getFilterTypeSuggestions(trimmedSearchTerm).map { .filter($0) })
 
         // Check for enumeration-type filter suggestions
-        if let enumerationSuggestions = checkForEnumerationSuggestions(trimmedSearchTerm) {
-            results.append(enumerationSuggestions)
+        if let enumerationSuggestions = AutocompleteProvider.getEnumerationSuggestion(trimmedSearchTerm) {
+            results.append(.enumeration(enumerationSuggestions))
         }
 
         let historyLookup = Dictionary(uniqueKeysWithValues: availableHistory.map { ($0.filter, $0) })
@@ -152,7 +157,7 @@ class AutocompleteProvider {
 
     // TODO: yikes
     // swiftlint:disable:next cyclomatic_complexity function_body_length
-    private func checkForFilterTypeSuggestions(_ searchTerm: String) -> [Suggestion] {
+    internal static func getFilterTypeSuggestions(_ searchTerm: String) -> [FilterTypeSuggestion] {
         guard let match = try? /^(-?)([a-zA-Z]+)$/.wholeMatch(in: searchTerm) else {
             return []
         }
@@ -222,15 +227,15 @@ class AutocompleteProvider {
         // TODO: Why does this seem to be sorting in reverse?
         return filterTypeMatches.reversed().map {
             let text = "\(negated)\($0.displayText)"
-            return .filter(FilterTypeSuggestion(
+            return FilterTypeSuggestion(
                 filterType: text,
                 matchRange: negated.isEmpty ? $0.range : text.index(after: $0.range.lowerBound)..<text.index(after: $0.range.upperBound)
-            ))
+            )
         }
     }
     
     // TODO: yikes again
-    private func checkForEnumerationSuggestions(_ searchTerm: String) -> Suggestion? {
+    internal static func getEnumerationSuggestion(_ searchTerm: String) -> EnumerationSuggestion? {
         // Some enumeration types, like rarity, are considered orderable, hence the comparison operators here.
         guard let match = try? /^(-?)([a-zA-Z]+)(:|=|!=|>=|>|<=|<)/.prefixMatch(in: searchTerm) else {
             return nil
@@ -240,10 +245,10 @@ class AutocompleteProvider {
         let value = searchTerm[match.range.upperBound...]
         
         if let filterType = scryfallFilterByType[filterTypeName.lowercased()], let options = filterType.enumerationValues {
-            var matchingOptions: [(option: String, range: Range<String.Index>?)] = []
+            var matchingOptions: [EnumerationSuggestion.Option] = []
 
             if value.isEmpty {
-                matchingOptions = options.sorted().map { ($0, nil) }
+                matchingOptions = options.sorted().map { .init(value: $0, range: nil) }
             } else {
                 var matches: [(option: String, range: Range<String.Index>)] = []
 
@@ -254,17 +259,17 @@ class AutocompleteProvider {
                 }
 
                 matches.sort { $0.option.count < $1.option.count }
-                matchingOptions = matches.map { ($0.option, $0.range) }
+                matchingOptions = matches.map { .init(value: $0.option, range: $0.range) }
             }
 
             if !matchingOptions.isEmpty {
                 let comparison = Comparison(rawValue: String(comparisonOperator))
                 assert(comparison != nil) // if it is, programmer error on the regex or enumeration type
-                return .enumeration(EnumerationSuggestion(
+                return EnumerationSuggestion(
                     filterType: "\(negated)\(filterTypeName)",
                     comparison: comparison!,
                     options: matchingOptions,
-                ))
+                )
             } else {
                 return nil
             }

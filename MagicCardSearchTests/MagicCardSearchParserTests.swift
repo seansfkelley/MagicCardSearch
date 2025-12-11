@@ -5,12 +5,14 @@ import Testing
 @Suite(.serialized)
 struct MagicCardSearchParserTests {
     @Test<[(String, SearchFilter)]>("parse", arguments: [
-        ("set:foo", .keyValue("set", .including, "foo")),
-        ("s=bar", .keyValue("s", .equal, "bar")),
-        ("mv>=bar", .keyValue("mv", .greaterThanOrEqual, "bar")),
-        ("'foo'", .name("foo")),
-        ("foo:”bar", .keyValue("foo", .including, "”bar")), // TODO: Normalize smart quotes.
-    ]) func tryParseUnambiguous(input: String, expected: SearchFilter) throws {
+        ("set:foo", .basic(.keyValue("set", .including, "foo"))),
+        ("s=bar", .basic(.keyValue("s", .equal, "bar"))),
+        ("mv>=bar", .basic(.keyValue("mv", .greaterThanOrEqual, "bar"))),
+        ("'foo'", .basic(.name("foo"))),
+        ("foo:”bar", .basic(.keyValue("foo", .including, "”bar"))), // TODO: Normalize smart quotes.
+        ("foo", .basic(.name("foo"))),
+    ])
+    func tryParseUnambiguous(input: String, expected: SearchFilter) throws {
         let actual = SearchFilter.tryParseUnambiguous(input)
         #expect(actual == expected)
     }
@@ -19,20 +21,21 @@ struct MagicCardSearchParserTests {
         "foo:\"",
         "foo: bar",
         "'foo",
-        "foo",
-    ]) func tryParseUnambiguousNil(input: String) throws {
+    ])
+    func tryParseUnambiguousNil(input: String) throws {
         #expect(SearchFilter.tryParseUnambiguous(input) == nil)
     }
 }
 
 struct SearchFilterTests {
     @Test<[(SearchFilter, String, Range<Int>)]>("toQueryStringWithEditingRange", arguments: [
-        (.keyValue("foo", .including, "bar"), "foo:bar", 4..<7)
-    ]) func toQueryStringWithEditingRange(filter: SearchFilter, string: String, editableRange: Range<Int>) throws {
+        (.basic(.keyValue("foo", .including, "bar")), "foo:bar", 4..<7)
+    ])
+    func toQueryStringWithEditingRange(filter: SearchFilter, string: String, editableRange: Range<Int>) throws {
         let indexRange =
             String.Index.init(encodedOffset: editableRange.lowerBound)
             ..<
             String.Index.init(encodedOffset: editableRange.upperBound)
-        #expect(filter.queryStringWithEditingRange() == (string, indexRange))
+        #expect(filter.queryStringWithEditingRange == (string, indexRange))
     }
 }

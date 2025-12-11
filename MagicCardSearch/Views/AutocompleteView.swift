@@ -141,19 +141,18 @@ struct AutocompleteView: View {
 // MARK: - Filter Type Picker
 
 private struct EnumerationButtonGroup: View {
-    let options: [(String, Range<String.Index>?)]
+    let options: [AutocompleteProvider.EnumerationSuggestion.Option]
     let onButtonTap: (String) -> Void
     
     var body: some View {
         HStack(spacing: 8) {
-            ForEach(Array(options.enumerated()), id: \.offset) { _, item in
-                let (option, matchRange) = item
+            ForEach(options, id: \.value) { option in
                 Button {
-                    onButtonTap(option)
+                    onButtonTap(option.value)
                 } label: {
                     HighlightedText(
-                        text: option,
-                        highlightRange: matchRange
+                        text: option.value,
+                        highlightRange: option.range,
                     )
                     .font(.body)
                     .padding(.horizontal, 12)
