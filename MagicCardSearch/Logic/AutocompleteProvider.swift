@@ -42,14 +42,6 @@ class AutocompleteProvider {
         case filter(FilterTypeSuggestion)
         case enumeration(EnumerationSuggestion)
     }
-    
-    private struct FilterTypeMatch {
-        let canonicalType: String
-        let displayText: String
-        let range: Range<String.Index>
-        let isExactMatch: Bool
-        let matchLength: Int
-    }
 
     // MARK: - Properties
 
@@ -162,75 +154,71 @@ class AutocompleteProvider {
             return []
         }
         
-        var filterTypeMatches: [FilterTypeMatch] = []
-        
         let (_, negated, filterName) = match.output
+        let exactMatch = scryfallFilterByType[filterName.lowercased()]
+        
+        var suggestions: [FilterTypeSuggestion] = []
         
         for filterType in scryfallFilterTypes {
-            var hasExactMatch = false
-            var bestMatch: (text: String, range: Range<String.Index>, matchLength: Int)?
+            if filterType.canonicalName == exactMatch?.canonicalName {
+                continue
+            }
+            
+            var bestMatch: FilterTypeSuggestion?
             
             for candidate in filterType.names {
-                if candidate.caseInsensitiveCompare(filterName) == .orderedSame {
-                    hasExactMatch = true
-                    bestMatch = (
-                        candidate, candidate.startIndex..<candidate.endIndex, candidate.count
-                    )
-                    break
-                }
-
                 if let range = candidate.range(of: filterName, options: .caseInsensitive) {
-                    let matchLength = filterName.count
-
+                    let match = FilterTypeSuggestion(filterType: candidate, matchRange: range)
                     if let existing = bestMatch {
-                        if matchLength > existing.matchLength
-                            || (matchLength == existing.matchLength
-                                && candidate == filterType.canonicalName)
-                            || (matchLength == existing.matchLength
-                                && existing.text != filterType.canonicalName
-                                && candidate.count < existing.text.count) {
-                            bestMatch = (candidate, range, matchLength)
+                        if range.lowerBound == candidate.startIndex && existing.matchRange.lowerBound != existing.filterType.startIndex {
+                            bestMatch = match
+                        } else if candidate.count < existing.filterType.count {
+                            bestMatch = match
                         }
                     } else {
-                        bestMatch = (candidate, range, matchLength)
+                        bestMatch = match
                     }
                 }
             }
-
-            if let (candidate, range, matchLength) = bestMatch {
-                filterTypeMatches.append(FilterTypeMatch(
-                    canonicalType: filterType.canonicalName,
-                    displayText: candidate,
-                    range: range,
-                    isExactMatch: hasExactMatch,
-                    matchLength: matchLength
-                ))
+            
+            if let match = bestMatch {
+                suggestions.append(match)
             }
         }
 
-        filterTypeMatches.sort { lhs, rhs in
-            if lhs.isExactMatch != rhs.isExactMatch {
-                return lhs.isExactMatch  // Exact matches first
+        suggestions.sort { lhs, rhs in
+            if lhs.matchRange.lowerBound == rhs.matchRange.lowerBound {
+                lhs.filterType.count < rhs.filterType.count
+            } else if lhs.matchRange.lowerBound == lhs.filterType.startIndex {
+                true
+            } else {
+                lhs.filterType.count < rhs.filterType.count
             }
-            if lhs.matchLength != rhs.matchLength {
-                return lhs.matchLength > rhs.matchLength
-            }
-            if lhs.displayText == lhs.canonicalType && rhs.displayText != rhs.canonicalType {
-                return true
-            }
-            if lhs.displayText != lhs.canonicalType && rhs.displayText == rhs.canonicalType {
-                return false
-            }
-            return lhs.displayText.count < rhs.displayText.count
         }
-
-        return filterTypeMatches.map {
-            let text = "\(negated)\($0.displayText)"
-            return FilterTypeSuggestion(
-                filterType: text,
-                matchRange: negated.isEmpty ? $0.range : $0.range.lowerBound..<text.index(after: $0.range.upperBound)
-            )
+        
+        if exactMatch != nil {
+            let filterType = String(filterName) // make it not a substring so the indices are sane
+            suggestions
+                .insert(
+                    FilterTypeSuggestion(
+                        filterType: filterType,
+                        matchRange: filterType.startIndex..<filterType.endIndex,
+                    ),
+                    at: 0
+                )
         }
+        
+        if !negated.isEmpty {
+            suggestions = suggestions.map {
+                let prefixed = "\(negated)\($0.filterType)"
+                return FilterTypeSuggestion(
+                    filterType: prefixed,
+                    matchRange: prefixed.index(after: $0.matchRange.lowerBound)..<prefixed.index(after: $0.matchRange.upperBound)
+                )
+            }
+        }
+        
+        return suggestions
     }
     
     // TODO: yikes again
