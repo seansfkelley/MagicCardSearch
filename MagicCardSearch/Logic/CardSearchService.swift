@@ -13,8 +13,7 @@ import ScryfallKit
 class CardSearchService {
     private static let webBaseURL = "https://scryfall.com/search"
     
-    // FIXME: delete when I rip out the entire network layer
-    nonisolated(unsafe) private let client: ScryfallClient
+    private let client: ScryfallClient
     
     init() {
         self.client = ScryfallClient(networkLogLevel: .minimal)

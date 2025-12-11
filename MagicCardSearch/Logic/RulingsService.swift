@@ -12,8 +12,7 @@ import ScryfallKit
 class RulingsService {
     static let shared = RulingsService()
     
-    // FIXME: delete when I rip out the entire network layer
-    nonisolated(unsafe) private let client: ScryfallClient
+    private let client: ScryfallClient
     
     // NSCache to hold rulings keyed by oracle ID
     private let cache: NSCache<NSString, RulingsWrapper> = {
