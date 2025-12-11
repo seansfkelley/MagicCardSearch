@@ -63,7 +63,8 @@ struct FilterPillView: View {
     private var isRecognizedFilter: Bool {
         return switch filter.contents {
         case .name: true
-        case .keyValue(let key, _, _): scryfallFilterByType[String(key.trimmingPrefix("-"))] != nil
+        case .regex(let key, _, _): scryfallFilterByType[key] != nil
+        case .keyValue(let key, _, _): scryfallFilterByType[key] != nil
         }
     }
 }

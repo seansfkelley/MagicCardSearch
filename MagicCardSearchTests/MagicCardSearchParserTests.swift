@@ -8,9 +8,14 @@ struct MagicCardSearchParserTests {
         ("set:foo", .basic(.keyValue("set", .including, "foo"))),
         ("s=bar", .basic(.keyValue("s", .equal, "bar"))),
         ("mv>=bar", .basic(.keyValue("mv", .greaterThanOrEqual, "bar"))),
-        ("'foo'", .basic(.name("foo"))),
+        ("'foo'", .basic(.name("foo", false))),
         ("foo:”bar", .basic(.keyValue("foo", .including, "”bar"))), // TODO: Normalize smart quotes.
-        ("foo", .basic(.name("foo"))),
+        ("foo", .basic(.name("foo", false))),
+        ("{p}", .basic(.name("{p}", false))),
+        ("!\"Lightning Bolt\"", .basic(.name("Lightning Bolt", true))),
+        ("!Fire", .basic(.name("Fire", true))),
+        ("Fire!", .basic(.name("Fire!", false))),
+        ("filtered:/regex with whitespace/", .basic(.regex("filtered", .including, "/regex with whitespace/"))),
     ])
     func tryParseUnambiguous(input: String, expected: SearchFilter) throws {
         let actual = SearchFilter.tryParseUnambiguous(input)
@@ -20,7 +25,9 @@ struct MagicCardSearchParserTests {
     @Test("from (nil)", arguments: [
         "foo:\"",
         "foo: bar",
+        "\"foo",
         "'foo",
+        "/regexwithoutfilter/",
     ])
     func tryParseUnambiguousNil(input: String) throws {
         #expect(SearchFilter.tryParseUnambiguous(input) == nil)
@@ -29,7 +36,8 @@ struct MagicCardSearchParserTests {
 
 struct SearchFilterTests {
     @Test<[(SearchFilter, String, Range<Int>)]>("toQueryStringWithEditingRange", arguments: [
-        (.basic(.keyValue("foo", .including, "bar")), "foo:bar", 4..<7)
+        (.basic(.keyValue("foo", .including, "bar")), "foo:bar", 4..<7),
+        // TODO: More of these.
     ])
     func toQueryStringWithEditingRange(filter: SearchFilter, string: String, editableRange: Range<Int>) throws {
         let indexRange =

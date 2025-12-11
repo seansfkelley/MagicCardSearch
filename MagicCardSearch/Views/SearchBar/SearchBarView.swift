@@ -82,17 +82,15 @@ struct SearchBarView: View {
 
     private func createNewFilterFromSearch(fallbackToNameFilter: Bool = false) {
         let trimmed = inputText.trimmingCharacters(in: .whitespaces)
+        
+        guard !trimmed.isEmpty else { return }
 
         if let filter = SearchFilter.tryParseUnambiguous(trimmed) {
             filters.append(filter)
             inputText = ""
         } else if fallbackToNameFilter {
-            let unquoted = stripMatchingQuotes(from: trimmed)
-            if !unquoted.isEmpty {
-                let filter = SearchFilter.basic(.name(unquoted))
-                filters.append(filter)
-                inputText = ""
-            }
+            filters.append(SearchFilter.basic(.name(trimmed, false)))
+            inputText = ""
         }
     }
 
@@ -114,16 +112,6 @@ struct SearchBarView: View {
         } else {
             inputText += symbol
             inputSelection = .init(range: inputText.endIndex..<inputText.endIndex)
-        }
-    }
-
-    private func stripMatchingQuotes(from string: String) -> String {
-        if string.hasPrefix("\"") && string.hasSuffix("\"") && string.count >= 2 {
-            return String(string.dropFirst().dropLast())
-        } else if string.hasPrefix("'") && string.hasSuffix("'") && string.count >= 2 {
-            return String(string.dropFirst().dropLast())
-        } else {
-            return string
         }
     }
 }

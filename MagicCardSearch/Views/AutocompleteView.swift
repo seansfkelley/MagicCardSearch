@@ -249,7 +249,7 @@ struct HighlightedText: View {
     provider.recordFilterUsage(.basic(.keyValue("c", .lessThan, "selesnya")))
     provider.recordFilterUsage(.basic(.keyValue("mv", .greaterThanOrEqual, "10")))
     provider.recordFilterUsage(.basic(.keyValue("set", .including, "mh5")))
-    provider.recordFilterUsage(.basic(.name("Lightning Bolt")))
+    provider.recordFilterUsage(.basic(.name("Lightning Bolt", true)))
 
     return AutocompleteView(
         inputText: "set",

@@ -39,17 +39,35 @@ enum SearchFilter: Equatable, Hashable, Codable {
 
 /// Quoting to preserve whitespace not required; any quotes present will be assumed to be part of the term to search for.
 enum SearchFilterContent: Equatable, Hashable, Codable {
-    case name(String)
+    case name(String, Bool)
+    case regex(String, Comparison, String)
     case keyValue(String, Comparison, String)
     
     var queryStringWithEditingRange: (String, Range<String.Index>) {
         switch self {
-        case .name(let name):
-            return if name.contains(" ") {
-                ("\"\(name)\"", name.index(after: name.startIndex)..<name.index(before: name.endIndex))
-            } else {
-                (name, name.startIndex..<name.endIndex)
+        // TODO: isExact
+        case .name(let name, let isExact):
+            var prefix = ""
+            var suffix = ""
+            if name.contains(" ") {
+                prefix = "\""
+                suffix = "\""
             }
+            if isExact {
+                prefix = "!\(prefix)"
+            }
+            let prefixedName = "\(prefix)\(name)"
+            return (
+                "\(prefixedName)\(suffix)",
+                prefix.endIndex..<prefixedName.endIndex
+            )
+        case .regex(let key, let comparison, let regex):
+            let prefix = "\(key)\(comparison.symbol)"
+            let formatted = "\(prefix)\"\(regex)\""
+            return (
+                formatted,
+                formatted.index(after: prefix.endIndex)..<formatted.index(before: formatted.endIndex)
+            )
         case .keyValue(let key, let comparison, let value):
             let prefix = "\(key)\(comparison.symbol)"
             if value.contains(" ") {
@@ -113,13 +131,14 @@ internal func parseUnmatched(_ input: String) -> LexedTokenData? {
 
 private func parse(_ input: String) throws -> SearchFilter {
     let lexer = CitronLexer<LexedTokenData>(rules: [
-        .regexPattern(#"'[^']*'"#, parseQuoted),
-        .regexPattern(#""[^"]*""#, parseQuoted),
-        .regexPattern(#"/[^/]*/"#, parseRegex),
+        .regexPattern(#"'[^']*'"#, parseQuoted), // highest priority
+        .regexPattern(#""[^"]*""#, parseQuoted), // highest priority
+        .regexPattern(#"/[^/]*/"#, parseRegex), // highest priority
         .regexPattern(#"[a-zA-Z0-9]+"#, parseAlphanumeric),
         .string("-", ("-", .Minus)),
         .regexPattern(#"<=|<|>=|>|!=|=|:"#, parseComparison),
-        .regexPattern(#"["'/]"#, parseUnmatched),
+        .string("!", ("!", .Bang)), // must come after operators!
+        .regexPattern(#"."#, parseUnmatched),
     ])
     
     let parser = MagicCardSearchGrammar()
