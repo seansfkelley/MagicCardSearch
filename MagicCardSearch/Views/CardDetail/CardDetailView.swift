@@ -50,9 +50,14 @@ struct CardDetailView: View {
 
                 if let (front, back) = card.bothFaces {
                     cardFaceDetailsView(face: front, showArtist: front.artist != back.artist)
-                    Divider()
-                        .padding(.horizontal)
-                    cardFaceDetailsView(face: back)
+                    if front.oracleId == nil || front.oracleId != back.oracleId {
+                        // Reversible cards have the same text on both sides. I think it's better
+                        // to check this way instead of checking layout, in case WotC decides to
+                        // make another layout with the same semantics.
+                        Divider()
+                            .padding(.horizontal)
+                        cardFaceDetailsView(face: back)
+                    }
                 } else {
                     cardFaceDetailsView(face: card)
                 }
