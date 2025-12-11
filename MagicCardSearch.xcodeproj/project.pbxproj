@@ -779,10 +779,10 @@
 		};
 		21A856BA2EE3AA9200E72541 /* XCRemoteSwiftPackageReference "ScryfallKit" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/JacobHearst/ScryfallKit";
+			repositoryURL = "https://github.com/seansfkelley/ScryfallKit";
 			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 5.15.0;
+				branch = "gamechanger-and-legalities";
+				kind = branch;
 			};
 		};
 		21D3972A2EE225C5008B3EFD /* XCRemoteSwiftPackageReference "WrappingHStack" */ = {

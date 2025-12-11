@@ -15,15 +15,18 @@ struct LegalityGridView: View {
     // easier to get it to do the right thing like this than trying to flow it down the columns.
     private let orderedFormats: [Format] = [
         .standard,
+        .alchemy,
         .pioneer,
         .historic,
         .modern,
         .brawl,
         .legacy,
+        .timeless,
         .vintage,
         .pauper,
         .commander,
         .penny,
+        .oathbreaker,
     ]
     
     var body: some View {
@@ -35,8 +38,7 @@ struct LegalityGridView: View {
                 LegalityItemView(
                     format: format,
                     legality: card.getLegality(for: format),
-                    // TODO: ScryfallKit doesn't have this field, but it should.
-                    isGameChanger: false,
+                    isGameChanger: card.gameChanger ?? false
                 )
             }
         }
