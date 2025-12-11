@@ -782,7 +782,7 @@
 			repositoryURL = "https://github.com/JacobHearst/ScryfallKit";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 4.0.1;
+				minimumVersion = 5.15.0;
 			};
 		};
 		21D3972A2EE225C5008B3EFD /* XCRemoteSwiftPackageReference "WrappingHStack" */ = {

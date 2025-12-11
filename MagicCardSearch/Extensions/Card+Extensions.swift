@@ -22,6 +22,22 @@ extension Card {
         return (faces[0], faces[1])
     }
     
+    var bestEffortOracleId: String? {
+        if let oracleId = oracleId {
+            return oracleId
+        } else if let faces = cardFaces {
+            // TODO: There's got to be a map/filter/first version of this.
+            for face in faces {
+                if let oracleId = face.oracleId {
+                    return oracleId
+                }
+            }
+            return nil
+        } else {
+            return nil
+        }
+    }
+    
     var isDoubleFaced: Bool {
         bothFaces != nil
     }

@@ -58,13 +58,15 @@ struct CardDetailView: View {
                     lang: card.lang
                 )
 
-                Divider()
-                    .padding(.horizontal)
+                if let oracleId = card.bestEffortOracleId {
+                    Divider()
+                        .padding(.horizontal)
 
-                CardOtherPrintsSection(
-                    oracleId: card.oracleId,
-                    currentCardId: card.id
-                )
+                    CardOtherPrintsSection(
+                        oracleId: oracleId,
+                        currentCardId: card.id
+                    )
+                }
 
                 if let allParts = card.allParts, !allParts.isEmpty {
                     let otherParts = allParts.filter { $0.id != card.id }
