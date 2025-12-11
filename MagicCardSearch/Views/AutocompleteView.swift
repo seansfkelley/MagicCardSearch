@@ -62,12 +62,15 @@ struct AutocompleteView: View {
                                 Label("Delete", systemImage: "trash")
                             }
                         }
+                        .listRowInsets(.vertical, 0)
 
                 case .filter(let suggestion):
                     filterTypeRow(suggestion)
+                        .listRowInsets(.vertical, 0)
 
                 case .enumeration(let suggestion):
                     enumerationRow(suggestion)
+                        .listRowInsets(.vertical, 0)
                 }
             }
         }
