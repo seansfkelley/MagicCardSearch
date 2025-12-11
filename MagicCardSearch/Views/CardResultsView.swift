@@ -281,18 +281,17 @@ struct CardResultCell: View {
     var body: some View {
         Group {
             if let (front, back) = card.bothFaces {
-                FlipCardView(
+                FlippableCardFaceView(
                     frontFace: front,
                     backFace: back,
                     imageQuality: .small,
                     aspectFit: false
                 )
             } else {
-                CardFaceImageView(
+                CardFaceView(
                     face: card,
                     imageQuality: .small,
                     aspectFit: false,
-                    showContextMenu: false
                 )
                 .clipShape(RoundedRectangle(cornerRadius: 12))
             }

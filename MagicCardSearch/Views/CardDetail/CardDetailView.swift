@@ -27,7 +27,7 @@ struct CardDetailView: View {
         ScrollView {
             VStack(spacing: 0) {
                 if let (front, back) = card.bothFaces {
-                    FlipCardView(
+                    FlippableCardFaceView(
                         frontFace: front,
                         backFace: back,
                         imageQuality: .large,
@@ -37,11 +37,10 @@ struct CardDetailView: View {
                     .padding(.horizontal)
                     .padding(.bottom, 24)
                 } else {
-                    CardFaceImageView(
+                    CardFaceView(
                         face: card,
                         imageQuality: .large,
                         aspectFit: true,
-                        showContextMenu: true
                     )
                     .clipShape(RoundedRectangle(cornerRadius: 12))
                     .shadow(color: .black.opacity(0.2), radius: 8, x: 0, y: 4)
@@ -772,9 +771,8 @@ private struct CardPrintGridItem: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            // Card Image
             if let (front, back) = card.bothFaces {
-                FlipCardView(
+                FlippableCardFaceView(
                     frontFace: front,
                     backFace: back,
                     imageQuality: .normal,
@@ -782,16 +780,14 @@ private struct CardPrintGridItem: View {
                 )
                 .clipShape(RoundedRectangle(cornerRadius: 8))
             } else {
-                CardFaceImageView(
+                CardFaceView(
                     face: card,
                     imageQuality: .normal,
                     aspectFit: true,
-                    showContextMenu: false
                 )
                 .clipShape(RoundedRectangle(cornerRadius: 8))
             }
 
-            // Set Info
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 6) {
                     SetIconView(setCode: card.set, size: 14)
@@ -854,7 +850,7 @@ private struct MinimalCardDetailView: View {
                             ScrollView {
                                 VStack(spacing: 0) {
                                     if let (front, back) = card.bothFaces {
-                                        FlipCardView(
+                                        FlippableCardFaceView(
                                             frontFace: front,
                                             backFace: back,
                                             imageQuality: .large,
@@ -863,11 +859,10 @@ private struct MinimalCardDetailView: View {
                                         .padding(.horizontal)
                                         .padding(.top)
                                     } else {
-                                        CardFaceImageView(
+                                        CardFaceView(
                                             face: card,
                                             imageQuality: .large,
                                             aspectFit: true,
-                                            showContextMenu: true
                                         )
                                         .clipShape(RoundedRectangle(cornerRadius: 12))
                                         .padding(.horizontal)
