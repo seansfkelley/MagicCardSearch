@@ -3,69 +3,38 @@
 %token_type Token
 
 %nonterminal_type filter SearchFilter
-filter ::= term(k) comparison(c) term(v). {
-    return SearchFilter.keyValue(k, c, v)
-}
-filter ::= term(k) comparison(c) SingleQuote terms_double_quote(v) SingleQuote. {
-    return SearchFilter.keyValue(k, c, v)
-}
-filter ::= term(k) comparison(c) DoubleQuote terms_single_quote(v) DoubleQuote. {
-    return SearchFilter.keyValue(k, c, v)
-}
-filter ::= SingleQuote terms_double_quote(v) SingleQuote. {
-    return SearchFilter.name(v)
-}
-filter ::= DoubleQuote terms_single_quote(v) DoubleQuote. {
-    return SearchFilter.name(v)
-}
-filter ::= terms_bare(v). {
-    return SearchFilter.name(v)
-}
+filter ::= filter_content(f). { .basic(f) }
+filter ::= Minus filter_content(f). { .negated(f) }
 
-%nonterminal_type terms_single_quote String
-terms_single_quote ::= term(t) Whitespace(w) terms_single_quote(ts). {
-    return "\(t) \(ts)"
-}
-terms_single_quote ::= term(t) Comparison(c) terms_single_quote(ts). {
-    return "\(t)\(c)\(ts)"
-}
-terms_single_quote ::= term(t) SingleQuote terms_single_quote(ts). {
-    return "\(t)'\(ts)"
-}
-terms_single_quote ::= term(t). {
-    return t
-}
+%nonterminal_type filter_content SearchFilterContent
+filter_content ::= term(k) comparison(c) term(v). { .keyValue(k, c, v) }
+filter_content ::= term(k) comparison(c) SingleQuote single_quotable_term(v) SingleQuote. { .keyValue(k, c, v) }
+filter_content ::= term(k) comparison(c) DoubleQuote double_quotable_term(v) DoubleQuote. { .keyValue(k, c, v) }
+filter_content ::= SingleQuote single_quotable_term(v) SingleQuote. { .name(v) }
+filter_content ::= DoubleQuote double_quotable_term(v) DoubleQuote. { .name(v) }
+filter_content ::= bare_term(v). { .name(v) }
 
-%nonterminal_type terms_double_quote String
-terms_double_quote ::= term(t) Whitespace(w) terms_double_quote(ts). {
-    return "\(t) \(ts)"
-}
-terms_double_quote ::= term(t) Comparison(c) terms_double_quote(ts). {
-    return "\(t)\(c)\(ts)"
-}
-terms_double_quote ::= term(t) DoubleQuote terms_double_quote(ts). {
-    return "\(t)\"\(ts)"
-}
-terms_double_quote ::= term(t). {
-    return t
-}
+%nonterminal_type double_quotable_term String
+double_quotable_term ::= term(t) Whitespace(w) double_quotable_term(ts). { "\(t) \(ts)" }
+double_quotable_term ::= term(t) Comparison(c) double_quotable_term(ts). { "\(t)\(c)\(ts)" }
+double_quotable_term ::= term(t) SingleQuote double_quotable_term(ts). { "\(t)'\(ts)" }
+double_quotable_term ::= term(t) Minus double_quotable_term(ts). { "\(t)-\(ts)" }
+double_quotable_term ::= term(t). { t }
 
-%nonterminal_type terms_bare String
-terms_bare ::= term(t) Whitespace(w) terms_bare(ts). {
-    return "\(t) \(ts)"
-}
-terms_bare ::= term(t) SingleQuote terms_bare(ts). {
-    return "\(t)'\(ts)"
-}
-terms_bare ::= term(t) DoubleQuote terms_bare(ts). {
-    return "\(t)\"\(ts)"
-}
-terms_bare ::= term(t) Comparison(c) terms_bare(ts). {
-    return "\(t)\(c)\(ts)"
-}
-terms_bare ::= term(t). {
-    return t
-}
+%nonterminal_type single_quotable_term String
+single_quotable_term ::= term(t) Whitespace(w) single_quotable_term(ts). { "\(t) \(ts)" }
+single_quotable_term ::= term(t) Comparison(c) single_quotable_term(ts). { "\(t)\(c)\(ts)" }
+single_quotable_term ::= term(t) DoubleQuote single_quotable_term(ts). { "\(t)\"\(ts)" }
+single_quotable_term ::= term(t) Minus single_quotable_term(ts). { "\(t)-\(ts)" }
+single_quotable_term ::= term(t). { t }
+
+%nonterminal_type bare_term String
+bare_term ::= term(t) Whitespace(w) bare_term(ts). { "\(t) \(ts)" }
+bare_term ::= term(t) SingleQuote bare_term(ts). { "\(t)'\(ts)" }
+bare_term ::= term(t) DoubleQuote bare_term(ts). { "\(t)\"\(ts)" }
+bare_term ::= term(t) Comparison(c) bare_term(ts). { "\(t)\(c)\(ts)" }
+bare_term ::= term(t) Minus bare_term(ts). { "\(t)-\(ts)" }
+bare_term ::= term(t). { t }
 
 %nonterminal_type term String
 term ::= Term(x). {
@@ -77,24 +46,10 @@ term ::= Term(x). {
 }
 
 %nonterminal_type comparison Comparison
-comparison ::= Including. {
-    .including
-}
-comparison ::= Equal. {
-    .equal
-}
-comparison ::= NotEqual. {
-    .notEqual
-}
-comparison ::= LessThan. {
-    .lessThan
-}
-comparison ::= LessThanOrEqual. {
-    .lessThanOrEqual
-}
-comparison ::= GreaterThan. {
-    .greaterThan
-}
-comparison ::= GreaterThanOrEqual. {
-    .greaterThanOrEqual
-}
+comparison ::= Including. { .including }
+comparison ::= Equal. { .equal }
+comparison ::= NotEqual. { .notEqual }
+comparison ::= LessThan. { .lessThan }
+comparison ::= LessThanOrEqual. { .lessThanOrEqual }
+comparison ::= GreaterThan. { .greaterThan }
+comparison ::= GreaterThanOrEqual. { .greaterThanOrEqual }

@@ -89,7 +89,7 @@ struct SearchBarView: View {
         } else if fallbackToNameFilter {
             let unquoted = stripMatchingQuotes(from: trimmed)
             if !unquoted.isEmpty {
-                let filter = SearchFilter.name(unquoted)
+                let filter = SearchFilter.basic(.name(unquoted))
                 filters.append(filter)
                 inputText = ""
             }

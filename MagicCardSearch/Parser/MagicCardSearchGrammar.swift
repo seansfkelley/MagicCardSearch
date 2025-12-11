@@ -16,27 +16,29 @@ class MagicCardSearchGrammar: CitronParser {
     typealias CitronRuleNumber = UInt8
 
     enum CitronTokenCode: CitronSymbolNumber {
-      case SingleQuote                    =   1
-      case DoubleQuote                    =   2
-      case Whitespace                     =   3
-      case Comparison                     =   4
-      case Term                           =   5
-      case Including                      =   6
-      case Equal                          =   7
-      case NotEqual                       =   8
-      case LessThan                       =   9
-      case LessThanOrEqual                =  10
-      case GreaterThan                    =  11
-      case GreaterThanOrEqual             =  12
+      case Minus                          =   1
+      case SingleQuote                    =   2
+      case DoubleQuote                    =   3
+      case Whitespace                     =   4
+      case Comparison                     =   5
+      case Term                           =   6
+      case Including                      =   7
+      case Equal                          =   8
+      case NotEqual                       =   9
+      case LessThan                       =  10
+      case LessThanOrEqual                =  11
+      case GreaterThan                    =  12
+      case GreaterThanOrEqual             =  13
     }
 
     enum CitronNonTerminalCode: CitronSymbolNumber {
-      case filter                         =  13
-      case term                           =  14
-      case comparison                     =  15
-      case terms_double_quote             =  16
-      case terms_single_quote             =  17
-      case terms_bare                     =  18
+      case filter                         =  14
+      case filter_content                 =  15
+      case term                           =  16
+      case comparison                     =  17
+      case single_quotable_term           =  18
+      case double_quotable_term           =  19
+      case bare_term                      =  20
     }
 
     enum CitronSymbolCode : RawRepresentable, Equatable {
@@ -49,9 +51,9 @@ class MagicCardSearchGrammar: CitronParser {
         init(rawValue: CitronSymbolNumber) {
             if (rawValue == 0) {
                 self = .endOfInput
-            } else if (rawValue < 13) {
+            } else if (rawValue < 14) {
                 self = .token(CitronTokenCode(rawValue: rawValue)!)
-            } else if (rawValue < 19) {
+            } else if (rawValue < 21) {
                 self = .nonterminal(CitronNonTerminalCode(rawValue: rawValue)!)
             } else {
                 fatalError()
@@ -74,16 +76,18 @@ class MagicCardSearchGrammar: CitronParser {
         case yyBaseOfStack
         case yy0(CitronToken)
         case yy3(SearchFilter)
+        case yy10(String)
+        case yy14(SearchFilterContent)
         case yy26(Comparison)
-        case yy36(String)
 
         func typeErasedContent() -> Any {
             switch (self) {
             case .yyBaseOfStack: fatalError()
             case .yy0(let value): return value as Any
             case .yy3(let value): return value as Any
+            case .yy10(let value): return value as Any
+            case .yy14(let value): return value as Any
             case .yy26(let value): return value as Any
-            case .yy36(let value): return value as Any
             }
         }
     }
@@ -92,52 +96,56 @@ class MagicCardSearchGrammar: CitronParser {
 
     // Counts
 
-    let yyNumberOfSymbols: Int = 19
+    let yyNumberOfSymbols: Int = 21
     let yyNumberOfStates: Int = 30
 
     // Action tables
 
     let yyLookaheadAction: [(CitronSymbolNumber, CitronParsingAction)] = [
-/*   0 */  ( 1, .SH( 5)), ( 2, .SH( 4)), ( 3, .SH( 6)), ( 4, .SH( 3)), (15, .SH(16)),
-/*   5 */  ( 6, .SR(20)), ( 7, .SR(21)), ( 8, .SR(22)), ( 9, .SR(23)), (10, .SR(24)),
-/*  10 */  (11, .SR(25)), (12, .SR(26)), ( 1, .SH( 5)), ( 2, .SH( 4)), ( 3, .SH( 6)),
-/*  15 */  ( 4, .SH( 3)), ( 1, .SH( 2)), ( 2, .SH( 1)), ( 5, .SR(19)), (14, .SH(29)),
-/*  20 */  ( 5, .SR(19)), (13, .ACCEPT),   (14, .SH(15)), ( 1, .SH(14)), ( 2, .SH(10)),
-/*  25 */  (19, .RD( 2)), (18, .SH(20)), ( 5, .SR(19)), ( 1, .SH( 7)), ( 1, .SH(23)),
-/*  30 */  ( 3, .SH( 9)), ( 4, .SH( 8)), (14, .SH(17)), ( 2, .SH(11)), ( 3, .SH(13)),
-/*  35 */  ( 4, .SH(12)), (18, .RD(17)), (14, .SH(18)), (14, .SH(17)), (14, .SH(19)),
-/*  40 */  (17, .SH(22)), (16, .SH(24)), (18, .RD(16)), (14, .SH(17)), ( 2, .SH(21)),
-/*  45 */  ( 0, .RD( 3)), (14, .SH(17)), (18, .RD(15)), (14, .SH(18)), (14, .SH(18)),
-/*  50 */  (18, .RD(14)), (17, .RD( 8)), (17, .RD( 7)), (14, .SH(18)), (14, .SH(18)),
-/*  55 */  ( 0, .RD( 5)), (17, .RD( 6)), (17, .SH(26)), (14, .SH(19)), ( 0, .RD( 4)),
-/*  60 */  (16, .RD(12)), (14, .SH(19)), (14, .SH(19)), (16, .RD(11)), (16, .RD(10)),
-/*  65 */  (14, .SH(19)), ( 0, .RD( 2)), (16, .SH(28)), ( 0, .RD( 1)), ( 2, .SH(25)),
-/*  70 */  ( 1, .SH(27)), ( 0, .RD( 0)),
+/*   0 */  ( 1, .SH( 4)), ( 2, .SH( 7)), ( 3, .SH( 6)), ( 4, .SH( 8)), ( 5, .SH( 5)),
+/*   5 */  (17, .SH(20)), ( 7, .SR(25)), ( 8, .SR(26)), ( 9, .SR(27)), (10, .SR(28)),
+/*  10 */  (11, .SR(29)), (12, .SR(30)), (13, .SR(31)), ( 1, .SH( 4)), ( 2, .SH( 7)),
+/*  15 */  ( 3, .SH( 6)), ( 4, .SH( 8)), ( 5, .SH( 5)), ( 1, .SH( 1)), ( 2, .SH( 3)),
+/*  20 */  ( 3, .SH( 2)), ( 6, .SR(24)), (16, .RD( 2)), ( 6, .SR(24)), (14, .ACCEPT),  
+/*  25 */  (15, .SH(29)), (16, .SH(19)), ( 3, .SR( 6)), ( 1, .SH( 9)), ( 2, .SH(10)),
+/*  30 */  (20, .RD( 7)), ( 4, .SH(12)), ( 5, .SH(11)), ( 1, .SH(14)), ( 3, .SR( 4)),
+/*  35 */  ( 3, .SH(15)), ( 4, .SH(17)), ( 5, .SH(16)), ( 2, .SH( 3)), ( 3, .SH( 2)),
+/*  40 */  (15, .SH(28)), (16, .SH(19)), ( 6, .SR(24)), ( 2, .SH(18)), ( 3, .SH(13)),
+/*  45 */  (20, .RD( 7)), (16, .SH(22)), ( 6, .SR(24)), ( 2, .SR( 5)), (19, .SH(24)),
+/*  50 */  (16, .SH(23)), ( 2, .SR( 3)), (18, .SH(25)), (16, .SH(21)), (16, .SH(21)),
+/*  55 */  (16, .SH(21)), (16, .SH(21)), (20, .RD(22)), (20, .RD(21)), (20, .RD(20)),
+/*  60 */  (20, .RD(19)), (16, .SH(21)), ( 0, .RD( 1)), (16, .SH(22)), (16, .SH(22)),
+/*  65 */  (20, .RD(18)), (19, .RD(11)), (19, .RD(10)), (21, .RD( 2)), (16, .SH(22)),
+/*  70 */  (16, .SH(22)), (16, .SH(22)), (19, .RD( 9)), (19, .RD( 8)), (19, .SH(26)),
+/*  75 */  (16, .SH(23)), (16, .SH(23)), (18, .RD(16)), (18, .RD(15)), ( 0, .RD( 0)),
+/*  80 */  (16, .SH(23)), (16, .SH(23)), (18, .RD(14)), (18, .RD(13)), (16, .SH(23)),
+/*  85 */  (21, .RD( 2)), (18, .SH(27)),
     ]
 
-    let yyShiftUseDefault: Int = 72
+    let yyShiftUseDefault: Int = 87
     let yyShiftOffsetMin: Int = -1
-    let yyShiftOffsetMax: Int = 71
+    let yyShiftOffsetMax: Int = 79
     let yyShiftOffset: [Int] = [
-        /*     0 */    15,   13,   13,   13,   13,   13,   13,   13,   13,   13,
-        /*    10 */    13,   13,   13,   13,   13,   -1,   22,   11,   27,   31,
-        /*    20 */    55,   59,   42,   45,   28,   66,   67,   68,   69,   71,
+        /*     0 */    17,   36,   15,   15,   15,   15,   15,   15,   15,   15,
+        /*    10 */    15,   15,   15,   15,   15,   15,   15,   15,   15,   -1,
+        /*    20 */    41,   12,   27,   32,   24,   46,   31,   49,   62,   79,
     ]
 
-    let yyReduceUseDefault: Int = -12
-    let yyReduceOffsetMin: Int =   -11
-    let yyReduceOffsetMax: Int =   51
+    let yyReduceUseDefault: Int = -13
+    let yyReduceOffsetMin: Int =   -12
+    let yyReduceOffsetMax: Int =   68
     let yyReduceOffset: [Int] = [
-        /*     0 */     8,   23,   25,   18,   24,   29,   32,   34,   35,   39,
-        /*    10 */    40,   44,   47,   48,   51,  -11,    5,
+        /*     0 */    10,   25,   30,   34,   37,   38,   39,   40,   45,   47,
+        /*    10 */    48,   53,   54,   55,   59,   60,   64,   65,   68,  -12,
+        /*    20 */     6,
     ]
 
     let yyDefaultAction: [CitronParsingAction] = [
   /*     0 */  .ERROR , .ERROR , .ERROR , .ERROR , .ERROR ,
   /*     5 */  .ERROR , .ERROR , .ERROR , .ERROR , .ERROR ,
   /*    10 */  .ERROR , .ERROR , .ERROR , .ERROR , .ERROR ,
-  /*    15 */  .RD(18), .ERROR , .RD(18), .RD( 9), .RD(13),
-  /*    20 */  .ERROR , .ERROR , .ERROR , .ERROR , .ERROR ,
+  /*    15 */  .ERROR , .ERROR , .ERROR , .ERROR , .RD(23),
+  /*    20 */  .ERROR , .RD(23), .RD(12), .RD(17), .ERROR ,
   /*    25 */  .ERROR , .ERROR , .ERROR , .ERROR , .ERROR ,
     ]
 
@@ -153,33 +161,38 @@ class MagicCardSearchGrammar: CitronParser {
     // Rules
 
     let yyRuleInfo: [(lhs: CitronSymbolNumber, nrhs: UInt)] = [
-        (lhs: 13, nrhs: 3),
-        (lhs: 13, nrhs: 5),
-        (lhs: 13, nrhs: 5),
-        (lhs: 13, nrhs: 3),
-        (lhs: 13, nrhs: 3),
-        (lhs: 13, nrhs: 1),
-        (lhs: 17, nrhs: 3),
-        (lhs: 17, nrhs: 3),
-        (lhs: 17, nrhs: 3),
-        (lhs: 17, nrhs: 1),
-        (lhs: 16, nrhs: 3),
-        (lhs: 16, nrhs: 3),
-        (lhs: 16, nrhs: 3),
-        (lhs: 16, nrhs: 1),
+        (lhs: 14, nrhs: 1),
+        (lhs: 14, nrhs: 2),
+        (lhs: 15, nrhs: 3),
+        (lhs: 15, nrhs: 5),
+        (lhs: 15, nrhs: 5),
+        (lhs: 15, nrhs: 3),
+        (lhs: 15, nrhs: 3),
+        (lhs: 15, nrhs: 1),
+        (lhs: 19, nrhs: 3),
+        (lhs: 19, nrhs: 3),
+        (lhs: 19, nrhs: 3),
+        (lhs: 19, nrhs: 3),
+        (lhs: 19, nrhs: 1),
         (lhs: 18, nrhs: 3),
         (lhs: 18, nrhs: 3),
         (lhs: 18, nrhs: 3),
         (lhs: 18, nrhs: 3),
         (lhs: 18, nrhs: 1),
-        (lhs: 14, nrhs: 1),
-        (lhs: 15, nrhs: 1),
-        (lhs: 15, nrhs: 1),
-        (lhs: 15, nrhs: 1),
-        (lhs: 15, nrhs: 1),
-        (lhs: 15, nrhs: 1),
-        (lhs: 15, nrhs: 1),
-        (lhs: 15, nrhs: 1),
+        (lhs: 20, nrhs: 3),
+        (lhs: 20, nrhs: 3),
+        (lhs: 20, nrhs: 3),
+        (lhs: 20, nrhs: 3),
+        (lhs: 20, nrhs: 3),
+        (lhs: 20, nrhs: 1),
+        (lhs: 16, nrhs: 1),
+        (lhs: 17, nrhs: 1),
+        (lhs: 17, nrhs: 1),
+        (lhs: 17, nrhs: 1),
+        (lhs: 17, nrhs: 1),
+        (lhs: 17, nrhs: 1),
+        (lhs: 17, nrhs: 1),
+        (lhs: 17, nrhs: 1),
     ]
 
     // Stack
@@ -197,53 +210,60 @@ class MagicCardSearchGrammar: CitronParser {
     var isTracingPrintsTokenValues: Bool = false
     let yySymbolName: [String] = [
     /*  0 */ "$",
-    /*  1 */ "SingleQuote",
-    /*  2 */ "DoubleQuote",
-    /*  3 */ "Whitespace",
-    /*  4 */ "Comparison",
-    /*  5 */ "Term",
-    /*  6 */ "Including",
-    /*  7 */ "Equal",
-    /*  8 */ "NotEqual",
-    /*  9 */ "LessThan",
-    /* 10 */ "LessThanOrEqual",
-    /* 11 */ "GreaterThan",
-    /* 12 */ "GreaterThanOrEqual",
-    /* 13 */ "filter",
-    /* 14 */ "term",
-    /* 15 */ "comparison",
-    /* 16 */ "terms_double_quote",
-    /* 17 */ "terms_single_quote",
-    /* 18 */ "terms_bare",
+    /*  1 */ "Minus",
+    /*  2 */ "SingleQuote",
+    /*  3 */ "DoubleQuote",
+    /*  4 */ "Whitespace",
+    /*  5 */ "Comparison",
+    /*  6 */ "Term",
+    /*  7 */ "Including",
+    /*  8 */ "Equal",
+    /*  9 */ "NotEqual",
+    /* 10 */ "LessThan",
+    /* 11 */ "LessThanOrEqual",
+    /* 12 */ "GreaterThan",
+    /* 13 */ "GreaterThanOrEqual",
+    /* 14 */ "filter",
+    /* 15 */ "filter_content",
+    /* 16 */ "term",
+    /* 17 */ "comparison",
+    /* 18 */ "single_quotable_term",
+    /* 19 */ "double_quotable_term",
+    /* 20 */ "bare_term",
     ]
     let yyRuleText: [String] = [
-        /*   0 */ "filter ::= term(k) comparison(c) term(v)",
-        /*   1 */ "filter ::= term(k) comparison(c) SingleQuote terms_double_quote(v) SingleQuote",
-        /*   2 */ "filter ::= term(k) comparison(c) DoubleQuote terms_single_quote(v) DoubleQuote",
-        /*   3 */ "filter ::= SingleQuote terms_double_quote(v) SingleQuote",
-        /*   4 */ "filter ::= DoubleQuote terms_single_quote(v) DoubleQuote",
-        /*   5 */ "filter ::= terms_bare(v)",
-        /*   6 */ "terms_single_quote ::= term(t) Whitespace(w) terms_single_quote(ts)",
-        /*   7 */ "terms_single_quote ::= term(t) Comparison(c) terms_single_quote(ts)",
-        /*   8 */ "terms_single_quote ::= term(t) SingleQuote terms_single_quote(ts)",
-        /*   9 */ "terms_single_quote ::= term(t)",
-        /*  10 */ "terms_double_quote ::= term(t) Whitespace(w) terms_double_quote(ts)",
-        /*  11 */ "terms_double_quote ::= term(t) Comparison(c) terms_double_quote(ts)",
-        /*  12 */ "terms_double_quote ::= term(t) DoubleQuote terms_double_quote(ts)",
-        /*  13 */ "terms_double_quote ::= term(t)",
-        /*  14 */ "terms_bare ::= term(t) Whitespace(w) terms_bare(ts)",
-        /*  15 */ "terms_bare ::= term(t) SingleQuote terms_bare(ts)",
-        /*  16 */ "terms_bare ::= term(t) DoubleQuote terms_bare(ts)",
-        /*  17 */ "terms_bare ::= term(t) Comparison(c) terms_bare(ts)",
-        /*  18 */ "terms_bare ::= term(t)",
-        /*  19 */ "term ::= Term(x)",
-        /*  20 */ "comparison ::= Including",
-        /*  21 */ "comparison ::= Equal",
-        /*  22 */ "comparison ::= NotEqual",
-        /*  23 */ "comparison ::= LessThan",
-        /*  24 */ "comparison ::= LessThanOrEqual",
-        /*  25 */ "comparison ::= GreaterThan",
-        /*  26 */ "comparison ::= GreaterThanOrEqual",
+        /*   0 */ "filter ::= filter_content(f)",
+        /*   1 */ "filter ::= Minus filter_content(f)",
+        /*   2 */ "filter_content ::= term(k) comparison(c) term(v)",
+        /*   3 */ "filter_content ::= term(k) comparison(c) SingleQuote single_quotable_term(v) SingleQuote",
+        /*   4 */ "filter_content ::= term(k) comparison(c) DoubleQuote double_quotable_term(v) DoubleQuote",
+        /*   5 */ "filter_content ::= SingleQuote single_quotable_term(v) SingleQuote",
+        /*   6 */ "filter_content ::= DoubleQuote double_quotable_term(v) DoubleQuote",
+        /*   7 */ "filter_content ::= bare_term(v)",
+        /*   8 */ "double_quotable_term ::= term(t) Whitespace(w) double_quotable_term(ts)",
+        /*   9 */ "double_quotable_term ::= term(t) Comparison(c) double_quotable_term(ts)",
+        /*  10 */ "double_quotable_term ::= term(t) SingleQuote double_quotable_term(ts)",
+        /*  11 */ "double_quotable_term ::= term(t) Minus double_quotable_term(ts)",
+        /*  12 */ "double_quotable_term ::= term(t)",
+        /*  13 */ "single_quotable_term ::= term(t) Whitespace(w) single_quotable_term(ts)",
+        /*  14 */ "single_quotable_term ::= term(t) Comparison(c) single_quotable_term(ts)",
+        /*  15 */ "single_quotable_term ::= term(t) DoubleQuote single_quotable_term(ts)",
+        /*  16 */ "single_quotable_term ::= term(t) Minus single_quotable_term(ts)",
+        /*  17 */ "single_quotable_term ::= term(t)",
+        /*  18 */ "bare_term ::= term(t) Whitespace(w) bare_term(ts)",
+        /*  19 */ "bare_term ::= term(t) SingleQuote bare_term(ts)",
+        /*  20 */ "bare_term ::= term(t) DoubleQuote bare_term(ts)",
+        /*  21 */ "bare_term ::= term(t) Comparison(c) bare_term(ts)",
+        /*  22 */ "bare_term ::= term(t) Minus bare_term(ts)",
+        /*  23 */ "bare_term ::= term(t)",
+        /*  24 */ "term ::= Term(x)",
+        /*  25 */ "comparison ::= Including",
+        /*  26 */ "comparison ::= Equal",
+        /*  27 */ "comparison ::= NotEqual",
+        /*  28 */ "comparison ::= LessThan",
+        /*  29 */ "comparison ::= LessThanOrEqual",
+        /*  30 */ "comparison ::= GreaterThan",
+        /*  31 */ "comparison ::= GreaterThanOrEqual",
     ]
 
     // Function definitions
@@ -254,240 +274,250 @@ class MagicCardSearchGrammar: CitronParser {
 
     func yyInvokeCodeBlockForRule(ruleNumber: CitronRuleNumber) throws -> CitronSymbol {
         switch (ruleNumber) {
-        case 0: /* filter ::= term(k) comparison(c) term(v) */
-            func codeBlockForRule00(k: String, c: Comparison, v: String) throws -> SearchFilter {
+        case 0: /* filter ::= filter_content(f) */
+            func codeBlockForRule00(f: SearchFilterContent) throws -> SearchFilter {
 #sourceLocation(file: "MagicCardSearch/Parser/MagicCardSearchGrammar.y", line: 6)
-
-    return SearchFilter.keyValue(k, c, v)
-
+ .basic(f) 
 #sourceLocation()
 }
-            if case .yy36(let k) = yySymbolOnStack(distanceFromTop: 2),
+            if case .yy14(let f) = yySymbolOnStack(distanceFromTop: 0) {
+                return .yy3(try codeBlockForRule00(f: f))
+            }
+        case 1: /* filter ::= Minus filter_content(f) */
+            func codeBlockForRule01(f: SearchFilterContent) throws -> SearchFilter {
+#sourceLocation(file: "MagicCardSearch/Parser/MagicCardSearchGrammar.y", line: 7)
+ .negated(f) 
+#sourceLocation()
+}
+            if case .yy14(let f) = yySymbolOnStack(distanceFromTop: 0) {
+                return .yy3(try codeBlockForRule01(f: f))
+            }
+        case 2: /* filter_content ::= term(k) comparison(c) term(v) */
+            func codeBlockForRule02(k: String, c: Comparison, v: String) throws -> SearchFilterContent {
+#sourceLocation(file: "MagicCardSearch/Parser/MagicCardSearchGrammar.y", line: 10)
+ .keyValue(k, c, v) 
+#sourceLocation()
+}
+            if case .yy10(let k) = yySymbolOnStack(distanceFromTop: 2),
                case .yy26(let c) = yySymbolOnStack(distanceFromTop: 1),
-               case .yy36(let v) = yySymbolOnStack(distanceFromTop: 0) {
-                return .yy3(try codeBlockForRule00(k: k, c: c, v: v))
+               case .yy10(let v) = yySymbolOnStack(distanceFromTop: 0) {
+                return .yy14(try codeBlockForRule02(k: k, c: c, v: v))
             }
-        case 1: /* filter ::= term(k) comparison(c) SingleQuote terms_double_quote(v) SingleQuote */
-            func codeBlockForRule01(k: String, c: Comparison, v: String) throws -> SearchFilter {
-#sourceLocation(file: "MagicCardSearch/Parser/MagicCardSearchGrammar.y", line: 9)
-
-    return SearchFilter.keyValue(k, c, v)
-
+        case 3: /* filter_content ::= term(k) comparison(c) SingleQuote single_quotable_term(v) SingleQuote */
+            func codeBlockForRule03(k: String, c: Comparison, v: String) throws -> SearchFilterContent {
+#sourceLocation(file: "MagicCardSearch/Parser/MagicCardSearchGrammar.y", line: 11)
+ .keyValue(k, c, v) 
 #sourceLocation()
 }
-            if case .yy36(let k) = yySymbolOnStack(distanceFromTop: 4),
+            if case .yy10(let k) = yySymbolOnStack(distanceFromTop: 4),
                case .yy26(let c) = yySymbolOnStack(distanceFromTop: 3),
-               case .yy36(let v) = yySymbolOnStack(distanceFromTop: 1) {
-                return .yy3(try codeBlockForRule01(k: k, c: c, v: v))
+               case .yy10(let v) = yySymbolOnStack(distanceFromTop: 1) {
+                return .yy14(try codeBlockForRule03(k: k, c: c, v: v))
             }
-        case 2: /* filter ::= term(k) comparison(c) DoubleQuote terms_single_quote(v) DoubleQuote */
-            func codeBlockForRule02(k: String, c: Comparison, v: String) throws -> SearchFilter {
+        case 4: /* filter_content ::= term(k) comparison(c) DoubleQuote double_quotable_term(v) DoubleQuote */
+            func codeBlockForRule04(k: String, c: Comparison, v: String) throws -> SearchFilterContent {
 #sourceLocation(file: "MagicCardSearch/Parser/MagicCardSearchGrammar.y", line: 12)
-
-    return SearchFilter.keyValue(k, c, v)
-
+ .keyValue(k, c, v) 
 #sourceLocation()
 }
-            if case .yy36(let k) = yySymbolOnStack(distanceFromTop: 4),
+            if case .yy10(let k) = yySymbolOnStack(distanceFromTop: 4),
                case .yy26(let c) = yySymbolOnStack(distanceFromTop: 3),
-               case .yy36(let v) = yySymbolOnStack(distanceFromTop: 1) {
-                return .yy3(try codeBlockForRule02(k: k, c: c, v: v))
+               case .yy10(let v) = yySymbolOnStack(distanceFromTop: 1) {
+                return .yy14(try codeBlockForRule04(k: k, c: c, v: v))
             }
-        case 3: /* filter ::= SingleQuote terms_double_quote(v) SingleQuote */
-            func codeBlockForRule03(v: String) throws -> SearchFilter {
+        case 5: /* filter_content ::= SingleQuote single_quotable_term(v) SingleQuote */
+            func codeBlockForRule05(v: String) throws -> SearchFilterContent {
+#sourceLocation(file: "MagicCardSearch/Parser/MagicCardSearchGrammar.y", line: 13)
+ .name(v) 
+#sourceLocation()
+}
+            if case .yy10(let v) = yySymbolOnStack(distanceFromTop: 1) {
+                return .yy14(try codeBlockForRule05(v: v))
+            }
+        case 6: /* filter_content ::= DoubleQuote double_quotable_term(v) DoubleQuote */
+            func codeBlockForRule06(v: String) throws -> SearchFilterContent {
+#sourceLocation(file: "MagicCardSearch/Parser/MagicCardSearchGrammar.y", line: 14)
+ .name(v) 
+#sourceLocation()
+}
+            if case .yy10(let v) = yySymbolOnStack(distanceFromTop: 1) {
+                return .yy14(try codeBlockForRule06(v: v))
+            }
+        case 7: /* filter_content ::= bare_term(v) */
+            func codeBlockForRule07(v: String) throws -> SearchFilterContent {
 #sourceLocation(file: "MagicCardSearch/Parser/MagicCardSearchGrammar.y", line: 15)
-
-    return SearchFilter.name(v)
-
+ .name(v) 
 #sourceLocation()
 }
-            if case .yy36(let v) = yySymbolOnStack(distanceFromTop: 1) {
-                return .yy3(try codeBlockForRule03(v: v))
+            if case .yy10(let v) = yySymbolOnStack(distanceFromTop: 0) {
+                return .yy14(try codeBlockForRule07(v: v))
             }
-        case 4: /* filter ::= DoubleQuote terms_single_quote(v) DoubleQuote */
-            func codeBlockForRule04(v: String) throws -> SearchFilter {
+        case 8: /* double_quotable_term ::= term(t) Whitespace(w) double_quotable_term(ts) */
+            func codeBlockForRule08(t: String, w: Token, ts: String) throws -> String {
 #sourceLocation(file: "MagicCardSearch/Parser/MagicCardSearchGrammar.y", line: 18)
-
-    return SearchFilter.name(v)
-
+ "\(t) \(ts)" 
 #sourceLocation()
 }
-            if case .yy36(let v) = yySymbolOnStack(distanceFromTop: 1) {
-                return .yy3(try codeBlockForRule04(v: v))
+            if case .yy10(let t) = yySymbolOnStack(distanceFromTop: 2),
+               case .yy0(let w) = yySymbolOnStack(distanceFromTop: 1),
+               case .yy10(let ts) = yySymbolOnStack(distanceFromTop: 0) {
+                return .yy10(try codeBlockForRule08(t: t, w: w, ts: ts))
             }
-        case 5: /* filter ::= terms_bare(v) */
-            func codeBlockForRule05(v: String) throws -> SearchFilter {
+        case 9: /* double_quotable_term ::= term(t) Comparison(c) double_quotable_term(ts) */
+            func codeBlockForRule09(t: String, c: Token, ts: String) throws -> String {
+#sourceLocation(file: "MagicCardSearch/Parser/MagicCardSearchGrammar.y", line: 19)
+ "\(t)\(c)\(ts)" 
+#sourceLocation()
+}
+            if case .yy10(let t) = yySymbolOnStack(distanceFromTop: 2),
+               case .yy0(let c) = yySymbolOnStack(distanceFromTop: 1),
+               case .yy10(let ts) = yySymbolOnStack(distanceFromTop: 0) {
+                return .yy10(try codeBlockForRule09(t: t, c: c, ts: ts))
+            }
+        case 10: /* double_quotable_term ::= term(t) SingleQuote double_quotable_term(ts) */
+            func codeBlockForRule10(t: String, ts: String) throws -> String {
+#sourceLocation(file: "MagicCardSearch/Parser/MagicCardSearchGrammar.y", line: 20)
+ "\(t)'\(ts)" 
+#sourceLocation()
+}
+            if case .yy10(let t) = yySymbolOnStack(distanceFromTop: 2),
+               case .yy10(let ts) = yySymbolOnStack(distanceFromTop: 0) {
+                return .yy10(try codeBlockForRule10(t: t, ts: ts))
+            }
+        case 11: /* double_quotable_term ::= term(t) Minus double_quotable_term(ts) */
+            func codeBlockForRule11(t: String, ts: String) throws -> String {
 #sourceLocation(file: "MagicCardSearch/Parser/MagicCardSearchGrammar.y", line: 21)
-
-    return SearchFilter.name(v)
-
+ "\(t)-\(ts)" 
 #sourceLocation()
 }
-            if case .yy36(let v) = yySymbolOnStack(distanceFromTop: 0) {
-                return .yy3(try codeBlockForRule05(v: v))
+            if case .yy10(let t) = yySymbolOnStack(distanceFromTop: 2),
+               case .yy10(let ts) = yySymbolOnStack(distanceFromTop: 0) {
+                return .yy10(try codeBlockForRule11(t: t, ts: ts))
             }
-        case 6: /* terms_single_quote ::= term(t) Whitespace(w) terms_single_quote(ts) */
-            func codeBlockForRule06(t: String, w: Token, ts: String) throws -> String {
+        case 12: /* double_quotable_term ::= term(t) */
+            func codeBlockForRule12(t: String) throws -> String {
+#sourceLocation(file: "MagicCardSearch/Parser/MagicCardSearchGrammar.y", line: 22)
+ t 
+#sourceLocation()
+}
+            if case .yy10(let t) = yySymbolOnStack(distanceFromTop: 0) {
+                return .yy10(try codeBlockForRule12(t: t))
+            }
+        case 13: /* single_quotable_term ::= term(t) Whitespace(w) single_quotable_term(ts) */
+            func codeBlockForRule13(t: String, w: Token, ts: String) throws -> String {
+#sourceLocation(file: "MagicCardSearch/Parser/MagicCardSearchGrammar.y", line: 25)
+ "\(t) \(ts)" 
+#sourceLocation()
+}
+            if case .yy10(let t) = yySymbolOnStack(distanceFromTop: 2),
+               case .yy0(let w) = yySymbolOnStack(distanceFromTop: 1),
+               case .yy10(let ts) = yySymbolOnStack(distanceFromTop: 0) {
+                return .yy10(try codeBlockForRule13(t: t, w: w, ts: ts))
+            }
+        case 14: /* single_quotable_term ::= term(t) Comparison(c) single_quotable_term(ts) */
+            func codeBlockForRule14(t: String, c: Token, ts: String) throws -> String {
 #sourceLocation(file: "MagicCardSearch/Parser/MagicCardSearchGrammar.y", line: 26)
-
-    return "\(t) \(ts)"
-
+ "\(t)\(c)\(ts)" 
 #sourceLocation()
 }
-            if case .yy36(let t) = yySymbolOnStack(distanceFromTop: 2),
-               case .yy0(let w) = yySymbolOnStack(distanceFromTop: 1),
-               case .yy36(let ts) = yySymbolOnStack(distanceFromTop: 0) {
-                return .yy36(try codeBlockForRule06(t: t, w: w, ts: ts))
-            }
-        case 7: /* terms_single_quote ::= term(t) Comparison(c) terms_single_quote(ts) */
-            func codeBlockForRule07(t: String, c: Token, ts: String) throws -> String {
-#sourceLocation(file: "MagicCardSearch/Parser/MagicCardSearchGrammar.y", line: 29)
-
-    return "\(t)\(c)\(ts)"
-
-#sourceLocation()
-}
-            if case .yy36(let t) = yySymbolOnStack(distanceFromTop: 2),
+            if case .yy10(let t) = yySymbolOnStack(distanceFromTop: 2),
                case .yy0(let c) = yySymbolOnStack(distanceFromTop: 1),
-               case .yy36(let ts) = yySymbolOnStack(distanceFromTop: 0) {
-                return .yy36(try codeBlockForRule07(t: t, c: c, ts: ts))
+               case .yy10(let ts) = yySymbolOnStack(distanceFromTop: 0) {
+                return .yy10(try codeBlockForRule14(t: t, c: c, ts: ts))
             }
-        case 8: /* terms_single_quote ::= term(t) SingleQuote terms_single_quote(ts) */
-            func codeBlockForRule08(t: String, ts: String) throws -> String {
-#sourceLocation(file: "MagicCardSearch/Parser/MagicCardSearchGrammar.y", line: 32)
-
-    return "\(t)'\(ts)"
-
-#sourceLocation()
-}
-            if case .yy36(let t) = yySymbolOnStack(distanceFromTop: 2),
-               case .yy36(let ts) = yySymbolOnStack(distanceFromTop: 0) {
-                return .yy36(try codeBlockForRule08(t: t, ts: ts))
-            }
-        case 9: /* terms_single_quote ::= term(t) */
-            func codeBlockForRule09(t: String) throws -> String {
-#sourceLocation(file: "MagicCardSearch/Parser/MagicCardSearchGrammar.y", line: 35)
-
-    return t
-
-#sourceLocation()
-}
-            if case .yy36(let t) = yySymbolOnStack(distanceFromTop: 0) {
-                return .yy36(try codeBlockForRule09(t: t))
-            }
-        case 10: /* terms_double_quote ::= term(t) Whitespace(w) terms_double_quote(ts) */
-            func codeBlockForRule10(t: String, w: Token, ts: String) throws -> String {
-#sourceLocation(file: "MagicCardSearch/Parser/MagicCardSearchGrammar.y", line: 40)
-
-    return "\(t) \(ts)"
-
-#sourceLocation()
-}
-            if case .yy36(let t) = yySymbolOnStack(distanceFromTop: 2),
-               case .yy0(let w) = yySymbolOnStack(distanceFromTop: 1),
-               case .yy36(let ts) = yySymbolOnStack(distanceFromTop: 0) {
-                return .yy36(try codeBlockForRule10(t: t, w: w, ts: ts))
-            }
-        case 11: /* terms_double_quote ::= term(t) Comparison(c) terms_double_quote(ts) */
-            func codeBlockForRule11(t: String, c: Token, ts: String) throws -> String {
-#sourceLocation(file: "MagicCardSearch/Parser/MagicCardSearchGrammar.y", line: 43)
-
-    return "\(t)\(c)\(ts)"
-
-#sourceLocation()
-}
-            if case .yy36(let t) = yySymbolOnStack(distanceFromTop: 2),
-               case .yy0(let c) = yySymbolOnStack(distanceFromTop: 1),
-               case .yy36(let ts) = yySymbolOnStack(distanceFromTop: 0) {
-                return .yy36(try codeBlockForRule11(t: t, c: c, ts: ts))
-            }
-        case 12: /* terms_double_quote ::= term(t) DoubleQuote terms_double_quote(ts) */
-            func codeBlockForRule12(t: String, ts: String) throws -> String {
-#sourceLocation(file: "MagicCardSearch/Parser/MagicCardSearchGrammar.y", line: 46)
-
-    return "\(t)\"\(ts)"
-
-#sourceLocation()
-}
-            if case .yy36(let t) = yySymbolOnStack(distanceFromTop: 2),
-               case .yy36(let ts) = yySymbolOnStack(distanceFromTop: 0) {
-                return .yy36(try codeBlockForRule12(t: t, ts: ts))
-            }
-        case 13: /* terms_double_quote ::= term(t) */
-            func codeBlockForRule13(t: String) throws -> String {
-#sourceLocation(file: "MagicCardSearch/Parser/MagicCardSearchGrammar.y", line: 49)
-
-    return t
-
-#sourceLocation()
-}
-            if case .yy36(let t) = yySymbolOnStack(distanceFromTop: 0) {
-                return .yy36(try codeBlockForRule13(t: t))
-            }
-        case 14: /* terms_bare ::= term(t) Whitespace(w) terms_bare(ts) */
-            func codeBlockForRule14(t: String, w: Token, ts: String) throws -> String {
-#sourceLocation(file: "MagicCardSearch/Parser/MagicCardSearchGrammar.y", line: 54)
-
-    return "\(t) \(ts)"
-
-#sourceLocation()
-}
-            if case .yy36(let t) = yySymbolOnStack(distanceFromTop: 2),
-               case .yy0(let w) = yySymbolOnStack(distanceFromTop: 1),
-               case .yy36(let ts) = yySymbolOnStack(distanceFromTop: 0) {
-                return .yy36(try codeBlockForRule14(t: t, w: w, ts: ts))
-            }
-        case 15: /* terms_bare ::= term(t) SingleQuote terms_bare(ts) */
+        case 15: /* single_quotable_term ::= term(t) DoubleQuote single_quotable_term(ts) */
             func codeBlockForRule15(t: String, ts: String) throws -> String {
-#sourceLocation(file: "MagicCardSearch/Parser/MagicCardSearchGrammar.y", line: 57)
-
-    return "\(t)'\(ts)"
-
+#sourceLocation(file: "MagicCardSearch/Parser/MagicCardSearchGrammar.y", line: 27)
+ "\(t)\"\(ts)" 
 #sourceLocation()
 }
-            if case .yy36(let t) = yySymbolOnStack(distanceFromTop: 2),
-               case .yy36(let ts) = yySymbolOnStack(distanceFromTop: 0) {
-                return .yy36(try codeBlockForRule15(t: t, ts: ts))
+            if case .yy10(let t) = yySymbolOnStack(distanceFromTop: 2),
+               case .yy10(let ts) = yySymbolOnStack(distanceFromTop: 0) {
+                return .yy10(try codeBlockForRule15(t: t, ts: ts))
             }
-        case 16: /* terms_bare ::= term(t) DoubleQuote terms_bare(ts) */
+        case 16: /* single_quotable_term ::= term(t) Minus single_quotable_term(ts) */
             func codeBlockForRule16(t: String, ts: String) throws -> String {
-#sourceLocation(file: "MagicCardSearch/Parser/MagicCardSearchGrammar.y", line: 60)
-
-    return "\(t)\"\(ts)"
-
+#sourceLocation(file: "MagicCardSearch/Parser/MagicCardSearchGrammar.y", line: 28)
+ "\(t)-\(ts)" 
 #sourceLocation()
 }
-            if case .yy36(let t) = yySymbolOnStack(distanceFromTop: 2),
-               case .yy36(let ts) = yySymbolOnStack(distanceFromTop: 0) {
-                return .yy36(try codeBlockForRule16(t: t, ts: ts))
+            if case .yy10(let t) = yySymbolOnStack(distanceFromTop: 2),
+               case .yy10(let ts) = yySymbolOnStack(distanceFromTop: 0) {
+                return .yy10(try codeBlockForRule16(t: t, ts: ts))
             }
-        case 17: /* terms_bare ::= term(t) Comparison(c) terms_bare(ts) */
-            func codeBlockForRule17(t: String, c: Token, ts: String) throws -> String {
-#sourceLocation(file: "MagicCardSearch/Parser/MagicCardSearchGrammar.y", line: 63)
-
-    return "\(t)\(c)\(ts)"
-
+        case 17: /* single_quotable_term ::= term(t) */
+            func codeBlockForRule17(t: String) throws -> String {
+#sourceLocation(file: "MagicCardSearch/Parser/MagicCardSearchGrammar.y", line: 29)
+ t 
 #sourceLocation()
 }
-            if case .yy36(let t) = yySymbolOnStack(distanceFromTop: 2),
+            if case .yy10(let t) = yySymbolOnStack(distanceFromTop: 0) {
+                return .yy10(try codeBlockForRule17(t: t))
+            }
+        case 18: /* bare_term ::= term(t) Whitespace(w) bare_term(ts) */
+            func codeBlockForRule18(t: String, w: Token, ts: String) throws -> String {
+#sourceLocation(file: "MagicCardSearch/Parser/MagicCardSearchGrammar.y", line: 32)
+ "\(t) \(ts)" 
+#sourceLocation()
+}
+            if case .yy10(let t) = yySymbolOnStack(distanceFromTop: 2),
+               case .yy0(let w) = yySymbolOnStack(distanceFromTop: 1),
+               case .yy10(let ts) = yySymbolOnStack(distanceFromTop: 0) {
+                return .yy10(try codeBlockForRule18(t: t, w: w, ts: ts))
+            }
+        case 19: /* bare_term ::= term(t) SingleQuote bare_term(ts) */
+            func codeBlockForRule19(t: String, ts: String) throws -> String {
+#sourceLocation(file: "MagicCardSearch/Parser/MagicCardSearchGrammar.y", line: 33)
+ "\(t)'\(ts)" 
+#sourceLocation()
+}
+            if case .yy10(let t) = yySymbolOnStack(distanceFromTop: 2),
+               case .yy10(let ts) = yySymbolOnStack(distanceFromTop: 0) {
+                return .yy10(try codeBlockForRule19(t: t, ts: ts))
+            }
+        case 20: /* bare_term ::= term(t) DoubleQuote bare_term(ts) */
+            func codeBlockForRule20(t: String, ts: String) throws -> String {
+#sourceLocation(file: "MagicCardSearch/Parser/MagicCardSearchGrammar.y", line: 34)
+ "\(t)\"\(ts)" 
+#sourceLocation()
+}
+            if case .yy10(let t) = yySymbolOnStack(distanceFromTop: 2),
+               case .yy10(let ts) = yySymbolOnStack(distanceFromTop: 0) {
+                return .yy10(try codeBlockForRule20(t: t, ts: ts))
+            }
+        case 21: /* bare_term ::= term(t) Comparison(c) bare_term(ts) */
+            func codeBlockForRule21(t: String, c: Token, ts: String) throws -> String {
+#sourceLocation(file: "MagicCardSearch/Parser/MagicCardSearchGrammar.y", line: 35)
+ "\(t)\(c)\(ts)" 
+#sourceLocation()
+}
+            if case .yy10(let t) = yySymbolOnStack(distanceFromTop: 2),
                case .yy0(let c) = yySymbolOnStack(distanceFromTop: 1),
-               case .yy36(let ts) = yySymbolOnStack(distanceFromTop: 0) {
-                return .yy36(try codeBlockForRule17(t: t, c: c, ts: ts))
+               case .yy10(let ts) = yySymbolOnStack(distanceFromTop: 0) {
+                return .yy10(try codeBlockForRule21(t: t, c: c, ts: ts))
             }
-        case 18: /* terms_bare ::= term(t) */
-            func codeBlockForRule18(t: String) throws -> String {
-#sourceLocation(file: "MagicCardSearch/Parser/MagicCardSearchGrammar.y", line: 66)
-
-    return t
-
+        case 22: /* bare_term ::= term(t) Minus bare_term(ts) */
+            func codeBlockForRule22(t: String, ts: String) throws -> String {
+#sourceLocation(file: "MagicCardSearch/Parser/MagicCardSearchGrammar.y", line: 36)
+ "\(t)-\(ts)" 
 #sourceLocation()
 }
-            if case .yy36(let t) = yySymbolOnStack(distanceFromTop: 0) {
-                return .yy36(try codeBlockForRule18(t: t))
+            if case .yy10(let t) = yySymbolOnStack(distanceFromTop: 2),
+               case .yy10(let ts) = yySymbolOnStack(distanceFromTop: 0) {
+                return .yy10(try codeBlockForRule22(t: t, ts: ts))
             }
-        case 19: /* term ::= Term(x) */
-            func codeBlockForRule19(x: Token) throws -> String {
-#sourceLocation(file: "MagicCardSearch/Parser/MagicCardSearchGrammar.y", line: 71)
+        case 23: /* bare_term ::= term(t) */
+            func codeBlockForRule23(t: String) throws -> String {
+#sourceLocation(file: "MagicCardSearch/Parser/MagicCardSearchGrammar.y", line: 37)
+ t 
+#sourceLocation()
+}
+            if case .yy10(let t) = yySymbolOnStack(distanceFromTop: 0) {
+                return .yy10(try codeBlockForRule23(t: t))
+            }
+        case 24: /* term ::= Term(x) */
+            func codeBlockForRule24(x: Token) throws -> String {
+#sourceLocation(file: "MagicCardSearch/Parser/MagicCardSearchGrammar.y", line: 40)
 
     if case .term(let t) = x {
         return t
@@ -498,71 +528,57 @@ class MagicCardSearchGrammar: CitronParser {
 #sourceLocation()
 }
             if case .yy0(let x) = yySymbolOnStack(distanceFromTop: 0) {
-                return .yy36(try codeBlockForRule19(x: x))
+                return .yy10(try codeBlockForRule24(x: x))
             }
-        case 20: /* comparison ::= Including */
-            func codeBlockForRule20() throws -> Comparison {
-#sourceLocation(file: "MagicCardSearch/Parser/MagicCardSearchGrammar.y", line: 80)
-
-    .including
-
-#sourceLocation()
-}
-            return .yy26(try codeBlockForRule20())
-        case 21: /* comparison ::= Equal */
-            func codeBlockForRule21() throws -> Comparison {
-#sourceLocation(file: "MagicCardSearch/Parser/MagicCardSearchGrammar.y", line: 83)
-
-    .equal
-
-#sourceLocation()
-}
-            return .yy26(try codeBlockForRule21())
-        case 22: /* comparison ::= NotEqual */
-            func codeBlockForRule22() throws -> Comparison {
-#sourceLocation(file: "MagicCardSearch/Parser/MagicCardSearchGrammar.y", line: 86)
-
-    .notEqual
-
-#sourceLocation()
-}
-            return .yy26(try codeBlockForRule22())
-        case 23: /* comparison ::= LessThan */
-            func codeBlockForRule23() throws -> Comparison {
-#sourceLocation(file: "MagicCardSearch/Parser/MagicCardSearchGrammar.y", line: 89)
-
-    .lessThan
-
-#sourceLocation()
-}
-            return .yy26(try codeBlockForRule23())
-        case 24: /* comparison ::= LessThanOrEqual */
-            func codeBlockForRule24() throws -> Comparison {
-#sourceLocation(file: "MagicCardSearch/Parser/MagicCardSearchGrammar.y", line: 92)
-
-    .lessThanOrEqual
-
-#sourceLocation()
-}
-            return .yy26(try codeBlockForRule24())
-        case 25: /* comparison ::= GreaterThan */
+        case 25: /* comparison ::= Including */
             func codeBlockForRule25() throws -> Comparison {
-#sourceLocation(file: "MagicCardSearch/Parser/MagicCardSearchGrammar.y", line: 95)
-
-    .greaterThan
-
+#sourceLocation(file: "MagicCardSearch/Parser/MagicCardSearchGrammar.y", line: 49)
+ .including 
 #sourceLocation()
 }
             return .yy26(try codeBlockForRule25())
-        case 26: /* comparison ::= GreaterThanOrEqual */
+        case 26: /* comparison ::= Equal */
             func codeBlockForRule26() throws -> Comparison {
-#sourceLocation(file: "MagicCardSearch/Parser/MagicCardSearchGrammar.y", line: 98)
-
-    .greaterThanOrEqual
-
+#sourceLocation(file: "MagicCardSearch/Parser/MagicCardSearchGrammar.y", line: 50)
+ .equal 
 #sourceLocation()
 }
             return .yy26(try codeBlockForRule26())
+        case 27: /* comparison ::= NotEqual */
+            func codeBlockForRule27() throws -> Comparison {
+#sourceLocation(file: "MagicCardSearch/Parser/MagicCardSearchGrammar.y", line: 51)
+ .notEqual 
+#sourceLocation()
+}
+            return .yy26(try codeBlockForRule27())
+        case 28: /* comparison ::= LessThan */
+            func codeBlockForRule28() throws -> Comparison {
+#sourceLocation(file: "MagicCardSearch/Parser/MagicCardSearchGrammar.y", line: 52)
+ .lessThan 
+#sourceLocation()
+}
+            return .yy26(try codeBlockForRule28())
+        case 29: /* comparison ::= LessThanOrEqual */
+            func codeBlockForRule29() throws -> Comparison {
+#sourceLocation(file: "MagicCardSearch/Parser/MagicCardSearchGrammar.y", line: 53)
+ .lessThanOrEqual 
+#sourceLocation()
+}
+            return .yy26(try codeBlockForRule29())
+        case 30: /* comparison ::= GreaterThan */
+            func codeBlockForRule30() throws -> Comparison {
+#sourceLocation(file: "MagicCardSearch/Parser/MagicCardSearchGrammar.y", line: 54)
+ .greaterThan 
+#sourceLocation()
+}
+            return .yy26(try codeBlockForRule30())
+        case 31: /* comparison ::= GreaterThanOrEqual */
+            func codeBlockForRule31() throws -> Comparison {
+#sourceLocation(file: "MagicCardSearch/Parser/MagicCardSearchGrammar.y", line: 55)
+ .greaterThanOrEqual 
+#sourceLocation()
+}
+            return .yy26(try codeBlockForRule31())
         default:
             fatalError("Can't invoke code block for rule number \(ruleNumber) - no such rule")
         }
@@ -605,8 +621,8 @@ class MagicCardSearchGrammar: CitronParser {
 
     func yySymbolContent(_ symbol: CitronSymbol) -> Any { return symbol.typeErasedContent() }
 
-    let yyStartSymbolNumber: CitronSymbolNumber = 13
-    let yyEndStateNumber: CitronStateNumber = 20
+    let yyStartSymbolNumber: CitronSymbolNumber = 14
+    let yyEndStateNumber: CitronStateNumber = 28
 
     var yyErrorCaptureSavedError: (error: Error, isLexerError: Bool)? = nil
     var yyErrorCaptureTokensSinceError: [(token: CitronToken, tokenCode: CitronTokenCode)] = []

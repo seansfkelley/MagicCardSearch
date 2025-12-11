@@ -7,16 +7,44 @@ func doubleQuoteIfNecessary(_ string: String) -> String {
     return string.contains(" ") ? "\"\(string)\"" : string
 }
 
-/// Quoting to preserve whitespace not required; any quotes present will be assumed to be part of the term to search for.
 enum SearchFilter: Equatable, Hashable, Codable {
-    case name(String)
-    case keyValue(String, Comparison, String)
-
+    case basic(SearchFilterContent)
+    case negated(SearchFilterContent)
+    // TODO: "or"
+    
     static func tryParseUnambiguous(_ input: String) -> SearchFilter? {
         return try? parse(input)
     }
+    
+    var queryStringWithEditingRange: (String, Range<String.Index>) {
+        switch self {
+        case .basic(let content):
+            return content.queryStringWithEditingRange
+        case .negated(let content):
+            let (string, range) = content.queryStringWithEditingRange
+            let negatedString = "-\(string)"
+            return (
+                negatedString,
+                negatedString
+                    .index(after: range.lowerBound)..<negatedString
+                    .index(after: range.upperBound)
+            )
+        }
+    }
+    
+    var contents: SearchFilterContent {
+        return switch self {
+        case .basic(let content): content
+        case .negated(let content): content
+        }
+    }
+}
 
-    // TODO: This and the previous method should be single-quote aware too, probably.
+/// Quoting to preserve whitespace not required; any quotes present will be assumed to be part of the term to search for.
+enum SearchFilterContent: Equatable, Hashable, Codable {
+    case name(String)
+    case keyValue(String, Comparison, String)
+    
     var queryStringWithEditingRange: (String, Range<String.Index>) {
         switch self {
         case .name(let name):
@@ -71,6 +99,7 @@ internal func parseWhitespace(_ input: String) -> LexedTokenData? {
 }
 
 private let lexer = CitronLexer<LexedTokenData>(rules: [
+    .string("-", (.void, .Minus)),
     .string(":", (.void, .Including)),
     .string("!=", (.void, .NotEqual)),
     .string("<=", (.void, .LessThanOrEqual)),
@@ -80,7 +109,7 @@ private let lexer = CitronLexer<LexedTokenData>(rules: [
     .string("=", (.void, .Equal)),
     .string("'", (.void, .SingleQuote)),
     .string("\"", (.void, .DoubleQuote)),
-    .regexPattern("[^'\" =><!:]+", parseTerm),
+    .regexPattern("[^'\" =><!:-]+", parseTerm),
     .regexPattern("\\s+", parseWhitespace),
 ])
 

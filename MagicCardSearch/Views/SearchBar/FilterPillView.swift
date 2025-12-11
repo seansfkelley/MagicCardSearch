@@ -61,7 +61,7 @@ struct FilterPillView: View {
     }
     
     private var isRecognizedFilter: Bool {
-        return switch filter {
+        return switch filter.contents {
         case .name: true
         case .keyValue(let key, _, _): scryfallFilterByType[key] != nil
         }

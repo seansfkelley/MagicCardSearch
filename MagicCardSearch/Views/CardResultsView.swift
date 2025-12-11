@@ -436,8 +436,8 @@ struct CardResultCell: View {
 #Preview {
     struct PreviewWrapper: View {
         @State private var filters: [SearchFilter] = [
-            SearchFilter.keyValue("set", .equal, "7ED"),
-            SearchFilter.keyValue("manavalue", .greaterThanOrEqual, "4"),
+            .basic(.keyValue("set", .equal, "7ED")),
+            .basic(.keyValue("manavalue", .greaterThanOrEqual, "4")),
         ]
         @State private var config = SearchConfiguration()
         @State private var warnings: [String] = []

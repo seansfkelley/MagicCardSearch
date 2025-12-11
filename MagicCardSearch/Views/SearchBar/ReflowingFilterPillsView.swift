@@ -46,9 +46,9 @@ struct ReflowingFilterPillsView: View {
 #Preview {
     struct PreviewWrapper: View {
         @State private var filters: [SearchFilter] = [
-            SearchFilter.keyValue("set", .equal, "7ED"),
-            SearchFilter.keyValue("manavalue", .greaterThanOrEqual, "4"),
-            SearchFilter.keyValue("power", .greaterThan, "3"),
+            .basic(.keyValue("set", .equal, "7ED")),
+            .basic(.keyValue("manavalue", .greaterThanOrEqual, "4")),
+            .basic(.keyValue("power", .greaterThan, "3")),
         ]
 
         var body: some View {
