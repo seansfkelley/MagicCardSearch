@@ -117,15 +117,13 @@ struct AutocompleteView: View {
             Image(systemName: "list.bullet.circle")
                 .foregroundStyle(.secondary)
 
-            VStack(alignment: .leading, spacing: 6) {
-                EnumerationButtonGroup(
-                    label: "\(suggestion.filterType)\(suggestion.comparison.rawValue)",
-                    options: suggestion.options
-                ) { option in
-                        onSuggestionTap(
-                            .filter(.basic(.keyValue(suggestion.filterType, suggestion.comparison, option)))
-                        )
-                }
+            HorizontallyScrollablePillSelector(
+                label: "\(suggestion.filterType)\(suggestion.comparison.rawValue)",
+                options: suggestion.options as [any PillSelectorOption]
+            ) { option in
+                    onSuggestionTap(
+                        .filter(.basic(.keyValue(suggestion.filterType, suggestion.comparison, option)))
+                    )
             }
 
             Spacer(minLength: 0)
@@ -136,12 +134,20 @@ struct AutocompleteView: View {
 
 // MARK: - Filter Type Picker
 
-private struct EnumerationButtonGroup: View {
+private protocol PillSelectorOption {
+    var value: String { get }
+    var range: Range<String.Index>? { get }
+}
+
+extension AutocompleteProvider.EnumerationSuggestion.Option: PillSelectorOption {}
+
+private struct HorizontallyScrollablePillSelector: View {
     let label: String
-    let options: [AutocompleteProvider.EnumerationSuggestion.Option]
-    let onButtonTap: (String) -> Void
+    let options: [PillSelectorOption]
+    let onTapOption: (String) -> Void
     
-    private let searchIconFadeExtent: CGFloat = 44
+    // TODO: This should be based on the width of the label element.
+    private let labelFadeExtent: CGFloat = 50
     @State var labelOpacity: CGFloat = 1
     
     var body: some View {
@@ -157,31 +163,27 @@ private struct EnumerationButtonGroup: View {
                     
                     ForEach(options, id: \.value) { option in
                         Button {
-                            onButtonTap(option.value)
+                            onTapOption(option.value)
                         } label: {
                             HighlightedText(
                                 text: option.value,
                                 highlightRange: option.range,
                             )
-                            .font(.body)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 6)
-                            .background(.secondary)
-                            .foregroundStyle(.primary)
-                            .clipShape(.capsule)
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(.bordered)
+                        .tint(.blue)
                     }
                 }
             }
+            .background(.clear)
             .onScrollGeometryChange(
                 for: CGFloat.self,
                 of: { geometry in
                     let x = geometry.contentOffset.x
-                    return x > searchIconFadeExtent ? searchIconFadeExtent : x < 0 ? 0 : x
+                    return x > labelFadeExtent ? labelFadeExtent : x < 0 ? 0 : x
                 },
                 action: { _, currentValue in
-                    labelOpacity = (searchIconFadeExtent - currentValue) / searchIconFadeExtent
+                    labelOpacity = (labelFadeExtent - currentValue) / labelFadeExtent
                 })
             .mask {
                 HStack(spacing: 0) {
