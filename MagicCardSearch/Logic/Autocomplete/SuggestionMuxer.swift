@@ -8,9 +8,9 @@
 import Foundation
 
 struct SuggestionMuxer {
-    let historyProvider: SuggestionProvider
-    let filterProvider: SuggestionProvider
-    let enumerationProvider: SuggestionProvider
+    let historyProvider: HistorySuggestionProvider
+    let filterProvider: FilterTypeSuggestionProvider
+    let enumerationProvider: EnumerationSuggestionProvider
 
     func getSuggestions(_ searchTerm: String, existingFilters: [SearchFilter]) -> [Suggestion] {
         var suggestions: [Suggestion] = []

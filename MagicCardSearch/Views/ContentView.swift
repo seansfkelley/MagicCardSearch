@@ -55,7 +55,6 @@ struct ContentView: View {
                     AutocompleteView(
                         inputText: inputText,
                         provider: autocompleteProvider,
-                        historySuggestionProvider: historySuggestionProvider,
                         filters: filters
                     ) { suggestion in
                             handleSuggestionTap(suggestion)

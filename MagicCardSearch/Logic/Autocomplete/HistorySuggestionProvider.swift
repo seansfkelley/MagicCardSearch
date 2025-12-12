@@ -14,7 +14,7 @@ class HistorySuggestionProvider: SuggestionProvider {
 
     private var historyByFilter: [SearchFilter: HistoryEntry] = [:]
     private var sortedCache: [HistoryEntry]?
-    
+
     private let maxHistoryCount = 1000
     private let persistenceKey = "filterHistory"
 
@@ -23,152 +23,152 @@ class HistorySuggestionProvider: SuggestionProvider {
     init() {
         loadHistory()
     }
-    
+
     private var sortedHistory: [HistoryEntry] {
         if let cached = sortedCache {
             return cached
         }
-        
+
         let sorted = historyByFilter.values.sorted { lhs, rhs in
             if lhs.isPinned != rhs.isPinned {
                 return lhs.isPinned
             }
-            
+
             let lhScore = TimeWindowedScorer.score(lhs.counts)
             let rhScore = TimeWindowedScorer.score(rhs.counts)
             return lhScore > rhScore
         }
-        
+
         sortedCache = sorted
         return sorted
     }
-    
+
     private func invalidateCache() {
         sortedCache = nil
     }
 
     // MARK: - Public Methods
-    
+
     func getSuggestions(_ searchTerm: String, existingFilters: [SearchFilter], limit: Int) -> [Suggestion] {
         let trimmedSearchTerm = searchTerm.trimmingCharacters(in: .whitespaces)
-        
+
         if trimmedSearchTerm.isEmpty {
-            // TODO: Is this properly lazy?
-            return sortedHistory
+            return Array(sortedHistory
+                .lazy
                 .filter { !existingFilters.contains($0.filter) }
                 .prefix(limit)
                 .map {
-                    .history(HistorySuggestion(
-                        filter: $0.filter,
-                        isPinned: $0.isPinned,
-                        matchRange: nil
-                    ))
+                    .history(
+                        HistorySuggestion(
+                            filter: $0.filter,
+                            isPinned: $0.isPinned,
+                            matchRange: nil
+                        )
+                    )
+                })
+        } else {
+            return Array(sortedHistory
+                .lazy
+                .compactMap { entry -> Suggestion? in
+                    guard !existingFilters.contains(entry.filter) else {
+                        return nil
+                    }
+
+                    let filterString = entry.filter.queryStringWithEditingRange.0
+                    guard
+                        let range = filterString.range(
+                            of: trimmedSearchTerm,
+                            options: .caseInsensitive
+                        )
+                    else {
+                        return nil
+                    }
+
+                    return .history(
+                        HistorySuggestion(
+                            filter: entry.filter,
+                            isPinned: entry.isPinned,
+                            matchRange: range
+                        )
+                    )
                 }
+                .prefix(limit))
         }
-
-        // TODO: Is this properly lazy?
-        let results = sortedHistory.compactMap { entry -> Suggestion? in
-            guard !existingFilters.contains(entry.filter) else {
-                return nil
-            }
-            
-            let filterString = entry.filter.queryStringWithEditingRange.0
-            guard let range = filterString.range(of: trimmedSearchTerm, options: .caseInsensitive) else {
-                return nil
-            }
-            
-            return .history(HistorySuggestion(
-                filter: entry.filter,
-                isPinned: entry.isPinned,
-                matchRange: range
-            ))
-        }
-
-        return Array(results.prefix(limit))
     }
 
-    // TODO: Should be able to improve this implementation with the map now.
     func recordFilterUsage(_ filter: SearchFilter) {
-        
-        let wasPinned = history.first { $0.filter == filter }?.isPinned ?? false
-        let existingCounts = history.first { $0.filter == filter }?.counts ?? .new()
-
-        history.removeAll { $0.filter == filter }
+        let wasPinned = historyByFilter[filter]?.isPinned ?? false
+        let existingCounts = historyByFilter[filter]?.counts ?? .new()
 
         let entry = HistoryEntry(
             filter: filter,
             counts: existingCounts.recordingUse(),
             isPinned: wasPinned
         )
-        history.insert(entry, at: 0)
+        historyByFilter[filter] = entry
 
-        history.removeAll { $0.counts.aged(to: Date()).isForgotten }
-        
-        if history.count > maxHistoryCount {
-            history = Array(history.prefix(maxHistoryCount))
+        // Remove forgotten entries
+        let now = Date()
+        historyByFilter = historyByFilter.filter { !$0.value.counts.aged(to: now).isForgotten }
+
+        // Enforce max count by removing lowest-scoring entries
+        if historyByFilter.count > maxHistoryCount {
+            let sortedByScore = historyByFilter.values.sorted { lhs, rhs in
+                let lhScore = TimeWindowedScorer.score(lhs.counts)
+                let rhScore = TimeWindowedScorer.score(rhs.counts)
+                return lhScore < rhScore  // Ascending, so we can drop the first ones
+            }
+
+            let toRemove = sortedByScore.prefix(historyByFilter.count - maxHistoryCount)
+            for entry in toRemove {
+                historyByFilter.removeValue(forKey: entry.filter)
+            }
         }
 
+        invalidateCache()
         saveHistory()
     }
 
-    // TODO: Weird interface; improve it. Also, slow.
     func pinSearchFilter(_ filter: SearchFilter) {
-        if let i = history.firstIndex(where: { $0.filter == filter }) {
-            let entry = history[i]
-            history[i] = HistoryEntry(
-                filter: entry.filter,
-                // Pinning means we like it, so boost its score by promoting it here.
-                counts: entry.counts.recordingUse(),
-                isPinned: true
-            )
-            saveHistory()
-        }
+        guard var entry = historyByFilter[filter] else { return }
+
+        entry = HistoryEntry(
+            filter: entry.filter,
+            // Pinning means we like it, so boost its score by promoting it here.
+            counts: entry.counts.recordingUse(),
+            isPinned: true
+        )
+        historyByFilter[filter] = entry
+        invalidateCache()
+        saveHistory()
     }
 
     func unpinSearchFilter(_ filter: SearchFilter) {
-        if let i = history.firstIndex(where: { $0.filter == filter }) {
-            let entry = history[i]
-            history[i] = HistoryEntry(
-                filter: entry.filter,
-                // If we just unpinned it, it would be surprising for it to fall way down the
-                // list if we last it a while ago. Consider it recently used, and it will naturally
-                // age out as we don't use it.
-                counts: entry.counts.recordingUse(),
-                isPinned: false
-            )
-            saveHistory()
-        }
-    }
-    
-    func deleteSearchFilter(_ filter: SearchFilter) {
-        history.removeAll { $0.filter == filter }
+        guard var entry = historyByFilter[filter] else { return }
+
+        entry = HistoryEntry(
+            filter: entry.filter,
+            // If we just unpinned it, it would be surprising for it to fall way down the
+            // list if we last used it a while ago. Consider it recently used, and it will naturally
+            // age out as we don't use it.
+            counts: entry.counts.recordingUse(),
+            isPinned: false
+        )
+        historyByFilter[filter] = entry
+        invalidateCache()
         saveHistory()
     }
 
-    // MARK: - Private Helpers
-
-    private func sortResults(_ results: [HistorySuggestion], historyLookup: [SearchFilter: HistoryEntry]) -> [HistorySuggestion] {
-        return results.sorted { lhs, rhs in
-            if lhs.isPinned != rhs.isPinned {
-                return lhs.isPinned
-            }
-
-            // Score based on time-windowed usage counts
-            let lhEntry = historyLookup[lhs.filter]
-            let rhEntry = historyLookup[rhs.filter]
-            
-            let lhScore = lhEntry.map { TimeWindowedScorer.effectiveCount($0.counts) } ?? 0
-            let rhScore = rhEntry.map { TimeWindowedScorer.effectiveCount($0.counts) } ?? 0
-            
-            return lhScore > rhScore
-        }
+    func deleteSearchFilter(_ filter: SearchFilter) {
+        historyByFilter.removeValue(forKey: filter)
+        invalidateCache()
+        saveHistory()
     }
 
     // MARK: - Persistence
 
     private func saveHistory() {
         do {
-            // TODO: JSON seems like the wrong thing; isn't there a Swift-native encoding?
             let encoder = JSONEncoder()
             encoder.dateEncodingStrategy = .iso8601
             let data = try encoder.encode(historyByFilter)
@@ -186,10 +186,10 @@ class HistorySuggestionProvider: SuggestionProvider {
         do {
             let decoder = JSONDecoder()
             decoder.dateDecodingStrategy = .iso8601
-            history = try decoder.decode([SearchFilter: HistoryEntry].self, from: data)
+            historyByFilter = try decoder.decode([SearchFilter: HistoryEntry].self, from: data)
         } catch {
             print("Failed to load filter history: \(error)")
-            history = []
+            historyByFilter = [:]
         }
     }
 }
@@ -206,11 +206,11 @@ struct HistoryEntry: Codable {
 struct TimeBucketedCounts: Codable {
     let last1Day, last3Days, last7Days, last14Days, last30Days, last90Days, last365Days: Int
     let referenceDate: Date
-    
+
     static func new() -> TimeBucketedCounts {
         TimeBucketedCounts(0, 0, 0, 0, 0, 0, 0, Date())
     }
-    
+
     /// Age counts by shifting buckets based on elapsed time.
     /// Conservative: assumes all uses in a bucket happened at the oldest time.
     /// Buckets are inclusive (30d contains 7d), so we preserve the larger bucket.
@@ -218,19 +218,21 @@ struct TimeBucketedCounts: Codable {
     func aged(to now: Date = Date()) -> TimeBucketedCounts {
         let days = abs(now.timeIntervalSince(referenceDate)) / 86400
         guard days >= 1 else { return self }
-        
+
         switch days {
         case 365...: return .init(0, 0, 0, 0, 0, 0, 0, now)  // Forgotten
         case 90..<365: return .init(0, 0, 0, 0, 0, 0, last90Days, now)
         case 30..<90: return .init(0, 0, 0, 0, 0, last30Days, last90Days, now)
         case 14..<30: return .init(0, 0, 0, 0, last14Days, last30Days, last90Days, now)
         case 7..<14: return .init(0, 0, 0, last7Days, last14Days, last30Days, last90Days, now)
-        case 3..<7: return .init(0, 0, last3Days, last7Days, last14Days, last30Days, last90Days, now)
-        case 1..<3: return .init(0, last1Day, last3Days, last7Days, last14Days, last30Days, last90Days, now)
+        case 3..<7:
+            return .init(0, 0, last3Days, last7Days, last14Days, last30Days, last90Days, now)
+        case 1..<3:
+            return .init(0, last1Day, last3Days, last7Days, last14Days, last30Days, last90Days, now)
         default: return self
         }
     }
-    
+
     /// Record a new use: age existing counts, then increment all buckets
     func recordingUse(at date: Date = Date()) -> TimeBucketedCounts {
         let aged = self.aged(to: date)
@@ -245,14 +247,26 @@ struct TimeBucketedCounts: Codable {
             date
         )
     }
-    
+
     /// Returns true if all counts are 0 (forgotten)
     var isForgotten: Bool {
         last365Days == 0
     }
-    
-    init(_ d1: Int, _ d3: Int, _ d7: Int, _ d14: Int, _ d30: Int, _ d90: Int, _ d365: Int, _ ref: Date) {
-        (last1Day, last3Days, last7Days, last14Days, last30Days, last90Days, last365Days, referenceDate) =
+
+    init(
+        _ d1: Int,
+        _ d3: Int,
+        _ d7: Int,
+        _ d14: Int,
+        _ d30: Int,
+        _ d90: Int,
+        _ d365: Int,
+        _ ref: Date
+    ) {
+        (
+            last1Day, last3Days, last7Days, last14Days, last30Days, last90Days, last365Days,
+            referenceDate
+        ) =
             (d1, d3, d7, d14, d30, d90, d365, ref)
     }
 }
@@ -261,12 +275,14 @@ struct TimeBucketedCounts: Codable {
 
 private struct TimeWindowedScorer {
     // ~Exponential decay.
-    private static let weights = (d1: 1.0, d3: 0.85, d7: 0.7, d14: 0.5, d30: 0.3, d90: 0.15, d365: 0.05)
-    
+    private static let weights = (
+        d1: 1.0, d3: 0.85, d7: 0.7, d14: 0.5, d30: 0.3, d90: 0.15, d365: 0.05
+    )
+
     static func score(_ counts: TimeBucketedCounts) -> Double {
         // Lazy-age on access.
         let aged = counts.aged(to: Date())
-        
+
         // Buckets are inclusive, that is, a usage today is considered a usage in all the time
         // ranges. This makes rolling them forward minimally lossy, but means we have to subtract
         // ranges like this to get what is unique to each span.
@@ -279,13 +295,10 @@ private struct TimeWindowedScorer {
             d90: aged.last90Days - aged.last30Days,
             d365: aged.last365Days - aged.last90Days
         )
-        
-        return Double(exclusive.d1) * weights.d1 +
-               Double(exclusive.d3) * weights.d3 +
-               Double(exclusive.d7) * weights.d7 +
-               Double(exclusive.d14) * weights.d14 +
-               Double(exclusive.d30) * weights.d30 +
-               Double(exclusive.d90) * weights.d90 +
-               Double(exclusive.d365) * weights.d365
+
+        return Double(exclusive.d1) * weights.d1 + Double(exclusive.d3) * weights.d3 + Double(
+            exclusive.d7
+        ) * weights.d7 + Double(exclusive.d14) * weights.d14 + Double(exclusive.d30) * weights.d30
+            + Double(exclusive.d90) * weights.d90 + Double(exclusive.d365) * weights.d365
     }
 }

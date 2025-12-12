@@ -14,8 +14,7 @@ struct AutocompleteView: View {
     }
 
     let inputText: String
-    let provider: SuggestionProvider
-    let historySuggestionProvider: HistorySuggestionProvider
+    let provider: SuggestionMuxer
     let filters: [SearchFilter]
     let onSuggestionTap: (AcceptedSuggestion) -> Void
     
@@ -43,9 +42,9 @@ struct AutocompleteView: View {
                         .swipeActions(edge: .leading, allowsFullSwipe: true) {
                             Button {
                                 if suggestion.isPinned {
-                                    historySuggestionProvider.unpinSearchFilter(suggestion.filter)
+                                    provider.historyProvider.unpinSearchFilter(suggestion.filter)
                                 } else {
-                                    historySuggestionProvider.pinSearchFilter(suggestion.filter)
+                                    provider.historyProvider.pinSearchFilter(suggestion.filter)
                                 }
                             } label: {
                                 if suggestion.isPinned {
@@ -58,7 +57,7 @@ struct AutocompleteView: View {
                         }
                         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                             Button(role: .destructive) {
-                                historySuggestionProvider.deleteSearchFilter(suggestion.filter)
+                                provider.historyProvider.deleteSearchFilter(suggestion.filter)
                             } label: {
                                 Label("Delete", systemImage: "trash")
                             }
@@ -271,9 +270,12 @@ struct HighlightedText: View {
 #Preview("Filter Type Suggestions") {
     AutocompleteView(
         inputText: "set",
-        provider: FilterTypeSuggestionProvider(),
-        historySuggestionProvider: HistorySuggestionProvider(),
-        filters: []
+        provider: SuggestionMuxer(
+            historyProvider: HistorySuggestionProvider(),
+            filterProvider: FilterTypeSuggestionProvider(),
+            enumerationProvider: EnumerationSuggestionProvider(),
+        ),
+        filters: [],
     ) { suggestion in
         print("Selected: \(suggestion)")
     }
@@ -282,9 +284,12 @@ struct HighlightedText: View {
 #Preview("Enumeration Suggestions - Empty") {
     AutocompleteView(
         inputText: "format:",
-        provider: EnumerationSuggestionProvider(),
-        historySuggestionProvider: HistorySuggestionProvider(),
-        filters: []
+        provider: SuggestionMuxer(
+            historyProvider: HistorySuggestionProvider(),
+            filterProvider: FilterTypeSuggestionProvider(),
+            enumerationProvider: EnumerationSuggestionProvider(),
+        ),
+        filters: [],
     ) { suggestion in
         print("Selected: \(suggestion)")
     }
@@ -293,9 +298,12 @@ struct HighlightedText: View {
 #Preview("Enumeration Suggestions - Filtered") {
     AutocompleteView(
         inputText: "format=m",
-        provider: EnumerationSuggestionProvider(),
-        historySuggestionProvider: HistorySuggestionProvider(),
-        filters: []
+        provider: SuggestionMuxer(
+            historyProvider: HistorySuggestionProvider(),
+            filterProvider: FilterTypeSuggestionProvider(),
+            enumerationProvider: EnumerationSuggestionProvider(),
+        ),
+        filters: [],
     ) { suggestion in
         print("Selected: \(suggestion)")
     }
