@@ -17,6 +17,8 @@ protocol CardFaceDisplayable {
     var colorIndicator: [Card.Color]? { get }
     var power: String? { get }
     var toughness: String? { get }
+    var loyalty: String? { get }
+    var defense: String? { get }
     var artist: String? { get }
     var imageUris: Card.ImageUris? { get }
     

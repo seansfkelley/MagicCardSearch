@@ -181,7 +181,7 @@ struct CardDetailView: View {
 
     // MARK: - Card Face Details View
     
-    // swiftlint:disable function_body_length
+    // swiftlint:disable function_body_length cyclomatic_complexity
     @ViewBuilder
     private func cardFaceDetailsView(face: CardFaceDisplayable, showArtist: Bool = true) -> some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -253,7 +253,21 @@ struct CardDetailView: View {
             Divider()
                 .padding(.horizontal)
 
-            CardPowerToughnessSection(power: power, toughness: toughness)
+            CardStatSection(value: "\(power)/\(toughness)")
+        }
+        
+        if let loyalty = face.loyalty {
+            Divider()
+                .padding(.horizontal)
+
+            CardStatSection(value: loyalty, label: "Loyalty")
+        }
+        
+        if let defense = face.defense {
+            Divider()
+                .padding(.horizontal)
+
+            CardStatSection(value: defense, label: "Defense")
         }
 
         if showArtist, let artist = face.artist {
@@ -263,7 +277,7 @@ struct CardDetailView: View {
             CardArtistSection(artist: artist)
         }
     }
-    // swiftlint:enable function_body_length
+    // swiftlint:enable function_body_length cyclomatic_complexity
 
     private func loadRelatedCard(id: UUID) async {
         print("Loading related card...")
@@ -297,17 +311,30 @@ struct CardDetailView: View {
     }
 }
 
-// MARK: - Card Power/Toughness Section
+// MARK: - Card Stat Section
 
-private struct CardPowerToughnessSection: View {
-    let power: String
-    let toughness: String
+private struct CardStatSection: View {
+    let value: String
+    let label: String?
+    
+    init(value: String, label: String? = nil) {
+        self.value = value
+        self.label = label
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("\(power)/\(toughness)")
-                .font(.title3)
-                .fontWeight(.semibold)
+            HStack(alignment: .center, spacing: 8) {
+                if let label = label {
+                    Text("\(label):")
+                        .font(.body)
+                        .fontWeight(.semibold)
+                }
+                
+                Text(value)
+                    .font(.title3)
+                    .fontWeight(.semibold)
+            }
         }
         .padding(.horizontal)
         .padding(.vertical, 12)
