@@ -50,7 +50,8 @@ struct CardResultsView: View {
                     }
                     .buttonStyle(.borderedProminent)
                 }
-            } else if results.isEmpty && !isLoading {
+            } else if results.isEmpty && !isLoading && !filters.isEmpty {
+                // No results found, but the search succeeded
                 ContentUnavailableView(
                     "No Results",
                     systemImage: "magnifyingglass",

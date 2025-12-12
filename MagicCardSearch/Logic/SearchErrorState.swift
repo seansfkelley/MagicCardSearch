@@ -6,24 +6,39 @@
 //
 
 import SwiftUI
+import ScryfallKit
 
 enum SearchErrorState {
-    case clientError // 4xx errors
+    case clientError // 4xx errors (excluding 404 from searches)
     case serverError // 5xx errors
-    case other
+    case networkError // Connection issues
     
     init(from error: Error) {
-        if let searchError = error as? SearchError,
-           case .httpError(let statusCode) = searchError {
+        // Check for ScryfallError first
+        if let scryfallError = error as? ScryfallError {
+            let statusCode = scryfallError.status
             if (400..<500).contains(statusCode) {
                 self = .clientError
             } else if (500..<600).contains(statusCode) {
                 self = .serverError
             } else {
-                self = .other
+                self = .networkError
+            }
+        } else if let searchError = error as? SearchError {
+            switch searchError {
+            case .httpError(let statusCode):
+                if (400..<500).contains(statusCode) {
+                    self = .clientError
+                } else if (500..<600).contains(statusCode) {
+                    self = .serverError
+                } else {
+                    self = .networkError
+                }
+            case .invalidURL, .invalidResponse:
+                self = .clientError
             }
         } else {
-            self = .other
+            self = .networkError
         }
     }
     
@@ -33,7 +48,7 @@ enum SearchErrorState {
             return "Search Error"
         case .serverError:
             return "Scryfall is Unavailable"
-        case .other:
+        case .networkError:
             return "Connection Error"
         }
     }
@@ -44,7 +59,7 @@ enum SearchErrorState {
             return "There was a problem with your search. Please check your filters and try again."
         case .serverError:
             return "Scryfall is experiencing issues. Please try again in a moment."
-        case .other:
+        case .networkError:
             return "Unable to connect to Scryfall. Please check your internet connection and try again."
         }
     }
@@ -55,7 +70,7 @@ enum SearchErrorState {
             return "exclamationmark.triangle"
         case .serverError:
             return "server.rack"
-        case .other:
+        case .networkError:
             return "wifi.slash"
         }
     }

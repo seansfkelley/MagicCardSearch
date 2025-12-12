@@ -26,19 +26,28 @@ class CardSearchService {
             return SearchResult(cards: [], totalCount: 0, nextPageURL: nil, warnings: [])
         }
         
-        let result = try await client.searchCards(
-            query: queryString,
-            unique: config.uniqueMode.toScryfallKitUniqueMode(),
-            order: config.sortField.toScryfallKitSortMode(),
-            sortDirection: config.sortOrder.toScryfallKitSortDirection()
-        )
-        
-        return SearchResult(
-            cards: result.data,
-            totalCount: result.totalCards ?? result.data.count,
-            nextPageURL: result.nextPage,
-            warnings: result.warnings ?? []
-        )
+        do {
+            let result = try await client.searchCards(
+                query: queryString,
+                unique: config.uniqueMode.toScryfallKitUniqueMode(),
+                order: config.sortField.toScryfallKitSortMode(),
+                sortDirection: config.sortOrder.toScryfallKitSortDirection()
+            )
+            
+            return SearchResult(
+                cards: result.data,
+                totalCount: result.totalCards ?? result.data.count,
+                nextPageURL: result.nextPage,
+                warnings: result.warnings ?? []
+            )
+        } catch let scryfallError as ScryfallError {
+            // When searching for cards, a 404 means "no results found", not an actual error
+            if scryfallError.status == 404 {
+                return SearchResult(cards: [], totalCount: 0, nextPageURL: nil, warnings: [])
+            }
+            // Re-throw other Scryfall errors
+            throw scryfallError
+        }
     }
     
     nonisolated func fetchNextPage(from urlString: String) async throws -> SearchResult {
@@ -64,20 +73,29 @@ class CardSearchService {
         let dirValue = queryItems.first { $0.name == "dir" }?.value
         let sortDirection = dirValue.flatMap { SortDirection(rawValue: $0) }
         
-        let result = try await client.searchCards(
-            query: query,
-            unique: unique,
-            order: order,
-            sortDirection: sortDirection,
-            page: page
-        )
-        
-        return SearchResult(
-            cards: result.data,
-            totalCount: result.totalCards ?? result.data.count,
-            nextPageURL: result.nextPage,
-            warnings: result.warnings ?? []
-        )
+        do {
+            let result = try await client.searchCards(
+                query: query,
+                unique: unique,
+                order: order,
+                sortDirection: sortDirection,
+                page: page
+            )
+            
+            return SearchResult(
+                cards: result.data,
+                totalCount: result.totalCards ?? result.data.count,
+                nextPageURL: result.nextPage,
+                warnings: result.warnings ?? []
+            )
+        } catch let scryfallError as ScryfallError {
+            // When paginating search results, a 404 means "no more results", not an actual error
+            if scryfallError.status == 404 {
+                return SearchResult(cards: [], totalCount: 0, nextPageURL: nil, warnings: [])
+            }
+            // Re-throw other Scryfall errors
+            throw scryfallError
+        }
     }
     
     func fetchCard(byId id: UUID) async throws -> Card {
