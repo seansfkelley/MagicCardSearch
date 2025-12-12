@@ -26,10 +26,10 @@ struct CardDetailView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 0) {
-                if let (front, back) = card.bothFaces {
+                if let faces = card.cardFaces, card.layout.isDoubleFaced && faces.count >= 2 {
                     FlippableCardFaceView(
-                        frontFace: front,
-                        backFace: back,
+                        frontFace: faces[0],
+                        backFace: faces[1],
                         imageQuality: .large,
                         aspectFit: true
                     )
@@ -47,17 +47,9 @@ struct CardDetailView: View {
                     .padding(.horizontal)
                     .padding(.bottom, 24)
                 }
-
-                if let (front, back) = card.bothFaces {
-                    cardFaceDetailsView(face: front, showArtist: front.artist != back.artist)
-                    if front.oracleId == nil || front.oracleId != back.oracleId {
-                        // Reversible cards have the same text on both sides. I think it's better
-                        // to check this way instead of checking layout, in case WotC decides to
-                        // make another layout with the same semantics.
-                        Divider()
-                            .padding(.horizontal)
-                        cardFaceDetailsView(face: back)
-                    }
+                
+                if let faces = card.cardFaces {
+                    //
                 } else {
                     cardFaceDetailsView(face: card)
                 }

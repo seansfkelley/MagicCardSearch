@@ -74,7 +74,7 @@ private struct LineView: View {
                     Text(image)
                         // This reduces, but does not elimiate, vertical spacing.
                         .font(.system(size: 1))
-                        .baselineOffset(symbol.isOversized ? fontSize * -0.3 : fontSize * -0.15)·
+                        .baselineOffset(symbol.isOversized ? fontSize * -0.3 : fontSize * -0.15)
                 )
             }
             

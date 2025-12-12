@@ -15,13 +15,6 @@ extension Card {
         return formatter.date(from: releasedAt)
     }
     
-    /// Returns both faces if this is a double-faced card, otherwise, nil.
-    var bothFaces: (front: Card.Face, back: Card.Face)? {
-        guard let faces = cardFaces, faces.count >= 2 else { return nil }
-        
-        return (faces[0], faces[1])
-    }
-    
     var bestEffortOracleId: String? {
         if let oracleId = oracleId {
             return oracleId
@@ -36,10 +29,6 @@ extension Card {
         } else {
             return nil
         }
-    }
-    
-    var isDoubleFaced: Bool {
-        bothFaces != nil
     }
     
     var primaryImageUris: Card.ImageUris? {

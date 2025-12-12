@@ -258,7 +258,7 @@ let scryfallFilterTypes: [ScryfallFilterType] = [
         "scheme", "vanguard", "token", "emblem", "augment", "host", "class", "battle", "case",
         "mutate", "prototype", "unknown", "modaldfc", "doublesided", "doublefacedtoken",
         "artseries", "reversiblecard",
-    ])
+    ]),
 ]
 
 // MARK: - Derived Constants
