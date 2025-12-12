@@ -13,7 +13,6 @@ class HistorySuggestionProvider: SuggestionProvider {
     // MARK: - Properties
 
     private var historyByFilter: [SearchFilter: HistoryEntry] = [:]
-    
     private var sortedCache: [HistoryEntry]?
     
     private let maxHistoryCount = 1000
@@ -51,40 +50,46 @@ class HistorySuggestionProvider: SuggestionProvider {
     // MARK: - Public Methods
     
     func getSuggestions(_ searchTerm: String, existingFilters: [SearchFilter], limit: Int) -> [Suggestion] {
-        // Filter out already-used filters
-        let available = sortedHistory.filter { !existingFilters.contains($0.filter) }
-        
         let trimmedSearchTerm = searchTerm.trimmingCharacters(in: .whitespaces)
         
-        // Empty search: return top N by score
         if trimmedSearchTerm.isEmpty {
-            return Array(available.prefix(limit)).map {
-                .history(HistorySuggestion(
-                    filter: $0.filter,
-                    isPinned: $0.isPinned,
-                    matchRange: nil
-                ))
-            }
+            // TODO: Is this properly lazy?
+            return sortedHistory
+                .filter { !existingFilters.contains($0.filter) }
+                .prefix(limit)
+                .map {
+                    .history(HistorySuggestion(
+                        filter: $0.filter,
+                        isPinned: $0.isPinned,
+                        matchRange: nil
+                    ))
+                }
         }
 
-        // Non-empty search: substring match
-        let results = available.compactMap { entry -> HistorySuggestion? in
+        // TODO: Is this properly lazy?
+        let results = sortedHistory.compactMap { entry -> Suggestion? in
+            guard !existingFilters.contains(entry.filter) else {
+                return nil
+            }
+            
             let filterString = entry.filter.queryStringWithEditingRange.0
             guard let range = filterString.range(of: trimmedSearchTerm, options: .caseInsensitive) else {
                 return nil
             }
-            return HistorySuggestion(
+            
+            return .history(HistorySuggestion(
                 filter: entry.filter,
                 isPinned: entry.isPinned,
                 matchRange: range
-            )
+            ))
         }
 
-        return Array(results.prefix(10)).map { .history($0) }
+        return Array(results.prefix(limit))
     }
 
-    // TODO: This implementation sucks.
+    // TODO: Should be able to improve this implementation with the map now.
     func recordFilterUsage(_ filter: SearchFilter) {
+        
         let wasPinned = history.first { $0.filter == filter }?.isPinned ?? false
         let existingCounts = history.first { $0.filter == filter }?.counts ?? .new()
 
@@ -166,7 +171,7 @@ class HistorySuggestionProvider: SuggestionProvider {
             // TODO: JSON seems like the wrong thing; isn't there a Swift-native encoding?
             let encoder = JSONEncoder()
             encoder.dateEncodingStrategy = .iso8601
-            let data = try encoder.encode(history)
+            let data = try encoder.encode(historyByFilter)
             UserDefaults.standard.set(data, forKey: persistenceKey)
         } catch {
             print("Failed to save filter history: \(error)")
@@ -181,7 +186,7 @@ class HistorySuggestionProvider: SuggestionProvider {
         do {
             let decoder = JSONDecoder()
             decoder.dateDecodingStrategy = .iso8601
-            history = try decoder.decode([HistoryEntry].self, from: data)
+            history = try decoder.decode([SearchFilter: HistoryEntry].self, from: data)
         } catch {
             print("Failed to load filter history: \(error)")
             history = []
