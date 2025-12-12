@@ -189,7 +189,7 @@ let scryfallFilterTypes: [ScryfallFilterType] = [
     // see also `is`
     
     // MARK: - Languages
-    .init("language", ["lang"], enumerationValues: ["any"]), // also language codes and language names
+    .init("language", ["l", "lang"], enumerationValues: ["any"]), // also language codes and language names
     // see also `new` and `in`
     
     // MARK: - Shortcuts and Nicknames
@@ -251,6 +251,14 @@ let scryfallFilterTypes: [ScryfallFilterType] = [
         // Languages
         // empty -- we don't enumerate the languages
     ]),
+    
+    // MARK: - Others not listed in the documentation
+    .init("layout", enumerationValues: [
+        "normal", "split", "flip", "transform", "meld", "leveler", "saga", "adventure", "planar",
+        "scheme", "vanguard", "token", "emblem", "augment", "host", "class", "battle", "case",
+        "mutate", "prototype", "unknown", "modaldfc", "doublesided", "doublefacedtoken",
+        "artseries", "reversiblecard",
+    ])
 ]
 
 // MARK: - Derived Constants
