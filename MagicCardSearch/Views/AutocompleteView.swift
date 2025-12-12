@@ -89,19 +89,17 @@ struct AutocompleteView: View {
             onSuggestionTap(.filter(suggestion.filter))
         } label: {
             HStack(spacing: 12) {
-                Image(systemName: "clock.arrow.circlepath")
-                    .foregroundStyle(.secondary)
+                if suggestion.isPinned {
+                    Image(systemName: "pin.fill")
+                        .foregroundStyle(.secondary)
+                } else {
+                    Image(systemName: "clock.arrow.circlepath")
+                        .foregroundStyle(.secondary)
+                }
                 HighlightedText(
                     text: filterString,
                     highlightRange: suggestion.matchRange
                 )
-                Spacer(minLength: 0)
-
-                if suggestion.isPinned {
-                    Image(systemName: "pin.fill")
-                        .foregroundStyle(.secondary)
-                        .font(.caption)
-                }
             }
             .contentShape(Rectangle())
         }
