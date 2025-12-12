@@ -49,7 +49,7 @@ struct MtgSymbolView: View {
             let parts = cleaned.split(separator: "/")
             if parts.count == 3 && parts.last == "p" {
                 let left = String(parts[0])
-                let right = String(parts[2])
+                let right = String(parts[1])
                 
                 if baseSymbolCodes.contains(left) && baseSymbolCodes.contains(right) {
                     hybridPhyrexian(left, right)
@@ -131,7 +131,8 @@ struct MtgSymbolView: View {
             Image("p")
                 .resizable()
                 .aspectRatio(contentMode: .fit)
-                .frame(width: oversize * 0.8, height: oversize * 0.8)
+                .frame(width: oversize, height: oversize)
+                .clipShape(.circle)
         }
     }
 
@@ -178,7 +179,44 @@ struct MtgSymbolView: View {
     }
     
     private func hybridPhyrexian(_ left: String, _ right: String) -> some View {
-        unknown("tmp")
+        let leftColor = color(left, saturated: true)
+        let rightColor = color(right, saturated: true)
+
+        return ZStack {
+            if showDropShadow {
+                Circle()
+                    .fill(.black)
+                    .frame(width: oversize, height: oversize)
+                    .offset(x: -1, y: 1)
+            }
+            
+            Circle()
+                .fill(
+                    LinearGradient(
+                        stops: [
+                            .init(color: leftColor, location: 0.0),
+                            .init(color: leftColor, location: 0.5),
+                            .init(color: rightColor, location: 0.5),
+                            .init(color: rightColor, location: 1.0),
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .frame(width: oversize, height: oversize)
+
+            Image("p")
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: oversize * 0.5, height: oversize * 0.5)
+                .offset(x: -oversize * 0.16, y: -oversize * 0.16)
+
+            Image("p")
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: oversize * 0.5, height: oversize * 0.5)
+                .offset(x: oversize * 0.175, y: oversize * 0.175)
+        }
     }
 
     private func unknown(_ symbol: String) -> some View {
