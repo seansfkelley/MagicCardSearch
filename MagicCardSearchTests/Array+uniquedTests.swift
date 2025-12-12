@@ -8,96 +8,80 @@
 import Testing
 @testable import MagicCardSearch
 
-@Suite("Array uniqued() extension tests")
 struct ArrayUniquedTests {
-    // MARK: - Test Models
-    
-    struct Person {
-        let id: Int
-        let name: String
-        let email: String?
-    }
-    
-    // MARK: - Parameterized Tests for Hashable Elements
-    
-    @Test("uniqued() removes duplicates and preserves order",
-          arguments: [
-            ([1, 2, 3, 2, 4, 1, 5, 3], [1, 2, 3, 4, 5]),
-            (["apple", "banana", "apple", "cherry", "banana", "date"], ["apple", "banana", "cherry", "date"]),
-            (["zebra", "apple", "banana", "apple", "zebra"], ["zebra", "apple", "banana"]),
-            ([5, 2, 8, 2, 5, 1, 8, 3], [5, 2, 8, 1, 3]),
-          ] as [([AnyHashable], [AnyHashable])])
-    func uniquedRemovesDuplicates(input: [AnyHashable], expected: [AnyHashable]) {
-        if let intInput = input as? [Int], let intExpected = expected as? [Int] {
-            #expect(intInput.uniqued() == intExpected)
-        } else if let stringInput = input as? [String], let stringExpected = expected as? [String] {
-            #expect(stringInput.uniqued() == stringExpected)
-        }
-    }
-    
-    @Test("uniqued() handles edge cases",
-          arguments: [
-            ("empty array", [] as [String], [] as [String]),
-            ("single element", ["hello"], ["hello"]),
-            ("all unique", ["apple", "banana", "cherry"], ["apple", "banana", "cherry"]),
-            ("all duplicates", ["apple", "apple", "apple"], ["apple"]),
-          ])
-    func uniquedEdgeCases(description: String, input: [String], expected: [String]) {
+    @Test("uniqued()", arguments: [
+        ("empty array", [] as [String], [] as [String]),
+        ("single element", ["hello"], ["hello"]),
+        ("all unique", ["apple", "banana", "cherry"], ["apple", "banana", "cherry"]),
+        ("all duplicates", ["apple", "apple", "apple"], ["apple"]),
+        ("preserves order based on first seen", ["zebra", "apple", "banana", "apple", "zebra"], ["zebra", "apple", "banana"]),
+    ])
+    func uniqued(description: String, input: [String], expected: [String]) {
         #expect(input.uniqued() == expected, "\(description) failed")
     }
     
-    // MARK: - Parameterized Tests for Non-Optional KeyPath
+    struct TestObject {
+        let id: Int
+        let value: String
+        let nilableValue: String?
+        
+        init(_ id: Int, _ value: String, _ nilableValue: String? = nil) {
+            self.id = id
+            self.value = value
+            self.nilableValue = nilableValue
+        }
+    }
     
     @Test("uniqued(by:) removes duplicates based on property")
     func uniquedByNonOptionalKeyPath() {
-        let people = [
-            Person(id: 1, name: "Alice", email: "alice@example.com"),
-            Person(id: 2, name: "Bob", email: "bob@example.com"),
-            Person(id: 1, name: "Alice Duplicate", email: "alice2@example.com"),
-            Person(id: 3, name: "Charlie", email: "charlie@example.com"),
-            Person(id: 2, name: "Bob Duplicate", email: "bob2@example.com"),
+        let objects = [
+            TestObject(1, "Alice"),
+            TestObject(2, "Bob"),
+            TestObject(1, "Alice Duplicate"),
+            TestObject(3, "Charlie"),
+            TestObject(2, "Bob Duplicate"),
         ]
         
-        let uniquePeople = people.uniqued(by: \.id)
+        let uniqueObjects = objects.uniqued(by: \.id)
         
-        #expect(uniquePeople.count == 3)
-        #expect(uniquePeople.map(\.name) == ["Alice", "Bob", "Charlie"])
+        #expect(uniqueObjects.count == 3)
+        #expect(uniqueObjects.map(\.value) == ["Alice", "Bob", "Charlie"])
     }
     
     @Test("uniqued(by:) with string property")
     func uniquedByStringProperty() {
-        let people = [
-            Person(id: 1, name: "Alice", email: nil),
-            Person(id: 2, name: "Bob", email: nil),
-            Person(id: 3, name: "Alice", email: nil),
-            Person(id: 4, name: "Charlie", email: nil),
+        let objects = [
+            TestObject(1, "Alice"),
+            TestObject(2, "Bob"),
+            TestObject(3, "Alice"),
+            TestObject(4, "Charlie"),
         ]
         
-        let uniquePeople = people.uniqued(by: \.name)
+        let uniqueObjects = objects.uniqued(by: \.value)
         
-        #expect(uniquePeople.count == 3)
-        #expect(uniquePeople.map(\.name) == ["Alice", "Bob", "Charlie"])
+        #expect(uniqueObjects.count == 3)
+        #expect(uniqueObjects.map(\.value) == ["Alice", "Bob", "Charlie"])
     }
     
     @Test("uniqued(by:) edge cases",
           arguments: [
-            ("empty array", [] as [Person], 0),
+            ("empty array", [] as [TestObject], 0),
             ("all unique", [
-                Person(id: 1, name: "Alice", email: nil),
-                Person(id: 2, name: "Bob", email: nil),
-                Person(id: 3, name: "Charlie", email: nil),
+                TestObject(1, "Alice"),
+                TestObject(2, "Bob"),
+                TestObject(3, "Charlie"),
             ], 3),
             ("all duplicates", [
-                Person(id: 1, name: "Alice", email: nil),
-                Person(id: 1, name: "Alice Clone 1", email: nil),
-                Person(id: 1, name: "Alice Clone 2", email: nil),
+                TestObject(1, "Alice"),
+                TestObject(1, "Alice Clone 1"),
+                TestObject(1, "Alice Clone 2"),
             ], 1),
           ])
-    func uniquedByEdgeCases(description: String, input: [Person], expectedCount: Int) {
+    func uniquedByEdgeCases(description: String, input: [TestObject], expectedCount: Int) {
         let result = input.uniqued(by: \.id)
         #expect(result.count == expectedCount, "\(description) failed")
         if !result.isEmpty {
-            #expect(result[0].name == input[0].name, "Should keep first occurrence")
+            #expect(result[0].value == input[0].value, "Should keep first occurrence")
         }
     }
     
@@ -106,68 +90,68 @@ struct ArrayUniquedTests {
     @Test("uniqued(by:) with optional property handles nil values correctly")
     func uniquedByOptionalKeyPath() {
         struct TestCase {
-            let people: [Person]
+            let objects: [TestObject]
             let expectedCount: Int
-            let expectedNames: [String]
+            let expectedValues: [String]
             let description: String
         }
         
         let testCases: [TestCase] = [
             TestCase(
-                people: [
-                    Person(id: 1, name: "Alice", email: "alice@example.com"),
-                    Person(id: 2, name: "Bob", email: "bob@example.com"),
-                    Person(id: 3, name: "Charlie", email: "alice@example.com"),
-                    Person(id: 4, name: "Dave", email: nil),
-                    Person(id: 5, name: "Eve", email: nil),
+                objects: [
+                    TestObject(1, "Alice", "alice@example.com"),
+                    TestObject(2, "Bob", "bob@example.com"),
+                    TestObject(3, "Charlie", "alice@example.com"),
+                    TestObject(4, "Dave", nil),
+                    TestObject(5, "Eve", nil),
                 ],
                 expectedCount: 4,
-                expectedNames: ["Alice", "Bob", "Dave", "Eve"],
+                expectedValues: ["Alice", "Bob", "Dave", "Eve"],
                 description: "mixed nil and non-nil with duplicates"
             ),
             TestCase(
-                people: [
-                    Person(id: 1, name: "Alice", email: nil),
-                    Person(id: 2, name: "Bob", email: nil),
-                    Person(id: 3, name: "Charlie", email: nil),
+                objects: [
+                    TestObject(1, "Alice", nil),
+                    TestObject(2, "Bob", nil),
+                    TestObject(3, "Charlie", nil),
                 ],
                 expectedCount: 3,
-                expectedNames: ["Alice", "Bob", "Charlie"],
+                expectedValues: ["Alice", "Bob", "Charlie"],
                 description: "all nil values"
             ),
             TestCase(
-                people: [
-                    Person(id: 1, name: "Alice", email: "alice@example.com"),
-                    Person(id: 2, name: "Bob", email: nil),
-                    Person(id: 3, name: "Charlie", email: "alice@example.com"),
-                    Person(id: 4, name: "Dave", email: nil),
-                    Person(id: 5, name: "Eve", email: "eve@example.com"),
+                objects: [
+                    TestObject(1, "Alice", "alice@example.com"),
+                    TestObject(2, "Bob", nil),
+                    TestObject(3, "Charlie", "alice@example.com"),
+                    TestObject(4, "Dave", nil),
+                    TestObject(5, "Eve", "eve@example.com"),
                 ],
                 expectedCount: 4,
-                expectedNames: ["Alice", "Bob", "Dave", "Eve"],
+                expectedValues: ["Alice", "Bob", "Dave", "Eve"],
                 description: "mixed values"
             ),
         ]
         
         for testCase in testCases {
-            let result = testCase.people.uniqued(by: \.email)
+            let result = testCase.objects.uniqued(by: \.nilableValue)
             #expect(result.count == testCase.expectedCount, "\(testCase.description) count failed")
-            #expect(result.map(\.name) == testCase.expectedNames, "\(testCase.description) names failed")
+            #expect(result.map(\.value) == testCase.expectedValues, "\(testCase.description) values failed")
         }
     }
     
     @Test("uniqued(by:) with optional maintains first occurrence")
     func uniquedByOptionalMaintainsFirstOccurrence() {
-        let people = [
-            Person(id: 1, name: "Alice", email: "test@example.com"),
-            Person(id: 2, name: "Bob", email: "test@example.com"),
-            Person(id: 3, name: "Charlie", email: "test@example.com"),
+        let objects = [
+            TestObject(1, "Alice", "test@example.com"),
+            TestObject(2, "Bob", "test@example.com"),
+            TestObject(3, "Charlie", "test@example.com"),
         ]
         
-        let uniquePeople = people.uniqued(by: \.email)
+        let uniqueObjects = objects.uniqued(by: \.nilableValue)
         
-        #expect(uniquePeople.count == 1)
-        #expect(uniquePeople[0].name == "Alice", "Should keep the first person with that email")
+        #expect(uniqueObjects.count == 1)
+        #expect(uniqueObjects[0].value == "Alice", "Should keep the first object with that email")
     }
     
     // MARK: - Complex Structures and Performance
@@ -197,6 +181,14 @@ struct ArrayUniquedTests {
         struct Item: Hashable {
             let id: Int
             let value: String
+            
+            static func == (lhs: Item, rhs: Item) -> Bool {
+                lhs.id == rhs.id
+            }
+            
+            func hash(into hasher: inout Hasher) {
+                hasher.combine(id)
+            }
         }
         
         let items = [

@@ -28,7 +28,7 @@ struct EnumerationSuggestionProviderTests {
                 .init(
                     filterType: "is",
                     comparison: .including,
-                    options: [.init(value: "scryland", range: indexRange(0, 4)), .init(value: "scryfallpreview", range: indexRange(0, 4))],
+                    options: [.init(value: "scryland", range: stringIndexRange(0, 4)), .init(value: "scryfallpreview", range: stringIndexRange(0, 4))],
                 ),
             ],
         ),
@@ -39,7 +39,7 @@ struct EnumerationSuggestionProviderTests {
                 .init(
                     filterType: "format",
                     comparison: .greaterThanOrEqual,
-                    options: [.init(value: "timeless", range: indexRange(4, 8))],
+                    options: [.init(value: "timeless", range: stringIndexRange(4, 8))],
                 ),
             ],
         ),
@@ -50,7 +50,7 @@ struct EnumerationSuggestionProviderTests {
                 .init(
                     filterType: "-is",
                     comparison: .including,
-                    options: [.init(value: "scryland", range: indexRange(0, 4)), .init(value: "scryfallpreview", range: indexRange(0, 4))],
+                    options: [.init(value: "scryland", range: stringIndexRange(0, 4)), .init(value: "scryfallpreview", range: stringIndexRange(0, 4))],
                 ),
             ],
         ),
@@ -61,7 +61,7 @@ struct EnumerationSuggestionProviderTests {
                 .init(
                     filterType: "format",
                     comparison: .greaterThanOrEqual,
-                    options: [.init(value: "timeless", range: indexRange(4, 8))]
+                    options: [.init(value: "timeless", range: stringIndexRange(4, 8))]
                 ),
             ],
         ),
@@ -87,6 +87,6 @@ struct EnumerationSuggestionProviderTests {
         ),
     ])
     func getSuggestions(input: String, expected: [EnumerationSuggestion]) {
-        #expect(EnumerationSuggestionProvider().getSuggestions(input, existingFilters: [], limit: 1) == expected)
+        #expect(EnumerationSuggestionProvider().getSuggestions(input, existingFilters: [], limit: 1) == expected.map { .enumeration($0) })
     }
 }

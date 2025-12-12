@@ -4,7 +4,7 @@
 //
 //  Created by Sean Kelley on 2025-12-11.
 //
-enum Suggestion {
+enum Suggestion: Equatable {
     case history(HistorySuggestion)
     case filter(FilterTypeSuggestion)
     case enumeration(EnumerationSuggestion)
