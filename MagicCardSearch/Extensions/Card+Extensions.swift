@@ -32,15 +32,11 @@ extension Card {
     }
     
     var primaryImageUris: Card.ImageUris? {
-        field(\.imageUris, \.imageUris)
-    }
-    
-    private func field<T>(_ normalPath: KeyPath<Card, T>,
-                          _ doubleFacedPath: KeyPath<Card.Face, T>) -> T {
-        return if let (front, _) = bothFaces {
-            front[keyPath: doubleFacedPath]
-        } else {
-            self[keyPath: normalPath]
+        if layout.isDoubleFaced {
+            if let faces = cardFaces, !faces.isEmpty {
+                return faces[0].imageUris
+            }
         }
+        return imageUris
     }
 }

@@ -49,7 +49,26 @@ struct CardDetailView: View {
                 }
                 
                 if let faces = card.cardFaces {
-                    //
+                    let uniqueFaces = faces.uniqued(by: \.oracleId)
+                    let allArtists = faces.compactMap(\.artist)
+                        .filter { !$0.isEmpty }
+                        .uniqued()
+                    
+                    ForEach(Array(uniqueFaces.enumerated()), id: \.element.name) { index, face in
+                        cardFaceDetailsView(face: face, showArtist: false)
+                        
+                        if index < uniqueFaces.count - 1 {
+                            Divider()
+                                .padding(.horizontal)
+                        }
+                    }
+                    
+                    if !allArtists.isEmpty {
+                        Divider()
+                            .padding(.horizontal)
+                        
+                        CardArtistSection(artist: allArtists.joined(separator: ", "))
+                    }
                 } else {
                     cardFaceDetailsView(face: card)
                 }
@@ -771,10 +790,10 @@ private struct CardPrintGridItem: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            if let (front, back) = card.bothFaces {
+            if let faces = card.cardFaces, card.layout.isDoubleFaced && faces.count >= 2 {
                 FlippableCardFaceView(
-                    frontFace: front,
-                    backFace: back,
+                    frontFace: faces[0],
+                    backFace: faces[1],
                     imageQuality: .normal,
                     aspectFit: true
                 )
@@ -849,10 +868,10 @@ private struct MinimalCardDetailView: View {
                         ForEach(Array(cards.enumerated()), id: \.element.id) { index, card in
                             ScrollView {
                                 VStack(spacing: 0) {
-                                    if let (front, back) = card.bothFaces {
+                                    if let faces = card.cardFaces, card.layout.isDoubleFaced && faces.count >= 2 {
                                         FlippableCardFaceView(
-                                            frontFace: front,
-                                            backFace: back,
+                                            frontFace: faces[0],
+                                            backFace: faces[1],
                                             imageQuality: .large,
                                             aspectFit: true
                                         )

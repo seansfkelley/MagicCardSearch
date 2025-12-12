@@ -8,13 +8,6 @@
 import Testing
 @testable import MagicCardSearch
 
-func indexRange(_ from: Int, _ to: Int) -> Range<String.Index> {
-    return
-        String.Index.init(encodedOffset: from)
-        ..<
-        String.Index.init(encodedOffset: to)
-}
-
 struct EnumerationSuggestionProviderTests {
     @Test<[(String, [EnumerationSuggestion])]>("getSuggestions", arguments: [
         (

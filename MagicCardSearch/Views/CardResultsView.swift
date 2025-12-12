@@ -281,10 +281,10 @@ struct CardResultCell: View {
 
     var body: some View {
         Group {
-            if let (front, back) = card.bothFaces {
+            if let faces = card.cardFaces, card.layout.isDoubleFaced && faces.count >= 2 {
                 FlippableCardFaceView(
-                    frontFace: front,
-                    backFace: back,
+                    frontFace: faces[0],
+                    backFace: faces[1],
                     imageQuality: .small,
                     aspectFit: false
                 )

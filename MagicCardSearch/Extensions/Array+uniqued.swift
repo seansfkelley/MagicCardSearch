@@ -1,0 +1,50 @@
+//
+//  Array+uniqued.swift
+//  MagicCardSearch
+//
+//  Created by Sean Kelley on 2025-12-12.
+//
+extension Array {
+    func uniqued<T: Hashable>(by keyPath: KeyPath<Element, T>) -> [Element] {
+        var seen = Set<T>()
+        return filter { element in
+            let key = element[keyPath: keyPath]
+            if seen.contains(key) {
+                return false
+            } else {
+                seen.insert(key)
+                return true
+            }
+        }
+    }
+    
+    func uniqued<T: Hashable>(by keyPath: KeyPath<Element, T?>) -> [Element] {
+        var seen = Set<T>()
+        return filter { element in
+            guard let key = element[keyPath: keyPath] else {
+                return true
+            }
+            
+            if seen.contains(key) {
+                return false
+            } else {
+                seen.insert(key)
+                return true
+            }
+        }
+    }
+}
+
+extension Array where Element: Hashable {
+    func uniqued() -> [Element] {
+        var seen = Set<Element>()
+        return filter { element in
+            if seen.contains(element) {
+                return false
+            } else {
+                seen.insert(element)
+                return true
+            }
+        }
+    }
+}
