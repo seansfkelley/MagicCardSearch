@@ -15,71 +15,8 @@ func indexRange(_ from: Int, _ to: Int) -> Range<String.Index> {
         String.Index.init(encodedOffset: to)
 }
 
-struct AutocompleteProviderTests {
-    @Test<[(String, AutocompleteProvider.EnumerationSuggestion?)]>("getEnumerationSuggestions", arguments: [
-        (
-            // gives all values, in alphabetical order, if no value part is given
-            "manavalue=",
-            .init(
-                filterType: "manavalue",
-                comparison: .equal,
-                options: [.init(value: "even", range: nil), .init(value: "odd", range: nil)],
-            )
-        ),
-        (
-            // narrows based on substring match, preferring shorter strings
-            "is:scry",
-            .init(
-                filterType: "is",
-                comparison: .including,
-                options: [.init(value: "scryland", range: indexRange(0, 4)), .init(value: "scryfallpreview", range: indexRange(0, 4))],
-            )
-        ),
-        (
-            // narrows with any substring, not just prefix, also, doesn't care about operator
-            "format>=less",
-            .init(filterType: "format", comparison: .greaterThanOrEqual, options: [.init(value: "timeless", range: indexRange(4, 8))])
-        ),
-        (
-            // the negation operator is preserved and does not affect behavior, but is included in the result
-            "-is:scry",
-            .init(
-                filterType: "-is",
-                comparison: .including,
-                options: [.init(value: "scryland", range: indexRange(0, 4)), .init(value: "scryfallpreview", range: indexRange(0, 4))],
-            )
-        ),
-        (
-            // case-insensitive
-            "foRMat>=lESs",
-            .init(filterType: "format", comparison: .greaterThanOrEqual, options: [.init(value: "timeless", range: indexRange(4, 8))])
-        ),
-        (
-            // non-enumerable filter type yields no options
-            "oracle=",
-            nil
-        ),
-        (
-            // incomplete filter types yield no suggestions
-            "form",
-            nil,
-        ),
-        (
-            // unknown filter types yield no suggestions
-            "foobar:",
-            nil,
-        ),
-        (
-            // incomplete operator is not completeable
-            "format!",
-            nil,
-        ),
-    ])
-    func getEnumerationSuggestions(input: String, expected: AutocompleteProvider.EnumerationSuggestion?) {
-        #expect(AutocompleteProvider.getEnumerationSuggestion(input) == expected)
-    }
-    
-    @Test<[(String, [AutocompleteProvider.FilterTypeSuggestion])]>("getFilterTypeSuggestions", arguments: [
+struct FilterTypeSuggestionProviderTests {
+    @Test<[(String, [FilterTypeSuggestion])]>("getSuggestions", arguments: [
         (
             // prefix of a filter returns that filter
             "forma",
@@ -145,7 +82,7 @@ struct AutocompleteProviderTests {
         ),
     ]
 )
-    func getFilterTypeSuggestions(input: String, expected: [AutocompleteProvider.FilterTypeSuggestion]) {
-        #expect(AutocompleteProvider.getFilterTypeSuggestions(input) == expected)
+    func getSuggestions(input: String, expected: [FilterTypeSuggestion]) {
+        #expect(FilterTypeSuggestionProvider().getSuggestions(input, existingFilters: []) == expected)
     }
 }
