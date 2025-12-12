@@ -26,7 +26,7 @@ enum MtgSymbol {
         }
     }
     
-    static func fromString(_ symbol: String) -> MtgSymbol? {
+    static func fromString(_ symbol: String) -> MtgSymbol {
         let cleaned = symbol.trimmingCharacters(in: CharacterSet(charactersIn: "{}")).uppercased()
         
         if bareSymbolCodes.contains(cleaned) {
@@ -70,12 +70,26 @@ enum MtgSymbol {
 }
 
 struct MtgSymbolView: View {
-    let symbol: String
+    let symbol: MtgSymbol
     let size: CGFloat
     let oversize: CGFloat
     let showDropShadow: Bool
 
-    init(_ symbol: String, size: CGFloat = 16, oversize: CGFloat? = nil, showDropShadow: Bool = false) {
+    init?(
+        _ symbol: String,
+        size: CGFloat = 16,
+        oversize: CGFloat? = nil,
+        showDropShadow: Bool = false
+    ) {
+        self.init(MtgSymbol.fromString(symbol), size: size, oversize: oversize, showDropShadow: showDropShadow)
+    }
+    
+    init(
+        _ symbol: MtgSymbol,
+        size: CGFloat = 16,
+        oversize: CGFloat? = nil,
+        showDropShadow: Bool = false
+    ) {
         self.symbol = symbol
         self.size = size
         self.oversize = floor(oversize ?? size * 1.25)
@@ -83,7 +97,7 @@ struct MtgSymbolView: View {
     }
 
     var body: some View {
-        switch MtgSymbol.fromString(symbol) {
+        switch symbol {
         case .bare(let symbol): bare(symbol)
         case .generic(let symbol): generic(symbol)
         case .basic(let color): basic(color)
@@ -91,7 +105,6 @@ struct MtgSymbolView: View {
         case .genericHybrid(let left, let right): genericHybrid(left, right)
         case .phyrexian(let color): phyrexian(color)
         case .phyrexianHybrid(let left, let right): phyrexianHybrid(left, right)
-        case nil: unknown(symbol)
         }
     }
     
@@ -374,6 +387,13 @@ struct MtgSymbolView: View {
                     MtgSymbolView("{G/P}", size: 32, showDropShadow: true)
                     MtgSymbolView("{T}", size: 32, showDropShadow: true)
                     MtgSymbolView("{E}", size: 32, showDropShadow: true)
+                }
+            }
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Unrecognized String")
+                    .font(.headline)
+                HStack(spacing: 8) {
+                    MtgSymbolView("{FOO}", size: 32)
                 }
             }
         }

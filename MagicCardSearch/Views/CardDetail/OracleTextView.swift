@@ -34,40 +34,46 @@ private struct LineView: View {
     
     var body: some View {
         let (rules, reminder) = splitReminderText(line)
-        let prettyRules = buildLineText(rules)
+        let prettyRules = buildLineText(rules)?
             .font(.system(size: fontSize))
-        let prettyReminder = buildLineText(reminder)
+        let prettyReminder = buildLineText(reminder)?
             .font(.system(size: fontSize, design: .serif))
             .italic()
 
-        // Nit: this leaves an extra space character unconditionally. Not sure when this will ever
-        // be an issue, but.
-        Text("\(prettyRules) \(prettyReminder)")
+        if let prettyRules, let prettyReminder {
+            return Text("\(prettyRules) \(prettyReminder)")
+        } else if let prettyRules {
+            return prettyRules
+        } else if let prettyReminder {
+            return prettyReminder
+        } else {
+            return Text("")
+        }
     }
     
-    private func buildLineText(_ text: String?) -> Text {
-        guard let text = text, !text.isEmpty else { return Text("") }
+    private func buildLineText(_ text: String?) -> Text? {
+        guard let text = text, !text.isEmpty else { return nil }
         
         var pieces: [Text] = []
         let pattern = #/\{[^}]+\}/#
         var lastIterationIndex = text.startIndex
-        var lastWasSymbol = false
+        var lastSymbol: MtgSymbol?
         
         for match in text.matches(of: pattern) {
             if lastIterationIndex < match.range.lowerBound {
                 let textPart = String(text[lastIterationIndex..<match.range.lowerBound])
                 pieces.append(Text(textPart))
-                lastWasSymbol = false
-            } else if lastWasSymbol {
+                lastSymbol = nil
+            } else if lastSymbol != nil {
                 pieces.append(Text(" ").font(.system(size: fontSize * 0.3)))
             }
             
-            let symbol = String(text[match.range])
+            let symbol = MtgSymbol.fromString(String(text[match.range]))
             if let image = renderSymbol(symbol) {
-                pieces.append(Text(image).baselineOffset(fontSize * -0.15))
-                lastWasSymbol = true
+                pieces.append(Text(image).baselineOffset(symbol.isOversized ? fontSize * -0.3 : fontSize * -0.15))
             }
             
+            lastSymbol = symbol
             lastIterationIndex = match.range.upperBound
         }
         
@@ -82,7 +88,7 @@ private struct LineView: View {
     
     // TODO: Can this be done with the TextRenderer protocol or something instead of
     // rendering it to a temporary image?
-    private func renderSymbol(_ symbol: String) -> Image? {
+    private func renderSymbol(_ symbol: MtgSymbol) -> Image? {
         let renderer = ImageRenderer(content: MtgSymbolView(symbol, size: fontSize)
             .environment(\.colorScheme, colorScheme))
         renderer.scale = 3.0
@@ -113,15 +119,11 @@ private struct LineView: View {
                 OracleTextView("Flying, vigilance")
             }
             
-            Divider()
-            
             VStack(alignment: .leading, spacing: 12) {
                 Text("Text with Symbols")
                     .font(.headline)
                 OracleTextView("{T}: Add {W}{U}{B}{R}{G}.")
             }
-            
-            Divider()
             
             VStack(alignment: .leading, spacing: 12) {
                 Text("Multi-line with Symbols")
@@ -129,23 +131,17 @@ private struct LineView: View {
                 OracleTextView("{2}{U}{U}, {T}: Draw three cards.\nAt the beginning of your upkeep, you lose 2 life.")
             }
             
-            Divider()
-            
             VStack(alignment: .leading, spacing: 12) {
                 Text("Complex Ability")
                     .font(.headline)
                 OracleTextView("{X}{R}{R}: Fireball deals X damage to any target.\nFlashback {X}{2}{R}{R}")
             }
             
-            Divider()
-            
             VStack(alignment: .leading, spacing: 12) {
                 Text("Mixed Symbols")
                     .font(.headline)
                 OracleTextView("Tap an untapped artifact you control: Add {C}.\n{T}: Add one mana of any color.\n{3}, {T}, Sacrifice this: Draw a card.")
             }
-            
-            Divider()
             
             VStack(alignment: .leading, spacing: 12) {
                 Text("With Reminder Text")
