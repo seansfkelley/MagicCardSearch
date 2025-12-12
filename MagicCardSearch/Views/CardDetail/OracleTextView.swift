@@ -70,7 +70,12 @@ private struct LineView: View {
             
             let symbol = MtgSymbol.fromString(String(text[match.range]))
             if let image = renderSymbol(symbol) {
-                pieces.append(Text(image).baselineOffset(symbol.isOversized ? fontSize * -0.3 : fontSize * -0.15))
+                pieces.append(
+                    Text(image)
+                        // This reduces, but does not elimiate, vertical spacing.
+                        .font(.system(size: 1))
+                        .baselineOffset(symbol.isOversized ? fontSize * -0.3 : fontSize * -0.15)·
+                )
             }
             
             lastSymbol = symbol
