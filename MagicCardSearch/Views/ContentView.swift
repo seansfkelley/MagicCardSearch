@@ -26,11 +26,11 @@ struct ContentView: View {
     private let searchService = CardSearchService()
     
     init() {
-        _autocompleteProvider = State(initialValue: SuggestionMuxer(providers: [
-            historySuggestionProvider,
-            FilterTypeSuggestionProvider(),
-            EnumerationSuggestionProvider(),
-        ]))
+        _autocompleteProvider = State(initialValue: SuggestionMuxer(
+            historyProvider: historySuggestionProvider,
+            filterProvider: FilterTypeSuggestionProvider(),
+            enumerationProvider: EnumerationSuggestionProvider()
+        ))
     }
     
     var body: some View {
