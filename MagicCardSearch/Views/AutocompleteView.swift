@@ -100,6 +100,7 @@ struct AutocompleteView: View {
                     text: filterString,
                     highlightRange: suggestion.matchRange
                 )
+                Spacer(minLength: 0)
             }
             .contentShape(Rectangle())
         }
