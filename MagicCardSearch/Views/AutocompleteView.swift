@@ -14,7 +14,8 @@ struct AutocompleteView: View {
     }
 
     let inputText: String
-    let provider: AutocompleteProvider
+    let provider: SuggestionProvider
+    let historySuggestionProvider: HistorySuggestionProvider
     let filters: [SearchFilter]
     let onSuggestionTap: (AcceptedSuggestion) -> Void
     
@@ -28,9 +29,9 @@ struct AutocompleteView: View {
         .notEqual,
     ]
 
-    private var suggestions: [AutocompleteProvider.Suggestion] {
-        // TODO: Cache the set conversion here.
-        provider.suggestions(for: inputText, excluding: Set(filters))
+    private var suggestions: [Suggestion] {
+        // TODO: Convert filters to a set and cache it.
+        provider.getSuggestions(inputText, existingFilters: filters)
     }
 
     var body: some View {
@@ -42,9 +43,9 @@ struct AutocompleteView: View {
                         .swipeActions(edge: .leading, allowsFullSwipe: true) {
                             Button {
                                 if suggestion.isPinned {
-                                    provider.unpinSearchFilter(suggestion.filter)
+                                    historySuggestionProvider.unpinSearchFilter(suggestion.filter)
                                 } else {
-                                    provider.pinSearchFilter(suggestion.filter)
+                                    historySuggestionProvider.pinSearchFilter(suggestion.filter)
                                 }
                             } label: {
                                 if suggestion.isPinned {
@@ -57,7 +58,7 @@ struct AutocompleteView: View {
                         }
                         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                             Button(role: .destructive) {
-                                provider.deleteSearchFilter(suggestion.filter)
+                                historySuggestionProvider.deleteSearchFilter(suggestion.filter)
                             } label: {
                                 Label("Delete", systemImage: "trash")
                             }
@@ -77,9 +78,7 @@ struct AutocompleteView: View {
         .listStyle(.plain)
     }
 
-    private func historyRow(
-        _ suggestion: AutocompleteProvider.HistorySuggestion
-    ) -> some View {
+    private func historyRow(_ suggestion: HistorySuggestion) -> some View {
         let filterString = suggestion.filter.queryStringWithEditingRange.0
         return Button {
             onSuggestionTap(.filter(suggestion.filter))
@@ -270,15 +269,10 @@ struct HighlightedText: View {
 // MARK: - Preview
 
 #Preview("Filter Type Suggestions") {
-    let provider = AutocompleteProvider()
-    provider.recordFilterUsage(.basic(.keyValue("c", .lessThan, "selesnya")))
-    provider.recordFilterUsage(.basic(.keyValue("mv", .greaterThanOrEqual, "10")))
-    provider.recordFilterUsage(.basic(.keyValue("set", .including, "mh5")))
-    provider.recordFilterUsage(.basic(.name("Lightning Bolt", true)))
-
-    return AutocompleteView(
+    AutocompleteView(
         inputText: "set",
-        provider: provider,
+        provider: FilterTypeSuggestionProvider(),
+        historySuggestionProvider: HistorySuggestionProvider(),
         filters: []
     ) { suggestion in
         print("Selected: \(suggestion)")
@@ -286,11 +280,10 @@ struct HighlightedText: View {
 }
 
 #Preview("Enumeration Suggestions - Empty") {
-    let provider = AutocompleteProvider()
-    
-    return AutocompleteView(
+    AutocompleteView(
         inputText: "format:",
-        provider: provider,
+        provider: EnumerationSuggestionProvider(),
+        historySuggestionProvider: HistorySuggestionProvider(),
         filters: []
     ) { suggestion in
         print("Selected: \(suggestion)")
@@ -298,11 +291,10 @@ struct HighlightedText: View {
 }
 
 #Preview("Enumeration Suggestions - Filtered") {
-    let provider = AutocompleteProvider()
-    
-    return AutocompleteView(
+    AutocompleteView(
         inputText: "format=m",
-        provider: provider,
+        provider: EnumerationSuggestionProvider(),
+        historySuggestionProvider: HistorySuggestionProvider(),
         filters: []
     ) { suggestion in
         print("Selected: \(suggestion)")

@@ -302,7 +302,6 @@ private struct ClearAllButton: View {
         @State private var inputText = ""
         @State private var inputSelection: TextSelection?
         @State private var pendingSelection: TextSelection?
-        @State private var historyProvider = AutocompleteProvider()
         @State private var showWarningsPopover = false
         @FocusState private var isFocused: Bool
 

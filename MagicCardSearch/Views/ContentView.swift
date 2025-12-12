@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct ContentView: View {
-    private var historySuggestionProvider = HistorySuggestionProvider()
+    private let historySuggestionProvider = HistorySuggestionProvider()
     @State private var filters: [SearchFilter] = []
     @State private var inputText: String = ""
     @State private var showDisplaySheet = false
@@ -16,11 +16,7 @@ struct ContentView: View {
     @State private var showCardList = false
     @State private var searchConfig = SearchConfiguration.load()
     @State private var pendingSearchConfig: SearchConfiguration?
-    @State private var autocompleteProvider = SuggestionMuxer(providers: [
-        historySuggestionProvider,
-        FilterTypeSuggestionProvider(),
-        EnumerationSuggestionProvider(),
-    ])
+    @State private var autocompleteProvider: SuggestionMuxer
     @State private var inputSelection: TextSelection?
     @State private var pendingSelection: TextSelection?
     @State private var warnings: [String] = []
@@ -28,6 +24,14 @@ struct ContentView: View {
     @FocusState private var isSearchFocused: Bool
     
     private let searchService = CardSearchService()
+    
+    init() {
+        _autocompleteProvider = State(initialValue: SuggestionMuxer(providers: [
+            historySuggestionProvider,
+            FilterTypeSuggestionProvider(),
+            EnumerationSuggestionProvider(),
+        ]))
+    }
     
     var body: some View {
         NavigationStack {
@@ -43,7 +47,7 @@ struct ContentView: View {
                     filters: $filters,
                     searchConfig: $searchConfig,
                     warnings: $warnings,
-                    autocompleteProvider: autocompleteProvider,
+                    historySuggestionProvider: historySuggestionProvider,
                 )
                 .opacity(isSearchFocused ? 0 : 1)
                 
@@ -51,6 +55,7 @@ struct ContentView: View {
                     AutocompleteView(
                         inputText: inputText,
                         provider: autocompleteProvider,
+                        historySuggestionProvider: historySuggestionProvider,
                         filters: filters
                     ) { suggestion in
                             handleSuggestionTap(suggestion)

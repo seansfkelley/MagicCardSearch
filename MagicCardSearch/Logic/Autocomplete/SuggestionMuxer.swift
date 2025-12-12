@@ -12,6 +12,6 @@ struct SuggestionMuxer: SuggestionProvider {
 
     func getSuggestions(_ searchTerm: String, existingFilters: [SearchFilter]) -> [Suggestion] {
         let suggestions: [Suggestion] = providers.flatMap { $0.getSuggestions(searchTerm, existingFilters: existingFilters) }
-        return Array(suggestions[...10])
+        return Array(suggestions.prefix(10))
     }
 }

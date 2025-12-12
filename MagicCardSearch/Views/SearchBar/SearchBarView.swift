@@ -201,7 +201,6 @@ struct SymbolGroupRow: View {
         @State private var filters: [SearchFilter] = []
         @State private var inputText = ""
         @State private var inputSelection: TextSelection?
-        @State private var historyProvider = AutocompleteProvider()
         @FocusState private var isFocused: Bool
 
         var body: some View {

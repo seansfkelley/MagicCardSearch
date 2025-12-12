@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct HistorySuggestionProvider: SuggestionProvider {
+class HistorySuggestionProvider: SuggestionProvider {
     struct HistoryEntry: Codable {
         let filter: SearchFilter
         let timestamp: Date
@@ -28,37 +28,37 @@ struct HistorySuggestionProvider: SuggestionProvider {
 
     // MARK: - Public Methods
     
-    func getSuggestions(_ searchTerm: String, excluding excludedFilters: [SearchFilter])
+    func getSuggestions(_ searchTerm: String, existingFilters: [SearchFilter])
     -> [Suggestion] {
-        let availableHistory = history.filter { !excludedFilters.contains($0.filter) }
+        let availableHistory = history.filter { !existingFilters.contains($0.filter) }
         
         if searchTerm.isEmpty {
-            return Array(
-                sortResults(availableHistory.map {
-                    .history(HistorySuggestion(
-                        filter: $0.filter,
-                        isPinned: $0.isPinned,
-                        matchRange: nil
-                    ))
-                }, historyLookup: Dictionary(uniqueKeysWithValues: availableHistory.map { ($0.filter, $0) })).prefix(10)
-            )
+            let historySuggestions = availableHistory.map {
+                HistorySuggestion(
+                    filter: $0.filter,
+                    isPinned: $0.isPinned,
+                    matchRange: nil
+                )
+            }
+            let historyLookup = Dictionary(uniqueKeysWithValues: availableHistory.map { ($0.filter, $0) })
+            return Array(sortResults(historySuggestions, historyLookup: historyLookup).prefix(10)).map { .history($0) }
         }
 
-        var results: [Suggestion] = []
+        var results: [HistorySuggestion] = []
 
         for entry in availableHistory {
             let filterString = entry.filter.queryStringWithEditingRange.0
             if let range = filterString.range(of: searchTerm, options: .caseInsensitive) {
-                results.append(.history(HistorySuggestion(
+                results.append(HistorySuggestion(
                     filter: entry.filter,
                     isPinned: entry.isPinned,
                     matchRange: range
-                )))
+                ))
             }
         }
 
         let historyLookup = Dictionary(uniqueKeysWithValues: availableHistory.map { ($0.filter, $0) })
-        return Array(sortResults(results, historyLookup: historyLookup).prefix(10))
+        return Array(sortResults(results, historyLookup: historyLookup).prefix(10)).map { .history($0) }
     }
 
     // TODO: This implementation sucks.
@@ -110,24 +110,14 @@ struct HistorySuggestionProvider: SuggestionProvider {
 
     private func sortResults(_ results: [HistorySuggestion], historyLookup: [SearchFilter: HistoryEntry]) -> [HistorySuggestion] {
         return results.sorted { lhs, rhs in
-            if case Suggestion.history(let lhHistory) = lhs,
-                case Suggestion.history(let rhHistory) = rhs {
-                if lhHistory.isPinned != rhHistory.isPinned {
-                    return lhHistory.isPinned
-                }
-
-                // Look up timestamps from the history lookup
-                let lhTimestamp = historyLookup[lhHistory.filter]?.timestamp ?? Date.distantPast
-                let rhTimestamp = historyLookup[rhHistory.filter]?.timestamp ?? Date.distantPast
-                return lhTimestamp > rhTimestamp
-            } else if case Suggestion.history(_) = lhs {
-                return true
-            } else if case Suggestion.history(_) = rhs {
-                return false
-            } else {
-                // TODO: Sort these for real.
-                return true
+            if lhs.isPinned != rhs.isPinned {
+                return lhs.isPinned
             }
+
+            // Look up timestamps from the history lookup
+            let lhTimestamp = historyLookup[lhs.filter]?.timestamp ?? Date.distantPast
+            let rhTimestamp = historyLookup[rhs.filter]?.timestamp ?? Date.distantPast
+            return lhTimestamp > rhTimestamp
         }
     }
 

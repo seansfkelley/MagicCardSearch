@@ -5,10 +5,10 @@
 //  Created by Sean Kelley on 2025-12-11.
 //
 struct EnumerationSuggestionProvider: SuggestionProvider {
-    static func getSuggestions(_ searchTerm: String) -> [Suggestion] {
+    func getSuggestions(_ searchTerm: String, existingFilters: [SearchFilter]) -> [Suggestion] {
         // Some enumeration types, like rarity, are considered orderable, hence the comparison operators here.
         guard let match = try? /^(-?)([a-zA-Z]+)(:|=|!=|>=|>|<=|<)/.prefixMatch(in: searchTerm) else {
-            return nil
+            return []
         }
         
         let (_, negated, filterTypeName, comparisonOperator) = match.output
@@ -35,11 +35,13 @@ struct EnumerationSuggestionProvider: SuggestionProvider {
             if !matchingOptions.isEmpty {
                 let comparison = Comparison(rawValue: String(comparisonOperator))
                 assert(comparison != nil) // if it is, programmer error on the regex or enumeration type
-                return .enumeration(EnumerationSuggestion(
-                    filterType: "\(negated)\(filterTypeName.lowercased())",
-                    comparison: comparison!,
-                    options: matchingOptions,
-                ))
+                return [
+                    .enumeration(EnumerationSuggestion(
+                        filterType: "\(negated)\(filterTypeName.lowercased())",
+                        comparison: comparison!,
+                        options: matchingOptions,
+                    )),
+                ]
             } else {
                 return []
             }
