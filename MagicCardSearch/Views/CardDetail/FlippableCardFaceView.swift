@@ -36,7 +36,7 @@ struct FlippableCardFaceView: View {
                     imageQuality: imageQuality,
                     aspectFit: aspectFit
                 )
-                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .clipShape(RoundedRectangle(cornerRadius: 16))
                 .opacity(showingBackFace ? 0 : 1)
                 .rotation3DEffect(
                     .degrees(showingBackFace ? 180 : 0),
@@ -48,7 +48,7 @@ struct FlippableCardFaceView: View {
                     imageQuality: imageQuality,
                     aspectFit: aspectFit
                 )
-                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .clipShape(RoundedRectangle(cornerRadius: 16))
                 .opacity(showingBackFace ? 1 : 0)
                 .rotation3DEffect(
                     .degrees(showingBackFace ? 0 : -180),

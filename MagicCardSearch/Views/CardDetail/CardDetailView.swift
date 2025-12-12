@@ -42,7 +42,7 @@ struct CardDetailView: View {
                         imageQuality: .large,
                         aspectFit: true,
                     )
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
                     .shadow(color: .black.opacity(0.2), radius: 8, x: 0, y: 4)
                     .padding(.horizontal)
                     .padding(.bottom, 24)
@@ -910,7 +910,7 @@ private struct MinimalCardDetailView: View {
                                             imageQuality: .large,
                                             aspectFit: true,
                                         )
-                                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                                        .clipShape(RoundedRectangle(cornerRadius: 16))
                                         .padding(.horizontal)
                                         .padding(.top)
                                     }
