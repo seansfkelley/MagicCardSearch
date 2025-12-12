@@ -15,7 +15,6 @@ class HistorySuggestionProvider: SuggestionProvider {
     private var history: [HistoryEntry] = []
     private let maxHistoryCount = 1000
     private let persistenceKey = "filterHistory"
-    private let scorer = TimeWindowedScorer()
 
     // MARK: - Initialization
 
@@ -111,6 +110,11 @@ class HistorySuggestionProvider: SuggestionProvider {
             saveHistory()
         }
     }
+    
+    func deleteSearchFilter(_ filter: SearchFilter) {
+        history.removeAll { $0.filter == filter }
+        saveHistory()
+    }
 
     // MARK: - Private Helpers
 
@@ -124,16 +128,11 @@ class HistorySuggestionProvider: SuggestionProvider {
             let lhEntry = historyLookup[lhs.filter]
             let rhEntry = historyLookup[rhs.filter]
             
-            let lhScore = lhEntry.map { scorer.effectiveCount(from: $0.counts) } ?? 0
-            let rhScore = rhEntry.map { scorer.effectiveCount(from: $0.counts) } ?? 0
+            let lhScore = lhEntry.map { TimeWindowedScorer.effectiveCount($0.counts) } ?? 0
+            let rhScore = rhEntry.map { TimeWindowedScorer.effectiveCount($0.counts) } ?? 0
             
             return lhScore > rhScore
         }
-    }
-
-    func deleteSearchFilter(_ filter: SearchFilter) {
-        history.removeAll { $0.filter == filter }
-        saveHistory()
     }
 
     // MARK: - Persistence
@@ -231,17 +230,17 @@ struct TimeBucketedCounts: Codable {
 
 // MARK: - Scoring
 
-/// Scores entries by weighting recent usage much higher than old usage.
-/// Weights decay exponentially: 1d gets full weight, 365d gets almost nothing.
 private struct TimeWindowedScorer {
+    // ~Exponential decay.
     private let weights = (d1: 1.0, d3: 0.85, d7: 0.7, d14: 0.5, d30: 0.3, d90: 0.15, d365: 0.05)
     
-    /// Calculate effective count by weighting uses in different time windows
-    func effectiveCount(from counts: TimeBucketedCounts, at date: Date = Date()) -> Double {
-        // Age the counts first
-        let aged = counts.aged(to: date)
+    static func score(_ counts: TimeBucketedCounts) -> Double {
+        // Lazy-age on access.
+        let aged = counts.aged(to: Date())
         
-        // Convert inclusive buckets to exclusive
+        // Buckets are inclusive, that is, a usage today is considered a usage in all the time
+        // ranges. This makes rolling them forward minimally lossy, but means we have to subtract
+        // ranges like this to get what is unique to each span.
         let exclusive = (
             d1: aged.last1Day,
             d3: aged.last3Days - aged.last1Day,
