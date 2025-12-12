@@ -8,7 +8,6 @@
 
 /* Begin PBXBuildFile section */
 		213F299A2EE9285400E058DB /* SVGKitSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 213F29992EE9285400E058DB /* SVGKitSwift */; };
-		21A5FC7A2EE9E76E0034E695 /* .swiftlint.yml in Resources */ = {isa = PBXBuildFile; fileRef = 21A5FC512EE9E76E0034E695 /* .swiftlint.yml */; };
 		21A856BD2EE3AAE400E72541 /* ScryfallKit in Frameworks */ = {isa = PBXBuildFile; productRef = 21A856BC2EE3AAE400E72541 /* ScryfallKit */; };
 		21D3972C2EE225C5008B3EFD /* WrappingHStack in Frameworks */ = {isa = PBXBuildFile; productRef = 21D3972B2EE225C5008B3EFD /* WrappingHStack */; };
 /* End PBXBuildFile section */
@@ -47,10 +46,22 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		2118A0A12EECD1BC0009FA33 /* Exceptions for "ImageResources" folder in "MagicCardSearch" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				"delver-app-icon-original.png",
+				"delver-app-icon.png",
+				"delver-character.png",
+				"delver-header-icon.png",
+				"gemini-prompt.txt",
+			);
+			target = 2137B5AC2EE139C60066BF7E /* MagicCardSearch */;
+		};
 		21A815FA2EE2345B00282ED3 /* Exceptions for "Citron" folder in "MagicCardSearch" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				.gitignore,
+				citron,
 				citron.c,
 			);
 			target = 2137B5AC2EE139C60066BF7E /* MagicCardSearch */;
@@ -67,6 +78,9 @@
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		2118A06C2EECD0580009FA33 /* ImageResources */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				2118A0A12EECD1BC0009FA33 /* Exceptions for "ImageResources" folder in "MagicCardSearch" target */,
+			);
 			path = ImageResources;
 			sourceTree = "<group>";
 		};
@@ -325,7 +339,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				21A5FC7A2EE9E76E0034E695 /* .swiftlint.yml in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
