@@ -65,8 +65,8 @@ struct FilterTypeSuggestionProviderTests {
             ),
         ]
     )
-    func getSuggestions(input: String, expected: [(String, Range<Int>)]) {
-        let results = FilterTypeSuggestionProvider().getSuggestions(input, existingFilters: [], limit: Int.max)
+    func getSuggestions(input: String, expected: [(String, Range<Int>)]) async {
+        let results = await FilterTypeSuggestionProvider().getSuggestions(input, existingFilters: [], limit: Int.max)
         
         // TODO: Make this test body less horrible.
         

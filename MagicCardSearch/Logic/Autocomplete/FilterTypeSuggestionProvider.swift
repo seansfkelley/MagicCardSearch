@@ -6,7 +6,7 @@
 //
 struct FilterTypeSuggestionProvider: SuggestionProvider {
     // swiftlint:disable:next cyclomatic_complexity function_body_length
-    func getSuggestions(_ searchTerm: String, existingFilters: [SearchFilter], limit: Int) -> [Suggestion] {
+    func getSuggestions(_ searchTerm: String, existingFilters: [SearchFilter], limit: Int) async -> [Suggestion] {
         guard let match = try? /^(-?)([a-zA-Z]+)$/.wholeMatch(in: searchTerm) else {
             return []
         }

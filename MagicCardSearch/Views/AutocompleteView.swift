@@ -18,6 +18,8 @@ struct AutocompleteView: View {
     let filters: [SearchFilter]
     let onSuggestionTap: (AcceptedSuggestion) -> Void
     
+    @State private var suggestions: [Suggestion] = []
+    
     private let orderedEqualityComparison: [Comparison] = [
         .including,
         .equal,
@@ -33,11 +35,6 @@ struct AutocompleteView: View {
         .greaterThan,
         .notEqual,
     ]
-
-    private var suggestions: [Suggestion] {
-        // TODO: Convert filters to a set and cache it.
-        provider.getSuggestions(inputText, existingFilters: filters)
-    }
 
     var body: some View {
         List {
@@ -77,10 +74,20 @@ struct AutocompleteView: View {
                 case .enumeration(let suggestion):
                     enumerationRow(suggestion)
                         .listRowInsets(.vertical, 0)
+                
+                case .name(let suggestion):
+                    nameRow(suggestion)
+                        .listRowInsets(.vertical, 0)
                 }
             }
         }
         .listStyle(.plain)
+        .task(id: inputText) {
+            // Stream suggestions as they arrive from different providers
+            for await newSuggestions in provider.streamSuggestions(inputText, existingFilters: filters) {
+                suggestions = newSuggestions
+            }
+        }
     }
 
     private func historyRow(_ suggestion: HistorySuggestion) -> some View {
@@ -137,6 +144,30 @@ struct AutocompleteView: View {
                     )
             }
         }
+    }
+    
+    private func nameRow(_ suggestion: NameSuggestion) -> some View {
+        Button {
+            // Determine whether to create a quoted name filter or unquoted
+            let needsQuotes = suggestion.cardName.contains(" ")
+            let finalName = needsQuotes ? "\"\(suggestion.cardName)\"" : suggestion.cardName
+            let filterString = "\(suggestion.prefix)\(finalName)"
+            
+            onSuggestionTap(.string(filterString))
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "textformat.abc")
+                    .foregroundStyle(.secondary)
+                
+                HighlightedText(
+                    text: "\(suggestion.prefix)\(suggestion.cardName)",
+                    highlightRange: suggestion.matchRange
+                )
+                Spacer(minLength: 0)
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 }
 
@@ -279,6 +310,7 @@ struct HighlightedText: View {
             historyProvider: HistorySuggestionProvider(),
             filterProvider: FilterTypeSuggestionProvider(),
             enumerationProvider: EnumerationSuggestionProvider(),
+            nameProvider: NameSuggestionProvider()
         ),
         filters: [],
     ) { suggestion in
@@ -293,6 +325,7 @@ struct HighlightedText: View {
             historyProvider: HistorySuggestionProvider(),
             filterProvider: FilterTypeSuggestionProvider(),
             enumerationProvider: EnumerationSuggestionProvider(),
+            nameProvider: NameSuggestionProvider()
         ),
         filters: [],
     ) { suggestion in
@@ -307,6 +340,22 @@ struct HighlightedText: View {
             historyProvider: HistorySuggestionProvider(),
             filterProvider: FilterTypeSuggestionProvider(),
             enumerationProvider: EnumerationSuggestionProvider(),
+            nameProvider: NameSuggestionProvider()
+        ),
+        filters: [],
+    ) { suggestion in
+        print("Selected: \(suggestion)")
+    }
+}
+
+#Preview("Name Suggestions") {
+    AutocompleteView(
+        inputText: "Black Lot",
+        provider: SuggestionMuxer(
+            historyProvider: HistorySuggestionProvider(),
+            filterProvider: FilterTypeSuggestionProvider(),
+            enumerationProvider: EnumerationSuggestionProvider(),
+            nameProvider: NameSuggestionProvider()
         ),
         filters: [],
     ) { suggestion in

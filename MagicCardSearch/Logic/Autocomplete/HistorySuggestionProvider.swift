@@ -54,7 +54,7 @@ class HistorySuggestionProvider: SuggestionProvider {
 
     // MARK: - Public Methods
 
-    func getSuggestions(_ searchTerm: String, existingFilters: [SearchFilter], limit: Int) -> [Suggestion] {
+    func getSuggestions(_ searchTerm: String, existingFilters: [SearchFilter], limit: Int) async -> [Suggestion] {
         let trimmedSearchTerm = searchTerm.trimmingCharacters(in: .whitespaces)
         
         return Array(

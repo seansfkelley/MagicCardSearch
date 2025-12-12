@@ -8,6 +8,7 @@ enum Suggestion: Equatable {
     case history(HistorySuggestion)
     case filter(FilterTypeSuggestion)
     case enumeration(EnumerationSuggestion)
+    case name(NameSuggestion)
 }
 
 struct HistorySuggestion: Equatable {
@@ -33,6 +34,12 @@ struct EnumerationSuggestion: Equatable {
     let options: [Option]
 }
 
+struct NameSuggestion: Equatable {
+    let prefix: String
+    let cardName: String
+    let matchRange: Range<String.Index>?
+}
+
 protocol SuggestionProvider {
-    func getSuggestions(_ searchTerm: String, existingFilters: [SearchFilter], limit: Int) -> [Suggestion]
+    func getSuggestions(_ searchTerm: String, existingFilters: [SearchFilter], limit: Int) async -> [Suggestion]
 }

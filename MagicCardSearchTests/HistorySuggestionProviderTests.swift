@@ -25,19 +25,19 @@ struct HistorySuggestionProviderTests {
     // MARK: - Basic Functionality Tests
     
     @Test("Empty provider returns no suggestions")
-    func emptySuggestions() {
+    func emptySuggestions() async {
         let provider = createProvider()
-        let suggestions = provider.getSuggestions("", existingFilters: [], limit: 10)
+        let suggestions = await provider.getSuggestions("", existingFilters: [], limit: 10)
         #expect(suggestions.isEmpty)
     }
     
     @Test("Records and retrieves single filter")
-    func singleFilter() {
+    func singleFilter() async {
         let provider = createProvider()
         let filter = makeFilter("color=red")
         
         provider.recordFilterUsage(filter)
-        let suggestions = provider.getSuggestions("", existingFilters: [], limit: 10)
+        let suggestions = await provider.getSuggestions("", existingFilters: [], limit: 10)
         
         #expect(suggestions.count == 1)
         guard case .history(let suggestion) = suggestions[0] else {
@@ -50,7 +50,7 @@ struct HistorySuggestionProviderTests {
     }
     
     @Test("Records multiple filters")
-    func multipleFilters() {
+    func multipleFilters() async {
         let provider = createProvider()
         let filters = [
             makeFilter("color=red"),
@@ -62,7 +62,7 @@ struct HistorySuggestionProviderTests {
             provider.recordFilterUsage(filter)
         }
         
-        let suggestions = provider.getSuggestions("", existingFilters: [], limit: 10)
+        let suggestions = await provider.getSuggestions("", existingFilters: [], limit: 10)
         #expect(suggestions.count == 3)
     }
     
@@ -81,7 +81,7 @@ struct HistorySuggestionProviderTests {
         
         provider.recordFilterUsage(newFilter)
         
-        let suggestions = provider.getSuggestions("", existingFilters: [], limit: 10)
+        let suggestions = await provider.getSuggestions("", existingFilters: [], limit: 10)
         #expect(suggestions.count == 2)
         
         guard case .history(let first) = suggestions[0],
@@ -108,7 +108,7 @@ struct HistorySuggestionProviderTests {
         provider.recordFilterUsage(pinnedFilter)
         provider.pinSearchFilter(pinnedFilter)
         
-        let suggestions = provider.getSuggestions("", existingFilters: [], limit: 10)
+        let suggestions = await provider.getSuggestions("", existingFilters: [], limit: 10)
         #expect(suggestions.count == 2)
         
         guard case .history(let first) = suggestions[0],
@@ -125,7 +125,7 @@ struct HistorySuggestionProviderTests {
     }
     
     @Test("Sorts alphabetically when dates are equal")
-    func alphabeticalSorting() {
+    func alphabeticalSorting() async {
         let provider = createProvider()
         let filterA = makeFilter("color=red")
         let filterB = makeFilter("type=creature")
@@ -136,20 +136,20 @@ struct HistorySuggestionProviderTests {
         provider.recordFilterUsage(filterA)
         
         // Both should have very similar timestamps, alphabetical ordering should take effect
-        let suggestions = provider.getSuggestions("", existingFilters: [], limit: 10)
+        let suggestions = await provider.getSuggestions("", existingFilters: [], limit: 10)
         #expect(suggestions.count == 2)
     }
     
     // MARK: - Search/Filtering Tests
     
     @Test("Filters by search term")
-    func searchTermFiltering() {
+    func searchTermFiltering() async {
         let provider = createProvider()
         provider.recordFilterUsage(makeFilter("color=red"))
         provider.recordFilterUsage(makeFilter("type=creature"))
         provider.recordFilterUsage(makeFilter("manavalue=3"))
         
-        let suggestions = provider.getSuggestions("col", existingFilters: [], limit: 10)
+        let suggestions = await provider.getSuggestions("col", existingFilters: [], limit: 10)
         #expect(suggestions.count == 1)
         
         guard case .history(let suggestion) = suggestions[0] else {
@@ -161,11 +161,11 @@ struct HistorySuggestionProviderTests {
     }
     
     @Test("Case insensitive search")
-    func caseInsensitiveSearch() {
+    func caseInsensitiveSearch() async {
         let provider = createProvider()
         provider.recordFilterUsage(makeFilter("color=red"))
         
-        let suggestions = provider.getSuggestions("COL", existingFilters: [], limit: 10)
+        let suggestions = await provider.getSuggestions("COL", existingFilters: [], limit: 10)
         #expect(suggestions.count == 1)
         
         guard case .history(let suggestion) = suggestions[0] else {

@@ -29,7 +29,8 @@ struct ContentView: View {
         _autocompleteProvider = State(initialValue: SuggestionMuxer(
             historyProvider: historySuggestionProvider,
             filterProvider: FilterTypeSuggestionProvider(),
-            enumerationProvider: EnumerationSuggestionProvider()
+            enumerationProvider: EnumerationSuggestionProvider(),
+            nameProvider: NameSuggestionProvider()
         ))
     }
     
