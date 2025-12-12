@@ -40,7 +40,7 @@ private let baseSymbolCodes = Set([
     "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10",
     "11", "12", "13", "14", "15", "16", "20", "1000000", "x", "y", "z",
 
-    // Phyrexian mana, which never appears alone but is nevertheless a base symbol type
+    // Phyrexian mana, which does not (yet) appear alone
     "p",
 
     // Other symbols
@@ -52,11 +52,13 @@ private let noncircledSymbolCodes = Set(["e", "chaos"])
 struct MtgSymbolView: View {
     let symbol: String
     let size: CGFloat
+    let oversize: CGFloat
     let showDropShadow: Bool
 
-    init(_ symbol: String, size: CGFloat = 16, showDropShadow: Bool = false) {
+    init(_ symbol: String, size: CGFloat = 16, oversize: CGFloat? = nil, showDropShadow: Bool = false) {
         self.symbol = symbol
         self.size = size
+        self.oversize = floor(oversize ?? size * 1.25)
         self.showDropShadow = showDropShadow
     }
 
@@ -64,17 +66,28 @@ struct MtgSymbolView: View {
         let cleaned = symbol.trimmingCharacters(in: CharacterSet(charactersIn: "{}")).lowercased()
         if noncircledSymbolCodes.contains(cleaned) {
             noncircled(cleaned)
+        } else if cleaned == "p" {
+            phyrexian("c")
         } else if baseSymbolCodes.contains(cleaned) {
             basic(cleaned)
         } else {
             let parts = cleaned.split(separator: "/")
-            if parts.count == 2 {
+            if parts.count == 3 && parts.last == "p" {
+                let left = String(parts[0])
+                let right = String(parts[2])
+                
+                if baseSymbolCodes.contains(left) && baseSymbolCodes.contains(right) {
+                    hybridPhyrexian(left, right)
+                } else {
+                    unknown(cleaned)
+                }
+            } else if parts.count == 2 {
                 let left = String(parts[0])
                 let right = String(parts[1])
 
                 if baseSymbolCodes.contains(left) && baseSymbolCodes.contains(right) {
-                    if right == "p", let color = ManaColor.fromSymbolCode(left) {
-                        phyrexian(color)
+                    if right == "p" {
+                        phyrexian(left)
                     } else {
                         hybrid(left, right)
                     }
@@ -115,23 +128,24 @@ struct MtgSymbolView: View {
         }
     }
 
-    private func phyrexian(_ color: ManaColor) -> some View {
+    private func phyrexian(_ symbol: String) -> some View {
+        let color = ManaColor.fromSymbolCode(symbol) ?? .colorless
         return ZStack {
             if showDropShadow {
                 Circle()
                     .fill(.black)
-                    .frame(width: size, height: size)
+                    .frame(width: oversize, height: oversize)
                     .offset(x: -1, y: 1)
             }
             
             Circle()
                 .fill(color.uiColor)
-                .frame(width: size, height: size)
+                .frame(width: oversize, height: oversize)
 
             Image("p")
                 .resizable()
                 .aspectRatio(contentMode: .fit)
-                .frame(width: size * 0.8, height: size * 0.8)
+                .frame(width: oversize * 0.8, height: oversize * 0.8)
         }
     }
 
@@ -143,7 +157,7 @@ struct MtgSymbolView: View {
             if showDropShadow {
                 Circle()
                     .fill(.black)
-                    .frame(width: size, height: size)
+                    .frame(width: oversize, height: oversize)
                     .offset(x: -1, y: 1)
             }
             
@@ -160,20 +174,24 @@ struct MtgSymbolView: View {
                         endPoint: .bottomTrailing
                     )
                 )
-                .frame(width: size, height: size)
+                .frame(width: oversize, height: oversize)
 
             Image(left)
                 .resizable()
                 .aspectRatio(contentMode: .fit)
-                .frame(width: size * 0.4, height: size * 0.4)
-                .offset(x: -size * 0.16, y: -size * 0.16)
+                .frame(width: oversize * 0.4, height: oversize * 0.4)
+                .offset(x: -oversize * 0.16, y: -oversize * 0.16)
 
             Image(right)
                 .resizable()
                 .aspectRatio(contentMode: .fit)
-                .frame(width: size * 0.4, height: size * 0.4)
-                .offset(x: size * 0.175, y: size * 0.175)
+                .frame(width: oversize * 0.4, height: oversize * 0.4)
+                .offset(x: oversize * 0.175, y: oversize * 0.175)
         }
+    }
+    
+    private func hybridPhyrexian(_ left: String, _ right: String) -> some View {
+        unknown("tmp")
     }
 
     private func unknown(_ symbol: String) -> some View {
@@ -270,6 +288,24 @@ struct MtgSymbolView: View {
                     MtgSymbolView("{2/B}", size: 32)
                     MtgSymbolView("{2/R}", size: 32)
                     MtgSymbolView("{2/G}", size: 32)
+                }
+            }
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Hybrid Phyrexian")
+                    .font(.headline)
+                HStack(spacing: 8) {
+                    MtgSymbolView("{W/U/P}", size: 32)
+                    MtgSymbolView("{W/B/P}", size: 32)
+                    MtgSymbolView("{U/B/P}", size: 32)
+                    MtgSymbolView("{U/R/P}", size: 32)
+                    MtgSymbolView("{B/R/P}", size: 32)
+                }
+                HStack(spacing: 8) {
+                    MtgSymbolView("{B/G/P}", size: 32)
+                    MtgSymbolView("{R/W/P}", size: 32)
+                    MtgSymbolView("{R/G/P}", size: 32)
+                    MtgSymbolView("{G/W/P}", size: 32)
+                    MtgSymbolView("{G/U/P}", size: 32)
                 }
             }
             VStack(alignment: .leading, spacing: 8) {
