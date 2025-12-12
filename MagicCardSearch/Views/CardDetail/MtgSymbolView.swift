@@ -7,31 +7,6 @@
 
 import SwiftUI
 
-enum ManaColor: String {
-    case white = "WhiteManaColor"
-    case blue = "BlueManaColor"
-    case black = "BlackManaColor"
-    case red = "RedManaColor"
-    case green = "GreenManaColor"
-    case colorless = "ColorlessManaColor"
-
-    static func fromSymbolCode(_ code: String) -> ManaColor? {
-        return switch code.lowercased() {
-        case "w": .white
-        case "u": .blue
-        case "b": .black
-        case "r": .red
-        case "g": .green
-        case "c": .colorless
-        default: nil
-        }
-    }
-    
-    var uiColor: Color {
-        return Color(self.rawValue)
-    }
-}
-
 private let baseSymbolCodes = Set([
     // Colors/colorless mana
     "w", "u", "b", "r", "g", "c",
@@ -100,6 +75,19 @@ struct MtgSymbolView: View {
         }
     }
     
+    private func color(_ symbol: String, saturated: Bool = false) -> Color {
+        let color = switch symbol {
+        case "w": saturated ? "WhiteSaturatedManaColor" : "WhiteManaColor"
+        case "u": saturated ? "BlueSaturatedManaColor" : "BlueManaColor"
+        case "b": saturated ? "BlackSaturatedManaColor" : "BlackManaColor"
+        case "r": saturated ? "RedSaturatedManaColor" : "RedManaColor"
+        case "g": saturated ? "GreenSaturatedManaColor" : "GreenManaColor"
+        case "c": "ColorlessManaColor"
+        default: "ColorlessManaColor"
+        }
+        return Color(color)
+    }
+    
     private func noncircled(_ symbol: String) -> some View {
         return Image(symbol)
             .resizable()
@@ -108,7 +96,6 @@ struct MtgSymbolView: View {
     }
     
     private func basic(_ symbol: String) -> some View {
-        let color = ManaColor.fromSymbolCode(symbol) ?? .colorless
         return ZStack {
             if showDropShadow {
                 Circle()
@@ -118,7 +105,7 @@ struct MtgSymbolView: View {
             }
             
             Circle()
-                .fill(color.uiColor)
+                .fill(color(symbol))
                 .frame(width: size, height: size)
             
             Image(symbol)
@@ -129,7 +116,6 @@ struct MtgSymbolView: View {
     }
 
     private func phyrexian(_ symbol: String) -> some View {
-        let color = ManaColor.fromSymbolCode(symbol) ?? .colorless
         return ZStack {
             if showDropShadow {
                 Circle()
@@ -139,7 +125,7 @@ struct MtgSymbolView: View {
             }
             
             Circle()
-                .fill(color.uiColor)
+                .fill(color(symbol, saturated: true))
                 .frame(width: oversize, height: oversize)
 
             Image("p")
@@ -150,8 +136,9 @@ struct MtgSymbolView: View {
     }
 
     private func hybrid(_ left: String, _ right: String) -> some View {
-        let leftColor = ManaColor.fromSymbolCode(left) ?? .colorless
-        let rightColor = ManaColor.fromSymbolCode(right) ?? .colorless
+        let leftColor = color(left)
+        // Annoying special case they use to help notice it's a hybrid symbol.
+        let rightColor = color(right, saturated: left == "2" && right == "b")
 
         return ZStack {
             if showDropShadow {
@@ -165,10 +152,10 @@ struct MtgSymbolView: View {
                 .fill(
                     LinearGradient(
                         stops: [
-                            .init(color: leftColor.uiColor, location: 0.0),
-                            .init(color: leftColor.uiColor, location: 0.5),
-                            .init(color: rightColor.uiColor, location: 0.5),
-                            .init(color: rightColor.uiColor, location: 1.0),
+                            .init(color: leftColor, location: 0.0),
+                            .init(color: leftColor, location: 0.5),
+                            .init(color: rightColor, location: 0.5),
+                            .init(color: rightColor, location: 1.0),
                         ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing

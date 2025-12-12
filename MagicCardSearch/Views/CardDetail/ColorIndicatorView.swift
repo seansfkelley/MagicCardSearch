@@ -76,7 +76,7 @@ struct ColorIndicatorView: View {
     private func unknown() -> some View {
         ZStack {
             Circle()
-                .fill(ManaColor.colorless.uiColor)
+                .fill(Color("ColorlessManaColor"))
                 .frame(width: size, height: size)
             
             Text("?")
