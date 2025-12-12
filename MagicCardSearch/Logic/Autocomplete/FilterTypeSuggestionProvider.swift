@@ -29,7 +29,11 @@ struct FilterTypeSuggestionProvider: SuggestionProvider {
             
             for candidate in filterType.names {
                 if let range = candidate.range(of: filterName, options: .caseInsensitive) {
-                    let match = FilterTypeSuggestion(filterType: candidate, matchRange: range)
+                    let match = FilterTypeSuggestion(
+                        filterType: candidate,
+                        matchRange: range,
+                        comparisonKinds: filterType.comparisonKinds,
+                    )
                     if let existing = bestMatch {
                         if range.lowerBound == candidate.startIndex && existing.matchRange.lowerBound != existing.filterType.startIndex {
                             bestMatch = match
@@ -57,13 +61,14 @@ struct FilterTypeSuggestionProvider: SuggestionProvider {
             }
         }
         
-        if exactMatch != nil {
+        if let exactMatch {
             let filterType = String(filterName) // make it not a substring so the indices are sane
             suggestions
                 .insert(
                     FilterTypeSuggestion(
                         filterType: filterType,
                         matchRange: filterType.startIndex..<filterType.endIndex,
+                        comparisonKinds: exactMatch.comparisonKinds,
                     ),
                     at: 0
                 )
@@ -74,7 +79,8 @@ struct FilterTypeSuggestionProvider: SuggestionProvider {
                 let prefixed = "\(negated)\($0.filterType)"
                 return FilterTypeSuggestion(
                     filterType: prefixed,
-                    matchRange: prefixed.index(after: $0.matchRange.lowerBound)..<prefixed.index(after: $0.matchRange.upperBound)
+                    matchRange: prefixed.index(after: $0.matchRange.lowerBound)..<prefixed.index(after: $0.matchRange.upperBound),
+                    comparisonKinds: $0.comparisonKinds,
                 )
             }
         }

@@ -18,7 +18,13 @@ struct AutocompleteView: View {
     let filters: [SearchFilter]
     let onSuggestionTap: (AcceptedSuggestion) -> Void
     
-    private let orderedComparisons: [Comparison] = [
+    private let orderedEqualityComparison: [Comparison] = [
+        .including,
+        .equal,
+        .notEqual,
+    ]
+    
+    private let orderedAllComparisons: [Comparison] = [
         .including,
         .equal,
         .lessThan,
@@ -110,7 +116,7 @@ struct AutocompleteView: View {
             HorizontallyScrollablePillSelector(
                 label: suggestion.filterType,
                 labelRange: suggestion.matchRange,
-                options: orderedComparisons,
+                options: suggestion.comparisonKinds == .all ? orderedAllComparisons : orderedEqualityComparison,
             ) { comparison in
                 onSuggestionTap(.string("\(suggestion.filterType)\(comparison.rawValue)"))
             }

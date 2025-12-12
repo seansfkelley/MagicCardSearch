@@ -10,16 +10,25 @@ import Foundation
 // MARK: - Scryfall Filter Type
 
 struct ScryfallFilterType {
+    enum ComparisonKinds {
+        case all, equality
+    }
+    
     let canonicalName: String
     let aliases: Set<String>
     let enumerationValues: Set<String>?
-    let supportsNumeric: Bool
+    let comparisonKinds: ComparisonKinds
     
-    init(_ name: String, _ aliases: Set<String> = [], enumerationValues: Set<String>? = nil, supportsNumeric: Bool = false) {
+    init(
+        _ name: String,
+        _ aliases: Set<String> = [],
+        enumerationValues: Set<String>? = nil,
+        comparisonKinds: ComparisonKinds = .equality
+    ) {
         self.canonicalName = name
         self.aliases = aliases
         self.enumerationValues = enumerationValues
-        self.supportsNumeric = supportsNumeric
+        self.comparisonKinds = comparisonKinds
     }
     
     // TODO: Cache this.
@@ -84,8 +93,8 @@ private let scryfallIsEnumerationValues = Set([
 // translated from https://scryfall.com/docs/syntax and kept in the same order/categories
 let scryfallFilterTypes: [ScryfallFilterType] = [
     // MARK: - Color and Color Identity
-    .init("color", ["c"], enumerationValues: scryfallColorAliases),
-    .init("identity", ["id"], enumerationValues: scryfallColorAliases),
+    .init("color", ["c"], enumerationValues: scryfallColorAliases, comparisonKinds: .all),
+    .init("identity", ["id"], enumerationValues: scryfallColorAliases, comparisonKinds: .all),
     // see also `has`
     
     // MARK: - Card Types
@@ -98,16 +107,16 @@ let scryfallFilterTypes: [ScryfallFilterType] = [
     
     // MARK: - Mana Costs
     .init("mana", ["m"]),
-    .init("manavalue", ["mv"], enumerationValues: ["even", "odd"], supportsNumeric: true),
+    .init("manavalue", ["mv"], enumerationValues: ["even", "odd"], comparisonKinds: .all),
     .init("devotion"),
     .init("produces"),
     // see also `is`
     
     // MARK: - Power, Toughness, and Loyalty
-    .init("power", ["pow"], enumerationValues: ["toughness", "tou", "powtou", "pt", "loyalty", "loy"], supportsNumeric: true),
-    .init("toughness", ["tou"], enumerationValues: ["power", "pow", "powtou", "pt", "loyalty", "loy"], supportsNumeric: true),
-    .init("powtou", ["pt"], enumerationValues: ["power", "pow", "toughness", "tou", "loyalty", "loy"], supportsNumeric: true),
-    .init("loyalty", ["loy"], enumerationValues: ["power", "pow", "toughness", "tou", "powtou", "pt"], supportsNumeric: true),
+    .init("power", ["pow"], enumerationValues: ["toughness", "tou", "powtou", "pt", "loyalty", "loy"], comparisonKinds: .all),
+    .init("toughness", ["tou"], enumerationValues: ["power", "pow", "powtou", "pt", "loyalty", "loy"], comparisonKinds: .all),
+    .init("powtou", ["pt"], enumerationValues: ["power", "pow", "toughness", "tou", "loyalty", "loy"], comparisonKinds: .all),
+    .init("loyalty", ["loy"], enumerationValues: ["power", "pow", "toughness", "tou", "powtou", "pt"], comparisonKinds: .all),
     
     // MARK: - Multi-faced Cards
     // empty
@@ -122,12 +131,17 @@ let scryfallFilterTypes: [ScryfallFilterType] = [
     // see also `is`
     
     // MARK: - Rarity
-    .init("rarity", ["r"], enumerationValues: ["common", "uncommon", "rare", "mythic", "special", "bonus"]),
+    .init(
+        "rarity",
+        ["r"],
+        enumerationValues: ["common", "uncommon", "rare", "mythic", "special", "bonus"],
+        comparisonKinds: .all,
+    ),
     // see also `new` and `in`
     
     // MARK: - Sets and Blocks
     .init("set", ["s", "edition", "e"]), // n.b. technically this would be an enumeration but there are tooooooo many and they change too often
-    .init("number", ["cn"], supportsNumeric: true),
+    .init("number", ["cn"], comparisonKinds: .all),
     .init("block", ["b"]), // n.b. technically this would be an enumeration but there are tooooooo many also
     .init("st", enumerationValues: [
         // primary product types
@@ -152,16 +166,16 @@ let scryfallFilterTypes: [ScryfallFilterType] = [
     // see also `is`
     
     // MARK: - USD/EUR/TIX prices
-    .init("usd", supportsNumeric: true),
-    .init("eur", supportsNumeric: true),
-    .init("tix", supportsNumeric: true),
+    .init("usd", comparisonKinds: .all),
+    .init("eur", comparisonKinds: .all),
+    .init("tix", comparisonKinds: .all),
     .init("cheapest", enumerationValues: ["usd", "eur", "tix"]),
     
     // MARK: - Artist, Flavor Text and Watermark
-    .init("artist", ["a"], supportsNumeric: true),
+    .init("artist", ["a"], comparisonKinds: .all),
     .init("flavor", ["ft"]),
     .init("watermark", ["wm"]),
-    .init("illustrations", supportsNumeric: true),
+    .init("illustrations", comparisonKinds: .all),
     // see also `has` and `new`
     
     // MARK: - Border, Frame, Foil & Resolution
@@ -175,17 +189,22 @@ let scryfallFilterTypes: [ScryfallFilterType] = [
     // see also `in`
     
     // MARK: - Year
-    .init("year", enumerationValues: ["now", "today"]), // n.b. would also include sets, but, you know
+    .init(
+        "year",
+        // n.b. would also include sets, but, you know
+        enumerationValues: ["now", "today"],
+        comparisonKinds: .all
+    ),
     
     // MARK: - Tagger Tags
     .init("art", ["atag", "arttag"]),
     .init("function", ["otag", "oracletag"]),
     
     // MARK: - Reprints
-    .init("prints", supportsNumeric: true),
-    .init("sets", supportsNumeric: true),
-    .init("paperprints", supportsNumeric: true),
-    .init("papersets", supportsNumeric: true),
+    .init("prints", comparisonKinds: .all),
+    .init("sets", comparisonKinds: .all),
+    .init("paperprints", comparisonKinds: .all),
+    .init("papersets", comparisonKinds: .all),
     // see also `is`
     
     // MARK: - Languages

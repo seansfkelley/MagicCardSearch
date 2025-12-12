@@ -19,6 +19,7 @@ struct HistorySuggestion: Equatable {
 struct FilterTypeSuggestion: Equatable {
     let filterType: String
     let matchRange: Range<String.Index>
+    let comparisonKinds: ScryfallFilterType.ComparisonKinds
 }
 
 struct EnumerationSuggestion: Equatable {
