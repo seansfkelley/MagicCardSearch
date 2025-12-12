@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct SuggestionMuxer: SuggestionProvider {
+struct SuggestionMuxer {
     let historyProvider: SuggestionProvider
     let filterProvider: SuggestionProvider
     let enumerationProvider: SuggestionProvider
@@ -15,14 +15,14 @@ struct SuggestionMuxer: SuggestionProvider {
     func getSuggestions(_ searchTerm: String, existingFilters: [SearchFilter]) -> [Suggestion] {
         var suggestions: [Suggestion] = []
         
-        let historySuggestions = historyProvider.getSuggestions(searchTerm, existingFilters: existingFilters)
-        suggestions.append(contentsOf: historySuggestions.prefix(10))
+        let historySuggestions = historyProvider.getSuggestions(searchTerm, existingFilters: existingFilters, limit: 10)
+        suggestions.append(contentsOf: historySuggestions)
         
-        let filterSuggestions = filterProvider.getSuggestions(searchTerm, existingFilters: existingFilters)
-        suggestions.append(contentsOf: filterSuggestions.prefix(4))
+        let filterSuggestions = filterProvider.getSuggestions(searchTerm, existingFilters: existingFilters, limit: 4)
+        suggestions.append(contentsOf: filterSuggestions)
         
-        let enumerationSuggestions = enumerationProvider.getSuggestions(searchTerm, existingFilters: existingFilters)
-        suggestions.append(contentsOf: enumerationSuggestions.prefix(1))
+        let enumerationSuggestions = enumerationProvider.getSuggestions(searchTerm, existingFilters: existingFilters, limit: 1)
+        suggestions.append(contentsOf: enumerationSuggestions)
         
         return suggestions
     }

@@ -5,9 +5,14 @@
 //  Created by Sean Kelley on 2025-12-11.
 //
 struct EnumerationSuggestionProvider: SuggestionProvider {
-    func getSuggestions(_ searchTerm: String, existingFilters: [SearchFilter]) -> [Suggestion] {
+    func getSuggestions(_ searchTerm: String, existingFilters: [SearchFilter], limit: Int) -> [Suggestion] {
         // Some enumeration types, like rarity, are considered orderable, hence the comparison operators here.
         guard let match = try? /^(-?)([a-zA-Z]+)(:|=|!=|>=|>|<=|<)/.prefixMatch(in: searchTerm) else {
+            return []
+        }
+        
+        // We return at most one, so this is the only necessary check.
+        if limit <= 0 {
             return []
         }
         

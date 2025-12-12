@@ -33,5 +33,5 @@ struct EnumerationSuggestion: Equatable {
 }
 
 protocol SuggestionProvider {
-    func getSuggestions(_ searchTerm: String, existingFilters: [SearchFilter]) -> [Suggestion]
+    func getSuggestions(_ searchTerm: String, existingFilters: [SearchFilter], limit: Int) -> [Suggestion]
 }

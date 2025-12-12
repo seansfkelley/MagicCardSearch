@@ -12,7 +12,10 @@ import Observation
 class HistorySuggestionProvider: SuggestionProvider {
     // MARK: - Properties
 
-    private var history: [HistoryEntry] = []
+    private var historyByFilter: [SearchFilter: HistoryEntry] = [:]
+    
+    private var sortedCache: [HistoryEntry]?
+    
     private let maxHistoryCount = 1000
     private let persistenceKey = "filterHistory"
 
@@ -21,42 +24,63 @@ class HistorySuggestionProvider: SuggestionProvider {
     init() {
         loadHistory()
     }
+    
+    private var sortedHistory: [HistoryEntry] {
+        if let cached = sortedCache {
+            return cached
+        }
+        
+        let sorted = historyByFilter.values.sorted { lhs, rhs in
+            if lhs.isPinned != rhs.isPinned {
+                return lhs.isPinned
+            }
+            
+            let lhScore = TimeWindowedScorer.score(lhs.counts)
+            let rhScore = TimeWindowedScorer.score(rhs.counts)
+            return lhScore > rhScore
+        }
+        
+        sortedCache = sorted
+        return sorted
+    }
+    
+    private func invalidateCache() {
+        sortedCache = nil
+    }
 
     // MARK: - Public Methods
     
-    func getSuggestions(_ searchTerm: String, existingFilters: [SearchFilter])
-    -> [Suggestion] {
-        let availableHistory = history.filter { !existingFilters.contains($0.filter) }
+    func getSuggestions(_ searchTerm: String, existingFilters: [SearchFilter], limit: Int) -> [Suggestion] {
+        // Filter out already-used filters
+        let available = sortedHistory.filter { !existingFilters.contains($0.filter) }
         
         let trimmedSearchTerm = searchTerm.trimmingCharacters(in: .whitespaces)
         
+        // Empty search: return top N by score
         if trimmedSearchTerm.isEmpty {
-            let historySuggestions = availableHistory.map {
-                HistorySuggestion(
+            return Array(available.prefix(limit)).map {
+                .history(HistorySuggestion(
                     filter: $0.filter,
                     isPinned: $0.isPinned,
                     matchRange: nil
-                )
-            }
-            let historyLookup = Dictionary(uniqueKeysWithValues: availableHistory.map { ($0.filter, $0) })
-            return Array(sortResults(historySuggestions, historyLookup: historyLookup).prefix(10)).map { .history($0) }
-        }
-
-        var results: [HistorySuggestion] = []
-
-        for entry in availableHistory {
-            let filterString = entry.filter.queryStringWithEditingRange.0
-            if let range = filterString.range(of: trimmedSearchTerm, options: .caseInsensitive) {
-                results.append(HistorySuggestion(
-                    filter: entry.filter,
-                    isPinned: entry.isPinned,
-                    matchRange: range
                 ))
             }
         }
 
-        let historyLookup = Dictionary(uniqueKeysWithValues: availableHistory.map { ($0.filter, $0) })
-        return Array(sortResults(results, historyLookup: historyLookup).prefix(10)).map { .history($0) }
+        // Non-empty search: substring match
+        let results = available.compactMap { entry -> HistorySuggestion? in
+            let filterString = entry.filter.queryStringWithEditingRange.0
+            guard let range = filterString.range(of: trimmedSearchTerm, options: .caseInsensitive) else {
+                return nil
+            }
+            return HistorySuggestion(
+                filter: entry.filter,
+                isPinned: entry.isPinned,
+                matchRange: range
+            )
+        }
+
+        return Array(results.prefix(10)).map { .history($0) }
     }
 
     // TODO: This implementation sucks.
@@ -232,7 +256,7 @@ struct TimeBucketedCounts: Codable {
 
 private struct TimeWindowedScorer {
     // ~Exponential decay.
-    private let weights = (d1: 1.0, d3: 0.85, d7: 0.7, d14: 0.5, d30: 0.3, d90: 0.15, d365: 0.05)
+    private static let weights = (d1: 1.0, d3: 0.85, d7: 0.7, d14: 0.5, d30: 0.3, d90: 0.15, d365: 0.05)
     
     static func score(_ counts: TimeBucketedCounts) -> Double {
         // Lazy-age on access.

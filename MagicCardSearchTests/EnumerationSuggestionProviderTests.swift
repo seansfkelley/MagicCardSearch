@@ -94,8 +94,6 @@ struct EnumerationSuggestionProviderTests {
         ),
     ])
     func getSuggestions(input: String, expected: [EnumerationSuggestion]) {
-        #expect(EnumerationSuggestionProvider().getSuggestions(input, existingFilters: []) == expected)
+        #expect(EnumerationSuggestionProvider().getSuggestions(input, existingFilters: [], limit: 1) == expected)
     }
 }
-
-
