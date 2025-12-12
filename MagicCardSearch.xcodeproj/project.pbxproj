@@ -65,6 +65,11 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		2118A06C2EECD0580009FA33 /* ImageResources */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = ImageResources;
+			sourceTree = "<group>";
+		};
 		2137B5AF2EE139C60066BF7E /* MagicCardSearch */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
@@ -130,6 +135,7 @@
 			isa = PBXGroup;
 			children = (
 				218CC5EF2EEB7D3900EDB315 /* scratch */,
+				2118A06C2EECD0580009FA33 /* ImageResources */,
 				21D3976C2EE23306008B3EFD /* README.md */,
 				211396112EE9E39500093873 /* CLAUDE.md */,
 				21A5FC512EE9E76E0034E695 /* .swiftlint.yml */,
@@ -197,6 +203,7 @@
 				21A815F82EE2340000282ED3 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
+				2118A06C2EECD0580009FA33 /* ImageResources */,
 				2137B5AF2EE139C60066BF7E /* MagicCardSearch */,
 				218CC5EF2EEB7D3900EDB315 /* scratch */,
 				21D397682EE232F0008B3EFD /* Citron */,

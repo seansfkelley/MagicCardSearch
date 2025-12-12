@@ -1,0 +1,9 @@
+A square app icon design for a Magic: The Gathering card search app called "Delver." The style is high-contrast, low-detail, dark, mystical fantasy art, suitable for a mobile game icon.
+
+**Central Subject:** A stylized, simplified depiction of the Delver of Secrets creature. Show a human figure in dark, midnight-blue robes and a deep, shadow-casting hood, obscuring their face. The figure is floating or standing against a swirling, dark-blue and violet void background. The figure holds a glowing, bright cyan/electric blue orb of energy in their outstretched hand, with a prominent water droplet icon inside it (representing the Blue Mana symbol).
+
+**Background/Overlay:** A faint, ghostly outline of a standard Magic: The Gathering card frame is visible behind the figure, suggesting a card being "revealed" or "found." Ensure only the outlines of the art box, type line, and text box are visible, without any text or symbols.
+
+**Border & Frame:** The central image is surrounded by a thick, elaborate, circular border made of metallic silver or pewter. This border is inscribed with runic, ancient-looking characters reminiscent of Norse or fantasy script, giving it a weathered, mystical, artifact-like quality. The entire icon has a similar metallic texture extending to the square edges, which then fades out to a solid black frame/background.
+
+**Text:** The word "DELVER" must be at the very bottom of the square image. The text should be rendered in a large, bold, fantasy-style font with a metallic silver or blue/gray coloring. The text must have an illuminated or glowing electric blue outline/effect. **Crucially, the word "DELVER" must be stretched or sized to fill the entire lower portion of the frame, extending ALL THE WAY TO THE LEFT AND RIGHT EDGES of the square icon frame.**
