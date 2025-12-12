@@ -40,9 +40,9 @@ class CardSearchService {
                 nextPageURL: result.nextPage,
                 warnings: result.warnings ?? []
             )
-        } catch let scryfallError as ScryfallError {
+        } catch let scryfallError as ScryfallKitError {
             // When searching for cards, a 404 means "no results found", not an actual error
-            if scryfallError.status == 404 {
+            if case .scryfallError(let error) = scryfallError, error.status == 404 {
                 return SearchResult(cards: [], totalCount: 0, nextPageURL: nil, warnings: [])
             }
             // Re-throw other Scryfall errors
@@ -88,9 +88,9 @@ class CardSearchService {
                 nextPageURL: result.nextPage,
                 warnings: result.warnings ?? []
             )
-        } catch let scryfallError as ScryfallError {
+        } catch let scryfallError as ScryfallKitError {
             // When paginating search results, a 404 means "no more results", not an actual error
-            if scryfallError.status == 404 {
+            if case .scryfallError(let error) = scryfallError, error.status == 404 {
                 return SearchResult(cards: [], totalCount: 0, nextPageURL: nil, warnings: [])
             }
             // Re-throw other Scryfall errors

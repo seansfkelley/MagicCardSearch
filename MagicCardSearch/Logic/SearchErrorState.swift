@@ -15,7 +15,8 @@ enum SearchErrorState {
     
     init(from error: Error) {
         // Check for ScryfallError first
-        if let scryfallError = error as? ScryfallError {
+        if let scryfallKitError = error as? ScryfallKitError,
+           case .scryfallError(let scryfallError) = scryfallKitError {
             let statusCode = scryfallError.status
             if (400..<500).contains(statusCode) {
                 self = .clientError
