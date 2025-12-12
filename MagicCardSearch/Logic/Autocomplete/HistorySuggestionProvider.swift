@@ -6,7 +6,9 @@
 //
 
 import Foundation
+import Observation
 
+@Observable
 class HistorySuggestionProvider: SuggestionProvider {
     struct HistoryEntry: Codable {
         let filter: SearchFilter
@@ -89,7 +91,8 @@ class HistorySuggestionProvider: SuggestionProvider {
             let entry = history[i]
             history[i] = HistoryEntry(
                 filter: entry.filter,
-                timestamp: entry.timestamp,
+                // Pinning means we like it, so boost its score by promoting it here.
+                timestamp: Date(),
                 isPinned: true
             )
             saveHistory()
@@ -101,7 +104,10 @@ class HistorySuggestionProvider: SuggestionProvider {
             let entry = history[i]
             history[i] = HistoryEntry(
                 filter: entry.filter,
-                timestamp: entry.timestamp,
+                // If we just unpinned it, it would be surprising for it to fall way down the
+                // list if we last it a while ago. Consider it recently used, and it will naturally
+                // age out as we don't use it.
+                timestamp: Date(),
                 isPinned: false
             )
             saveHistory()
