@@ -41,14 +41,14 @@ extension Card.Color {
         }
     }
     
-    var assetName: String? {
+    var assetName: String {
         switch self {
         case .W: "w"
         case .U: "u"
         case .B: "b"
         case .R: "r"
         case .G: "g"
-        case .C: nil
+        case .C: "c"
         }
     }
 }

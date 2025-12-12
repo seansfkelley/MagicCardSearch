@@ -8,7 +8,7 @@
 import SwiftUI
 import ScryfallKit
 
-private let bareSymbolCodes = Set(["e", "chaos"])
+private let bareSymbolCodes = Set(["E", "CHAOS"])
 
 enum MtgSymbol {
     case bare(String)
@@ -27,18 +27,22 @@ enum MtgSymbol {
     }
     
     static func fromString(_ symbol: String) -> MtgSymbol? {
-        let cleaned = symbol.trimmingCharacters(in: CharacterSet(charactersIn: "{}")).lowercased()
+        let cleaned = symbol.trimmingCharacters(in: CharacterSet(charactersIn: "{}")).uppercased()
         
         if bareSymbolCodes.contains(cleaned) {
-            return .bare(cleaned)
+            return .bare(cleaned.lowercased())
         }
         
-        if cleaned == "p" {
+        if let basic = Card.Color(rawValue: cleaned) {
+            return .basic(basic)
+        }
+        
+        if cleaned == "P" {
             return .phyrexian(.C)
         }
         
         let parts = cleaned.split(separator: "/")
-        if parts.count == 3 && parts.last == "p" {
+        if parts.count == 3 && parts.last == "P" {
             if let left = Card.Color(rawValue: String(parts[0])), let right = Card.Color(rawValue: String(parts[1])) {
                 return .phyrexianHybrid(left, right)
             }
@@ -52,7 +56,7 @@ enum MtgSymbol {
                 return .genericHybrid(String(parts[0]), right)
             }
             
-            if let left = left, parts[1] == "p" {
+            if let left = left, parts[1] == "P" {
                 return .phyrexian(left)
             }
             
@@ -61,7 +65,7 @@ enum MtgSymbol {
             }
         }
         
-        return nil
+        return .generic(cleaned.lowercased())
     }
 }
 
@@ -109,7 +113,7 @@ struct MtgSymbolView: View {
     
     private func basic(_ color: Card.Color) -> some View {
         regular(color) {
-            Image(color.assetName ?? "0")
+            Image(color.assetName)
                 .resizable()
                 .aspectRatio(contentMode: .fit)
                 .frame(width: size * 0.8, height: size * 0.8)
@@ -118,13 +122,13 @@ struct MtgSymbolView: View {
 
     private func hybrid(_ left: Card.Color, _ right: Card.Color) -> some View {
         split(left, right) {
-            Image(left.assetName ?? "0")
+            Image(left.assetName)
                 .resizable()
                 .aspectRatio(contentMode: .fit)
                 .frame(width: oversize * 0.4, height: oversize * 0.4)
                 .offset(x: -oversize * 0.16, y: -oversize * 0.16)
 
-            Image(right.assetName ?? "0")
+            Image(right.assetName)
                 .resizable()
                 .aspectRatio(contentMode: .fit)
                 .frame(width: oversize * 0.4, height: oversize * 0.4)
@@ -140,7 +144,7 @@ struct MtgSymbolView: View {
                 .frame(width: oversize * 0.4, height: oversize * 0.4)
                 .offset(x: -oversize * 0.16, y: -oversize * 0.16)
 
-            Image(right.assetName ?? "0")
+            Image(right.assetName)
                 .resizable()
                 .aspectRatio(contentMode: .fit)
                 .frame(width: oversize * 0.4, height: oversize * 0.4)
