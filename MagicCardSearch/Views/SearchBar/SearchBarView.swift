@@ -49,27 +49,29 @@ struct SearchBarView: View {
                     .buttonStyle(.plain)
                 }
                 
-                if isSearchFocused {
-                    Button(action: {
-                        showSymbolPicker.toggle()
-                    }) {
-                        Image(systemName: "curlybraces")
-                            .foregroundStyle(.secondary)
-                            .imageScale(.large)
+                Button(action: {
+                    showSymbolPicker.toggle()
+                }) {
+                    Image(systemName: "curlybraces")
+                        .foregroundStyle(.secondary)
+                        .imageScale(.large)
+                }
+                .buttonStyle(.plain)
+                .popover(isPresented: $showSymbolPicker, arrowEdge: .bottom) {
+                    SymbolPickerView { symbol in
+                        insertSymbol(symbol)
+                        showSymbolPicker = false
                     }
-                    .buttonStyle(.plain)
-                    .popover(isPresented: $showSymbolPicker, arrowEdge: .bottom) {
-                        SymbolPickerView { symbol in
-                            insertSymbol(symbol)
-                            showSymbolPicker = false
-                        }
-                        .presentationCompactAdaptation(.popover)
-                    }
+                    .presentationCompactAdaptation(.popover)
+                }
+                .if(!isSearchFocused) { view in
+                    // Do it this way to ensure we still contribute to layout!
+                    view.hidden()
                 }
             }
         }
-        .padding(.vertical)
-        .padding(.horizontal)
+        .padding(.vertical, 8)
+        .padding(.horizontal, 12)
         .onTapGesture {
             isSearchFocused = true
         }

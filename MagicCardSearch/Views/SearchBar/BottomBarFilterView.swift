@@ -77,7 +77,8 @@ struct BottomBarFilterView: View {
                                     onFilterEdit: onFilterEdit
                                 )
                             }
-                            .padding()
+                            .padding(.vertical, 8)
+                            .padding(.horizontal, 12)
                         }
                         .frame(maxHeight: maxPillsHeight)
                         .fixedSize(horizontal: false, vertical: true)
