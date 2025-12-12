@@ -28,6 +28,21 @@ struct ScryfallFilterType {
     }
 }
 
+private let scryfallColorAliases = Set([
+    // guild
+    "azorius", "dimir", "rakdos", "golgari", "boros", "simic", "selesnya", "orzhov", "izzet", "gruul",
+    // shard
+    "bant", "esper", "grixis", "jund", "naya",
+    // wedge
+    "abzan", "jeskai", "sultai", "mardu", "temur",
+    // college
+    "lorehold", "prismari", "quandrix", "witherbloom", "silverquill",
+    // family
+    "brokers", "obscura", "maestros", "riveteers", "cabaretti",
+    // four-color
+    "chaos", "aggression", "altruism", "growth", "artifice",
+])
+
 private let scryfallSupportedFormats = Set([
     "standard", "future", "historic", "timeless", "gladiator", "pioneer", "modern", "legacy",
     "pauper", "vintage", "penny", "commander", "oathbreaker", "standardbrawl", "brawl",
@@ -69,8 +84,8 @@ private let scryfallIsEnumerationValues = Set([
 // translated from https://scryfall.com/docs/syntax and kept in the same order/categories
 let scryfallFilterTypes: [ScryfallFilterType] = [
     // MARK: - Color and Color Identity
-    .init("color", ["c"]),
-    .init("identity", ["id"]),
+    .init("color", ["c"], enumerationValues: scryfallColorAliases),
+    .init("identity", ["id"], enumerationValues: scryfallColorAliases),
     // see also `has`
     
     // MARK: - Card Types

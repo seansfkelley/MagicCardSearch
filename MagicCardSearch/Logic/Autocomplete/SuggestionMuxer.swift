@@ -16,10 +16,10 @@ struct SuggestionMuxer: SuggestionProvider {
         var suggestions: [Suggestion] = []
         
         let historySuggestions = historyProvider.getSuggestions(searchTerm, existingFilters: existingFilters)
-        suggestions.append(contentsOf: historySuggestions.prefix(5))
+        suggestions.append(contentsOf: historySuggestions.prefix(10))
         
         let filterSuggestions = filterProvider.getSuggestions(searchTerm, existingFilters: existingFilters)
-        suggestions.append(contentsOf: filterSuggestions.prefix(3))
+        suggestions.append(contentsOf: filterSuggestions.prefix(4))
         
         let enumerationSuggestions = enumerationProvider.getSuggestions(searchTerm, existingFilters: existingFilters)
         suggestions.append(contentsOf: enumerationSuggestions.prefix(1))

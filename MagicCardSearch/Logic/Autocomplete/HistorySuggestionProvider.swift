@@ -32,7 +32,9 @@ class HistorySuggestionProvider: SuggestionProvider {
     -> [Suggestion] {
         let availableHistory = history.filter { !existingFilters.contains($0.filter) }
         
-        if searchTerm.isEmpty {
+        let trimmedSearchTerm = searchTerm.trimmingCharacters(in: .whitespaces)
+        
+        if trimmedSearchTerm.isEmpty {
             let historySuggestions = availableHistory.map {
                 HistorySuggestion(
                     filter: $0.filter,
@@ -48,7 +50,7 @@ class HistorySuggestionProvider: SuggestionProvider {
 
         for entry in availableHistory {
             let filterString = entry.filter.queryStringWithEditingRange.0
-            if let range = filterString.range(of: searchTerm, options: .caseInsensitive) {
+            if let range = filterString.range(of: trimmedSearchTerm, options: .caseInsensitive) {
                 results.append(HistorySuggestion(
                     filter: entry.filter,
                     isPinned: entry.isPinned,
