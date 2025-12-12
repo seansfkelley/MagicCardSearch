@@ -17,6 +17,9 @@ class SuggestionMuxer {
     
     private var currentTask: Task<Void, Never>?
     
+    /// Indicates whether any provider is currently loading suggestions
+    private(set) var isLoading = false
+    
     init(
         historyProvider: HistorySuggestionProvider,
         filterProvider: FilterTypeSuggestionProvider,
@@ -39,6 +42,9 @@ class SuggestionMuxer {
         // Cancel any previous request
         currentTask?.cancel()
         
+        // Set loading state
+        isLoading = true
+        
         // Capture provider values before entering the AsyncStream to avoid actor isolation issues
         let historyProvider = self.historyProvider
         let filterProvider = self.filterProvider
@@ -46,11 +52,12 @@ class SuggestionMuxer {
         let nameProvider = self.nameProvider
         
         return AsyncStream { continuation in
-            let task = Task {
+            let task = Task { @MainActor in
                 var allSuggestions: [Suggestion] = []
                 
                 // Check for cancellation before starting
                 guard !Task.isCancelled else {
+                    self.isLoading = false
                     continuation.finish()
                     return
                 }
@@ -63,6 +70,7 @@ class SuggestionMuxer {
                     limit: 10
                 )
                 guard !Task.isCancelled else {
+                    self.isLoading = false
                     continuation.finish()
                     return
                 }
@@ -125,13 +133,18 @@ class SuggestionMuxer {
                     }
                 }
                 
+                // All providers completed
+                self.isLoading = false
                 continuation.finish()
             }
             
             currentTask = task
             
-            continuation.onTermination = { @Sendable _ in
+            continuation.onTermination = { @Sendable [weak self] _ in
                 task.cancel()
+                Task { @MainActor [weak self] in
+                    self?.isLoading = false
+                }
             }
         }
     }

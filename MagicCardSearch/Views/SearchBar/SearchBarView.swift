@@ -14,12 +14,23 @@ struct SearchBarView: View {
 
     @FocusState var isSearchFocused: Bool
     @State private var showSymbolPicker = false
+    
+    /// Whether autocomplete providers are currently loading suggestions
+    var isLoadingSuggestions: Bool = false
 
     var body: some View {
         ZStack {
             HStack(spacing: 12) {
-                Image(systemName: "magnifyingglass")
-                    .foregroundStyle(.secondary)
+                Group {
+                    if isLoadingSuggestions {
+                        ProgressView()
+                            .controlSize(.small)
+                    } else {
+                        Image(systemName: "magnifyingglass")
+                    }
+                }
+                .foregroundStyle(.secondary)
+                .frame(width: 16, height: 16)
                 
                 TextField(
                     filters.isEmpty ? "Search for cards..." : "Add filters...",

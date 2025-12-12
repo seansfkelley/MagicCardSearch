@@ -18,6 +18,9 @@ struct BottomBarFilterView: View {
     let onFilterEdit: (SearchFilter) -> Void
     @State var searchIconOpacity: CGFloat = 1
     
+    /// The autocomplete provider to check for loading state
+    var autocompleteProvider: SuggestionMuxer?
+    
     @Namespace private var animation
     
     private let collapsedButtonSize: CGFloat = 44
@@ -102,7 +105,8 @@ struct BottomBarFilterView: View {
                         filters: $filters,
                         inputText: $inputText,
                         inputSelection: $inputSelection,
-                        isSearchFocused: _isSearchFocused
+                        isSearchFocused: _isSearchFocused,
+                        isLoadingSuggestions: autocompleteProvider?.isLoading ?? false
                     )
                     // In order to use isSearchFocused as the one and only state management for
                     // expanded/collapsed state, we need to (1) make sure that the TextField in this
@@ -120,16 +124,25 @@ struct BottomBarFilterView: View {
                     if !isSearchFocused && !filters.isEmpty {
                         ZStack {
                             HStack {
-                                Image(systemName: "magnifyingglass")
-                                    .foregroundStyle(.secondary)
-                                    .padding(12)
-                                    .opacity(searchIconOpacity)
+                                Group {
+                                    if autocompleteProvider?.isLoading ?? false {
+                                        ProgressView()
+                                            .controlSize(.small)
+                                    } else {
+                                        Image(systemName: "magnifyingglass")
+                                    }
+                                }
+                                .foregroundStyle(.secondary)
+                                .frame(width: 16, height: 16)
+                                .padding(12)
+                                .opacity(searchIconOpacity)
                                 Spacer()
                             }
                             
                             ScrollView(.horizontal, showsIndicators: false) {
                                 HStack(spacing: 8) {
                                     Image(systemName: "magnifyingglass")
+                                        .frame(width: 16, height: 16)
                                         .padding(.trailing, 12)
                                         .hidden()
                                     
@@ -322,10 +335,12 @@ private struct ClearAllButton: View {
                     pendingSelection: $pendingSelection,
                     isSearchFocused: _isFocused,
                     warnings: ["Warning 1", "Warning 2"],
-                    showWarningsPopover: $showWarningsPopover
-                ) { filter in
+                    showWarningsPopover: $showWarningsPopover,
+                    onFilterEdit: { filter in
                         print("Editing filter: \(filter)")
-                }
+                    },
+                    autocompleteProvider: nil
+                )
             }
             .background(Color(uiColor: .systemBackground))
         }
