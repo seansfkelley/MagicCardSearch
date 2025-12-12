@@ -44,13 +44,10 @@ struct SearchFilterTests {
         (.basic(.regex("foo", .including, "/this is my regex/")), "foo:/this is my regex/", 5..<21),
         (.basic(.name("foo with bar", true)), "!\"foo with bar\"", 2..<14),
     ])
-    func toQueryStringWithEditingRange(filter: SearchFilter, string: String, editableRange: Range<Int>) throws {
-        let range =
-            String.Index.init(encodedOffset: editableRange.lowerBound)
-            ..<
-            String.Index.init(encodedOffset: editableRange.upperBound)
+    func toQueryStringWithEditingRange(filter: SearchFilter, expectedString: String, expectedRange: Range<Int>) throws {
         let (actualString, actualRange) = filter.queryStringWithEditingRange
-        #expect(actualString == string)
-        #expect(actualRange == range, "wanted highlight on `\(string[range])` but got `\(actualString[actualRange])`")
+        let range = stringIndexRange(expectedRange)
+        #expect(actualString == expectedString)
+        #expect(actualRange == range, "wanted highlight on `\(expectedString[range])` but got `\(actualString[actualRange])`")
     }
 }

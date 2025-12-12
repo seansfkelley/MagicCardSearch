@@ -94,9 +94,10 @@ struct ContentView: View {
                 }
                 
                 ToolbarItem(placement: .principal) {
-                    Image(systemName: "sparkles.rectangle.stack.fill")
-                        .font(.title)
-                        .foregroundStyle(.tint)
+                    Image("HeaderIcon")
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(height: 40)
                 }
                 
                 ToolbarItem(placement: .topBarTrailing) {
