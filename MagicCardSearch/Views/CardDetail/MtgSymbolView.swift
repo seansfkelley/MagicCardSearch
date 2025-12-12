@@ -6,23 +6,64 @@
 //
 
 import SwiftUI
+import ScryfallKit
 
-private let baseSymbolCodes = Set([
-    // Colors/colorless mana
-    "w", "u", "b", "r", "g", "c",
+private let bareSymbolCodes = Set(["e", "chaos"])
 
-    // Generic mana
-    "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10",
-    "11", "12", "13", "14", "15", "16", "20", "1000000", "x", "y", "z",
-
-    // Phyrexian mana, which does not (yet) appear alone
-    "p",
-
-    // Other symbols
-    "s", "t", "q",
-])
-
-private let noncircledSymbolCodes = Set(["e", "chaos"])
+enum MtgSymbol {
+    case bare(String)
+    case generic(String) // Includes generic mana, tap, etc.
+    case basic(Card.Color)
+    case hybrid(Card.Color, Card.Color)
+    case genericHybrid(String, Card.Color) // Left side is always 2, but might as well future-proof...
+    case phyrexian(Card.Color)
+    case phyrexianHybrid(Card.Color, Card.Color)
+    
+    var isOversized: Bool {
+        switch self {
+        case .hybrid, .genericHybrid, .phyrexian, .phyrexianHybrid: true
+        default: false
+        }
+    }
+    
+    static func fromString(_ symbol: String) -> MtgSymbol? {
+        let cleaned = symbol.trimmingCharacters(in: CharacterSet(charactersIn: "{}")).lowercased()
+        
+        if bareSymbolCodes.contains(cleaned) {
+            return .bare(cleaned)
+        }
+        
+        if cleaned == "p" {
+            return .phyrexian(.C)
+        }
+        
+        let parts = cleaned.split(separator: "/")
+        if parts.count == 3 && parts.last == "p" {
+            if let left = Card.Color(rawValue: String(parts[0])), let right = Card.Color(rawValue: String(parts[1])) {
+                return .phyrexianHybrid(left, right)
+            }
+        }
+        
+        if parts.count == 2 {
+            let left = Card.Color(rawValue: String(parts[0]))
+            let right = Card.Color(rawValue: String(parts[1]))
+            
+            if left == nil, let right = right {
+                return .genericHybrid(String(parts[0]), right)
+            }
+            
+            if let left = left, parts[1] == "p" {
+                return .phyrexian(left)
+            }
+            
+            if let left = left, let right = right {
+                return .hybrid(left, right)
+            }
+        }
+        
+        return nil
+    }
+}
 
 struct MtgSymbolView: View {
     let symbol: String
@@ -38,139 +79,52 @@ struct MtgSymbolView: View {
     }
 
     var body: some View {
-        let cleaned = symbol.trimmingCharacters(in: CharacterSet(charactersIn: "{}")).lowercased()
-        if noncircledSymbolCodes.contains(cleaned) {
-            noncircled(cleaned)
-        } else if cleaned == "p" {
-            phyrexian("c")
-        } else if baseSymbolCodes.contains(cleaned) {
-            basic(cleaned)
-        } else {
-            let parts = cleaned.split(separator: "/")
-            if parts.count == 3 && parts.last == "p" {
-                let left = String(parts[0])
-                let right = String(parts[1])
-                
-                if baseSymbolCodes.contains(left) && baseSymbolCodes.contains(right) {
-                    hybridPhyrexian(left, right)
-                } else {
-                    unknown(cleaned)
-                }
-            } else if parts.count == 2 {
-                let left = String(parts[0])
-                let right = String(parts[1])
-
-                if baseSymbolCodes.contains(left) && baseSymbolCodes.contains(right) {
-                    if right == "p" {
-                        phyrexian(left)
-                    } else {
-                        hybrid(left, right)
-                    }
-                } else {
-                    unknown(cleaned)
-                }
-            } else {
-                unknown(cleaned)
-            }
+        switch MtgSymbol.fromString(symbol) {
+        case .bare(let symbol): bare(symbol)
+        case .generic(let symbol): generic(symbol)
+        case .basic(let color): basic(color)
+        case .hybrid(let left, let right): hybrid(left, right)
+        case .genericHybrid(let left, let right): genericHybrid(left, right)
+        case .phyrexian(let color): phyrexian(color)
+        case .phyrexianHybrid(let left, let right): phyrexianHybrid(left, right)
+        case nil: unknown(symbol)
         }
     }
     
-    private func color(_ symbol: String, saturated: Bool = false) -> Color {
-        let color = switch symbol {
-        case "w": saturated ? "WhiteSaturatedManaColor" : "WhiteManaColor"
-        case "u": saturated ? "BlueSaturatedManaColor" : "BlueManaColor"
-        case "b": saturated ? "BlackSaturatedManaColor" : "BlackManaColor"
-        case "r": saturated ? "RedSaturatedManaColor" : "RedManaColor"
-        case "g": saturated ? "GreenSaturatedManaColor" : "GreenManaColor"
-        case "c": "ColorlessManaColor"
-        default: "ColorlessManaColor"
-        }
-        return Color(color)
-    }
-    
-    private func noncircled(_ symbol: String) -> some View {
-        return Image(symbol)
+    private func bare(_ symbol: String) -> some View {
+        Image(symbol)
             .resizable()
             .aspectRatio(contentMode: .fit)
             .frame(width: size * 0.8, height: size * 0.8)
     }
     
-    private func basic(_ symbol: String) -> some View {
-        return ZStack {
-            if showDropShadow {
-                Circle()
-                    .fill(.black)
-                    .frame(width: size, height: size)
-                    .offset(x: -1, y: 1)
-            }
-            
-            Circle()
-                .fill(color(symbol))
-                .frame(width: size, height: size)
-            
+    private func generic(_ symbol: String) -> some View {
+        regular(Card.Color.C) {
             Image(symbol)
                 .resizable()
                 .aspectRatio(contentMode: .fit)
                 .frame(width: size * 0.8, height: size * 0.8)
         }
     }
-
-    private func phyrexian(_ symbol: String) -> some View {
-        return ZStack {
-            if showDropShadow {
-                Circle()
-                    .fill(.black)
-                    .frame(width: oversize, height: oversize)
-                    .offset(x: -1, y: 1)
-            }
-            
-            Circle()
-                .fill(color(symbol, saturated: true))
-                .frame(width: oversize, height: oversize)
-
-            Image("p")
+    
+    private func basic(_ color: Card.Color) -> some View {
+        regular(color) {
+            Image(color.assetName ?? "0")
                 .resizable()
                 .aspectRatio(contentMode: .fit)
-                .frame(width: oversize, height: oversize)
-                .clipShape(.circle)
+                .frame(width: size * 0.8, height: size * 0.8)
         }
     }
 
-    private func hybrid(_ left: String, _ right: String) -> some View {
-        let leftColor = color(left)
-        // Annoying special case they use to help notice it's a hybrid symbol.
-        let rightColor = color(right, saturated: left == "2" && right == "b")
-
-        return ZStack {
-            if showDropShadow {
-                Circle()
-                    .fill(.black)
-                    .frame(width: oversize, height: oversize)
-                    .offset(x: -1, y: 1)
-            }
-            
-            Circle()
-                .fill(
-                    LinearGradient(
-                        stops: [
-                            .init(color: leftColor, location: 0.0),
-                            .init(color: leftColor, location: 0.5),
-                            .init(color: rightColor, location: 0.5),
-                            .init(color: rightColor, location: 1.0),
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-                .frame(width: oversize, height: oversize)
-
-            Image(left)
+    private func hybrid(_ left: Card.Color, _ right: Card.Color) -> some View {
+        split(left, right) {
+            Image(left.assetName ?? "0")
                 .resizable()
                 .aspectRatio(contentMode: .fit)
                 .frame(width: oversize * 0.4, height: oversize * 0.4)
                 .offset(x: -oversize * 0.16, y: -oversize * 0.16)
 
-            Image(right)
+            Image(right.assetName ?? "0")
                 .resizable()
                 .aspectRatio(contentMode: .fit)
                 .frame(width: oversize * 0.4, height: oversize * 0.4)
@@ -178,33 +132,34 @@ struct MtgSymbolView: View {
         }
     }
     
-    private func hybridPhyrexian(_ left: String, _ right: String) -> some View {
-        let leftColor = color(left, saturated: true)
-        let rightColor = color(right, saturated: true)
+    private func genericHybrid(_ left: String, _ right: Card.Color) -> some View {
+        split(Card.Color.C, right, saturated: right == .B) {
+            Image(left)
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: oversize * 0.4, height: oversize * 0.4)
+                .offset(x: -oversize * 0.16, y: -oversize * 0.16)
 
-        return ZStack {
-            if showDropShadow {
-                Circle()
-                    .fill(.black)
-                    .frame(width: oversize, height: oversize)
-                    .offset(x: -1, y: 1)
-            }
-            
-            Circle()
-                .fill(
-                    LinearGradient(
-                        stops: [
-                            .init(color: leftColor, location: 0.0),
-                            .init(color: leftColor, location: 0.5),
-                            .init(color: rightColor, location: 0.5),
-                            .init(color: rightColor, location: 1.0),
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
+            Image(right.assetName ?? "0")
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: oversize * 0.4, height: oversize * 0.4)
+                .offset(x: oversize * 0.175, y: oversize * 0.175)
+        }
+    }
+    
+    private func phyrexian(_ color: Card.Color) -> some View {
+        regular(color, oversize: true, saturated: true) {
+            Image("p")
+                .resizable()
+                .aspectRatio(contentMode: .fit)
                 .frame(width: oversize, height: oversize)
-
+                .clipShape(.circle)
+        }
+    }
+    
+    private func phyrexianHybrid(_ left: Card.Color, _ right: Card.Color) -> some View {
+        split(left, right, saturated: true) {
             Image("p")
                 .resizable()
                 .aspectRatio(contentMode: .fit)
@@ -223,6 +178,67 @@ struct MtgSymbolView: View {
         Text(symbol)
             .font(.system(size: size * 0.6))
             .foregroundStyle(.secondary)
+    }
+    
+    private func regular(
+        _ color: Card.Color,
+        oversize isOversized: Bool = false,
+        saturated isSaturated: Bool = false,
+        @ViewBuilder image: () -> some View,
+    ) -> some View {
+        let actualSize = isOversized ? oversize : size
+        let actualColor = isSaturated ? color.saturatedUiColor : color.basicUiColor
+        
+        return ZStack {
+            if showDropShadow {
+                Circle()
+                    .fill(.black)
+                    .frame(width: actualSize, height: actualSize)
+                    .offset(x: -1, y: 1)
+            }
+            
+            Circle()
+                .fill(actualColor)
+                .frame(width: actualSize, height: actualSize)
+            
+            image()
+        }
+    }
+    
+    private func split<Content: View>(
+        _ left: Card.Color,
+        _ right: Card.Color,
+        saturated isSaturated: Bool = false,
+        @ViewBuilder images: () -> Content
+    ) -> some View {
+        let actualLeftColor = isSaturated ? left.saturatedUiColor : left.basicUiColor
+        let actualRightColor = isSaturated ? right.saturatedUiColor : right.basicUiColor
+        
+        return ZStack {
+            if showDropShadow {
+                Circle()
+                    .fill(.black)
+                    .frame(width: oversize, height: oversize)
+                    .offset(x: -1, y: 1)
+            }
+            
+            Circle()
+                .fill(
+                    LinearGradient(
+                        stops: [
+                            .init(color: actualLeftColor, location: 0.0),
+                            .init(color: actualLeftColor, location: 0.5),
+                            .init(color: actualRightColor, location: 0.5),
+                            .init(color: actualRightColor, location: 1.0),
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .frame(width: oversize, height: oversize)
+            
+            images()
+        }
     }
 }
 

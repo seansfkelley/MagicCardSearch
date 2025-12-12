@@ -92,13 +92,14 @@ private struct LineView: View {
         return nil
     }
     
-    private func splitReminderText(_ line: String) -> (String, String?) {
+    private func splitReminderText(_ line: String) -> (String?, String?) {
         if let i = line.firstIndex(of: "(") {
             let rulesText = String(line[..<i]).trimmingCharacters(in: .whitespaces)
             let reminderText = String(line[i...])
-            return (rulesText, reminderText)
+            // Phyrexian mana reminder text, among others, can have reminder text on its own line.
+            return (rulesText.isEmpty ? nil : rulesText, reminderText)
         } else {
-            return (line, nil)
+            return (line.isEmpty ? nil : line, nil)
         }
     }
 }
@@ -150,6 +151,12 @@ private struct LineView: View {
                 Text("With Reminder Text")
                     .font(.headline)
                 OracleTextView("Choose one —\n• Barbed Lightning deals 3 damage to target creature.\n• Barbed Lightning deals 3 damage to target player or planeswalker.\nEntwine {2} (Choose both if you pay the entwine cost.)")
+            }
+            
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Only Reminder Text")
+                    .font(.headline)
+                OracleTextView("({B/P} can be paid with either {B} or 2 life.)")
             }
         }
         .padding()
