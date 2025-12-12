@@ -226,6 +226,8 @@ let scryfallFilterTypes: [ScryfallFilterType] = [
         "indicator",
         // Artist, Flavor Text and Watermark
         "watermark",
+        // Not listed in the documentation, but discovered/mentioned elsewhere
+        "phyrexian", "hybrid",
     ]),
     .init("is", enumerationValues: scryfallIsEnumerationValues),
     .init("not", enumerationValues: scryfallIsEnumerationValues),
