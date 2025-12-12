@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct ContentView: View {
+    private var historySuggestionProvider = HistorySuggestionProvider()
     @State private var filters: [SearchFilter] = []
     @State private var inputText: String = ""
     @State private var showDisplaySheet = false
@@ -15,7 +16,11 @@ struct ContentView: View {
     @State private var showCardList = false
     @State private var searchConfig = SearchConfiguration.load()
     @State private var pendingSearchConfig: SearchConfiguration?
-    @State private var autocompleteProvider = AutocompleteProvider()
+    @State private var autocompleteProvider = SuggestionMuxer(providers: [
+        historySuggestionProvider,
+        FilterTypeSuggestionProvider(),
+        EnumerationSuggestionProvider(),
+    ])
     @State private var inputSelection: TextSelection?
     @State private var pendingSelection: TextSelection?
     @State private var warnings: [String] = []

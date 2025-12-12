@@ -104,7 +104,7 @@ struct AutocompleteView: View {
         .buttonStyle(.plain)
     }
 
-    private func filterTypeRow(_ suggestion: AutocompleteProvider.FilterTypeSuggestion) -> some View {
+    private func filterTypeRow(_ suggestion: FilterTypeSuggestion) -> some View {
         HStack(spacing: 12) {
             Image(systemName: "line.3.horizontal.decrease.circle")
                 .foregroundStyle(.secondary)
@@ -119,7 +119,7 @@ struct AutocompleteView: View {
         }
     }
     
-    private func enumerationRow(_ suggestion: AutocompleteProvider.EnumerationSuggestion) -> some View {
+    private func enumerationRow(_ suggestion: EnumerationSuggestion) -> some View {
         HStack(spacing: 12) {
             Image(systemName: "list.bullet.circle")
                 .foregroundStyle(.secondary)
@@ -147,7 +147,7 @@ private protocol PillSelectorOption {
     var range: Range<String.Index>? { get }
 }
 
-extension AutocompleteProvider.EnumerationSuggestion.Option: PillSelectorOption {
+extension EnumerationSuggestion.Option: PillSelectorOption {
     var label: String { value }
 }
 
