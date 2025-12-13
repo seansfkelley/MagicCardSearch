@@ -83,8 +83,10 @@ struct AutocompleteView: View {
         }
         .listStyle(.plain)
         .task(id: inputText) {
-            // Get suggestions - cancellation is automatic via .task
-            suggestions = await provider.getSuggestions(inputText, existingFilters: filters)
+            // Stream suggestions as they arrive from providers running concurrently
+            for await newSuggestions in provider.getSuggestions(inputText, existingFilters: filters) {
+                suggestions = newSuggestions
+            }
         }
     }
 

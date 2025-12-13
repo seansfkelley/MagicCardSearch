@@ -16,7 +16,6 @@ class SuggestionMuxer {
     let nameProvider: NameSuggestionProvider
     
     var isLoading = false
-    private var currentTask: Task<Void, Never>?
     private var currentTaskID: UUID?
     
     init(
@@ -31,39 +30,107 @@ class SuggestionMuxer {
         self.nameProvider = nameProvider
     }
 
-    func getSuggestions(_ searchTerm: String, existingFilters: [SearchFilter]) async -> [Suggestion] {
-        // Cancel any previous request
-        currentTask?.cancel()
-        
-        // Create unique ID for this task
+    // swiftlint:disable:next function_body_length
+    func getSuggestions(_ searchTerm: String, existingFilters: [SearchFilter]) -> AsyncStream<[Suggestion]> {
+        // Create unique ID for this request
         let taskID = UUID()
         currentTaskID = taskID
         
         // Start loading
         isLoading = true
         
-        var suggestions: [Suggestion] = []
-        
-        // Get all suggestions sequentially (they're fast except for name)
-//        suggestions.append(contentsOf: await historyProvider.getSuggestions(searchTerm, existingFilters: existingFilters, limit: 10))
-//        
-//        guard !Task.isCancelled else { return [] }
-        
-        suggestions.append(contentsOf: await filterProvider.getSuggestions(searchTerm, existingFilters: existingFilters, limit: 4))
-        
-        guard !Task.isCancelled else { return [] }
-        
-        suggestions.append(contentsOf: await enumerationProvider.getSuggestions(searchTerm, existingFilters: existingFilters, limit: 1))
-        
-        guard !Task.isCancelled else { return [] }
-        
-        suggestions.append(contentsOf: await nameProvider.getSuggestions(searchTerm, existingFilters: existingFilters, limit: 10))
-        
-        // Only turn off loading if we're still the current task
-        if currentTaskID == taskID {
-            isLoading = false
+        return AsyncStream { continuation in
+            Task {
+                var allSuggestions: [Suggestion] = []
+                
+                // Run all providers concurrently using task group
+                await withTaskGroup(of: (priority: Int, suggestions: [Suggestion]).self) { group in
+                    // Priority 0: History (MainActor-isolated, but can still run in group)
+//                    group.addTask { @MainActor in
+//                        guard !Task.isCancelled else { return (priority: 0, suggestions: []) }
+//                        let suggestions = await self.historyProvider.getSuggestions(
+//                            searchTerm,
+//                            existingFilters: existingFilters,
+//                            limit: 10
+//                        )
+//                        return (priority: 0, suggestions: suggestions)
+//                    }
+                    
+                    // Priority 1: Filter types (fast - local computation)
+                    group.addTask {
+                        guard !Task.isCancelled else { return (priority: 1, suggestions: []) }
+                        let suggestions = await self.filterProvider.getSuggestions(
+                            searchTerm,
+                            existingFilters: existingFilters,
+                            limit: 4
+                        )
+                        return (priority: 1, suggestions: suggestions)
+                    }
+                    
+                    // Priority 2: Enumeration (fast - local computation)
+                    group.addTask {
+                        guard !Task.isCancelled else { return (priority: 2, suggestions: []) }
+                        let suggestions = await self.enumerationProvider.getSuggestions(
+                            searchTerm,
+                            existingFilters: existingFilters,
+                            limit: 1
+                        )
+                        return (priority: 2, suggestions: suggestions)
+                    }
+                    
+                    // Priority 3: Name (may be slow due to network + debounce)
+                    group.addTask {
+                        guard !Task.isCancelled else { return (priority: 3, suggestions: []) }
+                        let suggestions = await self.nameProvider.getSuggestions(
+                            searchTerm,
+                            existingFilters: existingFilters,
+                            limit: 10
+                        )
+                        return (priority: 3, suggestions: suggestions)
+                    }
+                    
+                    // Collect results as they arrive and yield incrementally
+                    for await (priority, suggestions) in group {
+                        // Check if this task is still current
+                        guard await self.currentTaskID == taskID else {
+                            // This task was superseded, stop yielding
+                            break
+                        }
+                        
+                        guard !Task.isCancelled else {
+                            break
+                        }
+                        
+                        // Insert suggestions at the appropriate position based on priority
+                        let insertionIndex = allSuggestions.firstIndex { suggestion in
+                            self.getPriority(for: suggestion) > priority
+                        } ?? allSuggestions.count
+                        
+                        allSuggestions.insert(contentsOf: suggestions, at: insertionIndex)
+                        
+                        // Yield the updated suggestions
+                        continuation.yield(allSuggestions)
+                    }
+                }
+                
+                // Only turn off loading if we're still the current task
+                await MainActor.run {
+                    if self.currentTaskID == taskID {
+                        self.isLoading = false
+                    }
+                }
+                
+                continuation.finish()
+            }
         }
-        
-        return suggestions
+    }
+    
+    private func getPriority(for suggestion: Suggestion) -> Int {
+        switch suggestion {
+        case .history: return 0
+        case .filter: return 1
+        case .enumeration: return 2
+        case .name: return 3
+        }
     }
 }
