@@ -30,7 +30,7 @@ struct ContentView: View {
             historyProvider: historySuggestionProvider,
             filterProvider: FilterTypeSuggestionProvider(),
             enumerationProvider: EnumerationSuggestionProvider(),
-            nameProvider: NameSuggestionProvider()
+            nameProvider: NameSuggestionProvider(debounce: .milliseconds(500))
         ))
     }
     

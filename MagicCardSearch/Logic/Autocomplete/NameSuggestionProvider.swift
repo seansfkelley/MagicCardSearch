@@ -7,10 +7,14 @@
 import ScryfallKit
 
 struct NameSuggestionProvider: SuggestionProvider {
-    private static let debouncedFetch = Debounce(Self.fetch, for: .milliseconds(2000))
+    private let debouncedFetch: Debounce<String, [String]>
+    
+    init(debounce: Duration = .milliseconds(300)) {
+        self.debouncedFetch = Debounce(fetch, for: debounce)
+    }
     
     func getSuggestions(_ searchTerm: String, existingFilters: [SearchFilter], limit: Int) async -> [Suggestion] {
-        await Self.debouncedFetch.cancel()
+        await debouncedFetch.cancel()
         
         guard let match = try? /^(-?)(('|")|((name:|name=|name!=)['"]?))/.prefixMatch(in: searchTerm) else {
             return []
@@ -28,7 +32,7 @@ struct NameSuggestionProvider: SuggestionProvider {
             return []
         }
         
-        let suggestions = await Self.debouncedFetch(name) ?? []
+        let suggestions = await debouncedFetch(name) ?? []
         
         return Array(suggestions
             .lazy
@@ -59,16 +63,16 @@ struct NameSuggestionProvider: SuggestionProvider {
             }
          )
     }
-    
-    @Sendable
-    private static func fetch(_ query: String) async -> [String] {
-        do {
-            let client = ScryfallClient(networkLogLevel: .minimal)
-            let catalog = try await client.getCardNameAutocomplete(query: query)
-            return catalog.data
-        } catch {
-            // Swallow errors.
-            return []
-        }
+}
+
+@Sendable
+private func fetch(_ query: String) async -> [String] {
+    do {
+        let client = ScryfallClient(networkLogLevel: .minimal)
+        let catalog = try await client.getCardNameAutocomplete(query: query)
+        return catalog.data
+    } catch {
+        // Swallow errors.
+        return []
     }
 }
