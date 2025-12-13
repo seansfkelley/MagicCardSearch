@@ -17,6 +17,7 @@ class SuggestionMuxer {
     
     var isLoading = false
     private var currentTask: Task<Void, Never>?
+    private var currentTaskID: UUID?
     
     init(
         historyProvider: HistorySuggestionProvider,
@@ -33,6 +34,10 @@ class SuggestionMuxer {
     func getSuggestions(_ searchTerm: String, existingFilters: [SearchFilter]) async -> [Suggestion] {
         // Cancel any previous request
         currentTask?.cancel()
+        
+        // Create unique ID for this task
+        let taskID = UUID()
+        currentTaskID = taskID
         
         // Start loading
         isLoading = true
@@ -54,7 +59,10 @@ class SuggestionMuxer {
         
         suggestions.append(contentsOf: await nameProvider.getSuggestions(searchTerm, existingFilters: existingFilters, limit: 10))
         
-        isLoading = false
+        // Only turn off loading if we're still the current task
+        if currentTaskID == taskID {
+            isLoading = false
+        }
         
         return suggestions
     }
