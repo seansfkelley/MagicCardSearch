@@ -148,19 +148,20 @@ struct AutocompleteView: View {
     
     private func nameRow(_ suggestion: NameSuggestion) -> some View {
         Button {
-            // Determine whether to create a quoted name filter or unquoted
-            let needsQuotes = suggestion.cardName.contains(" ")
-            let finalName = needsQuotes ? "\"\(suggestion.cardName)\"" : suggestion.cardName
-            let filterString = "\(suggestion.prefix)\(finalName)"
-            
-            onSuggestionTap(.string(filterString))
+            if let filter = SearchFilter.tryParseUnambiguous(suggestion.filterText) {
+                onSuggestionTap(.filter(filter))
+            } else {
+                // TODO: Real logging infrastructure.
+                print("Warning: Failed to parse name suggestion as unambiguous filter: \(suggestion.filterText)")
+                onSuggestionTap(.string(suggestion.filterText))
+            }
         } label: {
             HStack(spacing: 12) {
                 Image(systemName: "textformat.abc")
                     .foregroundStyle(.secondary)
                 
                 HighlightedText(
-                    text: "\(suggestion.prefix)\(suggestion.cardName)",
+                    text: suggestion.filterText,
                     highlightRange: suggestion.matchRange
                 )
                 Spacer(minLength: 0)

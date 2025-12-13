@@ -34,9 +34,11 @@ struct EnumerationSuggestion: Equatable {
     let options: [Option]
 }
 
+// FIXME: Weird struct. It _should_ be a SearchFilter, but then correlating a SearchFilter with the
+// match range gets weird, because it's in control of its own stringification, so we could end up
+// picking the wrong indices if the original search query has e.g. unnecessary quoting.
 struct NameSuggestion: Equatable {
-    let prefix: String
-    let cardName: String
+    let filterText: String
     let matchRange: Range<String.Index>?
 }
 

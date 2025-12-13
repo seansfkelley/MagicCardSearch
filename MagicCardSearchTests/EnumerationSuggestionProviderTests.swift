@@ -86,7 +86,7 @@ struct EnumerationSuggestionProviderTests {
             [],
         ),
     ])
-    func getSuggestions(input: String, expected: [EnumerationSuggestion]) {
-        #expect(EnumerationSuggestionProvider().getSuggestions(input, existingFilters: [], limit: 1) == expected.map { .enumeration($0) })
+    func getSuggestions(input: String, expected: [EnumerationSuggestion]) async {
+        #expect(await EnumerationSuggestionProvider().getSuggestions(input, existingFilters: [], limit: 1) == expected.map { .enumeration($0) })
     }
 }

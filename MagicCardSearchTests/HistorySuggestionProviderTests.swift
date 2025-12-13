@@ -176,16 +176,16 @@ struct HistorySuggestionProviderTests {
     }
     
     @Test("Substring matching")
-    func substringMatching() {
+    func substringMatching() async {
         let provider = createProvider()
         provider.recordFilterUsage(makeFilter("manavalue=3"))
         
-        let suggestions = provider.getSuggestions("value", existingFilters: [], limit: 10)
+        let suggestions = await provider.getSuggestions("value", existingFilters: [], limit: 10)
         #expect(suggestions.count == 1)
     }
     
     @Test("Excludes existing filters")
-    func excludesExistingFilters() {
+    func excludesExistingFilters() async {
         let provider = createProvider()
         let filter1 = makeFilter("color=red")
         let filter2 = makeFilter("type=creature")
@@ -193,7 +193,7 @@ struct HistorySuggestionProviderTests {
         provider.recordFilterUsage(filter1)
         provider.recordFilterUsage(filter2)
         
-        let suggestions = provider.getSuggestions("", existingFilters: [filter1], limit: 10)
+        let suggestions = await provider.getSuggestions("", existingFilters: [filter1], limit: 10)
         #expect(suggestions.count == 1)
         
         guard case .history(let suggestion) = suggestions[0] else {
@@ -204,24 +204,24 @@ struct HistorySuggestionProviderTests {
     }
     
     @Test("Respects limit")
-    func respectsLimit() {
+    func respectsLimit() async {
         let provider = createProvider()
         provider.recordFilterUsage(makeFilter("color=red"))
         provider.recordFilterUsage(makeFilter("type=creature"))
         provider.recordFilterUsage(makeFilter("manavalue=3"))
         
-        let suggestions = provider.getSuggestions("", existingFilters: [], limit: 2)
+        let suggestions = await provider.getSuggestions("", existingFilters: [], limit: 2)
         #expect(suggestions.count == 2)
     }
     
     @Test("Limit applies after filtering")
-    func limitAfterFiltering() {
+    func limitAfterFiltering() async {
         let provider = createProvider()
         provider.recordFilterUsage(makeFilter("color=red"))
         provider.recordFilterUsage(makeFilter("color=blue"))
         provider.recordFilterUsage(makeFilter("type=creature"))
         
-        let suggestions = provider.getSuggestions("color", existingFilters: [], limit: 1)
+        let suggestions = await provider.getSuggestions("color", existingFilters: [], limit: 1)
         #expect(suggestions.count == 1)
         
         guard case .history(let suggestion) = suggestions[0] else {
@@ -235,14 +235,14 @@ struct HistorySuggestionProviderTests {
     // MARK: - Pin/Unpin Tests
     
     @Test("Pin changes isPinned flag")
-    func pinChangesFlag() {
+    func pinChangesFlag() async {
         let provider = createProvider()
         let filter = makeFilter("color=red")
         
         provider.recordFilterUsage(filter)
         provider.pinSearchFilter(filter)
         
-        let suggestions = provider.getSuggestions("", existingFilters: [], limit: 10)
+        let suggestions = await provider.getSuggestions("", existingFilters: [], limit: 10)
         guard case .history(let suggestion) = suggestions[0] else {
             Issue.record("Expected history suggestion")
             return
@@ -251,7 +251,7 @@ struct HistorySuggestionProviderTests {
     }
     
     @Test("Unpin changes isPinned flag")
-    func unpinChangesFlag() {
+    func unpinChangesFlag() async {
         let provider = createProvider()
         let filter = makeFilter("color=red")
         
@@ -259,7 +259,7 @@ struct HistorySuggestionProviderTests {
         provider.pinSearchFilter(filter)
         provider.unpinSearchFilter(filter)
         
-        let suggestions = provider.getSuggestions("", existingFilters: [], limit: 10)
+        let suggestions = await provider.getSuggestions("", existingFilters: [], limit: 10)
         guard case .history(let suggestion) = suggestions[0] else {
             Issue.record("Expected history suggestion")
             return
@@ -268,7 +268,7 @@ struct HistorySuggestionProviderTests {
     }
     
     @Test("Pin preserves filter across new recordings")
-    func pinPreservedAcrossRecordings() {
+    func pinPreservedAcrossRecordings() async {
         let provider = createProvider()
         let filter = makeFilter("color=red")
         
@@ -276,7 +276,7 @@ struct HistorySuggestionProviderTests {
         provider.pinSearchFilter(filter)
         provider.recordFilterUsage(filter) // Record again
         
-        let suggestions = provider.getSuggestions("", existingFilters: [], limit: 10)
+        let suggestions = await provider.getSuggestions("", existingFilters: [], limit: 10)
         guard case .history(let suggestion) = suggestions[0] else {
             Issue.record("Expected history suggestion")
             return
@@ -287,19 +287,19 @@ struct HistorySuggestionProviderTests {
     // MARK: - Deletion Tests
     
     @Test("Delete removes filter")
-    func deleteRemovesFilter() {
+    func deleteRemovesFilter() async {
         let provider = createProvider()
         let filter = makeFilter("color=red")
         
         provider.recordFilterUsage(filter)
-        #expect(provider.getSuggestions("", existingFilters: [], limit: 10).count == 1)
+        #expect((await provider.getSuggestions("", existingFilters: [], limit: 10)).count == 1)
         
         provider.deleteSearchFilter(filter)
-        #expect(provider.getSuggestions("", existingFilters: [], limit: 10).isEmpty)
+        #expect((await provider.getSuggestions("", existingFilters: [], limit: 10)).isEmpty)
     }
     
     @Test("Delete only removes specified filter")
-    func deleteOnlySpecifiedFilter() {
+    func deleteOnlySpecifiedFilter() async {
         let provider = createProvider()
         let filter1 = makeFilter("color=red")
         let filter2 = makeFilter("type=creature")
@@ -309,7 +309,7 @@ struct HistorySuggestionProviderTests {
         
         provider.deleteSearchFilter(filter1)
         
-        let suggestions = provider.getSuggestions("", existingFilters: [], limit: 10)
+        let suggestions = await provider.getSuggestions("", existingFilters: [], limit: 10)
         #expect(suggestions.count == 1)
         guard case .history(let suggestion) = suggestions[0] else {
             Issue.record("Expected history suggestion")
@@ -330,7 +330,7 @@ struct HistorySuggestionProviderTests {
         provider.recordFilterUsage(otherFilter)
         
         // At this point, otherFilter is most recent
-        var suggestions = provider.getSuggestions("", existingFilters: [], limit: 10)
+        var suggestions = await provider.getSuggestions("", existingFilters: [], limit: 10)
         guard case .history(let first) = suggestions[0] else {
             Issue.record("Expected history suggestion")
             return
@@ -343,7 +343,7 @@ struct HistorySuggestionProviderTests {
         provider.recordFilterUsage(filter)
         
         // Now filter should be most recent
-        suggestions = provider.getSuggestions("", existingFilters: [], limit: 10)
+        suggestions = await provider.getSuggestions("", existingFilters: [], limit: 10)
         guard case .history(let newFirst) = suggestions[0] else {
             Issue.record("Expected history suggestion")
             return
@@ -354,29 +354,29 @@ struct HistorySuggestionProviderTests {
     // MARK: - Edge Cases
     
     @Test("Whitespace-only search term returns all")
-    func whitespaceSearchTerm() {
+    func whitespaceSearchTerm() async {
         let provider = createProvider()
         provider.recordFilterUsage(makeFilter("color=red"))
         
-        let suggestions = provider.getSuggestions("   ", existingFilters: [], limit: 10)
+        let suggestions = await provider.getSuggestions("   ", existingFilters: [], limit: 10)
         #expect(suggestions.count == 1)
     }
     
     @Test("Empty search term returns all")
-    func emptySearchTerm() {
+    func emptySearchTerm() async {
         let provider = createProvider()
         provider.recordFilterUsage(makeFilter("color=red"))
         
-        let suggestions = provider.getSuggestions("", existingFilters: [], limit: 10)
+        let suggestions = await provider.getSuggestions("", existingFilters: [], limit: 10)
         #expect(suggestions.count == 1)
     }
     
     @Test("No match returns empty")
-    func noMatchReturnsEmpty() {
+    func noMatchReturnsEmpty() async {
         let provider = createProvider()
         provider.recordFilterUsage(makeFilter("color=red"))
         
-        let suggestions = provider.getSuggestions("xyzzyx", existingFilters: [], limit: 10)
+        let suggestions = await provider.getSuggestions("xyzzyx", existingFilters: [], limit: 10)
         #expect(suggestions.isEmpty)
     }
 }
