@@ -24,14 +24,17 @@ actor Debounce<each Parameter: Sendable, T: Sendable> {
 }
 
 extension Debounce {
-    func callAsFunction(_ parameter: repeat each Parameter) {
+    func callAsFunction(_ parameter: repeat each Parameter) async -> T? {
         task?.cancel()
         
-        task = Task {
+        let newTask = Task<T?, Never> {
             try? await Task.sleep(for: delay)
-            guard !Task.isCancelled else { return nil }
+            guard !Task.isCancelled else { return nil as T? }
             return await action(repeat each parameter)
         }
+        task = newTask
+        
+        return await newTask.value
     }
     
     func cancel() {

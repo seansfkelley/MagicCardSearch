@@ -6,28 +6,15 @@
 //
 import ScryfallKit
 
-@Sendable
-func logEvent(_ category: String, _ action: String) async {
-    print("Logged \(category) - \(action)")
-}
-
-let logDebounced = Debounce(logEvent, for: .milliseconds(500))
-
 struct NameSuggestionProvider: SuggestionProvider {
-    /// Debounce interval in nanoseconds (300ms)
-    private let debounceInterval: UInt64 = 300_000_000
-    private let getDebounced: @Sendable (String, [SearchFilter], Int) -> [Suggestion]
-    
-    init() {
-        self.getDebounced = Debounce(self.get_, for: .milliseconds(300))
-    }
+    private static let getDebounced = Debounce(Self.get_, for: .milliseconds(2000))
     
     func getSuggestions(_ searchTerm: String, existingFilters: [SearchFilter], limit: Int) async -> [Suggestion] {
-        return getDebounced(searchTerm, existingFilters, limit)
+        return await Self.getDebounced(searchTerm, existingFilters, limit) ?? []
     }
     
     @Sendable
-    private func get_(_ searchTerm: String, existingFilters: [SearchFilter], limit: Int) async -> [Suggestion] {
+    private static func get_(_ searchTerm: String, existingFilters: [SearchFilter], limit: Int) async -> [Suggestion] {
         guard let match = try? /^(-?)(('|")|((name:|name=|name!=)['"]?))/.prefixMatch(in: searchTerm) else {
             return []
         }
@@ -41,14 +28,6 @@ struct NameSuggestionProvider: SuggestionProvider {
         
         // Only autocomplete if there's a value to search for
         guard !value.isEmpty else {
-            return []
-        }
-        
-        // Debounce: wait before making the network request
-        try? await Task.sleep(nanoseconds: debounceInterval)
-        
-        // Check if task was cancelled during debounce
-        guard !Task.isCancelled else {
             return []
         }
         
