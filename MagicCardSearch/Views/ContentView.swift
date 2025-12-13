@@ -74,7 +74,7 @@ struct ContentView: View {
                     warnings: warnings,
                     showWarningsPopover: $showWarningsPopover,
                     onFilterEdit: handleFilterEdit,
-                    autocompleteProvider: autocompleteProvider
+                    isLoadingSuggestions: autocompleteProvider.isLoading
                 )
             }
             .toolbar {

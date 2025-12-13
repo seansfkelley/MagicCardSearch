@@ -15,10 +15,8 @@ class SuggestionMuxer {
     let enumerationProvider: EnumerationSuggestionProvider
     let nameProvider: NameSuggestionProvider
     
+    var isLoading: Bool = false
     private var currentTask: Task<Void, Never>?
-    
-    /// Indicates whether any provider is currently loading suggestions
-    private(set) var isLoading = false
     
     init(
         historyProvider: HistorySuggestionProvider,
@@ -39,10 +37,8 @@ class SuggestionMuxer {
         _ searchTerm: String,
         existingFilters: [SearchFilter]
     ) -> AsyncStream<[Suggestion]> {
-        // Cancel any previous request
         currentTask?.cancel()
         
-        // Set loading state
         isLoading = true
         
         // Capture provider values before entering the AsyncStream to avoid actor isolation issues
@@ -55,15 +51,12 @@ class SuggestionMuxer {
             let task = Task { @MainActor in
                 var allSuggestions: [Suggestion] = []
                 
-                // Check for cancellation before starting
                 guard !Task.isCancelled else {
                     self.isLoading = false
                     continuation.finish()
                     return
                 }
                 
-                // First, get history suggestions (MainActor-isolated)
-                // These are fast since they're in-memory
                 let historySuggestions = await historyProvider.getSuggestions(
                     searchTerm,
                     existingFilters: existingFilters,
@@ -77,9 +70,7 @@ class SuggestionMuxer {
                 allSuggestions.append(contentsOf: historySuggestions)
                 continuation.yield(allSuggestions)
                 
-                // Run the remaining providers concurrently since they're Sendable structs
                 await withTaskGroup(of: (priority: Int, suggestions: [Suggestion]).self) { group in
-                    // Priority 1: Filter types (fast - local computation)
                     group.addTask {
                         let suggestions = await filterProvider.getSuggestions(
                             searchTerm,
@@ -89,7 +80,6 @@ class SuggestionMuxer {
                         return (priority: 1, suggestions: suggestions)
                     }
                     
-                    // Priority 2: Enumeration (fast - local computation)
                     group.addTask {
                         let suggestions = await enumerationProvider.getSuggestions(
                             searchTerm,
@@ -99,7 +89,6 @@ class SuggestionMuxer {
                         return (priority: 2, suggestions: suggestions)
                     }
                     
-                    // Priority 3: Name (may be slow due to network)
                     group.addTask {
                         let suggestions = await nameProvider.getSuggestions(
                             searchTerm,
@@ -133,7 +122,7 @@ class SuggestionMuxer {
                     }
                 }
                 
-                // All providers completed
+                // All providers completed - stop loading
                 self.isLoading = false
                 continuation.finish()
             }

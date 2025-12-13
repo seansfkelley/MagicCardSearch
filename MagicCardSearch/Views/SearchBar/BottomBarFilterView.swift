@@ -17,9 +17,7 @@ struct BottomBarFilterView: View {
     @Binding var showWarningsPopover: Bool
     let onFilterEdit: (SearchFilter) -> Void
     @State var searchIconOpacity: CGFloat = 1
-    
-    /// The autocomplete provider to check for loading state
-    var autocompleteProvider: SuggestionMuxer?
+    var isLoadingSuggestions: Bool
     
     @Namespace private var animation
     
@@ -106,7 +104,7 @@ struct BottomBarFilterView: View {
                         inputText: $inputText,
                         inputSelection: $inputSelection,
                         isSearchFocused: _isSearchFocused,
-                        isLoadingSuggestions: autocompleteProvider?.isLoading ?? false
+                        isLoadingSuggestions: isLoadingSuggestions
                     )
                     // In order to use isSearchFocused as the one and only state management for
                     // expanded/collapsed state, we need to (1) make sure that the TextField in this
@@ -125,7 +123,7 @@ struct BottomBarFilterView: View {
                         ZStack {
                             HStack {
                                 Group {
-                                    if autocompleteProvider?.isLoading ?? false {
+                                    if isLoadingSuggestions {
                                         ProgressView()
                                             .controlSize(.small)
                                     } else {
@@ -339,7 +337,7 @@ private struct ClearAllButton: View {
                     onFilterEdit: { filter in
                         print("Editing filter: \(filter)")
                     },
-                    autocompleteProvider: nil
+                    isLoadingSuggestions: false
                 )
             }
             .background(Color(uiColor: .systemBackground))
