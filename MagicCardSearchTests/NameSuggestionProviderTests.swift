@@ -25,7 +25,7 @@ struct MockCardNameFetcher: CardNameFetcher {
 // MARK: - Tests
 
 struct NameSuggestionProviderTests {
-    @Test<[(String, [String], [(String, Range<Int>)])]>("getSuggestions", arguments: [
+    @Test<[(String, [String], [(String, Range<Int>?)])]>("getSuggestions", arguments: [
         (
             // early-abort and return nothing if it doesn't look like a name filter
             "foo",
@@ -74,11 +74,15 @@ struct NameSuggestionProviderTests {
     ])
     func getSuggestions(input: String, mockResults: [String], expected: [(String, Range<Int>)]) async {
         let fetcher = MockCardNameFetcher(results: mockResults)
-        let actual = await NameSuggestionProvider(fetcher: fetcher).getSuggestions(input, existingFilters: [], limit: Int.max)
+        let actual = await NameSuggestionProvider(fetcher: fetcher).getSuggestions(for: input, limit: Int.max)
         #expect(actual.map(\.filterText) == expected.map(\.0))
         #expect(
             actual.map(\.matchRange) == expected.map { stringIndexRange($0.1) },
-            "wanted highlights \(expected.map { $0.0[stringIndexRange($0.1)] }) but would have gotten \(actual.map { $0.filterText[$0.matchRange] })"
+            "wanted highlights \(expected.map { mapHighlight($0.0, stringIndexRange($0.1)) }) but would have gotten \(actual.map { mapHighlight($0.filterText, $0.matchRange) })"
         )
     }
+}
+
+func mapHighlight(_ string: String, _ range: Range<String.Index>?) -> String? {
+    range.map { String(string[$0]) }
 }

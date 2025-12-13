@@ -65,20 +65,12 @@ struct FilterTypeSuggestionProviderTests {
             ),
         ]
     )
-    func getSuggestions(input: String, expected: [(String, Range<Int>)]) async {
-        let results = await FilterTypeSuggestionProvider().getSuggestions(input, existingFilters: [], limit: Int.max)
-        
-        // TODO: Make this test body less horrible.
-        
-        let filterSuggestions = Array(results.compactMap { suggestion -> (String, Range<String.Index>)? in
-            guard case .filter(let filterSuggestion) = suggestion else {
-                return nil
-            }
-            return (filterSuggestion.filterType, filterSuggestion.matchRange)
+    func getSuggestions(input: String, expected: [(String, Range<Int>)]) {
+        let results = FilterTypeSuggestionProvider().getSuggestions(for: input, limit: Int.max)
+        let actualTuples = Array(results.map { ($0.filterType, $0.matchRange) })
+        // FIXME: Why can't the compiler figure out that this array of tuples should be equatable?
+        #expect(actualTuples.elementsEqual(expected.map { ($0, stringIndexRange($1)) }) { lhs, rhs in
+            lhs.0 == rhs.0 && lhs.1 == rhs.1
         })
-        
-        #expect(
-            filterSuggestions.elementsEqual(expected.map { ($0, stringIndexRange($1.lowerBound, $1.upperBound)) }) { $0 == $1 }
-        )
     }
 }
