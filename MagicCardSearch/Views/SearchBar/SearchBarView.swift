@@ -15,14 +15,14 @@ struct SearchBarView: View {
     @FocusState var isSearchFocused: Bool
     @State private var showSymbolPicker = false
     
-    /// Whether autocomplete providers are currently loading suggestions
-    var isLoadingSuggestions: Bool = false
+    /// The autocomplete provider to observe for loading state
+    @Bindable var autocompleteProvider: SuggestionMuxer
 
     var body: some View {
         ZStack {
             HStack(spacing: 12) {
                 Group {
-                    if isLoadingSuggestions {
+                    if autocompleteProvider.isLoading {
                         ProgressView()
                             .controlSize(.small)
                     } else {
@@ -205,31 +205,4 @@ struct SymbolGroupRow: View {
             .scrollBounceBehavior(.basedOnSize)
         }
     }
-}
-
-// MARK: - Preview
-
-#Preview {
-    struct PreviewWrapper: View {
-        @State private var filters: [SearchFilter] = []
-        @State private var inputText = ""
-        @State private var inputSelection: TextSelection?
-        @FocusState private var isFocused: Bool
-
-        var body: some View {
-            VStack {
-                Spacer()
-                SearchBarView(
-                    filters: $filters,
-                    inputText: $inputText,
-                    inputSelection: $inputSelection,
-                    isSearchFocused: _isFocused
-                )
-                .padding(.vertical, 12)
-                .background(.ultraThinMaterial)
-            }
-        }
-    }
-
-    return PreviewWrapper()
 }

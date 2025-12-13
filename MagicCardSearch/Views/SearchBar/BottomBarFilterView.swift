@@ -17,7 +17,9 @@ struct BottomBarFilterView: View {
     @Binding var showWarningsPopover: Bool
     let onFilterEdit: (SearchFilter) -> Void
     @State var searchIconOpacity: CGFloat = 1
-    var isLoadingSuggestions: Bool
+    
+    /// The autocomplete provider to observe for loading state
+    @Bindable var autocompleteProvider: SuggestionMuxer
     
     @Namespace private var animation
     
@@ -104,7 +106,7 @@ struct BottomBarFilterView: View {
                         inputText: $inputText,
                         inputSelection: $inputSelection,
                         isSearchFocused: _isSearchFocused,
-                        isLoadingSuggestions: isLoadingSuggestions
+                        autocompleteProvider: autocompleteProvider
                     )
                     // In order to use isSearchFocused as the one and only state management for
                     // expanded/collapsed state, we need to (1) make sure that the TextField in this
@@ -123,7 +125,7 @@ struct BottomBarFilterView: View {
                         ZStack {
                             HStack {
                                 Group {
-                                    if isLoadingSuggestions {
+                                    if autocompleteProvider.isLoading {
                                         ProgressView()
                                             .controlSize(.small)
                                     } else {
@@ -300,49 +302,4 @@ private struct ClearAllButton: View {
             }
         }
     }
-}
-
-// MARK: - Preview
-
-#Preview {
-    struct PreviewWrapper: View {
-        @State private var filters: [SearchFilter] = [
-            .basic(.keyValue("set", .equal, "7ED")),
-            .basic(.keyValue("manavalue", .greaterThanOrEqual, "4")),
-            .basic(.keyValue("power", .greaterThan, "3")),
-        ]
-        @State private var inputText = ""
-        @State private var inputSelection: TextSelection?
-        @State private var pendingSelection: TextSelection?
-        @State private var showWarningsPopover = false
-        @FocusState private var isFocused: Bool
-
-        var body: some View {
-            VStack {
-                Spacer()
-                
-                Button("Toggle Focus") {
-                    isFocused.toggle()
-                }
-                .padding()
-                
-                BottomBarFilterView(
-                    filters: $filters,
-                    inputText: $inputText,
-                    inputSelection: $inputSelection,
-                    pendingSelection: $pendingSelection,
-                    isSearchFocused: _isFocused,
-                    warnings: ["Warning 1", "Warning 2"],
-                    showWarningsPopover: $showWarningsPopover,
-                    onFilterEdit: { filter in
-                        print("Editing filter: \(filter)")
-                    },
-                    isLoadingSuggestions: false
-                )
-            }
-            .background(Color(uiColor: .systemBackground))
-        }
-    }
-
-    return PreviewWrapper()
 }
