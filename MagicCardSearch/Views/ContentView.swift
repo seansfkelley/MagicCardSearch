@@ -16,7 +16,7 @@ struct ContentView: View {
     @State private var showCardList = false
     @State private var searchConfig = SearchConfiguration.load()
     @State private var pendingSearchConfig: SearchConfiguration?
-    @State private var autocompleteProvider: SuggestionMuxer
+    @State private var autocompleteProvider: CombinedSuggestionProvider
     @State private var inputSelection: TextSelection?
     @State private var pendingSelection: TextSelection?
     @State private var warnings: [String] = []
@@ -26,7 +26,7 @@ struct ContentView: View {
     private let searchService = CardSearchService()
     
     init() {
-        _autocompleteProvider = State(initialValue: SuggestionMuxer(
+        _autocompleteProvider = State(initialValue: CombinedSuggestionProvider(
             historyProvider: historySuggestionProvider,
             filterProvider: FilterTypeSuggestionProvider(),
             enumerationProvider: EnumerationSuggestionProvider(),

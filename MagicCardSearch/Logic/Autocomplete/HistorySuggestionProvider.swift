@@ -8,8 +8,14 @@
 import Foundation
 import Observation
 
+struct HistorySuggestion: Equatable {
+    let filter: SearchFilter
+    let isPinned: Bool
+    let matchRange: Range<String.Index>?
+}
+
 @Observable
-class HistorySuggestionProvider: SuggestionProvider {
+class HistorySuggestionProvider {
     // MARK: - Properties
 
     private var historyByFilter: [SearchFilter: HistoryEntry] = [:]
@@ -54,32 +60,32 @@ class HistorySuggestionProvider: SuggestionProvider {
 
     // MARK: - Public Methods
 
-    func getSuggestions(_ searchTerm: String, existingFilters: [SearchFilter], limit: Int) async -> [Suggestion] {
+    func getSuggestions(for searchTerm: String, excluding excludedFilters: Set<SearchFilter>, limit: Int) -> [HistorySuggestion] {
+        guard limit > 0 else {
+            return []
+        }
+        
         let trimmedSearchTerm = searchTerm.trimmingCharacters(in: .whitespaces)
         
         return Array(
             sortedHistory
                 .lazy
-                .filter { !existingFilters.contains($0.filter) }
+                .filter { !excludedFilters.contains($0.filter) }
                 .compactMap { entry in
                     if trimmedSearchTerm.isEmpty {
-                        return .history(
-                            HistorySuggestion(
-                                filter: entry.filter,
-                                isPinned: entry.isPinned,
-                                matchRange: nil
-                            )
+                        return HistorySuggestion(
+                            filter: entry.filter,
+                            isPinned: entry.isPinned,
+                            matchRange: nil
                         )
                     }
                     
                     let filterString = entry.filter.queryStringWithEditingRange.0
                     if let range = filterString.range(of: trimmedSearchTerm, options: .caseInsensitive) {
-                        return .history(
-                            HistorySuggestion(
-                                filter: entry.filter,
-                                isPinned: entry.isPinned,
-                                matchRange: range,
-                            )
+                        return HistorySuggestion(
+                            filter: entry.filter,
+                            isPinned: entry.isPinned,
+                            matchRange: range,
                         )
                     }
                     

@@ -4,14 +4,21 @@
 //
 //  Created by Sean Kelley on 2025-12-11.
 //
-struct FilterTypeSuggestionProvider: SuggestionProvider {
+struct FilterTypeSuggestion: Equatable {
+    let filterType: String
+    let matchRange: Range<String.Index>
+    let comparisonKinds: ScryfallFilterType.ComparisonKinds
+}
+
+// TODO: Make this even lazier for performance.
+struct FilterTypeSuggestionProvider {
     // swiftlint:disable:next cyclomatic_complexity function_body_length
-    func getSuggestions(_ searchTerm: String, existingFilters: [SearchFilter], limit: Int) async -> [Suggestion] {
+    func getSuggestions(for searchTerm: String, limit: Int) -> [FilterTypeSuggestion] {
         guard let match = try? /^(-?)([a-zA-Z]+)$/.wholeMatch(in: searchTerm) else {
             return []
         }
         
-        if limit <= 0 {
+        guard limit > 0 else {
             return []
         }
         
@@ -85,6 +92,6 @@ struct FilterTypeSuggestionProvider: SuggestionProvider {
             }
         }
         
-        return suggestions.prefix(limit).map { .filter($0) }
+        return Array(suggestions.prefix(limit))
     }
 }

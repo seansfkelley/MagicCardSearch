@@ -4,15 +4,25 @@
 //
 //  Created by Sean Kelley on 2025-12-11.
 //
-struct EnumerationSuggestionProvider: SuggestionProvider {
-    func getSuggestions(_ searchTerm: String, existingFilters: [SearchFilter], limit: Int) async -> [Suggestion] {
+struct EnumerationSuggestion: Equatable {
+    struct Option: Equatable {
+        let value: String
+        let range: Range<String.Index>?
+    }
+    
+    let filterType: String
+    let comparison: Comparison
+    let options: [Option]
+}
+
+struct EnumerationSuggestionProvider {
+    func getSuggestions(for searchTerm: String, limit: Int) -> [EnumerationSuggestion] {
         // Some enumeration types, like rarity, are considered orderable, hence the comparison operators here.
         guard let match = try? /^(-?)([a-zA-Z]+)(:|=|!=|>=|>|<=|<)/.prefixMatch(in: searchTerm) else {
             return []
         }
         
-        // We return at most one, so this is the only necessary check.
-        if limit <= 0 {
+        guard limit > 0 else {
             return []
         }
         
@@ -41,11 +51,11 @@ struct EnumerationSuggestionProvider: SuggestionProvider {
                 let comparison = Comparison(rawValue: String(comparisonOperator))
                 assert(comparison != nil) // if it is, programmer error on the regex or enumeration type
                 return [
-                    .enumeration(EnumerationSuggestion(
+                    EnumerationSuggestion(
                         filterType: "\(negated)\(filterTypeName.lowercased())",
                         comparison: comparison!,
                         options: matchingOptions,
-                    )),
+                    ),
                 ]
             } else {
                 return []

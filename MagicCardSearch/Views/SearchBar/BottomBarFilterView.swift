@@ -19,7 +19,7 @@ struct BottomBarFilterView: View {
     @State var searchIconOpacity: CGFloat = 1
     
     /// The autocomplete provider to observe for loading state
-    @Bindable var autocompleteProvider: SuggestionMuxer
+    @Bindable var autocompleteProvider: CombinedSuggestionProvider
     
     @Namespace private var animation
     

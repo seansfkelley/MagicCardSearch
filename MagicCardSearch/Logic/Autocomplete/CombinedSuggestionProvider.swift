@@ -7,9 +7,16 @@
 
 import Foundation
 
+enum Suggestion: Equatable {
+    case history(HistorySuggestion)
+    case filter(FilterTypeSuggestion)
+    case enumeration(EnumerationSuggestion)
+    case name(NameSuggestion)
+}
+
 @MainActor
 @Observable
-class SuggestionMuxer {
+class CombinedSuggestionProvider {
     let historyProvider: HistorySuggestionProvider
     let filterProvider: FilterTypeSuggestionProvider
     let enumerationProvider: EnumerationSuggestionProvider
@@ -31,7 +38,7 @@ class SuggestionMuxer {
     }
 
     // swiftlint:disable:next function_body_length
-    func getSuggestions(_ searchTerm: String, existingFilters: [SearchFilter]) -> AsyncStream<[Suggestion]> {
+    func getSuggestions(for searchTerm: String, existingFilters: [SearchFilter]) -> AsyncStream<[Suggestion]> {
         // Create unique ID for this request
         let taskID = UUID()
         currentTaskID = taskID
@@ -39,7 +46,7 @@ class SuggestionMuxer {
         // Start loading
         isLoading = true
         
-        return AsyncStream { continuation in
+        return AsyncStream<[Suggestion]> { continuation in
             Task {
                 var allSuggestions: [Suggestion] = []
                 
@@ -59,22 +66,22 @@ class SuggestionMuxer {
                     // Priority 1: Filter types (fast - local computation)
                     group.addTask {
                         guard !Task.isCancelled else { return (priority: 1, suggestions: []) }
-                        let suggestions = await self.filterProvider.getSuggestions(
-                            searchTerm,
-                            existingFilters: existingFilters,
+                        let suggestions = self.filterProvider.getSuggestions(
+                            for: searchTerm,
                             limit: 4
                         )
+                            .map { Suggestion.filter($0) }
                         return (priority: 1, suggestions: suggestions)
                     }
                     
                     // Priority 2: Enumeration (fast - local computation)
                     group.addTask {
                         guard !Task.isCancelled else { return (priority: 2, suggestions: []) }
-                        let suggestions = await self.enumerationProvider.getSuggestions(
-                            searchTerm,
-                            existingFilters: existingFilters,
+                        let suggestions = self.enumerationProvider.getSuggestions(
+                            for: searchTerm,
                             limit: 1
                         )
+                            .map { Suggestion.enumeration($0) }
                         return (priority: 2, suggestions: suggestions)
                     }
                     
@@ -82,10 +89,10 @@ class SuggestionMuxer {
                     group.addTask {
                         guard !Task.isCancelled else { return (priority: 3, suggestions: []) }
                         let suggestions = await self.nameProvider.getSuggestions(
-                            searchTerm,
-                            existingFilters: existingFilters,
+                            for: searchTerm,
                             limit: 10
                         )
+                            .map { Suggestion.name($0) }
                         return (priority: 3, suggestions: suggestions)
                     }
                     

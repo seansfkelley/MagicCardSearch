@@ -16,7 +16,7 @@ struct SearchBarView: View {
     @State private var showSymbolPicker = false
     
     /// The autocomplete provider to observe for loading state
-    @Bindable var autocompleteProvider: SuggestionMuxer
+    @Bindable var autocompleteProvider: CombinedSuggestionProvider
 
     var body: some View {
         ZStack {

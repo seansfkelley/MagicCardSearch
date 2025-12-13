@@ -14,7 +14,7 @@ struct AutocompleteView: View {
     }
 
     let inputText: String
-    let provider: SuggestionMuxer
+    let provider: CombinedSuggestionProvider
     let filters: [SearchFilter]
     let onSuggestionTap: (AcceptedSuggestion) -> Void
     
@@ -84,7 +84,7 @@ struct AutocompleteView: View {
         .listStyle(.plain)
         .task(id: inputText) {
             // Stream suggestions as they arrive from providers running concurrently
-            for await newSuggestions in provider.getSuggestions(inputText, existingFilters: filters) {
+            for await newSuggestions in provider.getSuggestions(for: inputText, existingFilters: filters) {
                 suggestions = newSuggestions
             }
         }
@@ -307,7 +307,7 @@ struct HighlightedText: View {
 #Preview("Filter Type Suggestions") {
     AutocompleteView(
         inputText: "set",
-        provider: SuggestionMuxer(
+        provider: CombinedSuggestionProvider(
             historyProvider: HistorySuggestionProvider(),
             filterProvider: FilterTypeSuggestionProvider(),
             enumerationProvider: EnumerationSuggestionProvider(),
@@ -322,7 +322,7 @@ struct HighlightedText: View {
 #Preview("Enumeration Suggestions - Empty") {
     AutocompleteView(
         inputText: "format:",
-        provider: SuggestionMuxer(
+        provider: CombinedSuggestionProvider(
             historyProvider: HistorySuggestionProvider(),
             filterProvider: FilterTypeSuggestionProvider(),
             enumerationProvider: EnumerationSuggestionProvider(),
@@ -337,7 +337,7 @@ struct HighlightedText: View {
 #Preview("Enumeration Suggestions - Filtered") {
     AutocompleteView(
         inputText: "format=m",
-        provider: SuggestionMuxer(
+        provider: CombinedSuggestionProvider(
             historyProvider: HistorySuggestionProvider(),
             filterProvider: FilterTypeSuggestionProvider(),
             enumerationProvider: EnumerationSuggestionProvider(),
@@ -352,7 +352,7 @@ struct HighlightedText: View {
 #Preview("Name Suggestions") {
     AutocompleteView(
         inputText: "Black Lot",
-        provider: SuggestionMuxer(
+        provider: CombinedSuggestionProvider(
             historyProvider: HistorySuggestionProvider(),
             filterProvider: FilterTypeSuggestionProvider(),
             enumerationProvider: EnumerationSuggestionProvider(),
