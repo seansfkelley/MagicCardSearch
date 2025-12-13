@@ -16,7 +16,7 @@ struct NameSuggestionProvider: SuggestionProvider {
     func getSuggestions(_ searchTerm: String, existingFilters: [SearchFilter], limit: Int) async -> [Suggestion] {
         await debouncedFetch.cancel()
         
-        guard let match = try? /^(-?)(('|")|((name:|name=|name!=)['"]?))/.prefixMatch(in: searchTerm) else {
+        guard let match = try? /^-?(!|(!?['"])|((name:|name=|name!=)['"]?))/.prefixMatch(in: searchTerm) else {
             return []
         }
         
