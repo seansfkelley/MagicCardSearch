@@ -7,14 +7,9 @@
 import ScryfallKit
 
 struct NameSuggestionProvider: SuggestionProvider {
-    private static let getDebounced = Debounce(Self.get_, for: .milliseconds(2000))
+    private static let debouncedFetch = Debounce(Self.fetch, for: .milliseconds(2000))
     
     func getSuggestions(_ searchTerm: String, existingFilters: [SearchFilter], limit: Int) async -> [Suggestion] {
-        return await Self.getDebounced(searchTerm, existingFilters, limit) ?? []
-    }
-    
-    @Sendable
-    private static func get_(_ searchTerm: String, existingFilters: [SearchFilter], limit: Int) async -> [Suggestion] {
         guard let match = try? /^(-?)(('|")|((name:|name=|name!=)['"]?))/.prefixMatch(in: searchTerm) else {
             return []
         }
@@ -24,25 +19,24 @@ struct NameSuggestionProvider: SuggestionProvider {
         }
         
         let prefix = String(searchTerm[..<match.range.upperBound])
-        let value = String(searchTerm[match.range.upperBound...])
+        let name = String(searchTerm[match.range.upperBound...])
         
         // Only autocomplete if there's a value to search for
-        guard !value.isEmpty else {
+        guard !name.isEmpty else {
             return []
         }
         
-        do {
-            // Use ScryfallKit's autocomplete API
-            let client = ScryfallClient(networkLogLevel: .minimal)
-            let catalog = try await client.getCardNameAutocomplete(query: value)
-            
-            // Return up to `limit` suggestions
-            return catalog.data.prefix(limit).map { cardName in
+        let suggestions = await Self.debouncedFetch(name) ?? []
+        
+        return Array(suggestions
+            .lazy
+            .prefix(limit)
+            .map { cardName in
                 let fullString = "\(prefix)\(cardName)"
                 let matchRange: Range<String.Index>?
                 
                 // Highlight the matched portion within the card name
-                if let range = cardName.range(of: value, options: .caseInsensitive) {
+                if let range = cardName.range(of: name, options: .caseInsensitive) {
                     // Calculate the range in the full string
                     let offset = fullString.distance(from: fullString.startIndex, to: prefix.endIndex)
                     let startOffset = cardName.distance(from: cardName.startIndex, to: range.lowerBound)
@@ -61,8 +55,17 @@ struct NameSuggestionProvider: SuggestionProvider {
                     matchRange: matchRange
                 ))
             }
+         )
+    }
+    
+    @Sendable
+    private static func fetch(_ query: String) async -> [String] {
+        do {
+            let client = ScryfallClient(networkLogLevel: .minimal)
+            let catalog = try await client.getCardNameAutocomplete(query: query)
+            return catalog.data
         } catch {
-            // If the API call fails, just return empty suggestions
+            // Swallow errors.
             return []
         }
     }
