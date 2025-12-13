@@ -43,7 +43,7 @@ struct NameSuggestionProvider {
     func getSuggestions(for searchTerm: String, limit: Int) async -> [NameSuggestion] {
         await debouncedFetch.cancel()
         
-        guard let match = try? /^-?(!|(!?['"])|((name:|name=|name!=)['"]?))/.prefixMatch(in: searchTerm) else {
+        guard let match = try? /^-?((!?['"]|!)|((name:|name=|name!=)['"]?))/.ignoresCase().prefixMatch(in: searchTerm) else {
             return []
         }
         
@@ -51,7 +51,7 @@ struct NameSuggestionProvider {
             return []
         }
         
-        let prefix = String(searchTerm[..<match.range.upperBound])
+        let rawPrefix = String(searchTerm[..<match.range.upperBound])
         let name = String(searchTerm[match.range.upperBound...])
         
         // Only autocomplete if there's a useful value to search for
@@ -61,25 +61,32 @@ struct NameSuggestionProvider {
         
         let suggestions = await debouncedFetch(name) ?? []
         
+        let prefix: String
+        if (try? /['"]$/.firstMatch(in: rawPrefix)) != nil {
+            prefix = String(rawPrefix[..<rawPrefix.index(before: rawPrefix.endIndex)]).lowercased()
+        } else {
+            prefix = rawPrefix.lowercased()
+        }
+        
         return Array(suggestions
             .lazy
             .prefix(limit)
             .map { cardName in
-                let suffix: String
-                if prefix.contains("\"") {
-                    suffix = "\""
-                } else if prefix.contains("'") {
-                    suffix = "'"
+                let quote: String
+                if cardName.contains(" ") || cardName.contains("'") {
+                    quote = "\""
+                } else if cardName.contains("\"") {
+                    quote = "'"
                 } else {
-                    suffix = ""
+                    quote = ""
                 }
                 
-                let filterText = "\(prefix)\(cardName)\(suffix)"
-                
+                let filterText = "\(prefix)\(quote)\(cardName)\(quote)"
                 let matchRange: Range<String.Index>?
                 
                 if let range = cardName.range(of: name, options: .caseInsensitive) {
-                    matchRange = filterText.index(range.lowerBound, offsetBy: prefix.count)..<filterText.index(range.upperBound, offsetBy: prefix.count)
+                    let quotedPrefixCount = prefix.count + quote.count
+                    matchRange = filterText.index(range.lowerBound, offsetBy: quotedPrefixCount)..<filterText.index(range.upperBound, offsetBy: quotedPrefixCount)
                 } else {
                     matchRange = nil
                 }

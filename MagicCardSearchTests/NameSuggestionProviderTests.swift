@@ -39,46 +39,62 @@ struct NameSuggestionProviderTests {
             [],
         ),
         (
-            // return results with matching ranges if it's a name-type filter
+            // return results with matching ranges if it's a name-type filter, adding quotes where necessary
             "name:bolt",
-            ["Firebolt"],
-            [("name:Firebolt", 6..<13)],
+            ["Firebolt", "Lightning Bolt", "Someone's Bolt"],
+            [("name:Firebolt", 9..<13), ("name:\"Lightning Bolt\"", 16..<20), ("name:\"Someone's Bolt\"", 16..<20)],
         ),
-//        (
-//            // return results with matching ranges if it's a name-type filter
-//            "name=bolt",
-//        ),
-//        (
-//            // return results with matching ranges if it's a quoted name-type filter
-//            "name=\"bolt",
-//        ),
-//        (
-//            // return results with matching ranges if it's quoted but without a filter
-//            "\"bolt",
-//        ),
-//        (
-//            // return results with matching ranges if it's a literal name match, including quotes where appropriate
-//            "!bolt",
-//        ),
-//        (
-//            // return results with matching ranges if it's a literal name match, including quotes where appropriate
-//            "-!\"bolt",
-//        ),
-//        (
-//            // pass through all results from the matcher, even if we can't find the matching portion
-//            "name:foo",
-//        ),
-//        (
-//            
-//        )
+        (
+            // is case-insensitive
+            "nAmE:boLT",
+            ["Firebolt"],
+            [("name:Firebolt", 9..<13)],
+        ),
+        (
+            // return results with matching ranges if it's a name-type filter, respecting the operator used
+            "name=bolt",
+            ["Firebolt"],
+            [("name=Firebolt", 9..<13)],
+        ),
+        (
+            // FIXME: Should this respect the users' input more closely and preserve quotes?
+            // return results with matching ranges if it's a quoted name-type filter, using quotes only where necessary
+            "name=\"bolt",
+            ["Firebolt", "Lightning Bolt"],
+            [("name=Firebolt", 9..<13), ("name=\"Lightning Bolt\"", 16..<20)],
+        ),
+        (
+            // return results with matching ranges if it's quoted but without a filter, including quotes where appropriate
+            "\"bolt",
+            ["Firebolt", "Lightning Bolt"],
+            [("Firebolt", 4..<8), ("\"Lightning Bolt\"", 11..<15)],
+        ),
+        (
+            // return results with matching ranges if it's a literal name match, including quotes where appropriate
+            "!bolt",
+            ["Firebolt", "Lightning Bolt"],
+            [("!Firebolt", 5..<9), ("!\"Lightning Bolt\"", 12..<16)],
+        ),
+        (
+            // return results with matching ranges if it's a literal name match, including quotes where appropriate
+            "-!\"bolt",
+            ["Firebolt", "Lightning Bolt"],
+            [("-!Firebolt", 6..<10), ("-!\"Lightning Bolt\"", 13..<17)],
+        ),
+        (
+            // pass through all results from the matcher, even if we can't find the matching portion
+            "name:foo",
+            ["Wooded Foothills", "Shivan Reef"],
+            [("name:\"Wooded Foothills\"", 13..<16), ("name:\"Shivan Reef\"", nil)],
+        ),
     ])
-    func getSuggestions(input: String, mockResults: [String], expected: [(String, Range<Int>)]) async {
+    func getSuggestions(input: String, mockResults: [String], expected: [(String, Range<Int>?)]) async {
         let fetcher = MockCardNameFetcher(results: mockResults)
         let actual = await NameSuggestionProvider(fetcher: fetcher).getSuggestions(for: input, limit: Int.max)
         #expect(actual.map(\.filterText) == expected.map(\.0))
         #expect(
-            actual.map(\.matchRange) == expected.map { stringIndexRange($0.1) },
-            "wanted highlights \(expected.map { mapHighlight($0.0, stringIndexRange($0.1)) }) but would have gotten \(actual.map { mapHighlight($0.filterText, $0.matchRange) })"
+            actual.map(\.matchRange) == expected.map { $0.1.map(stringIndexRange) },
+            "wanted highlights \(expected.map { mapHighlight($0.0, $0.1.map(stringIndexRange)) }) but would have gotten \(actual.map { mapHighlight($0.filterText, $0.matchRange) })"
         )
     }
 }
