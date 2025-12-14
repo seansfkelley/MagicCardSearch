@@ -11,8 +11,7 @@ import SwiftUI
 struct CardDetailView: View {
     let card: Card
     var isCurrentlyVisible: Bool = true
-    var initialFlipState: Bool = false
-    var onFlipStateChange: ((Bool) -> Void)?
+    @Binding var isFlipped: Bool
 
     @State private var relatedCardToShow: Card?
     @State private var isLoadingRelatedCard = false
@@ -31,8 +30,7 @@ struct CardDetailView: View {
                         frontFace: faces[0],
                         backFace: faces[1],
                         imageQuality: .large,
-                        initiallyShowingBackFace: initialFlipState,
-                        onFlipStateChange: onFlipStateChange
+                        isShowingBackFace: $isFlipped
                     )
                     .shadow(color: .black.opacity(0.2), radius: 8, x: 0, y: 4)
                     .padding(.horizontal)
@@ -64,7 +62,6 @@ struct CardDetailView: View {
                     
                     if !allArtists.isEmpty {
                         Divider().padding(.horizontal)
-                        
                         CardArtistSection(artist: allArtists.joined(separator: ", "))
                     }
                 } else {
@@ -73,12 +70,10 @@ struct CardDetailView: View {
                 
                 if card.setType != .token {
                     Divider().padding(.horizontal)
-                    
                     CardLegalitiesSection(card: card)
                 }
 
                 Divider().padding(.horizontal)
-
                 CardSetInfoSection(
                     setCode: card.set,
                     setName: card.setName,
@@ -89,7 +84,6 @@ struct CardDetailView: View {
 
                 if let oracleId = card.bestEffortOracleId {
                     Divider().padding(.horizontal)
-
                     CardOtherPrintsSection(
                         oracleId: oracleId,
                         currentCardId: card.id
@@ -157,7 +151,7 @@ struct CardDetailView: View {
         }
         .sheet(item: $relatedCardToShow) { relatedCard in
             NavigationStack {
-                CardDetailView(card: relatedCard)
+                CardDetailView(card: relatedCard, isFlipped: $isFlipped)
                     .navigationTitle(relatedCard.name)
                     .navigationBarTitleDisplayMode(.inline)
                     .toolbar {
@@ -195,9 +189,7 @@ struct CardDetailView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
 
         if let typeLine = face.typeLine, !typeLine.isEmpty {
-            Divider()
-                .padding(.horizontal)
-
+            Divider().padding(.horizontal)
             VStack(alignment: .leading, spacing: 8) {
                 HStack(spacing: 8) {
                     if let colorIndicator = face.colorIndicator, !colorIndicator.isEmpty {
@@ -217,9 +209,7 @@ struct CardDetailView: View {
         let flavorText = face.flavorText ?? ""
         
         if !oracleText.isEmpty || !flavorText.isEmpty {
-            Divider()
-                .padding(.horizontal)
-
+            Divider().padding(.horizontal)
             VStack(alignment: .leading, spacing: 12) {
                 if !oracleText.isEmpty {
                     OracleTextView(oracleText)
@@ -244,30 +234,22 @@ struct CardDetailView: View {
         }
 
         if let power = face.power, let toughness = face.toughness {
-            Divider()
-                .padding(.horizontal)
-
+            Divider().padding(.horizontal)
             CardStatSection(value: "\(power)/\(toughness)")
         }
         
         if let loyalty = face.loyalty {
-            Divider()
-                .padding(.horizontal)
-
+            Divider().padding(.horizontal)
             CardStatSection(value: loyalty, label: "Loyalty")
         }
         
         if let defense = face.defense {
-            Divider()
-                .padding(.horizontal)
-
+            Divider().padding(.horizontal)
             CardStatSection(value: defense, label: "Defense")
         }
 
         if showArtist, let artist = face.artist {
-            Divider()
-                .padding(.horizontal)
-
+            Divider().padding(.horizontal)
             CardArtistSection(artist: artist)
         }
     }

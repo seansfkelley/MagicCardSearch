@@ -234,6 +234,8 @@ private struct PagingCardImageView: View {
     @Binding var partialScrollOffsetFraction: CGFloat
     let screenWidth: CGFloat
     
+    @State private var cardFlipStates: [UUID: Bool] = [:]
+    
     var body: some View {
         ScrollView(.horizontal) {
             LazyHStack(spacing: 0) {
@@ -244,6 +246,10 @@ private struct PagingCardImageView: View {
                                 frontFace: faces[0],
                                 backFace: faces[1],
                                 imageQuality: .large,
+                                isShowingBackFace: Binding(
+                                    get: { cardFlipStates[card.id] ?? false },
+                                    set: { cardFlipStates[card.id] = $0 }
+                                )
                             )
                             .padding(.horizontal)
                         } else {

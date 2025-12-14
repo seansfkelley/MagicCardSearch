@@ -13,21 +13,18 @@ struct FlippableCardFaceView: View {
     let backFace: CardFaceDisplayable
     let imageQuality: CardImageQuality
     
-    @State private var showingBackFace: Bool
-    var onFlipStateChange: ((Bool) -> Void)?
+    @Binding var isShowingBackFace: Bool
     
     init(
         frontFace: CardFaceDisplayable,
         backFace: CardFaceDisplayable,
         imageQuality: CardImageQuality = .normal,
-        initiallyShowingBackFace: Bool = false,
-        onFlipStateChange: ((Bool) -> Void)? = nil
+        isShowingBackFace: Binding<Bool>
     ) {
         self.frontFace = frontFace
         self.backFace = backFace
         self.imageQuality = imageQuality
-        self._showingBackFace = State(initialValue: initiallyShowingBackFace)
-        self.onFlipStateChange = onFlipStateChange
+        self._isShowingBackFace = isShowingBackFace
     }
     
     var body: some View {
@@ -35,31 +32,30 @@ struct FlippableCardFaceView: View {
             ZStack {
                 CardFaceView(
                     face: frontFace,
-                    imageQuality: imageQuality,
+                    imageQuality: imageQuality
                 )
                 .clipShape(RoundedRectangle(cornerRadius: 16))
-                .opacity(showingBackFace ? 0 : 1)
+                .opacity(isShowingBackFace ? 0 : 1)
                 .rotation3DEffect(
-                    .degrees(showingBackFace ? 180 : 0),
+                    .degrees(isShowingBackFace ? 180 : 0),
                     axis: (x: 0, y: 1, z: 0)
                 )
                 
                 CardFaceView(
                     face: backFace,
-                    imageQuality: imageQuality,
+                    imageQuality: imageQuality
                 )
                 .clipShape(RoundedRectangle(cornerRadius: 16))
-                .opacity(showingBackFace ? 1 : 0)
+                .opacity(isShowingBackFace ? 1 : 0)
                 .rotation3DEffect(
-                    .degrees(showingBackFace ? 0 : -180),
+                    .degrees(isShowingBackFace ? 0 : -180),
                     axis: (x: 0, y: 1, z: 0)
                 )
             }
             
             Button {
                 withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                    showingBackFace.toggle()
-                    onFlipStateChange?(showingBackFace)
+                    isShowingBackFace.toggle()
                 }
             } label: {
                 Image(systemName: "arrow.triangle.2.circlepath")

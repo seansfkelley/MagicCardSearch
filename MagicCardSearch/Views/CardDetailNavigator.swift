@@ -53,10 +53,11 @@ struct CardDetailNavigator: View {
                             CardDetailView(
                                 card: card,
                                 isCurrentlyVisible: index == currentIndex,
-                                initialFlipState: cardFlipStates[card.id] ?? false,
-                            ) { isFlipped in
-                                cardFlipStates[card.id] = isFlipped
-                            }
+                                isFlipped: Binding(
+                                    get: { cardFlipStates[card.id] ?? false },
+                                    set: { cardFlipStates[card.id] = $0 }
+                                )
+                            )
                             .frame(width: geometry.size.width, height: geometry.size.height)
                             .containerRelativeFrame(.horizontal)
                             .id(index)

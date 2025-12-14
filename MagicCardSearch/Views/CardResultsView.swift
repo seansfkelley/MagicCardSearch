@@ -70,10 +70,11 @@ struct CardResultsView: View {
                             ForEach(Array(results.enumerated()), id: \.element.id) { index, card in
                                 CardResultCell(
                                     card: card,
-                                    isFlipped: cardFlipStates[card.id] ?? false,
-                                ) { isFlipped in
-                                    cardFlipStates[card.id] = isFlipped
-                                }
+                                    isFlipped: Binding(
+                                        get: { cardFlipStates[card.id] ?? false },
+                                        set: { cardFlipStates[card.id] = $0 }
+                                    )
+                                )
                                 .onTapGesture {
                                     selectedCardIndex = index
                                 }
@@ -286,8 +287,7 @@ private struct SheetIdentifier: Identifiable {
 
 struct CardResultCell: View {
     let card: Card
-    let isFlipped: Bool
-    let onFlipStateChange: (Bool) -> Void
+    @Binding var isFlipped: Bool
 
     var body: some View {
         Group {
@@ -296,13 +296,12 @@ struct CardResultCell: View {
                     frontFace: faces[0],
                     backFace: faces[1],
                     imageQuality: .small,
-                    initiallyShowingBackFace: isFlipped,
-                    onFlipStateChange: onFlipStateChange
+                    isShowingBackFace: $isFlipped
                 )
             } else {
                 CardFaceView(
                     face: card,
-                    imageQuality: .small,
+                    imageQuality: .small
                 )
                 .clipShape(RoundedRectangle(cornerRadius: 12))
             }
