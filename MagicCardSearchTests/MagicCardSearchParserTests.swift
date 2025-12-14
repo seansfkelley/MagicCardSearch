@@ -25,6 +25,7 @@ struct MagicCardSearchParserTests {
     }
     
     @Test("from (nil)", arguments: [
+        "foo:",
         "foo:\"",
         "foo:/incomplete regex",
         "foo: bar",

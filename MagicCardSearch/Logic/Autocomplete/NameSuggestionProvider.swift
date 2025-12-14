@@ -51,12 +51,16 @@ struct NameSuggestionProvider {
         let rawPrefix: String
         let name: String
         
-        // Swiftlint's shitty parser thinks this is a dictionary/array literal when it's on one line.
-        let regex = /^-?((!?['"]|!)|((name:|name=|name!=)['"]?))/
-        if let match = try? regex.ignoresCase().prefixMatch(in: searchTerm) {
+        // These are not constants because it makes concurrency angry for reasons I can't be bothered with.
+        let unambiguousNameSearchPrefix = /^-?((!?['"]|!)|((name:|name=|name!=)['"]?))/
+        // This is a bit sloppy, but prevents searching names when the user has typed something like
+        // `o:"rules` which is very obviously not an attempt to find a card by name.
+        let likelyBareSearchRegex = /[a-zA-Z0-9][a-zA-Z0-9'"\/ ]+/
+        
+        if let match = try? unambiguousNameSearchPrefix.ignoresCase().prefixMatch(in: searchTerm) {
             rawPrefix = String(searchTerm[..<match.range.upperBound])
             name = String(searchTerm[match.range.upperBound...])
-        } else if permitBareSearchTerm {
+        } else if permitBareSearchTerm && (try? likelyBareSearchRegex.wholeMatch(in: searchTerm)) != nil {
             rawPrefix = "!" // Upgrade to a literal match!
             name = searchTerm
         } else {

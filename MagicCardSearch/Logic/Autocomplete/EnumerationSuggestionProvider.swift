@@ -17,12 +17,12 @@ struct EnumerationSuggestion: Equatable {
 
 struct EnumerationSuggestionProvider {
     func getSuggestions(for searchTerm: String, limit: Int) -> [EnumerationSuggestion] {
-        // Some enumeration types, like rarity, are considered orderable, hence the comparison operators here.
-        guard let match = try? /^(-?)([a-zA-Z]+)(:|=|!=|>=|>|<=|<)/.prefixMatch(in: searchTerm) else {
+        guard limit > 0 else {
             return []
         }
         
-        guard limit > 0 else {
+        // Some enumeration types, like rarity, are considered orderable, hence the comparison operators here.
+        guard let match = try? /^(-?)([a-zA-Z]+)(:|=|!=|>=|>|<=|<)/.prefixMatch(in: searchTerm) else {
             return []
         }
         

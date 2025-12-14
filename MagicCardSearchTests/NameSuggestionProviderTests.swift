@@ -33,6 +33,12 @@ struct NameSuggestionProviderTests {
             [],
         ),
         (
+            // early-abort and return nothing if it looks like a non-name filter
+            "foo:",
+            ["foobar"], // non-empty!
+            [],
+        ),
+        (
             // early-abort and return nothing if it's a name-type filter with less than 2 characters
             "name:f",
             ["foobar"], // non-empty!
@@ -117,6 +123,12 @@ struct NameSuggestionProviderTests {
             "!bolt",
             ["Firebolt", "Lightning Bolt"],
             [("!Firebolt", 5..<9), ("!\"Lightning Bolt\"", 12..<16)],
+        ),
+        (
+            // does not try to search for things that look like non-name filters
+            "foo:",
+            ["foobar"],
+            [],
         ),
     ])
     func permitBareSearchTerm(input: String, mockResults: [String], expected: [(String, Range<Int>?)]) async {
