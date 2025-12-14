@@ -7,6 +7,11 @@
 
 import SwiftUI
 
+struct SymbolSuggestion {
+    let textInputRange: Range<String.Index>
+    let symbolParts: String
+}
+
 struct SearchBarView: View {
     @Binding var filters: [SearchFilter]
     @Binding var inputText: String
@@ -14,7 +19,7 @@ struct SearchBarView: View {
 
     @FocusState var isSearchFocused: Bool
     @State private var showSymbolPicker = false
-    @State private var partialSymbolRange: Range<String.Index>?
+    @State private var partialSymbol: SymbolSuggestion?
     
     @Bindable var autocompleteProvider: CombinedSuggestionProvider
 
@@ -69,7 +74,7 @@ struct SearchBarView: View {
                 }
                 .buttonStyle(.plain)
                 .popover(isPresented: $showSymbolPicker, arrowEdge: .bottom) {
-                    SymbolPickerView { symbol in
+                    SymbolPickerView(partialText: partialSymbol?.symbolParts ?? "") { symbol in
                         insertSymbol(symbol)
                         showSymbolPicker = false
                     }
@@ -109,11 +114,11 @@ struct SearchBarView: View {
     }
 
     private func insertSymbol(_ symbol: String) {
-        if let range = partialSymbolRange {
-            inputText.replaceSubrange(range, with: symbol)
-            let location = inputText.index(range.lowerBound, offsetBy: symbol.count)
+        if let partial = partialSymbol {
+            inputText.replaceSubrange(partial.textInputRange, with: symbol)
+            let location = inputText.index(partial.textInputRange.lowerBound, offsetBy: symbol.count)
             inputSelection = .init(range: location..<location)
-            partialSymbolRange = nil
+            partialSymbol = nil
         } else if let selection = inputSelection {
             switch selection.indices {
             case .selection(let range):
@@ -136,10 +141,12 @@ struct SearchBarView: View {
     
     private func checkForPartialSymbol(_ text: String) {
         if let match = try? /{[a-zA-Z\/\s]*$/.firstMatch(in: text) {
-            partialSymbolRange = match.range
+            let matchedText = String(text[match.range])
+            let filteredText = matchedText.filter { $0.isLetter || $0 == "/" }
+            partialSymbol = SymbolSuggestion(textInputRange: match.range, symbolParts: filteredText)
             showSymbolPicker = true
-        } else if partialSymbolRange != nil {
-            partialSymbolRange = nil
+        } else if partialSymbol != nil {
+            partialSymbol = nil
             showSymbolPicker = false
         }
     }
@@ -148,42 +155,62 @@ struct SearchBarView: View {
 // MARK: - Symbol Picker
 
 struct SymbolPickerView: View {
+    let partialText: String
     let onSymbolSelected: (String) -> Void
+    
+    private let allSymbolGroups: [[String]] = [
+        ["{T}", "{Q}", "{S}", "{E}"],
+        ["{W}", "{U}", "{B}", "{R}", "{G}", "{C}"],
+        ["{X}", "{1}", "{2}", "{3}", "{4}", "{5}", "{6}", "{7}", "{8}", "{9}"],
+        ["{W/U}", "{W/B}", "{U/B}", "{U/R}", "{B/R}", "{B/G}", "{R/W}", "{R/G}", "{G/W}", "{G/U}"],
+        ["{2/W}", "{2/U}", "{2/B}", "{2/R}", "{2/G}"],
+        ["{W/P}", "{U/P}", "{B/P}", "{R/P}", "{G/P}"]
+    ]
+    
+    private var selectableSymbols: Set<String> {
+        let lowercasedPartial = partialText.lowercased()
+        
+        // If partial is empty, match everything
+        if lowercasedPartial.isEmpty {
+            return Set(allSymbolGroups.flatMap { $0 })
+        }
+        
+        // Split partial content on '/' to get parts to match
+        let partialParts = lowercasedPartial.split(separator: "/").map(String.init)
+        
+        var matchingSymbols = Set<String>()
+        
+        for group in allSymbolGroups {
+            for symbol in group {
+                // Extract content between braces
+                let symbolContent = symbol.dropFirst().dropLast().lowercased() // Remove '{' and '}'
+                let symbolParts = symbolContent.split(separator: "/").map(String.init)
+                
+                // All partial parts must match at least one symbol part
+                let allMatch = partialParts.allSatisfy { partialPart in
+                    symbolParts.contains { symbolPart in
+                        symbolPart.hasPrefix(partialPart)
+                    }
+                }
+                
+                if allMatch {
+                    matchingSymbols.insert(symbol)
+                }
+            }
+        }
+        
+        return matchingSymbols
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            SymbolGroupRow(
-                symbols: ["{T}", "{Q}", "{S}", "{E}"],
-                onSymbolTapped: onSymbolSelected
-            )
-
-            SymbolGroupRow(
-                symbols: ["{W}", "{U}", "{B}", "{R}", "{G}", "{C}"],
-                onSymbolTapped: onSymbolSelected
-            )
-
-            SymbolGroupRow(
-                symbols: ["{X}", "{1}", "{2}", "{3}", "{4}", "{5}", "{6}", "{7}", "{8}", "{9}"],
-                onSymbolTapped: onSymbolSelected
-            )
-
-            SymbolGroupRow(
-                symbols: [
-                    "{W/U}", "{W/B}", "{U/B}", "{U/R}", "{B/R}",
-                    "{B/G}", "{R/W}", "{R/G}", "{G/W}", "{G/U}",
-                ],
-                onSymbolTapped: onSymbolSelected
-            )
-
-            SymbolGroupRow(
-                symbols: ["{2/W}", "{2/U}", "{2/B}", "{2/R}", "{2/G}" ],
-                onSymbolTapped: onSymbolSelected
-            )
-
-            SymbolGroupRow(
-                symbols: ["{W/P}", "{U/P}", "{B/P}", "{R/P}", "{G/P}" ],
-                onSymbolTapped: onSymbolSelected
-            )
+            ForEach(Array(allSymbolGroups.enumerated()), id: \.offset) { _, symbols in
+                SymbolGroupRow(
+                    symbols: symbols,
+                    selectableSymbols: selectableSymbols,
+                    onSymbolTapped: onSymbolSelected
+                )
+            }
         }
         .padding()
     }
@@ -191,30 +218,37 @@ struct SymbolPickerView: View {
 
 struct SymbolGroupRow: View {
     let symbols: [String]
+    let selectableSymbols: Set<String>
     let onSymbolTapped: (String) -> Void
 
     var body: some View {
         ViewThatFits {
             HStack(spacing: 8) {
                 ForEach(symbols, id: \.self) { symbol in
+                    let isSelectable = selectableSymbols.contains(symbol)
                     Button(action: {
                         onSymbolTapped(symbol)
                     }) {
                         MtgSymbolView(symbol, size: 32, oversize: 32)
                     }
                     .buttonStyle(.plain)
+                    .opacity(isSelectable ? 1.0 : 0.3)
+                    .disabled(!isSelectable)
                 }
             }
             
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
                     ForEach(symbols, id: \.self) { symbol in
+                        let isSelectable = selectableSymbols.contains(symbol)
                         Button(action: {
                             onSymbolTapped(symbol)
                         }) {
                             MtgSymbolView(symbol, size: 32, oversize: 32)
                         }
                         .buttonStyle(.plain)
+                        .opacity(isSelectable ? 1.0 : 0.3)
+                        .disabled(!isSelectable)
                     }
                 }
             }
