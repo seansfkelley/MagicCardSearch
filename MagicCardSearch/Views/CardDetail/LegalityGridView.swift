@@ -184,25 +184,43 @@ private struct LegalityEditView: View {
         self._workingDividerIndex = State(wrappedValue: configuration.dividerIndex)
     }
     
+    // Create a combined list with formats and divider
+    private var listItems: [LegalityListItem] {
+        var items: [LegalityListItem] = []
+        
+        for (index, format) in workingFormatOrder.enumerated() {
+            // Insert divider before this format if it matches the divider index
+            if index == workingDividerIndex {
+                items.append(.divider)
+            }
+            items.append(.format(format))
+        }
+        
+        // If divider is at the end, add it after all formats
+        if workingDividerIndex >= workingFormatOrder.count {
+            items.append(.divider)
+        }
+        
+        return items
+    }
+    
     var body: some View {
         NavigationStack {
             List {
-                ForEach(workingFormatOrder, id: \.self) { format in
-                    Text(format.label).font(.body)
+                ForEach(listItems, id: \.self) { item in
+                    switch item {
+                    case .format(let format):
+                        Text(format.label).font(.body)
+                    case .divider:
+                        Rectangle()
+                            .fill(.tertiary)
+                            .frame(height: 1)
+                            .frame(maxWidth: .infinity)
+                            .padding(.horizontal)
+                    }
                 }
                 .onMove { from, to in
-                    workingFormatOrder.move(fromOffsets: from, toOffset: to)
-                }
-                
-                // Divider position control
-                Section {
-                    Stepper(
-                        "Show first \(workingDividerIndex) format\(workingDividerIndex == 1 ? "" : "s")",
-                        value: $workingDividerIndex,
-                        in: 0...workingFormatOrder.count
-                    )
-                } header: {
-                    Text("Visible Formats")
+                    handleMove(from: from, to: to)
                 }
             }
             .navigationTitle("Edit Visible Legalities")
@@ -217,7 +235,6 @@ private struct LegalityEditView: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button {
-                        // Commit changes to the configuration
                         configuration.formatOrder = workingFormatOrder
                         configuration.dividerIndex = workingDividerIndex
                         configuration.save()
@@ -230,6 +247,66 @@ private struct LegalityEditView: View {
             }
             .environment(\.editMode, .constant(.active))
         }
+    }
+    
+    private func handleMove(from source: IndexSet, to destination: Int) {
+        guard let sourceIndex = source.first else { return }
+        
+        let items = listItems
+        let movingItem = items[sourceIndex]
+        
+        switch movingItem {
+        case .format:
+            // Moving a format - need to adjust for divider position
+            let formatSourceIndex = formatIndex(at: sourceIndex, in: items)
+            var formatDestIndex = formatIndex(at: destination, in: items)
+            
+            // If we're moving past the divider, adjust the destination
+            if sourceIndex < destination {
+                // Moving down - destination already accounts for removal
+                formatDestIndex = formatIndex(at: destination - 1, in: items)
+            }
+            
+            // Move the format
+            workingFormatOrder.move(fromOffsets: IndexSet([formatSourceIndex]), toOffset: formatDestIndex)
+            
+            // Adjust divider index if needed
+            if formatSourceIndex < workingDividerIndex && formatDestIndex >= workingDividerIndex {
+                // Moved from above to below divider
+                workingDividerIndex -= 1
+            } else if formatSourceIndex >= workingDividerIndex && formatDestIndex < workingDividerIndex {
+                // Moved from below to above divider
+                workingDividerIndex += 1
+            }
+            
+        case .divider:
+            // Moving the divider - update its position
+            var newDividerIndex = formatIndex(at: destination, in: items)
+            
+            // Adjust for the current direction of movement
+            if sourceIndex < destination {
+                // Moving down - the destination index accounts for divider removal
+                newDividerIndex = formatIndex(at: destination - 1, in: items)
+            }
+            
+            workingDividerIndex = newDividerIndex
+        }
+    }
+    
+    // Helper to find the format index (excluding divider) at a given list position
+    private func formatIndex(at listIndex: Int, in items: [LegalityListItem]) -> Int {
+        var formatCount = 0
+        for i in 0..<min(listIndex, items.count) {
+            if case .format = items[i] {
+                formatCount += 1
+            }
+        }
+        return formatCount
+    }
+    
+    private enum LegalityListItem: Equatable, Hashable {
+        case format(Format)
+        case divider
     }
 }
 
