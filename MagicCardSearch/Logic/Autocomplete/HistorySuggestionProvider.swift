@@ -21,13 +21,20 @@ class HistorySuggestionProvider {
     private var historyByFilter: [SearchFilter: HistoryEntry] = [:]
     private var sortedCache: [HistoryEntry]?
 
-    private let maxHistoryCount = 1000
+    private let hardLimit: Int
+    private let softLimit: Int
+    private let maxAgeInDays: Int
     private let persistenceKey = "filterHistory"
 
     // MARK: - Initialization
 
-    init() {
+    init(hardLimit: Int = 1000, softLimit: Int = 500, maxAgeInDays: Int = 90) {
+        self.hardLimit = hardLimit
+        self.softLimit = softLimit
+        self.maxAgeInDays = maxAgeInDays
+        
         loadHistory()
+        maybeGarbageCollectHistory()
     }
 
     private var sortedHistory: [HistoryEntry] {
@@ -104,17 +111,7 @@ class HistorySuggestionProvider {
         )
         historyByFilter[filter] = entry
 
-        if historyByFilter.count > maxHistoryCount {
-            let sortedByDate = historyByFilter.values
-                .filter { !$0.isPinned }
-                .sorted { $0.lastUsedDate < $1.lastUsedDate }
-
-            let toRemove = sortedByDate.prefix(historyByFilter.count - maxHistoryCount)
-            for entry in toRemove {
-                historyByFilter.removeValue(forKey: entry.filter)
-            }
-        }
-
+        maybeGarbageCollectHistory()
         invalidateCache()
         saveHistory()
     }
@@ -128,6 +125,7 @@ class HistorySuggestionProvider {
             isPinned: true
         )
         historyByFilter[filter] = entry
+        
         invalidateCache()
         saveHistory()
     }
@@ -149,6 +147,39 @@ class HistorySuggestionProvider {
         historyByFilter.removeValue(forKey: filter)
         invalidateCache()
         saveHistory()
+    }
+
+    // MARK: - Garbage Collection
+
+    private func maybeGarbageCollectHistory() {
+        let originalCount = sortedHistory.count
+        
+        var reducedHistory = sortedHistory
+        
+        let cutoff = Date.now.addingTimeInterval(TimeInterval(-maxAgeInDays * 24 * 60 * 60))
+        // n.b. assumes that sorted history puts pins at the beginning, which it does, but that
+        // isn't encoded anywhere.
+        if let i = reducedHistory.firstIndex(where: { !$0.isPinned && $0.lastUsedDate < cutoff }) {
+            reducedHistory = Array(reducedHistory[..<i])
+        }
+    
+        if reducedHistory.count > hardLimit {
+            if let i = reducedHistory.firstIndex(where: { !$0.isPinned }) {
+                reducedHistory = Array(reducedHistory[..<max(i, softLimit)])
+            } else {
+                reducedHistory = Array(reducedHistory[..<softLimit])
+            }
+        }
+        
+        if reducedHistory.count != originalCount {
+            historyByFilter = reducedHistory.reduce(into: [:]) { dict, entry in
+                dict[entry.filter] = entry
+            }
+            invalidateCache()
+            saveHistory()
+            
+            print("Garbage collected \(reducedHistory.count - originalCount) history entries")
+        }
     }
 
     // MARK: - Persistence
