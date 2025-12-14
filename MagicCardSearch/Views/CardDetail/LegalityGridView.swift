@@ -106,22 +106,18 @@ struct LegalityGridView: View {
                 
                 Spacer()
                 
-                Button(isEditMode ? "Done" : "Edit") {
-                    withAnimation {
-                        isEditMode.toggle()
-                    }
+                Button("Edit") {
+                    isEditMode = true
                 }
                 .font(.subheadline)
             }
             .padding(.bottom, 12)
             
-            if isEditMode {
-                editModeView
-            } else {
-                normalView
-            }
+            normalView
         }
-        .frame(maxHeight: .infinity)
+        .sheet(isPresented: $isEditMode) {
+            LegalityEditView(configuration: configuration)
+        }
     }
     
     private var normalView: some View {
@@ -156,44 +152,6 @@ struct LegalityGridView: View {
                 .padding(.vertical, 4)
             }
         }
-        .listStyle(.plain)
-    }
-    
-    private var editModeView: some View {
-        List {
-            ForEach(configuration.formatOrder, id: \.self) { format in
-                HStack {
-                    Image(systemName: "line.3.horizontal")
-                        .foregroundStyle(.secondary)
-                    
-                    Text(format.label)
-                        .font(.subheadline)
-                    
-                    Spacer()
-                }
-                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
-            }
-            .onMove { from, to in
-                configuration.moveFormat(from: from, to: to)
-            }
-            
-            // Divider position control
-            Section {
-                Stepper(
-                    "Show first \(configuration.dividerIndex) format\(configuration.dividerIndex == 1 ? "" : "s")",
-                    value: Binding(
-                        get: { configuration.dividerIndex },
-                        set: { configuration.setDividerIndex($0) }
-                    ),
-                    in: 0...configuration.formatOrder.count
-                )
-            } header: {
-                Text("Visible Formats")
-            }
-        }
-        .frame(height: 600) // Give the edit list a defined height
-        .listStyle(.insetGrouped)
-        .environment(\.editMode, .constant(.active))
     }
     
     private var visibleFormats: [Format] {
@@ -206,6 +164,72 @@ struct LegalityGridView: View {
     
     private var hasHiddenFormats: Bool {
         configuration.dividerIndex < configuration.formatOrder.count
+    }
+}
+
+// MARK: - Edit View (Sheet)
+
+private struct LegalityEditView: View {
+    @Environment(\.dismiss) private var dismiss
+    var configuration: LegalityConfiguration
+    
+    // Local state that will only be applied on confirmation
+    @State private var workingFormatOrder: [Format]
+    @State private var workingDividerIndex: Int
+    
+    init(configuration: LegalityConfiguration) {
+        self.configuration = configuration
+        // Initialize working state with current configuration
+        self._workingFormatOrder = State(wrappedValue: configuration.formatOrder)
+        self._workingDividerIndex = State(wrappedValue: configuration.dividerIndex)
+    }
+    
+    var body: some View {
+        NavigationStack {
+            List {
+                ForEach(workingFormatOrder, id: \.self) { format in
+                    Text(format.label).font(.body)
+                }
+                .onMove { from, to in
+                    workingFormatOrder.move(fromOffsets: from, toOffset: to)
+                }
+                
+                // Divider position control
+                Section {
+                    Stepper(
+                        "Show first \(workingDividerIndex) format\(workingDividerIndex == 1 ? "" : "s")",
+                        value: $workingDividerIndex,
+                        in: 0...workingFormatOrder.count
+                    )
+                } header: {
+                    Text("Visible Formats")
+                }
+            }
+            .navigationTitle("Edit Visible Legalities")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button {
+                        dismiss()
+                    } label: {
+                        Image(systemName: "xmark")
+                    }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button {
+                        // Commit changes to the configuration
+                        configuration.formatOrder = workingFormatOrder
+                        configuration.dividerIndex = workingDividerIndex
+                        configuration.save()
+                        dismiss()
+                    } label: {
+                        Image(systemName: "checkmark")
+                    }
+                    .buttonStyle(.glassProminent)
+                }
+            }
+            .environment(\.editMode, .constant(.active))
+        }
     }
 }
 
