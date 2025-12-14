@@ -173,91 +173,117 @@ private struct CardPrintsDetailView: View {
     let cards: [Card]
     @Binding var currentIndex: Int
     
-    @State private var mainScrollPosition: Int?
-    @State private var thumbnailScrollPosition: Int?
+    @State private var mainScrollPosition = ScrollPosition()
+    @State private var thumbnailScrollPosition = ScrollPosition()
     @State private var partialScrollOffsetFraction: CGFloat = 0
-    
-    private var currentCard: Card? {
-        guard currentIndex >= 0 && currentIndex < cards.count else {
-            return nil
-        }
-        return cards[currentIndex]
-    }
     
     var body: some View {
         GeometryReader { geometry in
             VStack(spacing: 0) {
-                ScrollView(.horizontal) {
-                    LazyHStack(spacing: 0) {
-                        ForEach(Array(cards.enumerated()), id: \.element.id) { index, card in
-                            VStack(spacing: 0) {
-                                if let faces = card.cardFaces, card.layout.isDoubleFaced && faces.count >= 2 {
-                                    FlippableCardFaceView(
-                                        frontFace: faces[0],
-                                        backFace: faces[1],
-                                        imageQuality: .large,
-                                        aspectFit: true
-                                    )
-                                    .padding(.horizontal)
-                                } else {
-                                    CardFaceView(
-                                        face: card,
-                                        imageQuality: .large,
-                                        aspectFit: true
-                                    )
-                                    .clipShape(RoundedRectangle(cornerRadius: 16))
-                                    .padding(.horizontal)
-                                }
-                                
-                                CardSetInfoSection(
-                                    setCode: card.set,
-                                    setName: card.setName,
-                                    collectorNumber: card.collectorNumber,
-                                    rarity: card.rarity,
-                                    lang: card.lang
-                                )
-                                .padding(.horizontal)
-                                .padding(.vertical)
-                            }
-                            .frame(width: geometry.size.width)
-                            .id(index)
-                        }
-                    }
-                    .scrollTargetLayout()
-                }
-                .scrollTargetBehavior(.paging)
-                .scrollPosition(id: $mainScrollPosition, anchor: .center)
-                .scrollIndicators(.hidden)
-                .onScrollGeometryChange(
-                    for: CGFloat.self,
-                    of: { geometry in
-                        (CGFloat(mainScrollPosition ?? 0) * geometry.containerSize.width - geometry.contentOffset.x) / geometry.containerSize.width
-                    },
-                    action: { _, new in
-                        print(new)
-                        partialScrollOffsetFraction = new
-                    })
-                .onChange(of: mainScrollPosition) { _, newValue in
-                    if let newValue, newValue != currentIndex {
-                        currentIndex = newValue
-                        thumbnailScrollPosition = newValue
-                    }
-                }
+                PagingCardImageView(
+                    cards: cards,
+                    currentIndex: $currentIndex,
+                    scrollPosition: $mainScrollPosition,
+                    partialScrollOffsetFraction: $partialScrollOffsetFraction,
+                    screenWidth: geometry.size.width
+                )
                 
                 ThumbnailPreviewStrip(
                     cards: cards,
                     currentIndex: $currentIndex,
-                    mainScrollPosition: $mainScrollPosition,
                     scrollPosition: $thumbnailScrollPosition,
                     partialScrollOffsetFraction: $partialScrollOffsetFraction,
                     screenWidth: geometry.size.width
                 )
+                
+                Spacer()
+                
+                Text("\(currentIndex + 1) of \(cards.count)")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
         }
         .onAppear {
-            mainScrollPosition = currentIndex
-            thumbnailScrollPosition = currentIndex
+            mainScrollPosition.scrollTo(id: currentIndex)
+            thumbnailScrollPosition.scrollTo(id: currentIndex)
         }
+        .onChange(of: mainScrollPosition.viewID(type: Int.self)) { _, newValue in
+            print("new main value \(newValue)")
+            if let newValue, newValue != currentIndex {
+                currentIndex = newValue
+                thumbnailScrollPosition.scrollTo(id: newValue)
+            }
+        }
+        .onChange(of: thumbnailScrollPosition.viewID(type: Int.self)) { _, newValue in
+            print("new thumbnail value \(newValue)")
+            if let newValue, newValue != currentIndex {
+                currentIndex = newValue
+                mainScrollPosition.scrollTo(id: newValue)
+            }
+        }
+    }
+}
+
+// MARK: - Paging Card Image View
+
+private struct PagingCardImageView: View {
+    let cards: [Card]
+    @Binding var currentIndex: Int
+    @Binding var scrollPosition: ScrollPosition
+    @Binding var partialScrollOffsetFraction: CGFloat
+    let screenWidth: CGFloat
+    
+    var body: some View {
+        ScrollView(.horizontal) {
+            LazyHStack(spacing: 0) {
+                ForEach(Array(cards.enumerated()), id: \.offset) { offset, card in
+                    VStack(spacing: 0) {
+                        if let faces = card.cardFaces, card.layout.isDoubleFaced && faces.count >= 2 {
+                            FlippableCardFaceView(
+                                frontFace: faces[0],
+                                backFace: faces[1],
+                                imageQuality: .large,
+                                aspectFit: true
+                            )
+                            .padding(.horizontal)
+                        } else {
+                            CardFaceView(
+                                face: card,
+                                imageQuality: .large,
+                                aspectFit: true
+                            )
+                            .clipShape(RoundedRectangle(cornerRadius: 16))
+                            .padding(.horizontal)
+                        }
+                        
+                        CardSetInfoSection(
+                            setCode: card.set,
+                            setName: card.setName,
+                            collectorNumber: card.collectorNumber,
+                            rarity: card.rarity,
+                            lang: card.lang
+                        )
+                        .padding(.horizontal)
+                        .padding(.vertical)
+                    }
+                    .frame(width: screenWidth)
+                    .id(offset)
+                }
+            }
+            .scrollTargetLayout()
+        }
+        .scrollTargetBehavior(.paging)
+        .scrollPosition($scrollPosition, anchor: .center)
+        .scrollIndicators(.hidden)
+        .onScrollGeometryChange(
+            for: CGFloat.self,
+            of: { geometry in
+                (CGFloat(scrollPosition.viewID(type: Int.self) ?? 0) * geometry.containerSize.width - geometry.contentOffset.x) / geometry.containerSize.width
+            },
+            action: { _, new in
+//                print(new)
+                partialScrollOffsetFraction = new
+            })
     }
 }
 
@@ -266,8 +292,7 @@ private struct CardPrintsDetailView: View {
 private struct ThumbnailPreviewStrip: View {
     let cards: [Card]
     @Binding var currentIndex: Int
-    @Binding var mainScrollPosition: Int?
-    @Binding var scrollPosition: Int?
+    @Binding var scrollPosition: ScrollPosition
     @Binding var partialScrollOffsetFraction: CGFloat
     let screenWidth: CGFloat
     
@@ -289,15 +314,14 @@ private struct ThumbnailPreviewStrip: View {
                 Color.clear
                     .frame(width: sidePadding - thumbnailSpacing)
                 
-                ForEach(Array(cards.enumerated()), id: \.element.id) { index, card in
-                    ThumbnailCardView(card: card, isSelected: index == currentIndex)
+                ForEach(Array(cards.enumerated()), id: \.offset) { offset, card in
+                    ThumbnailCardView(card: card, isSelected: offset == currentIndex)
                         .frame(height: thumbnailHeight)
-                        .id(index)
+                        .id(offset)
                         .onTapGesture {
                             withAnimation(.easeInOut(duration: 0.3)) {
-                                scrollPosition = index
-                                mainScrollPosition = index
-                                currentIndex = index
+                                scrollPosition.scrollTo(id: offset)
+                                currentIndex = offset
                             }
                         }
                 }
@@ -311,7 +335,7 @@ private struct ThumbnailPreviewStrip: View {
             .scrollTargetLayout()
             .padding(.vertical, 12)
         }
-        .scrollPosition(id: $scrollPosition, anchor: .center)
+        .scrollPosition($scrollPosition, anchor: .center)
         // FIXME: This really feels like this should be .viewAligned(anchor: .center) but that
         // creates wonky behavior. .viewAligned's default anchor of .leading does, indeed, snap to
         // the leading edge, so I'm not sure why .center would not work.
@@ -319,12 +343,6 @@ private struct ThumbnailPreviewStrip: View {
         .scrollIndicators(.hidden)
         .background(Color.clear)
         .frame(height: thumbnailHeight + 16)
-        .onChange(of: scrollPosition) { _, newValue in
-            if let newValue, newValue != currentIndex {
-                currentIndex = newValue
-                mainScrollPosition = newValue
-            }
-        }
     }
 }
 
