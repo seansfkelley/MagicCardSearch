@@ -22,30 +22,37 @@ struct CardFaceView: View {
         if let imageUrlString = imageQuality.imageUrl(from: face.imageUris),
            let url = URL(string: imageUrlString) {
             AsyncImage(url: url) { phase in
-                switch phase {
-                case .empty:
-                    ProgressView()
-                        .frame(maxWidth: .infinity)
-                        .aspectRatio(0.7, contentMode: .fit)
-                case .success(let image):
-                    image
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .contextMenu {
-                            ShareLink(item: url, preview: SharePreview(face.name, image: image))
-                            
-                            Button {
-                                if let uiImage = ImageRenderer(content: image).uiImage {
-                                    UIPasteboard.general.image = uiImage
+                Group {
+                    switch phase {
+                    case .empty:
+                        ProgressView()
+                            .frame(maxWidth: .infinity)
+                            .aspectRatio(0.7, contentMode: .fit)
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .contextMenu {
+                                ShareLink(item: url, preview: SharePreview(face.name, image: image))
+                                
+                                Button {
+                                    if let uiImage = ImageRenderer(content: image).uiImage {
+                                        UIPasteboard.general.image = uiImage
+                                    }
+                                } label: {
+                                    Label("Copy", systemImage: "doc.on.doc")
                                 }
-                            } label: {
-                                Label("Copy", systemImage: "doc.on.doc")
                             }
-                        }
-                case .failure:
-                    CardPlaceholderView(name: face.name)
-                @unknown default:
-                    CardPlaceholderView(name: face.name)
+                    case .failure:
+                        CardPlaceholderView(name: face.name)
+                    @unknown default:
+                        CardPlaceholderView(name: face.name)
+                    }
+                }
+                .transaction { transaction in
+                    // Disable animations for image loading phase transitions
+                    // to prevent interference with card flip animations
+                    transaction.animation = nil
                 }
             }
         } else {
