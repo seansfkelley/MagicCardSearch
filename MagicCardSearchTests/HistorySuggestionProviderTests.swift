@@ -9,6 +9,7 @@ import Testing
 import Foundation
 @testable import MagicCardSearch
 
+@Suite
 class HistorySuggestionProviderTests {
     var provider: HistorySuggestionProvider
     
@@ -121,12 +122,66 @@ class HistorySuggestionProviderTests {
     }
     
     @Test("returns any filters whose string representation has any substring match")
+    func substringMatch() {
+        let colorFilter = SearchFilter.basic(.keyValue("color", .equal, "red"))
+        let oracleFilter = SearchFilter.basic(.keyValue("oracle", .including, "flying"))
+        let setFilter = SearchFilter.basic(.keyValue("set", .equal, "odyssey"))
+        recordUsages(of: [colorFilter, oracleFilter, setFilter])
+        
+        let suggestions = provider.getSuggestions(for: "y", excluding: Set(), limit: 10)
+        #expect(suggestions == [
+            .init(filter: setFilter, isPinned: false, matchRange: "set:ody".range(of: "y")),
+            .init(filter: oracleFilter, isPinned: false, matchRange: "oracle:flying".range(of: "y")),
+        ])
+    }
+    
+    @Test("returns exclude matching filters present in the exclusion list")
+    func excludeMatchingFilters() {
+        let colorFilter = SearchFilter.basic(.keyValue("color", .equal, "red"))
+        let oracleFilter = SearchFilter.basic(.keyValue("oracle", .including, "flying"))
+        let setFilter = SearchFilter.basic(.keyValue("set", .equal, "ody"))
+        recordUsages(of: [colorFilter, oracleFilter, setFilter])
+        
+        let suggestions = provider.getSuggestions(for: "y", excluding: Set([oracleFilter]), limit: 10)
+        #expect(suggestions == [
+            .init(filter: setFilter, isPinned: false, matchRange: "set:ody".range(of: "y")),
+        ])
+    }
     
     @Test("returns the empty list if there is no simple substring match in the stringified filters")
+    func noSubstringMatch() {
+        let colorFilter = SearchFilter.basic(.keyValue("color", .equal, "red"))
+        let oracleFilter = SearchFilter.basic(.keyValue("oracle", .including, "flying"))
+        recordUsages(of: [colorFilter, oracleFilter])
+        
+        let suggestions = provider.getSuggestions(for: "xyz", excluding: Set(), limit: 10)
+        #expect(suggestions.isEmpty)
+    }
     
     @Test("does not implicitly add usages if pinning or unpinning filters that aren't recorded")
-    
-    @Test("returns matching filters based purely on recency")
+    func pinningWithoutRecording() {
+        let colorFilter = SearchFilter.basic(.keyValue("color", .equal, "red"))
+        
+        provider.pin(filter: colorFilter)
+        
+        let suggestions = provider.getSuggestions(for: "", excluding: Set(), limit: 10)
+        #expect(suggestions.isEmpty)
+        
+        provider.unpin(filter: colorFilter)
+        
+        let suggestionsAfterUnpin = provider.getSuggestions(for: "", excluding: Set(), limit: 10)
+        #expect(suggestionsAfterUnpin.isEmpty)
+    }
     
     @Test("does nothing if deleting a filter that does not exist")
+    func deleteNonexistent() {
+        let colorFilter = SearchFilter.basic(.keyValue("color", .equal, "red"))
+        let oracleFilter = SearchFilter.basic(.keyValue("oracle", .including, "flying"))
+        recordUsages(of: [colorFilter])
+        
+        provider.delete(filter: oracleFilter)
+        
+        let suggestions = provider.getSuggestions(for: "", excluding: Set(), limit: 10)
+        #expect(suggestions == [.init(filter: colorFilter, isPinned: false, matchRange: nil)])
+    }
 }
