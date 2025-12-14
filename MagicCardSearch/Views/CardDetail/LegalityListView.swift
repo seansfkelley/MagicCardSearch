@@ -78,13 +78,9 @@ class LegalityConfiguration {
         UserDefaults.standard.set(dividerIndex, forKey: dividerIndexKey)
     }
     
-    func moveFormat(from: IndexSet, to: Int) {
-        formatOrder.move(fromOffsets: from, toOffset: to)
-        save()
-    }
-    
-    func setDividerIndex(_ index: Int) {
-        dividerIndex = min(max(0, index), formatOrder.count)
+    func update(formatOrder: [Format], dividerIndex: Int) {
+        self.formatOrder = formatOrder
+        self.dividerIndex = dividerIndex
         save()
     }
 }
@@ -99,7 +95,7 @@ struct LegalityListView: View {
     @State private var isEditMode = false
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
+        VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Text("Legality")
                     .font(.headline)
@@ -109,50 +105,57 @@ struct LegalityListView: View {
                 Button {
                     isEditMode = true
                 } label: {
-                    Image(systemName: "pencil")
-                        .imageScale(.small)
+                    Text("Edit Visibility")
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                }
+                .buttonStyle(.automatic)
+            }
+            
+            VStack(spacing: 0) {
+                ForEach(Array(configuration.formatOrder.prefix(configuration.dividerIndex)), id: \.self) { format in
+                    LegalityItemView(
+                        format: format,
+                        legality: card.getLegality(for: format),
+                        isGameChanger: card.gameChanger ?? false
+                    )
+                    .padding(.vertical, 4)
+                }
+                
+                if hasHiddenFormats {
+                    Button {
+                        withAnimation {
+                            isExpanded.toggle()
+                        }
+                    } label: {
+                        HStack {
+                            Text(isExpanded ? "Show Less" : "Show More")
+                                .font(.body)
+                            
+                            Spacer()
+                            
+                            Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                                .imageScale(.small)
+                        }
+                        .contentShape(Rectangle())
+                    }
+                    .padding(.vertical, 8)
+                }
+                
+                if isExpanded {
+                    ForEach(Array(configuration.formatOrder.suffix(from: configuration.dividerIndex)), id: \.self) { format in
+                        LegalityItemView(
+                            format: format,
+                            legality: card.getLegality(for: format),
+                            isGameChanger: card.gameChanger ?? false
+                        )
+                        .padding(.vertical, 4)
+                    }
                 }
             }
-            .padding(.bottom, 12)
-            
-            normalView
         }
         .sheet(isPresented: $isEditMode) {
             LegalityEditView(configuration: configuration)
-        }
-    }
-    
-    private var normalView: some View {
-        VStack(spacing: 0) {
-            ForEach(visibleFormats, id: \.self) { format in
-                LegalityItemView(
-                    format: format,
-                    legality: card.getLegality(for: format),
-                    isGameChanger: card.gameChanger ?? false
-                )
-                .padding(.vertical, 4)
-            }
-            
-            if hasHiddenFormats {
-                Button {
-                    withAnimation {
-                        isExpanded.toggle()
-                    }
-                } label: {
-                    HStack {
-                        Text(isExpanded ? "Show Less" : "Show More")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                        
-                        Spacer()
-                        
-                        Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                            .foregroundStyle(.secondary)
-                            .imageScale(.small)
-                    }
-                }
-                .padding(.vertical, 4)
-            }
         }
     }
     
@@ -237,9 +240,7 @@ private struct LegalityEditView: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button {
-                        configuration.formatOrder = workingFormatOrder
-                        configuration.dividerIndex = workingDividerIndex
-                        configuration.save()
+                        configuration.update(formatOrder: workingFormatOrder, dividerIndex: workingDividerIndex)
                         dismiss()
                     } label: {
                         Image(systemName: "checkmark")
@@ -322,7 +323,7 @@ private struct LegalityItemView: View {
     var body: some View {
         HStack(spacing: 12) {
             Text(format.label)
-                .font(.subheadline)
+                .font(.body)
                 .frame(maxWidth: .infinity, alignment: .leading)
             
             HStack(spacing: 6) {

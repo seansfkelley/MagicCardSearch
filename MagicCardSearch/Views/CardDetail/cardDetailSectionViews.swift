@@ -312,8 +312,7 @@ struct CardOtherPrintsSection: View {
         } label: {
             HStack {
                 Text("All Prints")
-                    .font(.body)
-                    .foregroundStyle(.primary)
+                    .font(.headline)
 
                 Spacer()
 
