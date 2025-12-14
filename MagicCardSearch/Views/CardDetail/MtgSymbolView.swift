@@ -8,7 +8,7 @@
 import SwiftUI
 import ScryfallKit
 
-private let bareSymbolCodes = Set(["E", "CHAOS"])
+private let bareSymbolCodes = Set(["E", "CHAOS", "TK"])
 
 enum MtgSymbol {
     case bare(String)
