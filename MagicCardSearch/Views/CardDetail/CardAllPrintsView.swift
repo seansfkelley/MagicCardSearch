@@ -173,8 +173,8 @@ private struct CardPrintsDetailView: View {
     let cards: [Card]
     @Binding var currentIndex: Int
     
-    @State private var mainScrollPosition = ScrollPosition()
-    @State private var thumbnailScrollPosition = ScrollPosition()
+    @State private var mainScrollPosition = ScrollPosition(idType: Int.self)
+    @State private var thumbnailScrollPosition = ScrollPosition(idType: Int.self)
     @State private var partialScrollOffsetFraction: CGFloat = 0
     
     var body: some View {
@@ -182,7 +182,6 @@ private struct CardPrintsDetailView: View {
             VStack(spacing: 0) {
                 PagingCardImageView(
                     cards: cards,
-                    currentIndex: $currentIndex,
                     scrollPosition: $mainScrollPosition,
                     partialScrollOffsetFraction: $partialScrollOffsetFraction,
                     screenWidth: geometry.size.width
@@ -190,7 +189,6 @@ private struct CardPrintsDetailView: View {
                 
                 ThumbnailPreviewStrip(
                     cards: cards,
-                    currentIndex: $currentIndex,
                     scrollPosition: $thumbnailScrollPosition,
                     partialScrollOffsetFraction: $partialScrollOffsetFraction,
                     screenWidth: geometry.size.width
@@ -208,14 +206,12 @@ private struct CardPrintsDetailView: View {
             thumbnailScrollPosition.scrollTo(id: currentIndex)
         }
         .onChange(of: mainScrollPosition.viewID(type: Int.self)) { _, newValue in
-            print("new main value \(newValue)")
             if let newValue, newValue != currentIndex {
                 currentIndex = newValue
                 thumbnailScrollPosition.scrollTo(id: newValue)
             }
         }
         .onChange(of: thumbnailScrollPosition.viewID(type: Int.self)) { _, newValue in
-            print("new thumbnail value \(newValue)")
             if let newValue, newValue != currentIndex {
                 currentIndex = newValue
                 mainScrollPosition.scrollTo(id: newValue)
@@ -228,7 +224,6 @@ private struct CardPrintsDetailView: View {
 
 private struct PagingCardImageView: View {
     let cards: [Card]
-    @Binding var currentIndex: Int
     @Binding var scrollPosition: ScrollPosition
     @Binding var partialScrollOffsetFraction: CGFloat
     let screenWidth: CGFloat
@@ -291,7 +286,6 @@ private struct PagingCardImageView: View {
 
 private struct ThumbnailPreviewStrip: View {
     let cards: [Card]
-    @Binding var currentIndex: Int
     @Binding var scrollPosition: ScrollPosition
     @Binding var partialScrollOffsetFraction: CGFloat
     let screenWidth: CGFloat
@@ -315,13 +309,12 @@ private struct ThumbnailPreviewStrip: View {
                     .frame(width: sidePadding - thumbnailSpacing)
                 
                 ForEach(Array(cards.enumerated()), id: \.offset) { offset, card in
-                    ThumbnailCardView(card: card, isSelected: offset == currentIndex)
+                    ThumbnailCardView(card: card, isSelected: offset == scrollPosition.viewID(type: Int.self))
                         .frame(height: thumbnailHeight)
                         .id(offset)
                         .onTapGesture {
                             withAnimation(.easeInOut(duration: 0.3)) {
                                 scrollPosition.scrollTo(id: offset)
-                                currentIndex = offset
                             }
                         }
                 }
@@ -330,15 +323,12 @@ private struct ThumbnailPreviewStrip: View {
                     .frame(width: sidePadding - thumbnailSpacing)
             }
             // FIXME: Should be able to show the thumbnail bar scrolling as the main view is being
-            // pushed around.
+            // pushed around. No idea if this is the right location for this.
 //            .offset(x: partialScrollOffsetFraction * thumbnailWidth, y: 0)
             .scrollTargetLayout()
             .padding(.vertical, 12)
         }
         .scrollPosition($scrollPosition, anchor: .center)
-        // FIXME: This really feels like this should be .viewAligned(anchor: .center) but that
-        // creates wonky behavior. .viewAligned's default anchor of .leading does, indeed, snap to
-        // the leading edge, so I'm not sure why .center would not work.
         .scrollTargetBehavior(.viewAligned)
         .scrollIndicators(.hidden)
         .background(Color.clear)
