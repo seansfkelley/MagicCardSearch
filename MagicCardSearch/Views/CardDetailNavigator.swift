@@ -28,7 +28,7 @@ struct CardDetailNavigator: View {
          hasMorePages: Bool = false,
          isLoadingNextPage: Bool = false,
          nextPageError: SearchErrorState? = nil,
-         cardFlipStates: Binding<[UUID: Bool]> = .constant([:]),
+         cardFlipStates: Binding<[UUID: Bool]>,
          onNearEnd: (() -> Void)? = nil,
          onRetryNextPage: (() -> Void)? = nil) {
         self.cards = cards

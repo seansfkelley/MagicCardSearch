@@ -8,7 +8,7 @@
 import SwiftUI
 import ScryfallKit
 
-struct CardListView: View {
+struct SavedCardsListView: View {
     @ObservedObject var listManager = CardListManager.shared
     @Environment(\.dismiss) private var dismiss
     @State private var editMode: EditMode = .inactive
@@ -24,7 +24,7 @@ struct CardListView: View {
             Group {
                 if listManager.cards.isEmpty {
                     VStack(spacing: 16) {
-                        Image(systemName: "star.slash")
+                        Image(systemName: "bookmark.slash")
                             .font(.system(size: 60))
                             .foregroundStyle(.secondary)
 
@@ -32,7 +32,7 @@ struct CardListView: View {
                             .font(.title2)
                             .fontWeight(.semibold)
 
-                        Text("Tap the star button on any card to add it to your list.")
+                        Text("Tap the bookmark button on any card to add it to your saved cards.")
                             .font(.body)
                             .foregroundStyle(.secondary)
                             .multilineTextAlignment(.center)
@@ -184,6 +184,7 @@ private struct CardDetailNavigatorFromList: View {
     @State private var isLoading = true
     @State private var error: Error?
     @Environment(\.dismiss) private var dismiss
+    @State private var cardFlipStates: [UUID: Bool] = [:]
     
     private let cardSearchService = CardSearchService()
     
@@ -226,7 +227,8 @@ private struct CardDetailNavigatorFromList: View {
                 CardDetailNavigator(
                     cards: fullCards,
                     initialIndex: initialIndex,
-                    totalCount: fullCards.count
+                    totalCount: fullCards.count,
+                    cardFlipStates: $cardFlipStates,
                 )
             } else {
                 Text("No cards to display")
@@ -350,9 +352,9 @@ private struct CardListRow: View {
 // MARK: - Preview
 
 #Preview("With Cards") {
-    CardListView()
+    SavedCardsListView()
 }
 
 #Preview("Empty State") {
-    CardListView()
+    SavedCardsListView()
 }

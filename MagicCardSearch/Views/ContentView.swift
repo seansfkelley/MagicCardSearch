@@ -145,7 +145,7 @@ struct ContentView: View {
             SyntaxReferenceView()
         }
         .sheet(isPresented: $showCardList) {
-            CardListView()
+            SavedCardsListView()
         }
         .simultaneousGesture(
             TapGesture()
