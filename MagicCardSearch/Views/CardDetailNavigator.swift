@@ -14,6 +14,7 @@ struct CardDetailNavigator: View {
     let hasMorePages: Bool
     let isLoadingNextPage: Bool
     let nextPageError: SearchErrorState?
+    @Binding var cardFlipStates: [UUID: Bool]
     var onNearEnd: (() -> Void)?
     var onRetryNextPage: (() -> Void)?
     
@@ -27,6 +28,7 @@ struct CardDetailNavigator: View {
          hasMorePages: Bool = false,
          isLoadingNextPage: Bool = false,
          nextPageError: SearchErrorState? = nil,
+         cardFlipStates: Binding<[UUID: Bool]> = .constant([:]),
          onNearEnd: (() -> Void)? = nil,
          onRetryNextPage: (() -> Void)? = nil) {
         self.cards = cards
@@ -35,6 +37,7 @@ struct CardDetailNavigator: View {
         self.hasMorePages = hasMorePages
         self.isLoadingNextPage = isLoadingNextPage
         self.nextPageError = nextPageError
+        self._cardFlipStates = cardFlipStates
         self.onNearEnd = onNearEnd
         self.onRetryNextPage = onRetryNextPage
         self._currentIndex = State(initialValue: initialIndex)
@@ -47,10 +50,16 @@ struct CardDetailNavigator: View {
                 ScrollView(.horizontal) {
                     LazyHStack(spacing: 0) {
                         ForEach(Array(cards.enumerated()), id: \.element.id) { index, card in
-                            CardDetailView(card: card, isCurrentlyVisible: index == currentIndex)
-                                .frame(width: geometry.size.width, height: geometry.size.height)
-                                .containerRelativeFrame(.horizontal)
-                                .id(index)
+                            CardDetailView(
+                                card: card,
+                                isCurrentlyVisible: index == currentIndex,
+                                initialFlipState: cardFlipStates[card.id] ?? false,
+                            ) { isFlipped in
+                                cardFlipStates[card.id] = isFlipped
+                            }
+                            .frame(width: geometry.size.width, height: geometry.size.height)
+                            .containerRelativeFrame(.horizontal)
+                            .id(index)
                         }
                         
                         // Show pagination status page if there are more pages or loading/error

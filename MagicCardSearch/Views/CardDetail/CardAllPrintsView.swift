@@ -244,14 +244,12 @@ private struct PagingCardImageView: View {
                                 frontFace: faces[0],
                                 backFace: faces[1],
                                 imageQuality: .large,
-                                aspectFit: true
                             )
                             .padding(.horizontal)
                         } else {
                             CardFaceView(
                                 face: card,
                                 imageQuality: .large,
-                                aspectFit: true
                             )
                             .clipShape(RoundedRectangle(cornerRadius: 16))
                             .padding(.horizontal)

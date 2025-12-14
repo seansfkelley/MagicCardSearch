@@ -11,6 +11,8 @@ import SwiftUI
 struct CardDetailView: View {
     let card: Card
     var isCurrentlyVisible: Bool = true
+    var initialFlipState: Bool = false
+    var onFlipStateChange: ((Bool) -> Void)?
 
     @State private var relatedCardToShow: Card?
     @State private var isLoadingRelatedCard = false
@@ -29,7 +31,8 @@ struct CardDetailView: View {
                         frontFace: faces[0],
                         backFace: faces[1],
                         imageQuality: .large,
-                        aspectFit: true
+                        initiallyShowingBackFace: initialFlipState,
+                        onFlipStateChange: onFlipStateChange
                     )
                     .shadow(color: .black.opacity(0.2), radius: 8, x: 0, y: 4)
                     .padding(.horizontal)
@@ -38,7 +41,6 @@ struct CardDetailView: View {
                     CardFaceView(
                         face: card,
                         imageQuality: .large,
-                        aspectFit: true,
                     )
                     .clipShape(RoundedRectangle(cornerRadius: 16))
                     .shadow(color: .black.opacity(0.2), radius: 8, x: 0, y: 4)

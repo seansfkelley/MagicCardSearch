@@ -9,16 +9,13 @@ import SwiftUI
 struct CardFaceView: View {
     let face: CardFaceDisplayable
     let imageQuality: CardImageQuality
-    let aspectFit: Bool
     
     init(
         face: CardFaceDisplayable,
         imageQuality: CardImageQuality = .normal,
-        aspectFit: Bool = true,
     ) {
         self.face = face
         self.imageQuality = imageQuality
-        self.aspectFit = aspectFit
     }
     
     var body: some View {
@@ -33,7 +30,7 @@ struct CardFaceView: View {
                 case .success(let image):
                     image
                         .resizable()
-                        .aspectRatio(contentMode: aspectFit ? .fit : .fill)
+                        .aspectRatio(contentMode: .fit)
                         .contextMenu {
                             ShareLink(item: url, preview: SharePreview(face.name, image: image))
                             

@@ -12,20 +12,22 @@ struct FlippableCardFaceView: View {
     let frontFace: CardFaceDisplayable
     let backFace: CardFaceDisplayable
     let imageQuality: CardImageQuality
-    let aspectFit: Bool
     
-    @State private var showingBackFace = false
+    @State private var showingBackFace: Bool
+    var onFlipStateChange: ((Bool) -> Void)?
     
     init(
         frontFace: CardFaceDisplayable,
         backFace: CardFaceDisplayable,
         imageQuality: CardImageQuality = .normal,
-        aspectFit: Bool = true
+        initiallyShowingBackFace: Bool = false,
+        onFlipStateChange: ((Bool) -> Void)? = nil
     ) {
         self.frontFace = frontFace
         self.backFace = backFace
         self.imageQuality = imageQuality
-        self.aspectFit = aspectFit
+        self._showingBackFace = State(initialValue: initiallyShowingBackFace)
+        self.onFlipStateChange = onFlipStateChange
     }
     
     var body: some View {
@@ -34,7 +36,6 @@ struct FlippableCardFaceView: View {
                 CardFaceView(
                     face: frontFace,
                     imageQuality: imageQuality,
-                    aspectFit: aspectFit
                 )
                 .clipShape(RoundedRectangle(cornerRadius: 16))
                 .opacity(showingBackFace ? 0 : 1)
@@ -46,7 +47,6 @@ struct FlippableCardFaceView: View {
                 CardFaceView(
                     face: backFace,
                     imageQuality: imageQuality,
-                    aspectFit: aspectFit
                 )
                 .clipShape(RoundedRectangle(cornerRadius: 16))
                 .opacity(showingBackFace ? 1 : 0)
@@ -59,6 +59,7 @@ struct FlippableCardFaceView: View {
             Button {
                 withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
                     showingBackFace.toggle()
+                    onFlipStateChange?(showingBackFace)
                 }
             } label: {
                 Image(systemName: "arrow.triangle.2.circlepath")

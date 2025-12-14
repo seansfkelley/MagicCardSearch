@@ -24,6 +24,7 @@ struct CardResultsView: View {
     @State private var selectedCardIndex: Int?
     @State private var searchTask: Task<Void, Never>?
     @State private var errorState: SearchErrorState?
+    @State private var cardFlipStates: [UUID: Bool] = [:]
 
     private let service = CardSearchService()
     private let columns = [
@@ -67,15 +68,20 @@ struct CardResultsView: View {
 
                         LazyVGrid(columns: columns, spacing: 16) {
                             ForEach(Array(results.enumerated()), id: \.element.id) { index, card in
-                                CardResultCell(card: card)
-                                    .onTapGesture {
-                                        selectedCardIndex = index
+                                CardResultCell(
+                                    card: card,
+                                    isFlipped: cardFlipStates[card.id] ?? false,
+                                ) { isFlipped in
+                                    cardFlipStates[card.id] = isFlipped
+                                }
+                                .onTapGesture {
+                                    selectedCardIndex = index
+                                }
+                                .onAppear {
+                                    if index == results.count - 4 {
+                                        loadNextPageIfNeeded()
                                     }
-                                    .onAppear {
-                                        if index == results.count - 4 {
-                                            loadNextPageIfNeeded()
-                                        }
-                                    }
+                                }
                             }
                         }
                         .padding(.horizontal)
@@ -132,6 +138,7 @@ struct CardResultsView: View {
                 hasMorePages: nextPageURL != nil,
                 isLoadingNextPage: isLoadingNextPage,
                 nextPageError: nextPageError,
+                cardFlipStates: $cardFlipStates,
                 onNearEnd: {
                     loadNextPageIfNeeded()
                 },
@@ -279,6 +286,8 @@ private struct SheetIdentifier: Identifiable {
 
 struct CardResultCell: View {
     let card: Card
+    let isFlipped: Bool
+    let onFlipStateChange: (Bool) -> Void
 
     var body: some View {
         Group {
@@ -287,13 +296,13 @@ struct CardResultCell: View {
                     frontFace: faces[0],
                     backFace: faces[1],
                     imageQuality: .small,
-                    aspectFit: false
+                    initiallyShowingBackFace: isFlipped,
+                    onFlipStateChange: onFlipStateChange
                 )
             } else {
                 CardFaceView(
                     face: card,
                     imageQuality: .small,
-                    aspectFit: false,
                 )
                 .clipShape(RoundedRectangle(cornerRadius: 12))
             }
