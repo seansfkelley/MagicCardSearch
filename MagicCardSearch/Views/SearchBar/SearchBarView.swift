@@ -75,7 +75,7 @@ struct SearchBarView: View {
                 .buttonStyle(.plain)
                 .popover(isPresented: $showSymbolPicker, arrowEdge: .bottom) {
                     SymbolPickerView(partialParts: partialSymbol?.symbolParts ?? []) { symbol in
-                        insertSymbol(symbol)
+                        insertSymbol("{\(symbol)}")
                         showSymbolPicker = false
                     }
                     .presentationCompactAdaptation(.popover)
@@ -140,11 +140,12 @@ struct SearchBarView: View {
     }
     
     private func checkForPartialSymbol(_ text: String) {
-        if let match = try? /{[a-zA-Z\/\s]*$/.firstMatch(in: text) {
+        if let match = try? /{[a-zA-Z0-9\/\s]*$/.firstMatch(in: text) {
             let parts = Set(
                 text[match.range]
-                    .replacing(/[^a-zA-Z\/]/, with: "")
-                    .split(separator: "")
+                    .replacing(/[^a-zA-Z0-9]/, with: "")
+                    .uppercased()
+                    .split(separator: "", omittingEmptySubsequences: true)
                     .map(String.init),
             )
             partialSymbol = SymbolSuggestion(textInputRange: match.range, symbolParts: parts)
@@ -163,44 +164,23 @@ struct SymbolPickerView: View {
     let onSymbolSelected: (String) -> Void
     
     private let allSymbolGroups: [[String]] = [
-        ["{T}", "{Q}", "{S}", "{E}"],
-        ["{W}", "{U}", "{B}", "{R}", "{G}", "{C}"],
-        ["{X}", "{1}", "{2}", "{3}", "{4}", "{5}", "{6}", "{7}", "{8}", "{9}"],
-        ["{W/U}", "{W/B}", "{U/B}", "{U/R}", "{B/R}", "{B/G}", "{R/W}", "{R/G}", "{G/W}", "{G/U}"],
-        ["{2/W}", "{2/U}", "{2/B}", "{2/R}", "{2/G}"],
-        ["{W/P}", "{U/P}", "{B/P}", "{R/P}", "{G/P}"],
+        ["T", "Q", "S", "E"],
+        ["W", "U", "B", "R", "G", "C"],
+        ["X", "1", "2", "3", "4", "5", "6", "7", "8", "9"],
+        ["W/U", "W/B", "U/B", "U/R", "B/R", "B/G", "R/W", "R/G", "G/W", "G/U"],
+        ["2/W", "2/U", "2/B", "2/R", "2/G"],
+        ["W/P", "U/P", "B/P", "R/P", "G/P"],
     ]
     
-    private var selectableSymbols: Set<String> {
+    private func selectableSymbols(from symbols: [String]) -> Set<String> {
         if partialParts.isEmpty {
-            return Set(allSymbolGroups.flatMap { $0 })
-        }
-        
-        // Convert partial parts to lowercase for matching
-        let lowercasedPartialParts = Set(partialParts.map { $0.lowercased() })
-        
-        var matchingSymbols = Set<String>()
-        
-        for group in allSymbolGroups {
-            for symbol in group {
-                // Extract content between braces and split into parts
-                let symbolContent = symbol.dropFirst().dropLast().lowercased() // Remove '{' and '}'
-                let symbolParts = Set(symbolContent.split(separator: "/").map(String.init))
-                
-                // All partial parts must match at least one symbol part
-                let allMatch = lowercasedPartialParts.allSatisfy { partialPart in
-                    symbolParts.contains { symbolPart in
-                        symbolPart.hasPrefix(partialPart)
-                    }
-                }
-                
-                if allMatch {
-                    matchingSymbols.insert(symbol)
-                }
+            Set(symbols)
+        } else {
+            Set(symbols).filter { symbol in
+                let symbolParts = symbol.split(separator: "/", omittingEmptySubsequences: true).map(String.init)
+                return partialParts.intersection(symbolParts).count == partialParts.count
             }
         }
-        
-        return matchingSymbols
     }
 
     var body: some View {
@@ -208,7 +188,7 @@ struct SymbolPickerView: View {
             ForEach(Array(allSymbolGroups.enumerated()), id: \.offset) { _, symbols in
                 SymbolGroupRow(
                     symbols: symbols,
-                    selectableSymbols: selectableSymbols,
+                    selectableSymbols: selectableSymbols(from: symbols),
                     onSymbolTapped: onSymbolSelected
                 )
             }
@@ -226,30 +206,26 @@ struct SymbolGroupRow: View {
         ViewThatFits {
             HStack(spacing: 8) {
                 ForEach(symbols, id: \.self) { symbol in
-                    let isSelectable = selectableSymbols.contains(symbol)
                     Button(action: {
                         onSymbolTapped(symbol)
                     }) {
                         MtgSymbolView(symbol, size: 32, oversize: 32)
                     }
                     .buttonStyle(.plain)
-                    .opacity(isSelectable ? 1.0 : 0.3)
-                    .disabled(!isSelectable)
+                    .opacity(selectableSymbols.contains(symbol) ? 1.0 : 0.3)
                 }
             }
             
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
                     ForEach(symbols, id: \.self) { symbol in
-                        let isSelectable = selectableSymbols.contains(symbol)
                         Button(action: {
                             onSymbolTapped(symbol)
                         }) {
                             MtgSymbolView(symbol, size: 32, oversize: 32)
                         }
                         .buttonStyle(.plain)
-                        .opacity(isSelectable ? 1.0 : 0.3)
-                        .disabled(!isSelectable)
+                        .opacity(selectableSymbols.contains(symbol) ? 1.0 : 0.3)
                     }
                 }
             }
