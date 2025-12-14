@@ -175,6 +175,7 @@ private struct CardPrintsDetailView: View {
     
     @State private var mainScrollPosition: Int?
     @State private var thumbnailScrollPosition: Int?
+    @State private var partialScrollOffsetFraction: CGFloat = 0
     
     private var currentCard: Card? {
         guard currentIndex >= 0 && currentIndex < cards.count else {
@@ -227,13 +228,19 @@ private struct CardPrintsDetailView: View {
                 .scrollTargetBehavior(.paging)
                 .scrollPosition(id: $mainScrollPosition, anchor: .center)
                 .scrollIndicators(.hidden)
+                .onScrollGeometryChange(
+                    for: CGFloat.self,
+                    of: { geometry in
+                        (geometry.contentOffset.x - CGFloat(mainScrollPosition ?? 0) * geometry.containerSize.width) / geometry.containerSize.width
+                    },
+                    action: { _, new in
+                        print(new)
+                        partialScrollOffsetFraction = new
+                    })
                 .onChange(of: mainScrollPosition) { _, newValue in
                     if let newValue, newValue != currentIndex {
                         currentIndex = newValue
-                        // Update thumbnail scroll with animation to match main scroll
-                        withAnimation(.easeOut(duration: 0.2)) {
-                            thumbnailScrollPosition = newValue
-                        }
+                        thumbnailScrollPosition = newValue
                     }
                 }
                 
@@ -242,6 +249,7 @@ private struct CardPrintsDetailView: View {
                     currentIndex: $currentIndex,
                     mainScrollPosition: $mainScrollPosition,
                     scrollPosition: $thumbnailScrollPosition,
+                    partialScrollOffsetFraction: $partialScrollOffsetFraction,
                     screenWidth: geometry.size.width
                 )
             }
@@ -260,6 +268,7 @@ private struct ThumbnailPreviewStrip: View {
     @Binding var currentIndex: Int
     @Binding var mainScrollPosition: Int?
     @Binding var scrollPosition: Int?
+    @Binding var partialScrollOffsetFraction: CGFloat
     let screenWidth: CGFloat
     
     private let thumbnailHeight: CGFloat = 80
@@ -300,7 +309,10 @@ private struct ThumbnailPreviewStrip: View {
             .padding(.vertical, 12)
         }
         .scrollPosition(id: $scrollPosition, anchor: .center)
-        .scrollTargetBehavior(.viewAligned)
+        // FIXME: This really feels like this should be .viewAligned(anchor: .center) but that
+        // creates wonky behavior. .viewAligned's default anchor of .leading does, indeed, snap to
+        // the leading edge, so I'm not sure why .center would not work.
+//        .scrollTargetBehavior(.viewAligned)
         .scrollIndicators(.hidden)
         .background(Color.clear)
         .frame(height: thumbnailHeight + 16)
