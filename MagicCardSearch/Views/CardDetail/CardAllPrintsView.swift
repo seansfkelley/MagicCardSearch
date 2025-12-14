@@ -7,7 +7,7 @@
 import ScryfallKit
 import SwiftUI
 
-struct CardPrintsListView: View {
+struct CardAllPrintsView: View {
     let oracleId: String
     let currentCardId: UUID
 
@@ -231,7 +231,7 @@ private struct CardPrintsDetailView: View {
                 .onScrollGeometryChange(
                     for: CGFloat.self,
                     of: { geometry in
-                        (geometry.contentOffset.x - CGFloat(mainScrollPosition ?? 0) * geometry.containerSize.width) / geometry.containerSize.width
+                        (CGFloat(mainScrollPosition ?? 0) * geometry.containerSize.width - geometry.contentOffset.x) / geometry.containerSize.width
                     },
                     action: { _, new in
                         print(new)
@@ -271,7 +271,7 @@ private struct ThumbnailPreviewStrip: View {
     @Binding var partialScrollOffsetFraction: CGFloat
     let screenWidth: CGFloat
     
-    private let thumbnailHeight: CGFloat = 80
+    private let thumbnailHeight: CGFloat = 100
     private let thumbnailSpacing: CGFloat = 8
     
     private var thumbnailWidth: CGFloat {
@@ -305,6 +305,9 @@ private struct ThumbnailPreviewStrip: View {
                 Color.clear
                     .frame(width: sidePadding - thumbnailSpacing)
             }
+            // FIXME: Should be able to show the thumbnail bar scrolling as the main view is being
+            // pushed around.
+//            .offset(x: partialScrollOffsetFraction * thumbnailWidth, y: 0)
             .scrollTargetLayout()
             .padding(.vertical, 12)
         }
@@ -312,7 +315,7 @@ private struct ThumbnailPreviewStrip: View {
         // FIXME: This really feels like this should be .viewAligned(anchor: .center) but that
         // creates wonky behavior. .viewAligned's default anchor of .leading does, indeed, snap to
         // the leading edge, so I'm not sure why .center would not work.
-//        .scrollTargetBehavior(.viewAligned)
+        .scrollTargetBehavior(.viewAligned)
         .scrollIndicators(.hidden)
         .background(Color.clear)
         .frame(height: thumbnailHeight + 16)
