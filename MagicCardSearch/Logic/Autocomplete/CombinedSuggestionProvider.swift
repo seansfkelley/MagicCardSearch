@@ -22,8 +22,7 @@ class CombinedSuggestionProvider {
     let enumerationProvider: EnumerationSuggestionProvider
     let nameProvider: NameSuggestionProvider
     
-    var isLoading = false
-    private var currentTaskID: UUID?
+    let loadingState = DebouncedLoadingState()
     
     init(
         historyProvider: HistorySuggestionProvider,
@@ -37,12 +36,8 @@ class CombinedSuggestionProvider {
         self.nameProvider = nameProvider
     }
 
-    // swiftlint:disable:next function_body_length
     func getSuggestions(for searchTerm: String, existingFilters: Set<SearchFilter>) -> AsyncStream<[Suggestion]> {
-        let taskID = UUID()
-        currentTaskID = taskID
-        
-        isLoading = true
+        let currentTaskId = loadingState.start()
         
         return AsyncStream<[Suggestion]> { continuation in
             var allSuggestions: [Suggestion] = []
@@ -70,20 +65,13 @@ class CombinedSuggestionProvider {
             allSuggestions.append(contentsOf: enumerationSuggestions)
             
             continuation.yield(allSuggestions)
+            
+            guard loadingState.isStillCurrent(id: currentTaskId) else {
+                continuation.finish()
+                return
+            }
                 
             Task {
-                guard self.currentTaskID == taskID else {
-                    await MainActor.run {
-                        if self.currentTaskID == taskID {
-                            self.isLoading = false
-                        }
-                    }
-                    continuation.finish()
-                    return
-                }
-                
-                guard !Task.isCancelled else { return }
-                
                 let nameSuggestions = await self.nameProvider.getSuggestions(
                     for: searchTerm,
                     limit: 10,
@@ -91,7 +79,8 @@ class CombinedSuggestionProvider {
                 )
                     .map { Suggestion.name($0) }
                 
-                guard self.currentTaskID == taskID, !Task.isCancelled else {
+                guard loadingState.isStillCurrent(id: currentTaskId), !Task.isCancelled else {
+                    continuation.finish()
                     return
                 }
                 
@@ -99,23 +88,10 @@ class CombinedSuggestionProvider {
                 
                 continuation.yield(allSuggestions)
                 
-                await MainActor.run {
-                    if self.currentTaskID == taskID {
-                        self.isLoading = false
-                    }
-                }
+                loadingState.stop(for: currentTaskId)
                 
                 continuation.finish()
             }
-        }
-    }
-    
-    private func getPriority(for suggestion: Suggestion) -> Int {
-        switch suggestion {
-        case .history: return 0
-        case .filter: return 1
-        case .enumeration: return 2
-        case .name: return 3
         }
     }
 }

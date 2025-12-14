@@ -125,7 +125,7 @@ struct BottomBarFilterView: View {
                         ZStack {
                             HStack {
                                 Group {
-                                    if autocompleteProvider.isLoading {
+                                    if autocompleteProvider.loadingState.isLoadingDebounced {
                                         ProgressView()
                                             .controlSize(.small)
                                     } else {

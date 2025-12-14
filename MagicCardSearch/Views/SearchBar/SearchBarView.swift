@@ -15,14 +15,13 @@ struct SearchBarView: View {
     @FocusState var isSearchFocused: Bool
     @State private var showSymbolPicker = false
     
-    /// The autocomplete provider to observe for loading state
     @Bindable var autocompleteProvider: CombinedSuggestionProvider
 
     var body: some View {
         ZStack {
             HStack(spacing: 12) {
                 Group {
-                    if autocompleteProvider.isLoading {
+                    if autocompleteProvider.loadingState.isLoadingDebounced {
                         ProgressView()
                             .controlSize(.small)
                     } else {
