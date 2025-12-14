@@ -45,9 +45,9 @@ struct AutocompleteView: View {
                         .swipeActions(edge: .leading, allowsFullSwipe: true) {
                             Button {
                                 if suggestion.isPinned {
-                                    provider.historyProvider.unpinSearchFilter(suggestion.filter)
+                                    provider.historyProvider.unpin(filter: suggestion.filter)
                                 } else {
-                                    provider.historyProvider.pinSearchFilter(suggestion.filter)
+                                    provider.historyProvider.pin(filter: suggestion.filter)
                                 }
                             } label: {
                                 if suggestion.isPinned {
@@ -60,7 +60,7 @@ struct AutocompleteView: View {
                         }
                         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                             Button(role: .destructive) {
-                                provider.historyProvider.deleteSearchFilter(suggestion.filter)
+                                provider.historyProvider.delete(filter: suggestion.filter)
                             } label: {
                                 Label("Delete", systemImage: "trash")
                             }

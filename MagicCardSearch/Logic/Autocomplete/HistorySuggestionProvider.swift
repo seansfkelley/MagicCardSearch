@@ -24,14 +24,16 @@ class HistorySuggestionProvider {
     private let hardLimit: Int
     private let softLimit: Int
     private let maxAgeInDays: Int
-    private let persistenceKey = "filterHistory"
+    // TODO: Is this really the right way to do persistence? Should I dependecy-inject it?
+    private let persistenceKey: String
 
     // MARK: - Initialization
 
-    init(hardLimit: Int = 1000, softLimit: Int = 500, maxAgeInDays: Int = 90) {
+    init(hardLimit: Int = 1000, softLimit: Int = 500, maxAgeInDays: Int = 90, persistenceKey: String = "filterHistory") {
         self.hardLimit = hardLimit
         self.softLimit = softLimit
         self.maxAgeInDays = maxAgeInDays
+        self.persistenceKey = persistenceKey
         
         loadHistory()
         maybeGarbageCollectHistory()
@@ -101,7 +103,7 @@ class HistorySuggestionProvider {
         )
     }
 
-    func recordFilterUsage(_ filter: SearchFilter) {
+    func recordUsage(of filter: SearchFilter) {
         let wasPinned = historyByFilter[filter]?.isPinned ?? false
 
         let entry = HistoryEntry(
@@ -116,7 +118,7 @@ class HistorySuggestionProvider {
         saveHistory()
     }
 
-    func pinSearchFilter(_ filter: SearchFilter) {
+    func pin(filter: SearchFilter) {
         guard var entry = historyByFilter[filter] else { return }
 
         entry = HistoryEntry(
@@ -130,7 +132,7 @@ class HistorySuggestionProvider {
         saveHistory()
     }
 
-    func unpinSearchFilter(_ filter: SearchFilter) {
+    func unpin(filter: SearchFilter) {
         guard var entry = historyByFilter[filter] else { return }
 
         entry = HistoryEntry(
@@ -143,7 +145,7 @@ class HistorySuggestionProvider {
         saveHistory()
     }
 
-    func deleteSearchFilter(_ filter: SearchFilter) {
+    func delete(filter: SearchFilter) {
         historyByFilter.removeValue(forKey: filter)
         invalidateCache()
         saveHistory()

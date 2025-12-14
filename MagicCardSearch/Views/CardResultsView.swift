@@ -173,7 +173,7 @@ struct CardResultsView: View {
         errorState = nil
 
         for filter in filters {
-            historySuggestionProvider.recordFilterUsage(filter)
+            historySuggestionProvider.recordUsage(of: filter)
         }
 
         searchTask = Task {
