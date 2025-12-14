@@ -24,8 +24,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/SVGKit/SVGKit",
       "state" : {
-        "revision" : "58152b9f7c85eab239160b36ffdfd364aa43d666",
-        "version" : "3.0.0"
+        "branch" : "3.x",
+        "revision" : "6137e27e6a0b24587967d97aeb25a6706f8eb036"
       }
     },
     {
