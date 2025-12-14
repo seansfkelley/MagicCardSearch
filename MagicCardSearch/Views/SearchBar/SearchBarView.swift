@@ -9,7 +9,7 @@ import SwiftUI
 
 struct SymbolSuggestion {
     let textInputRange: Range<String.Index>
-    let symbolParts: String
+    let symbolParts: Set<String>
 }
 
 struct SearchBarView: View {
@@ -74,7 +74,7 @@ struct SearchBarView: View {
                 }
                 .buttonStyle(.plain)
                 .popover(isPresented: $showSymbolPicker, arrowEdge: .bottom) {
-                    SymbolPickerView(partialText: partialSymbol?.symbolParts ?? "") { symbol in
+                    SymbolPickerView(partialParts: partialSymbol?.symbolParts ?? []) { symbol in
                         insertSymbol(symbol)
                         showSymbolPicker = false
                     }
@@ -141,9 +141,13 @@ struct SearchBarView: View {
     
     private func checkForPartialSymbol(_ text: String) {
         if let match = try? /{[a-zA-Z\/\s]*$/.firstMatch(in: text) {
-            let matchedText = String(text[match.range])
-            let filteredText = matchedText.filter { $0.isLetter || $0 == "/" }
-            partialSymbol = SymbolSuggestion(textInputRange: match.range, symbolParts: filteredText)
+            let parts = Set(
+                text[match.range]
+                    .replacing(/[^a-zA-Z\/]/, with: "")
+                    .split(separator: "")
+                    .map(String.init),
+            )
+            partialSymbol = SymbolSuggestion(textInputRange: match.range, symbolParts: parts)
             showSymbolPicker = true
         } else if partialSymbol != nil {
             partialSymbol = nil
@@ -155,7 +159,7 @@ struct SearchBarView: View {
 // MARK: - Symbol Picker
 
 struct SymbolPickerView: View {
-    let partialText: String
+    let partialParts: Set<String>
     let onSymbolSelected: (String) -> Void
     
     private let allSymbolGroups: [[String]] = [
@@ -164,30 +168,27 @@ struct SymbolPickerView: View {
         ["{X}", "{1}", "{2}", "{3}", "{4}", "{5}", "{6}", "{7}", "{8}", "{9}"],
         ["{W/U}", "{W/B}", "{U/B}", "{U/R}", "{B/R}", "{B/G}", "{R/W}", "{R/G}", "{G/W}", "{G/U}"],
         ["{2/W}", "{2/U}", "{2/B}", "{2/R}", "{2/G}"],
-        ["{W/P}", "{U/P}", "{B/P}", "{R/P}", "{G/P}"]
+        ["{W/P}", "{U/P}", "{B/P}", "{R/P}", "{G/P}"],
     ]
     
     private var selectableSymbols: Set<String> {
-        let lowercasedPartial = partialText.lowercased()
-        
-        // If partial is empty, match everything
-        if lowercasedPartial.isEmpty {
+        if partialParts.isEmpty {
             return Set(allSymbolGroups.flatMap { $0 })
         }
         
-        // Split partial content on '/' to get parts to match
-        let partialParts = lowercasedPartial.split(separator: "/").map(String.init)
+        // Convert partial parts to lowercase for matching
+        let lowercasedPartialParts = Set(partialParts.map { $0.lowercased() })
         
         var matchingSymbols = Set<String>()
         
         for group in allSymbolGroups {
             for symbol in group {
-                // Extract content between braces
+                // Extract content between braces and split into parts
                 let symbolContent = symbol.dropFirst().dropLast().lowercased() // Remove '{' and '}'
-                let symbolParts = symbolContent.split(separator: "/").map(String.init)
+                let symbolParts = Set(symbolContent.split(separator: "/").map(String.init))
                 
                 // All partial parts must match at least one symbol part
-                let allMatch = partialParts.allSatisfy { partialPart in
+                let allMatch = lowercasedPartialParts.allSatisfy { partialPart in
                     symbolParts.contains { symbolPart in
                         symbolPart.hasPrefix(partialPart)
                     }
