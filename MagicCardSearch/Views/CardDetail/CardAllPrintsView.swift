@@ -208,13 +208,19 @@ private struct CardPrintsDetailView: View {
         .onChange(of: mainScrollPosition.viewID(type: Int.self)) { _, newValue in
             if let newValue, newValue != currentIndex {
                 currentIndex = newValue
-                thumbnailScrollPosition.scrollTo(id: newValue)
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    thumbnailScrollPosition.scrollTo(id: newValue)
+                }
             }
         }
         .onChange(of: thumbnailScrollPosition.viewID(type: Int.self)) { _, newValue in
             if let newValue, newValue != currentIndex {
                 currentIndex = newValue
-                mainScrollPosition.scrollTo(id: newValue)
+                // TODO: Might not be a good idea, both for excessive motion and because it might
+                // trigger way too many intermediate image loads.
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    mainScrollPosition.scrollTo(id: newValue)
+                }
             }
         }
     }

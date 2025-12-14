@@ -56,28 +56,26 @@ struct CardDetailView: View {
                         cardFaceDetailsView(face: face, showArtist: false)
                         
                         if index < uniqueFaces.count - 1 {
-                            Divider()
-                                .padding(.horizontal)
+                            Divider().padding(.horizontal)
                         }
                     }
                     
                     if !allArtists.isEmpty {
-                        Divider()
-                            .padding(.horizontal)
+                        Divider().padding(.horizontal)
                         
                         CardArtistSection(artist: allArtists.joined(separator: ", "))
                     }
                 } else {
                     cardFaceDetailsView(face: card)
                 }
+                
+                if card.setType != .token {
+                    Divider().padding(.horizontal)
+                    
+                    CardLegalitiesSection(card: card)
+                }
 
-                Divider()
-                    .padding(.horizontal)
-
-                CardLegalitiesSection(card: card)
-
-                Divider()
-                    .padding(.horizontal)
+                Divider().padding(.horizontal)
 
                 CardSetInfoSection(
                     setCode: card.set,
@@ -88,8 +86,7 @@ struct CardDetailView: View {
                 )
 
                 if let oracleId = card.bestEffortOracleId {
-                    Divider()
-                        .padding(.horizontal)
+                    Divider().padding(.horizontal)
 
                     CardOtherPrintsSection(
                         oracleId: oracleId,
@@ -100,8 +97,7 @@ struct CardDetailView: View {
                 if let allParts = card.allParts, !allParts.isEmpty {
                     let otherParts = allParts.filter { $0.id != card.id }
                     if !otherParts.isEmpty {
-                        Divider()
-                            .padding(.horizontal)
+                        Divider().padding(.horizontal)
 
                         CardRelatedPartsSection(
                             otherParts: otherParts,
@@ -115,8 +111,7 @@ struct CardDetailView: View {
                 }
 
                 if isLoadingRulings || rulingsError != nil || !rulings.isEmpty {
-                    Divider()
-                        .padding(.horizontal)
+                    Divider().padding(.horizontal)
 
                     CardRulingsSection(
                         rulings: rulings,
@@ -129,8 +124,7 @@ struct CardDetailView: View {
                     }
                 }
 
-                Divider()
-                    .padding(.horizontal)
+                Divider().padding(.horizontal)
             }
             .background(Color(.systemBackground))
             .padding(.top)
