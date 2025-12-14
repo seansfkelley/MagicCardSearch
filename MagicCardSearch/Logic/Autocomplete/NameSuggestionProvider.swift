@@ -40,19 +40,28 @@ struct NameSuggestionProvider {
         }, for: debounce)
     }
     
-    func getSuggestions(for searchTerm: String, limit: Int) async -> [NameSuggestion] {
+    // swiftlint:disable:next function_body_length
+    func getSuggestions(for searchTerm: String, limit: Int, permitBareSearchTerm: Bool = false) async -> [NameSuggestion] {
         await debouncedFetch.cancel()
-        
-        guard let match = try? /^-?((!?['"]|!)|((name:|name=|name!=)['"]?))/.ignoresCase().prefixMatch(in: searchTerm) else {
-            return []
-        }
         
         guard limit > 0 else {
             return []
         }
         
-        let rawPrefix = String(searchTerm[..<match.range.upperBound])
-        let name = String(searchTerm[match.range.upperBound...])
+        let rawPrefix: String
+        let name: String
+        
+        // Swiftlint's shitty parser thinks this is a dictionary/array literal when it's on one line.
+        let regex = /^-?((!?['"]|!)|((name:|name=|name!=)['"]?))/
+        if let match = try? regex.ignoresCase().prefixMatch(in: searchTerm) {
+            rawPrefix = String(searchTerm[..<match.range.upperBound])
+            name = String(searchTerm[match.range.upperBound...])
+        } else if permitBareSearchTerm {
+            rawPrefix = "!" // Upgrade to a literal match!
+            name = searchTerm
+        } else {
+            return []
+        }
         
         // Only autocomplete if there's a useful value to search for
         guard !name.isEmpty && name.count >= 2 else {

@@ -86,7 +86,8 @@ class CombinedSuggestionProvider {
                 
                 let nameSuggestions = await self.nameProvider.getSuggestions(
                     for: searchTerm,
-                    limit: 10
+                    limit: 10,
+                    permitBareSearchTerm: allSuggestions.isEmpty,
                 )
                     .map { Suggestion.name($0) }
                 
