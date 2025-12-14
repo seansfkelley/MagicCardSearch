@@ -83,8 +83,7 @@ struct AutocompleteView: View {
         }
         .listStyle(.plain)
         .task(id: inputText) {
-            // Stream suggestions as they arrive from providers running concurrently
-            for await newSuggestions in provider.getSuggestions(for: inputText, existingFilters: filters) {
+            for await newSuggestions in provider.getSuggestions(for: inputText, existingFilters: Set(filters)) {
                 suggestions = newSuggestions
             }
         }
