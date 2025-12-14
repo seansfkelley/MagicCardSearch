@@ -36,7 +36,6 @@ class HistorySuggestionProvider {
         self.persistenceKey = persistenceKey
         
         loadHistory()
-        maybeGarbageCollectHistory()
     }
 
     private var sortedHistory: [HistoryEntry] {
@@ -72,6 +71,8 @@ class HistorySuggestionProvider {
         guard limit > 0 else {
             return []
         }
+        
+        maybeGarbageCollectHistory()
         
         let trimmedSearchTerm = searchTerm.trimmingCharacters(in: .whitespaces)
         
@@ -113,7 +114,6 @@ class HistorySuggestionProvider {
         )
         historyByFilter[filter] = entry
 
-        maybeGarbageCollectHistory()
         invalidateCache()
         saveHistory()
     }
@@ -141,6 +141,7 @@ class HistorySuggestionProvider {
             isPinned: false
         )
         historyByFilter[filter] = entry
+        
         invalidateCache()
         saveHistory()
     }
@@ -153,24 +154,26 @@ class HistorySuggestionProvider {
 
     // MARK: - Garbage Collection
 
+    // n.b. assumes that sorted history puts pins at the beginning, which it does, but that isn't
+    // encoded anywhere.
     private func maybeGarbageCollectHistory() {
+        // If the last entry is pinned, there is nothing we can collect.
+        guard !sortedHistory.isEmpty && !sortedHistory.last!.isPinned else {
+            return
+        }
+        
         let originalCount = sortedHistory.count
         
         var reducedHistory = sortedHistory
         
         let cutoff = Date.now.addingTimeInterval(TimeInterval(-maxAgeInDays * 24 * 60 * 60))
-        // n.b. assumes that sorted history puts pins at the beginning, which it does, but that
-        // isn't encoded anywhere.
         if let i = reducedHistory.firstIndex(where: { !$0.isPinned && $0.lastUsedDate < cutoff }) {
             reducedHistory = Array(reducedHistory[..<i])
         }
     
-        if reducedHistory.count > hardLimit {
-            if let i = reducedHistory.firstIndex(where: { !$0.isPinned }) {
-                reducedHistory = Array(reducedHistory[..<max(i, softLimit)])
-            } else {
-                reducedHistory = Array(reducedHistory[..<softLimit])
-            }
+        if reducedHistory.count > hardLimit,
+           let i = reducedHistory.firstIndex(where: { !$0.isPinned }) {
+            reducedHistory = Array(reducedHistory[..<max(i, softLimit)])
         }
         
         if reducedHistory.count != originalCount {

@@ -9,7 +9,7 @@ import Testing
 import Foundation
 @testable import MagicCardSearch
 
-struct HistorySuggestionProviderTests {
+class HistorySuggestionProviderTests {
     var provider: HistorySuggestionProvider
     
     init() {
@@ -38,7 +38,7 @@ struct HistorySuggestionProviderTests {
         
         let suggestions = provider.getSuggestions(for: "", excluding: Set(), limit: 1)
         // Prefers the latter, because it was recorded later.
-        #expect(suggestions == [HistorySuggestion(filter: oracleFilter, isPinned: false, matchRange: nil)])
+        #expect(suggestions == [.init(filter: oracleFilter, isPinned: false, matchRange: nil)])
     }
     
     @Test("returns pinned filters before non-pinned filters that were recorded later")
@@ -51,7 +51,73 @@ struct HistorySuggestionProviderTests {
         provider.recordUsage(of: oracleFilter)
         
         let suggestions = provider.getSuggestions(for: "", excluding: Set(), limit: 1)
-        #expect(suggestions == [HistorySuggestion(filter: colorFilter, isPinned: true, matchRange: nil)])
+        #expect(suggestions == [.init(filter: colorFilter, isPinned: true, matchRange: nil)])
+    }
+    
+    @Test("should not delete any filters if the soft limit but not the hard limit is reached")
+    func testSoftLimit() {
+        provider = HistorySuggestionProvider(
+            hardLimit: 2,
+            softLimit: 1,
+            persistenceKey: UUID().uuidString
+        )
+        
+        let colorFilter = SearchFilter.basic(.keyValue("color", .equal, "red"))
+        let oracleFilter = SearchFilter.basic(.keyValue("oracle", .including, "flying"))
+        recordUsages(of: [colorFilter, oracleFilter])
+        
+        let suggestions = provider.getSuggestions(for: "", excluding: Set(), limit: 10)
+        #expect(suggestions == [
+            .init(filter: oracleFilter, isPinned: false, matchRange: nil),
+            .init(filter: colorFilter, isPinned: false, matchRange: nil),
+        ])
+    }
+    
+    @Test("deletes the oldest filters beyond the soft limit if the hard limit is reached")
+    func testHardLimit() {
+        provider = HistorySuggestionProvider(
+            hardLimit: 2,
+            softLimit: 1,
+            persistenceKey: UUID().uuidString
+        )
+        
+        let colorFilter = SearchFilter.basic(.keyValue("color", .equal, "red"))
+        let oracleFilter = SearchFilter.basic(.keyValue("oracle", .including, "flying"))
+        let setFilter = SearchFilter.basic(.keyValue("set", .equal, "ody"))
+        recordUsages(of: [colorFilter, oracleFilter, setFilter])
+        
+        let suggestions = provider.getSuggestions(for: "", excluding: Set(), limit: 10)
+        #expect(suggestions == [
+            .init(filter: setFilter, isPinned: false, matchRange: nil),
+        ])
+    }
+    
+    @Test("does not delete filters beyond the hard limit if they are pinned")
+    func testHardLimitWithPinned() {
+        provider = HistorySuggestionProvider(
+            hardLimit: 2,
+            softLimit: 1,
+            persistenceKey: UUID().uuidString
+        )
+        
+        let colorFilter = SearchFilter.basic(.keyValue("color", .equal, "red"))
+        provider.recordUsage(of: colorFilter)
+        provider.pin(filter: colorFilter)
+        let oracleFilter = SearchFilter.basic(.keyValue("oracle", .including, "flying"))
+        provider.recordUsage(of: oracleFilter)
+        provider.pin(filter: oracleFilter)
+        let setFilter = SearchFilter.basic(.keyValue("set", .equal, "ody"))
+        provider.recordUsage(of: setFilter)
+        provider.pin(filter: setFilter)
+        
+        provider.recordUsage(of: SearchFilter.basic(.keyValue("function", .including, "flicker")))
+        
+        let suggestions = provider.getSuggestions(for: "", excluding: Set(), limit: 10)
+        #expect(suggestions == [
+            .init(filter: setFilter, isPinned: true, matchRange: nil),
+            .init(filter: oracleFilter, isPinned: true, matchRange: nil),
+            .init(filter: colorFilter, isPinned: true, matchRange: nil),
+        ])
     }
     
 //    // MARK: - Sorting Tests
