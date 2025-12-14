@@ -14,8 +14,8 @@ struct SearchBarView: View {
 
     @FocusState var isSearchFocused: Bool
     @State private var showSymbolPicker = false
+    @State private var partialSymbolRange: Range<String.Index>?
     
-    /// The autocomplete provider to observe for loading state
     @Bindable var autocompleteProvider: CombinedSuggestionProvider
 
     var body: some View {
@@ -90,6 +90,7 @@ struct SearchBarView: View {
             if previous.count < current.count && current.hasSuffix(" ") {
                 createNewFilterFromSearch()
             }
+            checkForPartialSymbol(current)
         }
     }
 
@@ -108,7 +109,12 @@ struct SearchBarView: View {
     }
 
     private func insertSymbol(_ symbol: String) {
-        if let selection = inputSelection {
+        if let range = partialSymbolRange {
+            inputText.replaceSubrange(range, with: symbol)
+            let location = inputText.index(range.lowerBound, offsetBy: symbol.count)
+            inputSelection = .init(range: location..<location)
+            partialSymbolRange = nil
+        } else if let selection = inputSelection {
             switch selection.indices {
             case .selection(let range):
                 inputText.replaceSubrange(range, with: symbol)
@@ -125,6 +131,16 @@ struct SearchBarView: View {
         } else {
             inputText += symbol
             inputSelection = .init(range: inputText.endIndex..<inputText.endIndex)
+        }
+    }
+    
+    private func checkForPartialSymbol(_ text: String) {
+        if let match = try? /{[a-zA-Z\/\s]*$/.firstMatch(in: text) {
+            partialSymbolRange = match.range
+            showSymbolPicker = true
+        } else if partialSymbolRange != nil {
+            partialSymbolRange = nil
+            showSymbolPicker = false
         }
     }
 }
