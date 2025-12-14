@@ -90,7 +90,7 @@ class LegalityConfiguration {
 struct LegalityListView: View {
     let card: Card
     
-    @State private var configuration = LegalityConfiguration.shared
+    @Bindable var configuration = LegalityConfiguration.shared
     @State private var isExpanded = false
     @State private var isEditMode = false
     
