@@ -1,5 +1,5 @@
 //
-//  LegalityGridView.swift
+//  LegalityListView.swift
 //  MagicCardSearch
 //
 //  Created by Sean Kelley on 2025-12-08.
@@ -91,7 +91,7 @@ class LegalityConfiguration {
 
 // MARK: - Main View
 
-struct LegalityGridView: View {
+struct LegalityListView: View {
     let card: Card
     
     @State private var configuration = LegalityConfiguration.shared
@@ -106,10 +106,12 @@ struct LegalityGridView: View {
                 
                 Spacer()
                 
-                Button("Edit") {
+                Button {
                     isEditMode = true
+                } label: {
+                    Image(systemName: "pencil")
+                        .imageScale(.small)
                 }
-                .font(.subheadline)
             }
             .padding(.bottom, 12)
             
@@ -352,21 +354,21 @@ private struct LegalityItemView: View {
     
     private var legalityIcon: String {
         if format == .commander && legality == .legal && isGameChanger {
-            return "star.fill"
+            return "exclamationmark"
         }
         
         return switch legality {
-        case .legal: "checkmark.circle.fill"
-        case .notLegal: "xmark.circle.fill"
-        case .restricted: "exclamationmark.triangle.fill"
-        case .banned: "hand.raised.fill"
+        case .legal: "checkmark"
+        case .notLegal: "xmark"
+        case .restricted: "exclamationmark"
+        case .banned: "circle.slash"
         }
     }
     
     private var legalityColor: Color {
         if format == .commander && legality == .legal && isGameChanger {
-            // Special color for game changer cards
-            return .purple
+            // TODO: Different color?
+            return .green
         } else {
             return switch legality {
             case .legal: .green
@@ -376,4 +378,40 @@ private struct LegalityItemView: View {
             }
         }
     }
+}
+// MARK: - Previews
+
+#Preview("All Legality States") {
+    VStack(spacing: 16) {
+        LegalityItemView(
+            format: .standard,
+            legality: .legal,
+            isGameChanger: false
+        )
+    
+        LegalityItemView(
+            format: .commander,
+            legality: .legal,
+            isGameChanger: true
+        )
+        
+        LegalityItemView(
+            format: .modern,
+            legality: .notLegal,
+            isGameChanger: false
+        )
+        
+        LegalityItemView(
+            format: .vintage,
+            legality: .restricted,
+            isGameChanger: false
+        )
+        
+        LegalityItemView(
+            format: .legacy,
+            legality: .banned,
+            isGameChanger: false
+        )
+    }
+    .padding(.vertical)
 }

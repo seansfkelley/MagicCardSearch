@@ -67,7 +67,7 @@ struct CardLegalitiesSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            LegalityGridView(card: card)
+            LegalityListView(card: card)
         }
         .padding(.horizontal)
         .padding(.vertical, 12)
