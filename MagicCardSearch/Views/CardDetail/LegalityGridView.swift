@@ -121,20 +121,20 @@ struct LegalityGridView: View {
                 normalView
             }
         }
+        .frame(maxHeight: .infinity)
     }
     
     private var normalView: some View {
-        VStack(spacing: 8) {
-            // Visible formats
+        VStack(spacing: 0) {
             ForEach(visibleFormats, id: \.self) { format in
                 LegalityItemView(
                     format: format,
                     legality: card.getLegality(for: format),
                     isGameChanger: card.gameChanger ?? false
                 )
+                .padding(.vertical,4)
             }
             
-            // Expand/Collapse button
             if hasHiddenFormats {
                 Button {
                     withAnimation {
@@ -156,6 +156,7 @@ struct LegalityGridView: View {
                 .padding(.vertical, 4)
             }
         }
+        .listStyle(.plain)
     }
     
     private var editModeView: some View {
