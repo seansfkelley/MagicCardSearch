@@ -132,7 +132,7 @@ struct LegalityGridView: View {
                     legality: card.getLegality(for: format),
                     isGameChanger: card.gameChanger ?? false
                 )
-                .padding(.vertical,4)
+                .padding(.vertical, 4)
             }
             
             if hasHiddenFormats {

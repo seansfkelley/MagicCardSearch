@@ -9,6 +9,11 @@ import SwiftUI
 import ScryfallKit
 
 private let bareSymbolCodes = Set(["E", "CHAOS", "TK"])
+// Xcode does not like these assets having crazy names.
+private let aliasedAssetNames = [
+    "∞": "infinity",
+    "½": "half",
+]
 
 enum MtgSymbol {
     case bare(String)
@@ -109,7 +114,7 @@ struct MtgSymbolView: View {
     }
     
     private func bare(_ symbol: String) -> some View {
-        Image(symbol)
+        Image(aliasedAssetNames[symbol] ?? symbol)
             .resizable()
             .aspectRatio(contentMode: .fit)
             .frame(width: size * 0.8, height: size * 0.8)
@@ -117,7 +122,7 @@ struct MtgSymbolView: View {
     
     private func generic(_ symbol: String) -> some View {
         regular(Card.Color.C) {
-            Image(symbol)
+            Image(aliasedAssetNames[symbol] ?? symbol)
                 .resizable()
                 .aspectRatio(contentMode: .fit)
                 .frame(width: size * 0.8, height: size * 0.8)
@@ -151,7 +156,7 @@ struct MtgSymbolView: View {
     
     private func genericHybrid(_ left: String, _ right: Card.Color) -> some View {
         split(Card.Color.C, right, saturated: right == .B) {
-            Image(left)
+            Image(aliasedAssetNames[left] ?? left)
                 .resizable()
                 .aspectRatio(contentMode: .fit)
                 .frame(width: oversize * 0.4, height: oversize * 0.4)
