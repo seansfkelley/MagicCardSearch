@@ -36,7 +36,6 @@ class HistorySuggestionProvider {
         }
 
         let sorted = historyByFilter.values.sorted { lhs, rhs in
-            // Sort by: pinned, then last used date, then alphabetically
             if lhs.isPinned != rhs.isPinned {
                 return lhs.isPinned
             }
@@ -105,7 +104,6 @@ class HistorySuggestionProvider {
         )
         historyByFilter[filter] = entry
 
-        // Enforce max count by removing oldest unpinned entries
         if historyByFilter.count > maxHistoryCount {
             let sortedByDate = historyByFilter.values
                 .filter { !$0.isPinned }
@@ -126,7 +124,7 @@ class HistorySuggestionProvider {
 
         entry = HistoryEntry(
             filter: entry.filter,
-            lastUsedDate: entry.lastUsedDate,
+            lastUsedDate: .now,
             isPinned: true
         )
         historyByFilter[filter] = entry
@@ -139,7 +137,7 @@ class HistorySuggestionProvider {
 
         entry = HistoryEntry(
             filter: entry.filter,
-            lastUsedDate: entry.lastUsedDate,
+            lastUsedDate: .now,
             isPinned: false
         )
         historyByFilter[filter] = entry
