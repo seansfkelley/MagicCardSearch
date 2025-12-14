@@ -117,7 +117,7 @@ struct MtgSymbolView: View {
         Image(aliasedAssetNames[symbol] ?? symbol)
             .resizable()
             .aspectRatio(contentMode: .fit)
-            .frame(width: size * 0.8, height: size * 0.8)
+            .frame(width: size, height: size)
     }
     
     private func generic(_ symbol: String) -> some View {
