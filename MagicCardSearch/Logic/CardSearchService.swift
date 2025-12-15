@@ -122,6 +122,28 @@ class CardSearchService {
         return allCards
     }
     
+    /// Searches for cards using a raw Scryfall query string
+    /// - Parameter query: The raw Scryfall query string (e.g., "oracleid:abc123 frame:old")
+    /// - Returns: All matching cards across all pages
+    func searchByRawQuery(_ query: String) async throws -> [Card] {
+        var allCards: [Card] = []
+        var nextPageURL: String?
+        
+        // Fetch first page
+        let firstResult = try await client.searchCards(query: query, unique: .prints, order: .released, includeExtras: true)
+        allCards.append(contentsOf: firstResult.data)
+        nextPageURL = firstResult.nextPage
+        
+        // Fetch remaining pages if they exist
+        while let pageURL = nextPageURL {
+            let pageResult = try await fetchNextPage(from: pageURL)
+            allCards.append(contentsOf: pageResult.cards)
+            nextPageURL = pageResult.nextPageURL
+        }
+        
+        return allCards
+    }
+    
     static func buildSearchURL(filters: [SearchFilter], config: SearchConfiguration, forAPI: Bool) -> URL? {
         let queryString = filters.map { $0.queryStringWithEditingRange.0 }.joined(separator: " ")
         

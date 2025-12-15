@@ -16,15 +16,19 @@ struct CardAllPrintsView: View {
     @State private var isLoading = true
     @State private var error: Error?
     @State private var currentIndex: Int = 0
+    @State private var showFilterPopover = false
+    @State private var printFilterSettings = PrintFilterSettings()
     @Environment(\.dismiss) private var dismiss
 
     private let cardSearchService = CardSearchService()
-
+    
+    // MARK: - Filter Settings
+    
     private var scryfallSearchURL: URL? {
         let baseURL = "https://scryfall.com/search"
         var components = URLComponents(string: baseURL)
         components?.queryItems = [
-            URLQueryItem(name: "q", value: "oracleid:\(oracleId)"),
+            URLQueryItem(name: "q", value: printFilterSettings.toQueryFor(oracleId: oracleId)),
             URLQueryItem(name: "order", value: "released"),
             URLQueryItem(name: "dir", value: "asc"),
         ]
@@ -52,18 +56,41 @@ struct CardAllPrintsView: View {
                         }
                     }
                     
-                    if let card = currentCard {
-                        ToolbarItem(placement: .topBarTrailing) {
-                            Button {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            showFilterPopover.toggle()
+                        } label: {
+                            Image(systemName: "line.3.horizontal.decrease.circle")
+                                .overlay(alignment: .topTrailing) {
+                                    if printFilterSettings.hasActiveFilters {
+                                        Circle()
+                                            .fill(.blue)
+                                            .frame(width: 8, height: 8)
+                                            .offset(x: 4, y: -4)
+                                    }
+                                }
+                        }
+                        .popover(isPresented: $showFilterPopover) {
+                            FilterPopoverView(filterSettings: $printFilterSettings)
+                                .presentationCompactAdaptation(.popover)
+                        }
+                    }
+                    
+                    // Always reserve space for the bookmark button
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            if let card = currentCard {
                                 let listItem = CardListItem(from: card)
                                 CardListManager.shared.toggleCard(listItem)
-                            } label: {
-                                Image(
-                                    systemName: CardListManager.shared.contains(cardId: card.id)
-                                        ? "bookmark.fill" : "bookmark"
-                                )
                             }
+                        } label: {
+                            Image(
+                                systemName: currentCard.flatMap { CardListManager.shared.contains(cardId: $0.id) } ?? false
+                                    ? "bookmark.fill" : "bookmark"
+                            )
                         }
+                        .disabled(currentCard == nil)
+                        .opacity(currentCard == nil ? 0 : 1)
                     }
 
                     if let url = scryfallSearchURL {
@@ -76,6 +103,11 @@ struct CardAllPrintsView: View {
         .task {
             await loadPrints()
         }
+        .onChange(of: printFilterSettings) { _, _ in
+            Task {
+                await loadPrints()
+            }
+        }
     }
     
     @ViewBuilder private var contentView: some View {
@@ -84,7 +116,11 @@ struct CardAllPrintsView: View {
         } else if let error = error {
             errorView(error: error)
         } else if prints.isEmpty {
-            emptyView
+            if printFilterSettings.hasActiveFilters {
+                filteredEmptyView
+            } else {
+                emptyView
+            }
         } else {
             CardPrintsDetailView(
                 cards: prints,
@@ -148,17 +184,60 @@ struct CardAllPrintsView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
+    
+    private var filteredEmptyView: some View {
+        VStack(spacing: 20) {
+            Image(systemName: "sparkle.magnifyingglass")
+                .font(.system(size: 60))
+                .foregroundStyle(.blue.gradient)
+                .symbolEffect(.pulse)
+
+            VStack(spacing: 8) {
+                Text("No Matching Prints")
+                    .font(.title2)
+                    .fontWeight(.semibold)
+
+                Text("Try adjusting your filters to see more results.")
+                    .font(.body)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+            .padding(.horizontal, 32)
+            
+            Button {
+                printFilterSettings.reset()
+            } label: {
+                HStack {
+                    Image(systemName: "arrow.counterclockwise")
+                    Text("Reset All Filters")
+                }
+                .padding(.horizontal, 8)
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.regular)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
 
     private func loadPrints() async {
         isLoading = true
         error = nil
 
         do {
-            prints = try await cardSearchService.searchCardsByOracleId(oracleId)
+            let searchQuery = buildSearchQuery()
+            
+            // Use the raw query search method
+            prints = try await cardSearchService.searchByRawQuery(searchQuery)
+            
+            // Try to maintain the current card if it still exists in the filtered results
             if let index = prints.firstIndex(where: { $0.id == currentCardId }) {
                 currentIndex = index
+            } else if !prints.isEmpty {
+                // If the current card is filtered out, reset to the first card
+                currentIndex = 0
             }
-            print("Loaded \(prints.count) prints for oracle ID: \(oracleId)")
+            
+            print("Loaded \(prints.count) prints for query: \(searchQuery)")
         } catch {
             print("Error loading prints: \(error)")
             self.error = error
