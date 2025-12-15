@@ -103,13 +103,15 @@ struct CardAllPrintsView: View {
                     VStack {
                         Spacer()
                         HStack {
+                            Spacer()
                             ProgressView()
                                 .tint(.white)
                             Text("Loading prints...")
                                 .foregroundStyle(.white)
                                 .font(.subheadline)
+                            Spacer()
                         }
-                        .padding()
+                        Spacer()
                     }
                     .background(.ultraThinMaterial)
                     .allowsHitTesting(false)
@@ -172,23 +174,19 @@ struct CardAllPrintsView: View {
     }
 
     private func loadPrints() async {
-        // Preserve previous result while loading
         let previousResult = loadState.latestResult
         loadState = .loading(previousResult)
 
         do {
             let searchQuery = printFilterSettings.toQueryFor(oracleId: oracleId)
             
-            // Use the raw query search method
             let newPrints = try await cardSearchService.searchByRawQuery(searchQuery)
             
             loadState = .loaded(.success(newPrints))
             
-            // Try to maintain the current card if it still exists in the filtered results
             if let index = newPrints.firstIndex(where: { $0.id == currentCardId }) {
                 currentIndex = index
             } else if !newPrints.isEmpty {
-                // If the current card is filtered out, reset to the first card
                 currentIndex = 0
             }
             
@@ -245,6 +243,16 @@ private struct CardPrintsDetailView: View {
             if let currentCard {
                 mainScrollPosition.scrollTo(id: currentCard.id)
                 thumbnailScrollPosition.scrollTo(id: currentCard.id)
+            }
+        }
+        .onChange(of: currentIndex) { _, newIndex in
+            if let cardId = cards[safe: newIndex]?.id {
+                if mainScrollPosition.viewID(type: UUID.self) != cardId {
+                    mainScrollPosition.scrollTo(id: cardId)
+                }
+                if thumbnailScrollPosition.viewID(type: UUID.self) != cardId {
+                    thumbnailScrollPosition.scrollTo(id: cardId)
+                }
             }
         }
         .onChange(of: mainScrollPosition.viewID(type: UUID.self)) { _, newCardId in
