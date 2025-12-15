@@ -211,9 +211,9 @@ private struct CardPrintsDetailView: View {
         .onChange(of: mainScrollPosition.viewID(type: Int.self)) { _, newValue in
             if let newValue, newValue != currentIndex {
                 currentIndex = newValue
-                withAnimation(.easeInOut(duration: 0.3)) {
-                    thumbnailScrollPosition.scrollTo(id: newValue)
-                }
+                // n.b. not animated because the calculated partial scroll offset thing makes sure
+                // that the thumbnails are moving proportionally to the main view.
+                thumbnailScrollPosition.scrollTo(id: newValue)
             }
         }
         .onChange(of: thumbnailScrollPosition.viewID(type: Int.self)) { _, newValue in
@@ -286,7 +286,6 @@ private struct PagingCardImageView: View {
                 (CGFloat(scrollPosition.viewID(type: Int.self) ?? 0) * geometry.containerSize.width - geometry.contentOffset.x) / geometry.containerSize.width
             },
             action: { _, new in
-//                print(new)
                 partialScrollOffsetFraction = new
             })
     }
@@ -327,14 +326,15 @@ private struct ThumbnailPreviewStrip: View {
                                 scrollPosition.scrollTo(id: offset)
                             }
                         }
+                        // TODO: This works great, except that it reveals that the LazyHStack hasn't
+                        // loaded things off screen yet. How to make it load just one more view on
+                        // each side?
+                        .offset(x: partialScrollOffsetFraction * (thumbnailWidth + thumbnailSpacing))
                 }
                 
                 Color.clear
                     .frame(width: sidePadding - thumbnailSpacing)
             }
-            // FIXME: Should be able to show the thumbnail bar scrolling as the main view is being
-            // pushed around. No idea if this is the right location for this.
-//            .offset(x: partialScrollOffsetFraction * thumbnailWidth, y: 0)
             .scrollTargetLayout()
             .padding(.vertical, 12)
         }
@@ -394,6 +394,8 @@ private struct ThumbnailCardView: View {
         }
         .clipShape(RoundedRectangle(cornerRadius: 4))
         .scaleEffect(isSelected ? 1.1 : 1.0)
-        .animation(.easeInOut(duration: 0.2), value: isSelected)
+        // TODO: Enable this but only for the scale effect -- as written, it animates the offset
+        // which causes whacko UI jitters.
+//        .animation(.easeInOut(duration: 0.2), value: isSelected)
     }
 }
