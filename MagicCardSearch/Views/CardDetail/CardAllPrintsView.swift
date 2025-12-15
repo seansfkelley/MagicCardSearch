@@ -174,6 +174,8 @@ private struct CardPrintsDetailView: View {
     let cards: [Card]
     @Binding var currentIndex: Int
     
+    // It seems that these cannot share a position object, so we bridge between the two and,
+    // unfortunately, also the currentIndex binding from the parent.
     @State private var mainScrollPosition = ScrollPosition(idType: Int.self)
     @State private var thumbnailScrollPosition = ScrollPosition(idType: Int.self)
     @State private var partialScrollOffsetFraction: CGFloat = 0
@@ -217,11 +219,8 @@ private struct CardPrintsDetailView: View {
         .onChange(of: thumbnailScrollPosition.viewID(type: Int.self)) { _, newValue in
             if let newValue, newValue != currentIndex {
                 currentIndex = newValue
-                // TODO: Might not be a good idea, both for excessive motion and because it might
-                // trigger way too many intermediate image loads.
-                withAnimation(.easeInOut(duration: 0.3)) {
-                    mainScrollPosition.scrollTo(id: newValue)
-                }
+                // n.b. not animated to prevent excessive motion and potential image loads.
+                mainScrollPosition.scrollTo(id: newValue)
             }
         }
     }
