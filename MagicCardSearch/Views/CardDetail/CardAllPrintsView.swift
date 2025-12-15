@@ -45,8 +45,7 @@ struct CardAllPrintsView: View {
     var body: some View {
         NavigationStack {
             contentView
-                .navigationTitle(currentCard?.name ?? "All Prints")
-                .navigationBarTitleDisplayMode(.inline)
+                // TODO: Should there be a title? It looks naked up there but a title is pretty useless.
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
                         Button {
