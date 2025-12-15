@@ -56,7 +56,8 @@ struct ContentView: View {
                     AutocompleteView(
                         inputText: inputText,
                         provider: autocompleteProvider,
-                        filters: filters
+                        filters: filters,
+                        isSearchFocused: isSearchFocused
                     ) { suggestion in
                             handleSuggestionTap(suggestion)
                             inputSelection = TextSelection(insertionPoint: inputText.endIndex)

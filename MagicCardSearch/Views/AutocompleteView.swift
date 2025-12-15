@@ -16,9 +16,28 @@ struct AutocompleteView: View {
     let inputText: String
     let provider: CombinedSuggestionProvider
     let filters: [SearchFilter]
+    let isSearchFocused: Bool
     let onSuggestionTap: (AcceptedSuggestion) -> Void
     
     @State private var suggestions: [Suggestion] = []
+    
+    private var searchSuggestionKey: SearchSuggestionKey {
+        SearchSuggestionKey(inputText: inputText, filterCount: filters.count, isSearchFocused: isSearchFocused)
+    }
+    
+    private struct SearchSuggestionKey: Equatable {
+        // Obvious.
+        let inputText: String
+        // This allows the history autocomplete to hide ones you pick. In the future, it might be
+        // used for other autocompletes that read your existing filters.
+        let filterCount: Int
+        // This is indirect, but it makes sure that filters you just used in a search now become
+        // available. Performing a search unfocuses the bar, so focusing it again means you may have
+        // performed a search just now that we want to pull filters from.
+        // TODO: This should really just be a nonce that changes only on focus, because we don't
+        // want to run autocomplete when it's not focused.
+        let isSearchFocused: Bool
+    }
     
     private let orderedEqualityComparison: [Comparison] = [
         .including,
@@ -82,7 +101,7 @@ struct AutocompleteView: View {
             }
         }
         .listStyle(.plain)
-        .task(id: inputText) {
+        .task(id: searchSuggestionKey) {
             for await newSuggestions in provider.getSuggestions(for: inputText, existingFilters: Set(filters)) {
                 suggestions = newSuggestions
             }
@@ -313,6 +332,7 @@ struct HighlightedText: View {
             nameProvider: NameSuggestionProvider()
         ),
         filters: [],
+        isSearchFocused: true,
     ) { suggestion in
         print("Selected: \(suggestion)")
     }
@@ -328,6 +348,7 @@ struct HighlightedText: View {
             nameProvider: NameSuggestionProvider()
         ),
         filters: [],
+        isSearchFocused: true,
     ) { suggestion in
         print("Selected: \(suggestion)")
     }
@@ -343,6 +364,7 @@ struct HighlightedText: View {
             nameProvider: NameSuggestionProvider()
         ),
         filters: [],
+        isSearchFocused: true,
     ) { suggestion in
         print("Selected: \(suggestion)")
     }
@@ -358,6 +380,7 @@ struct HighlightedText: View {
             nameProvider: NameSuggestionProvider()
         ),
         filters: [],
+        isSearchFocused: true,
     ) { suggestion in
         print("Selected: \(suggestion)")
     }

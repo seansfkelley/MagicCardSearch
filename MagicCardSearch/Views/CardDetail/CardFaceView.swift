@@ -23,34 +23,27 @@ struct CardFaceView: View {
         if let imageUrlString = CardImageQuality.bestQualityUri(from: face.imageUris),
            let url = URL(string: imageUrlString) {
             LazyImage(url: url) { state in
-                Group {
-                    if let image = state.image {
-                        image
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .contextMenu {
-                                ShareLink(item: url, preview: SharePreview(face.name, image: image))
-                                
-                                Button {
-                                    if let container = state.imageContainer {
-                                        UIPasteboard.general.image = container.image
-                                    }
-                                } label: {
-                                    Label("Copy", systemImage: "doc.on.doc")
+                if let image = state.image {
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .contextMenu {
+                            ShareLink(item: url, preview: SharePreview(face.name, image: image))
+                            
+                            Button {
+                                if let container = state.imageContainer {
+                                    UIPasteboard.general.image = container.image
                                 }
+                            } label: {
+                                Label("Copy", systemImage: "doc.on.doc")
                             }
-                    } else if state.error != nil {
-                        CardPlaceholderView(name: face.name)
-                    } else {
-                        ProgressView()
-                            .frame(maxWidth: .infinity)
-                            .aspectRatio(0.7, contentMode: .fit)
-                    }
-                }
-                .transaction { transaction in
-                    // Disable animations for image loading phase transitions
-                    // to prevent interference with card flip animations
-                    transaction.animation = nil
+                        }
+                } else if state.error != nil {
+                    CardPlaceholderView(name: face.name)
+                } else {
+                    ProgressView()
+                        .frame(maxWidth: .infinity)
+                        .aspectRatio(0.7, contentMode: .fit)
                 }
             }
         } else {
