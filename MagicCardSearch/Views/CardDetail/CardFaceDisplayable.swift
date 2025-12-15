@@ -49,6 +49,14 @@ enum CardImageQuality {
     case normal
     case large
     
+    func uri(from: Card.ImageUris?) -> String? {
+        switch self {
+            case .small: return from?.small
+            case .normal: return from?.normal
+            case .large: return from?.large
+        }
+    }
+    
     static func bestQualityUri(from uris: Card.ImageUris?) -> String? {
         uris?.large ?? uris?.normal ?? uris?.small
     }

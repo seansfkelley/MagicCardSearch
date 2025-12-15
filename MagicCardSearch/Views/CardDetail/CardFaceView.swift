@@ -20,7 +20,7 @@ struct CardFaceView: View {
     }
     
     var body: some View {
-        if let imageUrlString = CardImageQuality.bestQualityUri(from: face.imageUris),
+        if let imageUrlString = imageQuality.uri(from: face.imageUris),
            let url = URL(string: imageUrlString) {
             LazyImage(url: url) { state in
                 if let image = state.image {
@@ -28,7 +28,10 @@ struct CardFaceView: View {
                         .resizable()
                         .aspectRatio(contentMode: .fit)
                         .contextMenu {
-                            ShareLink(item: url, preview: SharePreview(face.name, image: image))
+                            if let shareUrlString = CardImageQuality.bestQualityUri(from: face.imageUris),
+                               let url = URL(string: shareUrlString) {
+                                ShareLink(item: url, preview: SharePreview(face.name, image: image))
+                            }
                             
                             Button {
                                 if let container = state.imageContainer {
