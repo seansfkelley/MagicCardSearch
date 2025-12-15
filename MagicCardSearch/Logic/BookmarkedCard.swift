@@ -18,6 +18,7 @@ struct BookmarkedCard: Identifiable, Codable, Equatable, Hashable, Comparable {
     let setName: String
     let collectorNumber: String
     let releasedAt: String
+    let addedToListAt: Date
     
     init(from card: Card) {
         self.id = card.id
@@ -28,6 +29,7 @@ struct BookmarkedCard: Identifiable, Codable, Equatable, Hashable, Comparable {
         self.collectorNumber = card.collectorNumber
         self.releasedAt = card.releasedAt
         self.smallImageUrl = card.primaryImageUris?.small
+        self.addedToListAt = Date()
     }
     
     // MARK: - Comparable
