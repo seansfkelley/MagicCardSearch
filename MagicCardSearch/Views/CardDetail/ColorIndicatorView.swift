@@ -12,7 +12,7 @@ struct ColorIndicatorView: View {
     let colors: [Card.Color]
     let size: CGFloat
     
-    init(colors: [Card.Color], size: CGFloat = 12) {
+    init(colors: [Card.Color], size: CGFloat = 20) {
         self.colors = colors
         self.size = size
     }

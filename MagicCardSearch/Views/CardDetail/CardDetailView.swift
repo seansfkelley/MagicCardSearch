@@ -193,7 +193,7 @@ struct CardDetailView: View {
             VStack(alignment: .leading, spacing: 8) {
                 HStack(spacing: 8) {
                     if let colorIndicator = face.colorIndicator, !colorIndicator.isEmpty {
-                        ColorIndicatorView(colors: colorIndicator)
+                        ColorIndicatorView(colors: colorIndicator, size: 20)
                     }
 
                     Text(typeLine)
