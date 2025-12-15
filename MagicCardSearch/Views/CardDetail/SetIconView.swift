@@ -45,11 +45,13 @@ struct SetIconView: View {
         }
     }
     
+    // swiftlint:disable:next function_body_length
     private func loadAndRenderSVG() async {
         let cacheKey = "\(setCode.lowercased())_\(Int(size))" as NSString
         
         // Check cache first
         if let cachedImage = SetIconView.setIconCache.object(forKey: cacheKey) {
+            _ = await NetworkRequestSpan.begin("svg: \(setCode)", category: "svg", fromCache: true)
             await MainActor.run {
                 self.renderedImage = cachedImage
                 self.isLoading = false
@@ -65,7 +67,12 @@ struct SetIconView: View {
         }
         
         do {
-            let (data, _) = try await URLSession.shared.data(from: url)
+            let data = try await withNetworkLogging("svg: \(setCode)", category: "svg") {
+                let (data, _) = try await URLSession.shared.data(from: url)
+                return data
+            } metadata: { data in
+                ["bytes": data.count]
+            }
             
             // Parse and render SVG
             guard let svgImage = SVGKImage(data: data) else {

@@ -21,7 +21,7 @@ struct CardFaceView: View {
     var body: some View {
         if let imageUrlString = CardImageQuality.bestQualityUri(from: face.imageUris),
            let url = URL(string: imageUrlString) {
-            AsyncImage(url: url) { phase in
+            LoggedAsyncImage(url: url) { phase in
                 Group {
                     switch phase {
                     case .empty:

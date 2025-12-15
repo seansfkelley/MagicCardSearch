@@ -356,28 +356,32 @@ private struct ThumbnailCardView: View {
         Group {
             if let faces = card.cardFaces, card.layout.isDoubleFaced && faces.count >= 2,
                let imageUri = faces[0].imageUris?.small {
-                AsyncImage(url: URL(string: imageUri)) { image in
-                    image
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                } placeholder: {
-                    Color.clear
-                        .aspectRatio(0.716, contentMode: .fit)
-                        .overlay {
-                            ProgressView()
-                        }
+                LoggedAsyncImage(url: URL(string: imageUri)) { phase in
+                    if let image = phase.image {
+                        image
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                    } else {
+                        Color.clear
+                            .aspectRatio(0.716, contentMode: .fit)
+                            .overlay {
+                                ProgressView()
+                            }
+                    }
                 }
             } else if let imageUri = card.imageUris?.small {
-                AsyncImage(url: URL(string: imageUri)) { image in
-                    image
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                } placeholder: {
-                    Color.clear
-                        .aspectRatio(0.716, contentMode: .fit)
-                        .overlay {
-                            ProgressView()
-                        }
+                LoggedAsyncImage(url: URL(string: imageUri)) { phase in
+                    if let image = phase.image {
+                        image
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                    } else {
+                        Color.clear
+                            .aspectRatio(0.716, contentMode: .fit)
+                            .overlay {
+                                ProgressView()
+                            }
+                    }
                 }
             } else {
                 Color.clear

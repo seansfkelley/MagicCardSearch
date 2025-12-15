@@ -45,6 +45,7 @@ class RulingsService {
         if let oracleId = oracleId {
             let cacheKey = oracleId as NSString
             if let cached = cache.object(forKey: cacheKey) {
+                _ = await NetworkRequestSpan.begin("rulings: \(oracleId)", category: "rulings", fromCache: true)
                 return cached.rulings
             }
         }
@@ -60,16 +61,19 @@ class RulingsService {
         
         let cardId = pathComponents[idIndex + 1]
         
-        // Capture client in a non-isolated context to avoid data races
-        let rulings = try await client.getRulings(.scryfallID(id: cardId))
-        
-        // Cache the result by oracle ID if available
-        if let oracleId = oracleId {
-            let cacheKey = oracleId as NSString
-            cache.setObject(RulingsWrapper(rulings: rulings.data), forKey: cacheKey)
+        return try await withNetworkLogging("rulings: \(oracleId ?? cardId)", category: "rulings") { [client] in
+            let rulings = try await client.getRulings(.scryfallID(id: cardId))
+            
+            // Cache the result by oracle ID if available
+            if let oracleId = oracleId {
+                let cacheKey = oracleId as NSString
+                cache.setObject(RulingsWrapper(rulings: rulings.data), forKey: cacheKey)
+            }
+            
+            return rulings.data
+        } metadata: { rulings in
+            ["count": rulings.count]
         }
-        
-        return rulings.data
     }
 }
 

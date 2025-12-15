@@ -26,7 +26,7 @@ class CardSearchService {
             return SearchResult(cards: [], totalCount: 0, nextPageURL: nil, warnings: [])
         }
         
-        do {
+        return try await withNetworkLogging("search: \(queryString)", category: "search") { [client] in
             let result = try await client.searchCards(
                 query: queryString,
                 unique: config.uniqueMode.toScryfallKitUniqueMode(),
@@ -40,13 +40,8 @@ class CardSearchService {
                 nextPageURL: result.nextPage,
                 warnings: result.warnings ?? []
             )
-        } catch let scryfallError as ScryfallKitError {
-            // When searching for cards, a 404 means "no results found", not an actual error
-            if case .scryfallError(let error) = scryfallError, error.status == 404 {
-                return SearchResult(cards: [], totalCount: 0, nextPageURL: nil, warnings: [])
-            }
-            // Re-throw other Scryfall errors
-            throw scryfallError
+        } metadata: { result in
+            ["results": result.cards.count, "hasMore": result.nextPageURL != nil]
         }
     }
     
@@ -73,7 +68,8 @@ class CardSearchService {
         let dirValue = queryItems.first { $0.name == "dir" }?.value
         let sortDirection = dirValue.flatMap { SortDirection(rawValue: $0) }
         
-        do {
+        let pageInfo = page.map { " page \($0)" } ?? ""
+        return try await withNetworkLogging("search\(pageInfo): \(query)", category: "search") { [client] in
             let result = try await client.searchCards(
                 query: query,
                 unique: unique,
@@ -88,18 +84,17 @@ class CardSearchService {
                 nextPageURL: result.nextPage,
                 warnings: result.warnings ?? []
             )
-        } catch let scryfallError as ScryfallKitError {
-            // When paginating search results, a 404 means "no more results", not an actual error
-            if case .scryfallError(let error) = scryfallError, error.status == 404 {
-                return SearchResult(cards: [], totalCount: 0, nextPageURL: nil, warnings: [])
-            }
-            // Re-throw other Scryfall errors
-            throw scryfallError
+        } metadata: { result in
+            ["results": result.cards.count, "hasMore": result.nextPageURL != nil]
         }
     }
     
     func fetchCard(byId id: UUID) async throws -> Card {
-        return try await client.getCard(identifier: .scryfallID(id: id.uuidString))
+        return try await withNetworkLogging("fetch card: \(id.uuidString)", category: "search") { [client] in
+            try await client.getCard(identifier: .scryfallID(id: id.uuidString))
+        } metadata: { card in
+            ["name": card.name]
+        }
     }
     
     // TODO: This is actually searching for all prints, not as generic as it sounds.
