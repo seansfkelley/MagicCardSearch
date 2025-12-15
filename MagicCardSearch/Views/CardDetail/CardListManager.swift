@@ -11,7 +11,7 @@ import Foundation
 class CardListManager: ObservableObject {
     static let shared = CardListManager()
     
-    @Published private(set) var cards: [CardListItem] = [] {
+    @Published private(set) var cards: [BookmarkedCard] = [] {
         didSet {
             _cardIdsCache = nil
         }
@@ -21,9 +21,12 @@ class CardListManager: ObservableObject {
     private var _cardIdsCache: Set<UUID>?
     
     private init() {
-        // Set up the file URL in the documents directory
-        let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-        fileURL = documentsPath.appendingPathComponent("cardList.json")
+        // Set up the file URL in the application support directory
+        let appSupportPath = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        fileURL = appSupportPath.appendingPathComponent("cardList.json")
+        
+        // Ensure the directory exists
+        try? FileManager.default.createDirectory(at: appSupportPath, withIntermediateDirectories: true)
         
         // Load existing cards from disk
         loadCards()
@@ -43,7 +46,7 @@ class CardListManager: ObservableObject {
     
     // MARK: - Public Methods
     
-    func addCard(_ card: CardListItem) {
+    func addCard(_ card: BookmarkedCard) {
         guard !contains(cardWithId: card.id) else { return }
         
         cards.append(card)
@@ -55,7 +58,7 @@ class CardListManager: ObservableObject {
         saveCards()
     }
     
-    func toggleCard(_ card: CardListItem) {
+    func toggleCard(_ card: BookmarkedCard) {
         if contains(cardWithId: card.id) {
             removeCard(withId: card.id)
         } else {
@@ -67,7 +70,7 @@ class CardListManager: ObservableObject {
         cardIds.contains(cardId)
     }
     
-    var sortedCards: [CardListItem] {
+    var sortedCards: [BookmarkedCard] {
         cards.sorted()
     }
     
@@ -86,7 +89,7 @@ class CardListManager: ObservableObject {
         
         do {
             let data = try Data(contentsOf: fileURL)
-            cards = try JSONDecoder().decode([CardListItem].self, from: data)
+            cards = try JSONDecoder().decode([BookmarkedCard].self, from: data)
         } catch {
             print("Error loading card list: \(error)")
             cards = []

@@ -158,9 +158,9 @@ struct SavedCardsListView: View {
     struct SheetState: Identifiable {
         let id: UUID
         let index: Int
-        let cards: [CardListItem]
+        let cards: [BookmarkedCard]
         
-        init(index: Int, cards: [CardListItem]) {
+        init(index: Int, cards: [BookmarkedCard]) {
             self.index = index
             self.cards = cards
             // Use the card ID at this index as a stable identifier
@@ -178,7 +178,7 @@ struct SavedCardsListView: View {
 // MARK: - Card Detail Navigator From List
 
 private struct CardDetailNavigatorFromList: View {
-    let cards: [CardListItem]
+    let cards: [BookmarkedCard]
     let initialIndex: Int
     
     @State private var fullCards: [Card] = []
@@ -269,7 +269,7 @@ private struct CardDetailNavigatorFromList: View {
 // MARK: - Card List Row
 
 private struct CardListRow: View {
-    let card: CardListItem
+    let card: BookmarkedCard
 
     var body: some View {
         HStack(spacing: 10) {

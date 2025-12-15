@@ -146,7 +146,7 @@ struct CardAllPrintsView: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         if let card = currentCard {
-                            let listItem = CardListItem(from: card)
+                            let listItem = BookmarkedCard(from: card)
                             listManager.toggleCard(listItem)
                         }
                     } label: {

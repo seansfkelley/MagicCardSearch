@@ -133,7 +133,7 @@ struct CardDetailView: View {
             if isCurrentlyVisible {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
-                        let listItem = CardListItem(from: card)
+                        let listItem = BookmarkedCard(from: card)
                         listManager.toggleCard(listItem)
                     } label: {
                         Image(
