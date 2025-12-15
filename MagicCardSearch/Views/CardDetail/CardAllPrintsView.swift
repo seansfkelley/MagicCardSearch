@@ -151,7 +151,7 @@ struct CardAllPrintsView: View {
                         }
                     } label: {
                         Image(
-                            systemName: currentCard.flatMap { listManager.contains(cardId: $0.id) } ?? false
+                            systemName: currentCard.flatMap { listManager.contains(cardWithId: $0.id) } ?? false
                                 ? "bookmark.fill" : "bookmark"
                         )
                     }

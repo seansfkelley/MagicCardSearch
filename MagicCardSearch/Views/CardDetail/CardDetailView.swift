@@ -137,7 +137,7 @@ struct CardDetailView: View {
                         listManager.toggleCard(listItem)
                     } label: {
                         Image(
-                            systemName: listManager.contains(cardId: card.id)
+                            systemName: listManager.contains(cardWithId: card.id)
                                 ? "bookmark.fill" : "bookmark"
                         )
                     }

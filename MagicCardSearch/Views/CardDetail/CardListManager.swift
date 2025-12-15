@@ -7,14 +7,18 @@
 
 import Foundation
 
-/// A singleton manager for the user's saved card list with disk persistence
 @MainActor
 class CardListManager: ObservableObject {
     static let shared = CardListManager()
     
-    @Published private(set) var cards: [CardListItem] = []
+    @Published private(set) var cards: [CardListItem] = [] {
+        didSet {
+            _cardIdsCache = nil
+        }
+    }
     
     private let fileURL: URL
+    private var _cardIdsCache: Set<UUID>?
     
     private init() {
         // Set up the file URL in the documents directory
@@ -25,43 +29,48 @@ class CardListManager: ObservableObject {
         loadCards()
     }
     
+    // MARK: - Private Computed Properties
+    
+    /// Memoized set of card IDs for fast containment checks
+    private var cardIds: Set<UUID> {
+        if let cached = _cardIdsCache {
+            return cached
+        }
+        let ids = Set(cards.map(\.id))
+        _cardIdsCache = ids
+        return ids
+    }
+    
     // MARK: - Public Methods
     
-    /// Add a card to the list
     func addCard(_ card: CardListItem) {
-        // Don't add duplicates
-        guard !cards.contains(where: { $0.id == card.id }) else { return }
+        guard !contains(cardWithId: card.id) else { return }
         
         cards.append(card)
         saveCards()
     }
     
-    /// Remove a card from the list by ID
     func removeCard(withId id: UUID) {
         cards.removeAll { $0.id == id }
         saveCards()
     }
     
-    /// Toggle a card's presence in the list
     func toggleCard(_ card: CardListItem) {
-        if contains(cardId: card.id) {
+        if contains(cardWithId: card.id) {
             removeCard(withId: card.id)
         } else {
             addCard(card)
         }
     }
     
-    /// Check if a card is in the list
-    func contains(cardId: UUID) -> Bool {
-        cards.contains { $0.id == cardId }
+    func contains(cardWithId cardId: UUID) -> Bool {
+        cardIds.contains(cardId)
     }
     
-    /// Get sorted cards (alphabetically by name, then by release date)
     var sortedCards: [CardListItem] {
         cards.sorted()
     }
     
-    /// Clear all cards from the list
     func clearAll() {
         cards.removeAll()
         saveCards()
