@@ -5,6 +5,7 @@
 //  Created by Sean Kelley on 2025-12-11.
 //
 import SwiftUI
+import NukeUI
 
 struct CardFaceView: View {
     let face: CardFaceDisplayable
@@ -21,14 +22,9 @@ struct CardFaceView: View {
     var body: some View {
         if let imageUrlString = CardImageQuality.bestQualityUri(from: face.imageUris),
            let url = URL(string: imageUrlString) {
-            AsyncImage(url: url) { phase in
+            LazyImage(url: url) { state in
                 Group {
-                    switch phase {
-                    case .empty:
-                        ProgressView()
-                            .frame(maxWidth: .infinity)
-                            .aspectRatio(0.7, contentMode: .fit)
-                    case .success(let image):
+                    if let image = state.image {
                         image
                             .resizable()
                             .aspectRatio(contentMode: .fit)
@@ -36,17 +32,19 @@ struct CardFaceView: View {
                                 ShareLink(item: url, preview: SharePreview(face.name, image: image))
                                 
                                 Button {
-                                    if let uiImage = ImageRenderer(content: image).uiImage {
-                                        UIPasteboard.general.image = uiImage
+                                    if let container = state.imageContainer {
+                                        UIPasteboard.general.image = container.image
                                     }
                                 } label: {
                                     Label("Copy", systemImage: "doc.on.doc")
                                 }
                             }
-                    case .failure:
+                    } else if state.error != nil {
                         CardPlaceholderView(name: face.name)
-                    @unknown default:
-                        CardPlaceholderView(name: face.name)
+                    } else {
+                        ProgressView()
+                            .frame(maxWidth: .infinity)
+                            .aspectRatio(0.7, contentMode: .fit)
                     }
                 }
                 .transaction { transaction in

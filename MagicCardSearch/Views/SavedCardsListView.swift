@@ -7,6 +7,7 @@
 
 import SwiftUI
 import ScryfallKit
+import NukeUI
 
 struct SavedCardsListView: View {
     @ObservedObject var listManager = CardListManager.shared
@@ -275,21 +276,18 @@ private struct CardListRow: View {
             // Card Image
             Group {
                 if let imageUrl = card.smallImageUrl, let url = URL(string: imageUrl) {
-                    AsyncImage(url: url) { phase in
-                        switch phase {
-                        case .empty:
-                            ProgressView()
-                                .frame(width: 60, height: 84)
-                        case .success(let image):
+                    LazyImage(url: url) { state in
+                        if let image = state.image {
                             image
                                 .resizable()
                                 .aspectRatio(contentMode: .fill)
                                 .frame(width: 60, height: 84)
                                 .clipShape(RoundedRectangle(cornerRadius: 6))
-                        case .failure:
+                        } else if state.error != nil {
                             imagePlaceholder
-                        @unknown default:
-                            imagePlaceholder
+                        } else {
+                            ProgressView()
+                                .frame(width: 60, height: 84)
                         }
                     }
                 } else {
