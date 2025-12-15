@@ -20,9 +20,10 @@ struct AutocompleteView: View {
     let onSuggestionTap: (AcceptedSuggestion) -> Void
     
     @State private var suggestions: [Suggestion] = []
+    @State private var focusNonce: Int = 0
     
     private var searchSuggestionKey: SearchSuggestionKey {
-        SearchSuggestionKey(inputText: inputText, filterCount: filters.count, isSearchFocused: isSearchFocused)
+        SearchSuggestionKey(inputText: inputText, filterCount: filters.count, focusNonce: focusNonce)
     }
     
     private struct SearchSuggestionKey: Equatable {
@@ -31,12 +32,11 @@ struct AutocompleteView: View {
         // This allows the history autocomplete to hide ones you pick. In the future, it might be
         // used for other autocompletes that read your existing filters.
         let filterCount: Int
-        // This is indirect, but it makes sure that filters you just used in a search now become
-        // available. Performing a search unfocuses the bar, so focusing it again means you may have
-        // performed a search just now that we want to pull filters from.
-        // TODO: This should really just be a nonce that changes only on focus, because we don't
-        // want to run autocomplete when it's not focused.
-        let isSearchFocused: Bool
+        // This is a proxy for the value we actually care about: did you perform a search?
+        // Performing a search commits all the filters to history, meaning that the history provider
+        // now has more options. Instead of watching did-search directly, we just watch for times
+        // that the search bar gained focus, which is when we actually need to recalculate.
+        let focusNonce: Int
     }
     
     private let orderedEqualityComparison: [Comparison] = [
@@ -104,6 +104,11 @@ struct AutocompleteView: View {
         .task(id: searchSuggestionKey) {
             for await newSuggestions in provider.getSuggestions(for: inputText, existingFilters: Set(filters)) {
                 suggestions = newSuggestions
+            }
+        }
+        .onChange(of: isSearchFocused) { wasFocused, isFocused in
+            if !wasFocused && isFocused {
+                focusNonce += 1
             }
         }
     }
