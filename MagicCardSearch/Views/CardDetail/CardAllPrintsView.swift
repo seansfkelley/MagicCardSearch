@@ -61,22 +61,15 @@ struct CardAllPrintsView: View {
                             showFilterPopover.toggle()
                         } label: {
                             Image(systemName: "line.3.horizontal.decrease.circle")
-                                .overlay(alignment: .topTrailing) {
-                                    if printFilterSettings.hasActiveFilters {
-                                        Circle()
-                                            .fill(.blue)
-                                            .frame(width: 8, height: 8)
-                                            .offset(x: 4, y: -4)
-                                    }
-                                }
                         }
+                        .badge(!printFilterSettings.isDefault ? " " : nil)
+                        .badgeProminence(.decreased)
                         .popover(isPresented: $showFilterPopover) {
                             FilterPopoverView(filterSettings: $printFilterSettings)
                                 .presentationCompactAdaptation(.popover)
                         }
                     }
                     
-                    // Always reserve space for the bookmark button
                     ToolbarItem(placement: .topBarTrailing) {
                         Button {
                             if let card = currentCard {
@@ -90,7 +83,6 @@ struct CardAllPrintsView: View {
                             )
                         }
                         .disabled(currentCard == nil)
-                        .opacity(currentCard == nil ? 0 : 1)
                     }
 
                     if let url = scryfallSearchURL {
@@ -103,7 +95,7 @@ struct CardAllPrintsView: View {
         .task {
             await loadPrints()
         }
-        .onChange(of: printFilterSettings) { _, _ in
+        .onChange(of: printFilterSettings) {
             Task {
                 await loadPrints()
             }
@@ -116,10 +108,10 @@ struct CardAllPrintsView: View {
         } else if let error = error {
             errorView(error: error)
         } else if prints.isEmpty {
-            if printFilterSettings.hasActiveFilters {
-                filteredEmptyView
-            } else {
+            if printFilterSettings.isDefault {
                 emptyView
+            } else {
+                filteredEmptyView
             }
         } else {
             CardPrintsDetailView(
@@ -224,7 +216,7 @@ struct CardAllPrintsView: View {
         error = nil
 
         do {
-            let searchQuery = buildSearchQuery()
+            let searchQuery = printFilterSettings.toQueryFor(oracleId: oracleId)
             
             // Use the raw query search method
             prints = try await cardSearchService.searchByRawQuery(searchQuery)

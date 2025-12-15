@@ -34,10 +34,6 @@ struct PrintFilterSettings: Equatable {
         frame == .any && text == .any && game == .any
     }
     
-    var hasActiveFilters: Bool {
-        !isDefault
-    }
-    
     mutating func reset() {
         frame = .any
         text = .any
@@ -121,8 +117,8 @@ struct FilterPopoverView: View {
                 .frame(maxWidth: .infinity)
             }
             .buttonStyle(.bordered)
-            .tint(filterSettings.hasActiveFilters ? .red : .gray)
-            .disabled(!filterSettings.hasActiveFilters)
+            .tint(filterSettings.isDefault ? .gray : .red)
+            .disabled(filterSettings.isDefault)
             .padding(.top)
         }
         .padding(20)

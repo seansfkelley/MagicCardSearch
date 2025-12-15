@@ -11,12 +11,10 @@ struct DisplayOptionsView: View {
     @Environment(\.dismiss) private var dismiss
     @Binding var searchConfig: SearchConfiguration
     
-    // Local state that will only be applied on confirmation
     @State private var workingConfig = SearchConfiguration()
     
     init(searchConfig: Binding<SearchConfiguration>) {
         self._searchConfig = searchConfig
-        // Use underscore to access the State wrapper directly and initialize it properly
         self._workingConfig = State(wrappedValue: searchConfig.wrappedValue)
     }
     
