@@ -103,21 +103,25 @@ struct CardAllPrintsView: View {
     }
     
     @ViewBuilder private var contentView: some View {
-        if isLoading {
-            loadingView
-        } else if let error = error {
-            errorView(error: error)
-        } else if prints.isEmpty {
-            if printFilterSettings.isDefault {
-                emptyView
+        // Wrap everything in an unconditional VStack so that this view doesn't leave the hierarchy
+        // and navigation items and such, namely the filter popover, don't get disappeared.
+        VStack {
+            if isLoading {
+                loadingView
+            } else if let error = error {
+                errorView(error: error)
+            } else if prints.isEmpty {
+                if printFilterSettings.isDefault {
+                    emptyView
+                } else {
+                    filteredEmptyView
+                }
             } else {
-                filteredEmptyView
+                CardPrintsDetailView(
+                    cards: prints,
+                    currentIndex: $currentIndex
+                )
             }
-        } else {
-            CardPrintsDetailView(
-                cards: prints,
-                currentIndex: $currentIndex
-            )
         }
     }
     
