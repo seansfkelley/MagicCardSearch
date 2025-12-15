@@ -8,6 +8,16 @@
 import SwiftUI
 import ScryfallKit
 
+private extension VerticalAlignment {
+    struct ThreeQuartersUp: AlignmentID {
+        static func defaultValue(in context: ViewDimensions) -> CGFloat {
+            context.height * 0.25  // 25% from top = 75% up from bottom
+        }
+    }
+    
+    static let threeQuartersUp = VerticalAlignment(ThreeQuartersUp.self)
+}
+
 struct FlippableCardFaceView: View {
     let frontFace: CardFaceDisplayable
     let backFace: CardFaceDisplayable
@@ -28,7 +38,7 @@ struct FlippableCardFaceView: View {
     }
     
     var body: some View {
-        ZStack(alignment: .trailing) {
+        ZStack(alignment: Alignment(horizontal: .trailing, vertical: .threeQuartersUp)) {
             ZStack {
                 CardFaceView(
                     face: frontFace,
@@ -52,6 +62,7 @@ struct FlippableCardFaceView: View {
                     axis: (x: 0, y: 1, z: 0)
                 )
             }
+            .alignmentGuide(.threeQuartersUp) { $0[VerticalAlignment.center] }
             
             Button {
                 withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
@@ -67,6 +78,7 @@ struct FlippableCardFaceView: View {
             .buttonBorderShape(.circle)
             .shadow(color: .black.opacity(0.2), radius: 3, x: 0, y: 2)
             .padding(8)
+            .alignmentGuide(.threeQuartersUp) { $0[VerticalAlignment.center] }
         }
     }
 }
