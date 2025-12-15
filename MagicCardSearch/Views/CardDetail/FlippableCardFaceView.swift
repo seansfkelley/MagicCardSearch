@@ -62,12 +62,11 @@ struct FlippableCardFaceView: View {
                     axis: (x: 0, y: 1, z: 0)
                 )
             }
+            .animation(.spring(response: 0.4, dampingFraction: 0.8), value: isShowingBackFace)
             .alignmentGuide(.centeredOnArt) { $0.height * 0.33 }
             
             Button {
-                withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                    isShowingBackFace.toggle()
-                }
+                isShowingBackFace.toggle()
             } label: {
                 Image(systemName: "arrow.triangle.2.circlepath")
                     .font(.system(size: 16, weight: .semibold))
