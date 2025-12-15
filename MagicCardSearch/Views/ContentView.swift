@@ -13,7 +13,7 @@ struct ContentView: View {
     @State private var inputText: String = ""
     @State private var showDisplaySheet = false
     @State private var showSyntaxReference = false
-    @State private var showCardList = false
+    @State private var showBookmarkedCardList = false
     @State private var searchConfig = SearchConfiguration.load()
     @State private var pendingSearchConfig: SearchConfiguration?
     @State private var autocompleteProvider: CombinedSuggestionProvider
@@ -105,7 +105,7 @@ struct ContentView: View {
                 
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
-                        showCardList = true
+                        showBookmarkedCardList = true
                     } label: {
                         Image(systemName: "bookmark.circle")
                     }
@@ -145,8 +145,8 @@ struct ContentView: View {
         .sheet(isPresented: $showSyntaxReference) {
             SyntaxReferenceView()
         }
-        .sheet(isPresented: $showCardList) {
-            SavedCardsListView()
+        .sheet(isPresented: $showBookmarkedCardList) {
+            BookmarkedCardsListView()
         }
         .simultaneousGesture(
             TapGesture()

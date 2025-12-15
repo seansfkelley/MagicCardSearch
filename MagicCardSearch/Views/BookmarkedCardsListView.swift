@@ -9,8 +9,8 @@ import SwiftUI
 import ScryfallKit
 import NukeUI
 
-struct SavedCardsListView: View {
-    @ObservedObject var listManager = CardListManager.shared
+struct BookmarkedCardsListView: View {
+    @ObservedObject var listManager = BookmarkedCardListManager.shared
     @Environment(\.dismiss) private var dismiss
     @State private var editMode: EditMode = .inactive
     @State private var selectedCards: Set<UUID> = []
@@ -350,9 +350,9 @@ private struct CardListRow: View {
 // MARK: - Preview
 
 #Preview("With Cards") {
-    SavedCardsListView()
+    BookmarkedCardsListView()
 }
 
 #Preview("Empty State") {
-    SavedCardsListView()
+    BookmarkedCardsListView()
 }

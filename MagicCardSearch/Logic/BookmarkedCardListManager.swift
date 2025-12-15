@@ -8,8 +8,8 @@
 import Foundation
 
 @MainActor
-class CardListManager: ObservableObject {
-    static let shared = CardListManager()
+class BookmarkedCardListManager: ObservableObject {
+    static let shared = BookmarkedCardListManager()
     
     @Published private(set) var cards: [BookmarkedCard] = [] {
         didSet {

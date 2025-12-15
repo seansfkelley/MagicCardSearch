@@ -16,7 +16,7 @@ struct CardAllPrintsView: View {
     @State private var currentIndex: Int = 0
     @State private var showFilterPopover = false
     @State private var printFilterSettings = PrintFilterSettings()
-    @ObservedObject private var listManager = CardListManager.shared
+    @ObservedObject private var listManager = BookmarkedCardListManager.shared
     @Environment(\.dismiss) private var dismiss
 
     private let cardSearchService = CardSearchService()

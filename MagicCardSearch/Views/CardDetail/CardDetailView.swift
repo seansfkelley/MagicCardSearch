@@ -18,7 +18,7 @@ struct CardDetailView: View {
     @State private var rulings: [Card.Ruling] = []
     @State private var isLoadingRulings = false
     @State private var rulingsError: Error?
-    @ObservedObject private var listManager = CardListManager.shared
+    @ObservedObject private var listManager = BookmarkedCardListManager.shared
     private let cardSearchService = CardSearchService()
     private let rulingsService = RulingsService.shared
 
