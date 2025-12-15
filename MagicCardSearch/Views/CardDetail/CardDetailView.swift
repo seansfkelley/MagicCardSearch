@@ -79,7 +79,8 @@ struct CardDetailView: View {
                     setName: card.setName,
                     collectorNumber: card.collectorNumber,
                     rarity: card.rarity,
-                    lang: card.lang
+                    lang: card.lang,
+                    releasedAtAsDate: card.releasedAtAsDate,
                 )
 
                 if let oracleId = card.bestEffortOracleId {

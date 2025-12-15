@@ -266,7 +266,8 @@ private struct PagingCardImageView: View {
                             setName: card.setName,
                             collectorNumber: card.collectorNumber,
                             rarity: card.rarity,
-                            lang: card.lang
+                            lang: card.lang,
+                            releasedAtAsDate: card.releasedAtAsDate,
                         )
                         .padding(.horizontal)
                         .padding(.vertical)

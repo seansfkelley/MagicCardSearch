@@ -83,6 +83,7 @@ struct CardSetInfoSection: View {
     let collectorNumber: String
     let rarity: Card.Rarity
     let lang: String
+    let releasedAtAsDate: Date?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -93,32 +94,22 @@ struct CardSetInfoSection: View {
                     Text(setName)
                         .font(.body)
                         .fontWeight(.medium)
-
-                    HStack(spacing: 8) {
-                        Text(setCode.uppercased())
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-
-                        Text("#\(collectorNumber)")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        Text("•")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        HStack(spacing: 4) {
-                            Text(rarity.rawValue.capitalized)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        Text("•")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        HStack(spacing: 4) {
-                            Text(languageDisplay(for: lang))
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
+                    
+                    let suffix: String? = if let releaseDate = releasedAtAsDate {
+                        releaseDate.formatted(.dateTime.year().month().day())
+                    } else {
+                        nil
                     }
+                    
+                    Text([
+                        "\(setCode.uppercased()) #\(collectorNumber)",
+                        rarity.rawValue.capitalized,
+                        languageDisplay(for: lang),
+                        suffix,
+                    ].compactMap(\.self).joined(separator: " • ")
+                    )
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
                 }
             }
         }
