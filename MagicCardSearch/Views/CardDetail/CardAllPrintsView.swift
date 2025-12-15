@@ -186,14 +186,13 @@ struct CardAllPrintsView: View {
             Image(systemName: "sparkle.magnifyingglass")
                 .font(.system(size: 60))
                 .foregroundStyle(.blue.gradient)
-                .symbolEffect(.pulse)
 
             VStack(spacing: 8) {
                 Text("No Matching Prints")
                     .font(.title2)
                     .fontWeight(.semibold)
 
-                Text("Try adjusting your filters to see more results.")
+                Text("Widen your filters to see more results.")
                     .font(.body)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)

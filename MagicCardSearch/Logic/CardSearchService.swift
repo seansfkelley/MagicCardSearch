@@ -129,16 +129,25 @@ class CardSearchService {
         var allCards: [Card] = []
         var nextPageURL: String?
         
-        // Fetch first page
-        let firstResult = try await client.searchCards(query: query, unique: .prints, order: .released, includeExtras: true)
-        allCards.append(contentsOf: firstResult.data)
-        nextPageURL = firstResult.nextPage
-        
-        // Fetch remaining pages if they exist
-        while let pageURL = nextPageURL {
-            let pageResult = try await fetchNextPage(from: pageURL)
-            allCards.append(contentsOf: pageResult.cards)
-            nextPageURL = pageResult.nextPageURL
+        do {
+            // Fetch first page
+            let firstResult = try await client.searchCards(query: query, unique: .prints, order: .released, includeExtras: true)
+            allCards.append(contentsOf: firstResult.data)
+            nextPageURL = firstResult.nextPage
+            
+            // Fetch remaining pages if they exist
+            while let pageURL = nextPageURL {
+                let pageResult = try await fetchNextPage(from: pageURL)
+                allCards.append(contentsOf: pageResult.cards)
+                nextPageURL = pageResult.nextPageURL
+            }
+        } catch let scryfallError as ScryfallKitError {
+            // When searching for cards, a 404 means "no results found", not an actual error
+            if case .scryfallError(let error) = scryfallError, error.status == 404 {
+                return []
+            }
+            // Re-throw other Scryfall errors
+            throw scryfallError
         }
         
         return allCards
