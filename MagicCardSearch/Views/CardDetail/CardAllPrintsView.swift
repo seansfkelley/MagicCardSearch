@@ -251,9 +251,14 @@ private struct CardPrintsDetailView: View {
     
     // It seems that these cannot share a position object, so we bridge between the two and,
     // unfortunately, also the currentIndex binding from the parent.
-    @State private var mainScrollPosition = ScrollPosition(idType: Int.self)
-    @State private var thumbnailScrollPosition = ScrollPosition(idType: Int.self)
+    @State private var mainScrollPosition = ScrollPosition(idType: UUID.self)
+    @State private var thumbnailScrollPosition = ScrollPosition(idType: UUID.self)
     @State private var partialScrollOffsetFraction: CGFloat = 0
+    
+    private var currentCard: Card? {
+        guard currentIndex >= 0 && currentIndex < cards.count else { return nil }
+        return cards[currentIndex]
+    }
     
     var body: some View {
         GeometryReader { geometry in
@@ -280,22 +285,24 @@ private struct CardPrintsDetailView: View {
             }
         }
         .onAppear {
-            mainScrollPosition.scrollTo(id: currentIndex)
-            thumbnailScrollPosition.scrollTo(id: currentIndex)
-        }
-        .onChange(of: mainScrollPosition.viewID(type: Int.self)) { _, newValue in
-            if let newValue, newValue != currentIndex {
-                currentIndex = newValue
-                // n.b. not animated because the calculated partial scroll offset thing makes sure
-                // that the thumbnails are moving proportionally to the main view.
-                thumbnailScrollPosition.scrollTo(id: newValue)
+            if let currentCard {
+                mainScrollPosition.scrollTo(id: currentCard.id)
+                thumbnailScrollPosition.scrollTo(id: currentCard.id)
             }
         }
-        .onChange(of: thumbnailScrollPosition.viewID(type: Int.self)) { _, newValue in
-            if let newValue, newValue != currentIndex {
-                currentIndex = newValue
+        .onChange(of: mainScrollPosition.viewID(type: UUID.self)) { _, newCardId in
+            if let newCardId, let newIndex = cards.firstIndex(where: { $0.id == newCardId }), newIndex != currentIndex {
+                currentIndex = newIndex
+                // n.b. not animated because the calculated partial scroll offset thing makes sure
+                // that the thumbnails are moving proportionally to the main view.
+                thumbnailScrollPosition.scrollTo(id: newCardId)
+            }
+        }
+        .onChange(of: thumbnailScrollPosition.viewID(type: UUID.self)) { _, newCardId in
+            if let newCardId, let newIndex = cards.firstIndex(where: { $0.id == newCardId }), newIndex != currentIndex {
+                currentIndex = newIndex
                 // n.b. not animated to prevent excessive motion and potential image loads.
-                mainScrollPosition.scrollTo(id: newValue)
+                mainScrollPosition.scrollTo(id: newCardId)
             }
         }
     }
@@ -314,7 +321,7 @@ private struct PagingCardImageView: View {
     var body: some View {
         ScrollView(.horizontal) {
             LazyHStack(spacing: 0) {
-                ForEach(Array(cards.enumerated()), id: \.offset) { offset, card in
+                ForEach(cards, id: \.id) { card in
                     VStack(spacing: 0) {
                         if let faces = card.cardFaces, card.layout.isDoubleFaced && faces.count >= 2 {
                             FlippableCardFaceView(
@@ -348,7 +355,7 @@ private struct PagingCardImageView: View {
                         .padding(.vertical)
                     }
                     .frame(width: screenWidth)
-                    .id(offset)
+                    .id(card.id)
                 }
             }
             .scrollTargetLayout()
@@ -359,7 +366,12 @@ private struct PagingCardImageView: View {
         .onScrollGeometryChange(
             for: CGFloat.self,
             of: { geometry in
-                (CGFloat(scrollPosition.viewID(type: Int.self) ?? 0) * geometry.containerSize.width - geometry.contentOffset.x) / geometry.containerSize.width
+                // Calculate offset based on current card's position in the array
+                guard let currentId = scrollPosition.viewID(type: UUID.self),
+                      let currentIdx = cards.firstIndex(where: { $0.id == currentId }) else {
+                    return 0
+                }
+                return (CGFloat(currentIdx) * geometry.containerSize.width - geometry.contentOffset.x) / geometry.containerSize.width
             },
             action: { _, new in
                 partialScrollOffsetFraction = new
@@ -393,13 +405,13 @@ private struct ThumbnailPreviewStrip: View {
                 Color.clear
                     .frame(width: sidePadding - thumbnailSpacing)
                 
-                ForEach(Array(cards.enumerated()), id: \.offset) { offset, card in
-                    ThumbnailCardView(card: card, isSelected: offset == scrollPosition.viewID(type: Int.self))
+                ForEach(cards, id: \.id) { card in
+                    ThumbnailCardView(card: card, isSelected: card.id == scrollPosition.viewID(type: UUID.self))
                         .frame(height: thumbnailHeight)
-                        .id(offset)
+                        .id(card.id)
                         .onTapGesture {
                             withAnimation(.easeInOut(duration: 0.3)) {
-                                scrollPosition.scrollTo(id: offset)
+                                scrollPosition.scrollTo(id: card.id)
                             }
                         }
                         // TODO: This works great, except that it reveals that the LazyHStack hasn't
