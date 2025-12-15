@@ -10,7 +10,7 @@ import NukeUI
 
 struct CardAllPrintsView: View {
     let oracleId: String
-    let currentCardId: UUID
+    let initialCardId: UUID
 
     @State private var loadState: LoadableResult<[Card]> = .unloaded
     @State private var currentIndex: Int = 0
@@ -19,14 +19,7 @@ struct CardAllPrintsView: View {
     @Environment(\.dismiss) private var dismiss
 
     private let cardSearchService = CardSearchService()
-    
-    // MARK: - Computed Properties
-    
-    private var prints: [Card] {
-        guard case .success(let cards) = loadState.latestResult else { return [] }
-        return cards
-    }
-    
+
     // MARK: - Filter Settings
     
     private var scryfallSearchURL: URL? {
@@ -40,11 +33,19 @@ struct CardAllPrintsView: View {
         return components?.url
     }
     
+    private var currentPrints: [Card] {
+        switch loadState.latestResult {
+        case .success(let cards): cards
+        case .failure: []
+        case nil: []
+        }
+    }
+    
     private var currentCard: Card? {
-        guard currentIndex >= 0 && currentIndex < prints.count else {
+        guard currentIndex >= 0 && currentIndex < currentPrints.count else {
             return nil
         }
-        return prints[currentIndex]
+        return currentPrints[currentIndex]
     }
 
     var body: some View {
@@ -113,7 +114,7 @@ struct CardAllPrintsView: View {
                         }
                         Spacer()
                     }
-                    .background(.ultraThinMaterial)
+                    .background(Color(white: 0, opacity: 0.4))
                     .allowsHitTesting(false)
                 }
             }
@@ -174,8 +175,12 @@ struct CardAllPrintsView: View {
     }
 
     private func loadPrints() async {
-        let previousResult = loadState.latestResult
-        loadState = .loading(previousResult)
+        let targetCardId = if case .unloaded = loadState {
+            initialCardId
+        } else {
+            currentPrints[safe: currentIndex]?.id
+        }
+        loadState = .loading(loadState.latestResult)
 
         do {
             let searchQuery = printFilterSettings.toQueryFor(oracleId: oracleId)
@@ -184,9 +189,11 @@ struct CardAllPrintsView: View {
             
             loadState = .loaded(.success(newPrints))
             
-            if let index = newPrints.firstIndex(where: { $0.id == currentCardId }) {
+            if let targetCardId,
+               let index = newPrints.firstIndex( where: { $0.id == targetCardId }) {
                 currentIndex = index
             } else if !newPrints.isEmpty {
+                // Keep the index where it is in case the user unsets the filter immediately.
                 currentIndex = 0
             }
             

@@ -317,7 +317,7 @@ struct CardOtherPrintsSection: View {
         }
         .buttonStyle(.plain)
         .sheet(isPresented: $showingPrintsSheet) {
-            CardAllPrintsView(oracleId: oracleId, currentCardId: currentCardId)
+            CardAllPrintsView(oracleId: oracleId, initialCardId: currentCardId)
         }
     }
 }
