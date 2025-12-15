@@ -12,15 +12,20 @@ struct CardAllPrintsView: View {
     let oracleId: String
     let currentCardId: UUID
 
-    @State private var prints: [Card] = []
-    @State private var isLoading = true
-    @State private var error: Error?
+    @State private var loadState: LoadableResult<[Card]> = .unloaded
     @State private var currentIndex: Int = 0
     @State private var showFilterPopover = false
     @State private var printFilterSettings = PrintFilterSettings()
     @Environment(\.dismiss) private var dismiss
 
     private let cardSearchService = CardSearchService()
+    
+    // MARK: - Computed Properties
+    
+    private var prints: [Card] {
+        guard case .success(let cards) = loadState.latestResult else { return [] }
+        return cards
+    }
     
     // MARK: - Filter Settings
     
@@ -44,52 +49,117 @@ struct CardAllPrintsView: View {
 
     var body: some View {
         NavigationStack {
-            contentView
-                // TODO: Should there be a title? It looks naked up there but a title is pretty useless.
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button {
-                            dismiss()
-                        } label: {
-                            Image(systemName: "xmark")
-                        }
-                    }
-                    
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button {
-                            showFilterPopover.toggle()
-                        } label: {
-                            Image(systemName: "line.3.horizontal.decrease.circle")
-                        }
-                        .badge(!printFilterSettings.isDefault ? " " : nil)
-                        .badgeProminence(.decreased)
-                        .popover(isPresented: $showFilterPopover) {
-                            FilterPopoverView(filterSettings: $printFilterSettings)
-                                .presentationCompactAdaptation(.popover)
-                        }
-                    }
-                    
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button {
-                            if let card = currentCard {
-                                let listItem = CardListItem(from: card)
-                                CardListManager.shared.toggleCard(listItem)
-                            }
-                        } label: {
-                            Image(
-                                systemName: currentCard.flatMap { CardListManager.shared.contains(cardId: $0.id) } ?? false
-                                    ? "bookmark.fill" : "bookmark"
+            ZStack {
+                if case .unloaded = loadState {
+                    EmptyView()
+                } else if case .success(let cards) = loadState.latestResult {
+                    if cards.isEmpty {
+                        if printFilterSettings.isDefault {
+                            ContentUnavailableView(
+                                "No Prints Found",
+                                systemImage: "rectangle.on.rectangle.slash",
+                                description: Text("This card doesn't have any printings?")
                             )
+                        } else {
+                            ContentUnavailableView {
+                                Label("No Matching Prints", systemImage: "sparkle.magnifyingglass")
+                            } description: {
+                                Text("Widen your filters to see more results.")
+                            } actions: {
+                                Button {
+                                    printFilterSettings.reset()
+                                } label: {
+                                    HStack {
+                                        Image(systemName: "arrow.counterclockwise")
+                                        Text("Reset All Filters")
+                                    }
+                                }
+                                .buttonStyle(.borderedProminent)
+                                .controlSize(.regular)
+                            }
                         }
-                        .disabled(currentCard == nil)
+                    } else {
+                        CardPrintsDetailView(
+                            cards: cards,
+                            currentIndex: $currentIndex
+                        )
                     }
-
-                    if let url = scryfallSearchURL {
-                        ToolbarItem(placement: .topBarTrailing) {
-                            ShareLink(item: url)
+                } else if case .failure(let error) = loadState.latestResult {
+                    ContentUnavailableView {
+                        Label("Failed to load prints", systemImage: "exclamationmark.triangle")
+                    } description: {
+                        Text(error.localizedDescription)
+                    } actions: {
+                        Button("Try Again") {
+                            Task {
+                                await loadPrints()
+                            }
                         }
+                        .buttonStyle(.borderedProminent)
                     }
                 }
+                
+                if case .loading(let previous?) = loadState, case .success = previous {
+                    VStack {
+                        Spacer()
+                        HStack {
+                            ProgressView()
+                                .tint(.white)
+                            Text("Loading prints...")
+                                .foregroundStyle(.white)
+                                .font(.subheadline)
+                        }
+                        .padding()
+                    }
+                    .background(.ultraThinMaterial)
+                    .allowsHitTesting(false)
+                }
+            }
+            // TODO: Should there be a title? It looks naked up there but a title is pretty useless.
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button {
+                        dismiss()
+                    } label: {
+                        Image(systemName: "xmark")
+                    }
+                }
+                
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        showFilterPopover.toggle()
+                    } label: {
+                        Image(systemName: "line.3.horizontal.decrease.circle")
+                    }
+                    .badge(!printFilterSettings.isDefault ? " " : nil)
+                    .badgeProminence(.decreased)
+                    .popover(isPresented: $showFilterPopover) {
+                        FilterPopoverView(filterSettings: $printFilterSettings)
+                            .presentationCompactAdaptation(.popover)
+                    }
+                }
+                
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        if let card = currentCard {
+                            let listItem = CardListItem(from: card)
+                            CardListManager.shared.toggleCard(listItem)
+                        }
+                    } label: {
+                        Image(
+                            systemName: currentCard.flatMap { CardListManager.shared.contains(cardId: $0.id) } ?? false
+                                ? "bookmark.fill" : "bookmark"
+                        )
+                    }
+                    .disabled(currentCard == nil)
+                }
+
+                if let url = scryfallSearchURL {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        ShareLink(item: url)
+                    }
+                }
+            }
         }
         .task {
             await loadPrints()
@@ -100,144 +170,33 @@ struct CardAllPrintsView: View {
             }
         }
     }
-    
-    @ViewBuilder private var contentView: some View {
-        // Wrap everything in an unconditional VStack so that this view doesn't leave the hierarchy
-        // and navigation items and such, namely the filter popover, don't get disappeared.
-        VStack {
-            if isLoading {
-                loadingView
-            } else if let error = error {
-                errorView(error: error)
-            } else if prints.isEmpty {
-                if printFilterSettings.isDefault {
-                    emptyView
-                } else {
-                    filteredEmptyView
-                }
-            } else {
-                CardPrintsDetailView(
-                    cards: prints,
-                    currentIndex: $currentIndex
-                )
-            }
-        }
-    }
-    
-    private var loadingView: some View {
-        VStack(spacing: 16) {
-            ProgressView()
-                .scaleEffect(1.5)
-            Text("Loading prints...")
-                .font(.title3)
-                .foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-    
-    private func errorView(error: Error) -> some View {
-        VStack(spacing: 16) {
-            Image(systemName: "exclamationmark.triangle")
-                .font(.system(size: 60))
-                .foregroundStyle(.secondary)
-
-            Text("Failed to load prints")
-                .font(.title2)
-                .fontWeight(.semibold)
-
-            Text(error.localizedDescription)
-                .font(.body)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 32)
-
-            Button("Try Again") {
-                Task {
-                    await loadPrints()
-                }
-            }
-            .buttonStyle(.borderedProminent)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-    
-    private var emptyView: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "rectangle.on.rectangle.slash")
-                .font(.system(size: 60))
-                .foregroundStyle(.secondary)
-
-            Text("No Prints Found")
-                .font(.title2)
-                .fontWeight(.semibold)
-
-            Text("This card doesn't have any printings.")
-                .font(.body)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 32)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-    
-    private var filteredEmptyView: some View {
-        VStack(spacing: 20) {
-            Image(systemName: "sparkle.magnifyingglass")
-                .font(.system(size: 60))
-                .foregroundStyle(.blue.gradient)
-
-            VStack(spacing: 8) {
-                Text("No Matching Prints")
-                    .font(.title2)
-                    .fontWeight(.semibold)
-
-                Text("Widen your filters to see more results.")
-                    .font(.body)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-            }
-            .padding(.horizontal, 32)
-            
-            Button {
-                printFilterSettings.reset()
-            } label: {
-                HStack {
-                    Image(systemName: "arrow.counterclockwise")
-                    Text("Reset All Filters")
-                }
-                .padding(.horizontal, 8)
-            }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.regular)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
 
     private func loadPrints() async {
-        isLoading = true
-        error = nil
+        // Preserve previous result while loading
+        let previousResult = loadState.latestResult
+        loadState = .loading(previousResult)
 
         do {
             let searchQuery = printFilterSettings.toQueryFor(oracleId: oracleId)
             
             // Use the raw query search method
-            prints = try await cardSearchService.searchByRawQuery(searchQuery)
+            let newPrints = try await cardSearchService.searchByRawQuery(searchQuery)
+            
+            loadState = .loaded(.success(newPrints))
             
             // Try to maintain the current card if it still exists in the filtered results
-            if let index = prints.firstIndex(where: { $0.id == currentCardId }) {
+            if let index = newPrints.firstIndex(where: { $0.id == currentCardId }) {
                 currentIndex = index
-            } else if !prints.isEmpty {
+            } else if !newPrints.isEmpty {
                 // If the current card is filtered out, reset to the first card
                 currentIndex = 0
             }
             
-            print("Loaded \(prints.count) prints for query: \(searchQuery)")
+            print("Loaded \(newPrints.count) prints for query: \(searchQuery)")
         } catch {
             print("Error loading prints: \(error)")
-            self.error = error
+            loadState = .loaded(.failure(error))
         }
-
-        isLoading = false
     }
 }
 
