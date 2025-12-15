@@ -180,7 +180,11 @@ let scryfallFilterTypes: [ScryfallFilterType] = [
     
     // MARK: - Border, Frame, Foil & Resolution
     .init("border", enumerationValues: ["black", "white", "silver", "borderless"]),
-    .init("frame", enumerationValues: ["1993", "1997", "2003", "2015", "future", "legendary", "colorshifted", "tombstone", "enchantment"]),
+    .init("frame", enumerationValues: [
+        "1993", "1997", "2003", "2015", "future", "legendary", "colorshifted", "tombstone", "enchantment",
+        // discovered independently, not listed in the documentation
+        "old", "new",
+    ]),
     .init("stamp", enumerationValues: ["oval", "acorn", "triangle", "arena"]),
     // see also `is` and `new`
     
