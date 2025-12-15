@@ -16,6 +16,7 @@ struct CardAllPrintsView: View {
     @State private var currentIndex: Int = 0
     @State private var showFilterPopover = false
     @State private var printFilterSettings = PrintFilterSettings()
+    @ObservedObject private var listManager = CardListManager.shared
     @Environment(\.dismiss) private var dismiss
 
     private let cardSearchService = CardSearchService()
@@ -146,11 +147,11 @@ struct CardAllPrintsView: View {
                     Button {
                         if let card = currentCard {
                             let listItem = CardListItem(from: card)
-                            CardListManager.shared.toggleCard(listItem)
+                            listManager.toggleCard(listItem)
                         }
                     } label: {
                         Image(
-                            systemName: currentCard.flatMap { CardListManager.shared.contains(cardId: $0.id) } ?? false
+                            systemName: currentCard.flatMap { listManager.contains(cardId: $0.id) } ?? false
                                 ? "bookmark.fill" : "bookmark"
                         )
                     }
