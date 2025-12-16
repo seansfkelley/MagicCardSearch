@@ -92,7 +92,9 @@ struct CardDetailView: View {
                 }
 
                 if let allParts = card.allParts, !allParts.isEmpty {
-                    let otherParts = allParts.filter { $0.id != card.id }
+                    // Use name, because Scryfall does not report oracle ID, which we would prefer
+                    // to use to remove references to myself.
+                    let otherParts = allParts.filter { $0.name != card.name }
                     if !otherParts.isEmpty {
                         Divider().padding(.horizontal)
 
