@@ -20,10 +20,10 @@ struct AutocompleteView: View {
     let onSuggestionTap: (AcceptedSuggestion) -> Void
     
     @State private var suggestions: [Suggestion] = []
-    @State private var focusNonce: Int = 0
+    @State private var nonce: Int = 0
     
     private var searchSuggestionKey: SearchSuggestionKey {
-        SearchSuggestionKey(inputText: inputText, filterCount: filters.count, focusNonce: focusNonce)
+        SearchSuggestionKey(inputText: inputText, filterCount: filters.count, nonce: nonce)
     }
     
     private struct SearchSuggestionKey: Equatable {
@@ -36,7 +36,9 @@ struct AutocompleteView: View {
         // Performing a search commits all the filters to history, meaning that the history provider
         // now has more options. Instead of watching did-search directly, we just watch for times
         // that the search bar gained focus, which is when we actually need to recalculate.
-        let focusNonce: Int
+        //
+        // This nonce is also used whenever pinning changes, which can trigger different suggestions.
+        let nonce: Int
     }
     
     private let orderedEqualityComparison: [Comparison] = [
@@ -68,6 +70,7 @@ struct AutocompleteView: View {
                                 } else {
                                     provider.historyProvider.pin(filter: suggestion.filter)
                                 }
+                                nonce += 1
                             } label: {
                                 if suggestion.isPinned {
                                     Label("Unpin", systemImage: "pin.slash")
@@ -80,6 +83,7 @@ struct AutocompleteView: View {
                         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                             Button(role: .destructive) {
                                 provider.historyProvider.delete(filter: suggestion.filter)
+                                nonce += 1
                             } label: {
                                 Label("Delete", systemImage: "trash")
                             }
@@ -108,7 +112,7 @@ struct AutocompleteView: View {
         }
         .onChange(of: isSearchFocused) { wasFocused, isFocused in
             if !wasFocused && isFocused {
-                focusNonce += 1
+                nonce += 1
             }
         }
     }
@@ -162,9 +166,9 @@ struct AutocompleteView: View {
                 labelRange: nil,
                 options: suggestion.options
             ) { option in
-                    onSuggestionTap(
-                        .filter(.basic(.keyValue(suggestion.filterType, suggestion.comparison, option)))
-                    )
+                onSuggestionTap(
+                    .filter(.basic(.keyValue(suggestion.filterType, suggestion.comparison, option)))
+                )
             }
         }
     }

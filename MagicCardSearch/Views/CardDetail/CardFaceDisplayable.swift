@@ -51,9 +51,9 @@ enum CardImageQuality {
     
     func uri(from: Card.ImageUris?) -> String? {
         switch self {
-            case .small: return from?.small
-            case .normal: return from?.normal
-            case .large: return from?.large
+        case .small: from?.small
+        case .normal: from?.normal
+        case .large: from?.large
         }
     }
     
