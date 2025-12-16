@@ -23,7 +23,7 @@ struct CardAllPrintsView: View {
 
     // MARK: - Filter Settings
     
-    private var scryfallSearchURL: URL? {
+    private var scryfallSearchUrl: URL? {
         let baseURL = "https://scryfall.com/search"
         var components = URLComponents(string: baseURL)
         components?.queryItems = [
@@ -158,7 +158,7 @@ struct CardAllPrintsView: View {
                     .disabled(currentCard == nil)
                 }
 
-                if let url = scryfallSearchURL {
+                if let url = scryfallSearchUrl {
                     ToolbarItem(placement: .topBarTrailing) {
                         ShareLink(item: url)
                     }

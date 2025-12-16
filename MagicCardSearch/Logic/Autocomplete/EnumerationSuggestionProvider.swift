@@ -10,6 +10,7 @@ struct EnumerationSuggestion: Equatable {
         let range: Range<String.Index>?
     }
     
+    let isNegated: Bool
     let filterType: String
     let comparison: Comparison
     let options: [Option]
@@ -52,7 +53,8 @@ struct EnumerationSuggestionProvider {
                 assert(comparison != nil) // if it is, programmer error on the regex or enumeration type
                 return [
                     EnumerationSuggestion(
-                        filterType: "\(negated)\(filterTypeName.lowercased())",
+                        isNegated: negated.isEmpty == false,
+                        filterType: filterTypeName.lowercased(),
                         comparison: comparison!,
                         options: matchingOptions,
                     ),

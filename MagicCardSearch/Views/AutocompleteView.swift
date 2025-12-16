@@ -166,9 +166,8 @@ struct AutocompleteView: View {
                 labelRange: nil,
                 options: suggestion.options
             ) { option in
-                onSuggestionTap(
-                    .filter(.basic(.keyValue(suggestion.filterType, suggestion.comparison, option)))
-                )
+                let filter = SearchFilterContent.keyValue(suggestion.filterType, suggestion.comparison, option)
+                onSuggestionTap(.filter(suggestion.isNegated ? .negated(filter) : .basic(filter)))
             }
         }
     }

@@ -15,6 +15,7 @@ struct EnumerationSuggestionProviderTests {
             "manavalue=",
             [
                 .init(
+                    isNegated: false,
                     filterType: "manavalue",
                     comparison: .equal,
                     options: [.init(value: "even", range: nil), .init(value: "odd", range: nil)],
@@ -26,6 +27,7 @@ struct EnumerationSuggestionProviderTests {
             "is:scry",
             [
                 .init(
+                    isNegated: false,
                     filterType: "is",
                     comparison: .including,
                     options: [.init(value: "scryland", range: stringIndexRange(0, 4)), .init(value: "scryfallpreview", range: stringIndexRange(0, 4))],
@@ -37,6 +39,7 @@ struct EnumerationSuggestionProviderTests {
             "format>=less",
             [
                 .init(
+                    isNegated: false,
                     filterType: "format",
                     comparison: .greaterThanOrEqual,
                     options: [.init(value: "timeless", range: stringIndexRange(4, 8))],
@@ -48,7 +51,8 @@ struct EnumerationSuggestionProviderTests {
             "-is:scry",
             [
                 .init(
-                    filterType: "-is",
+                    isNegated: true,
+                    filterType: "is",
                     comparison: .including,
                     options: [.init(value: "scryland", range: stringIndexRange(0, 4)), .init(value: "scryfallpreview", range: stringIndexRange(0, 4))],
                 ),
@@ -59,6 +63,7 @@ struct EnumerationSuggestionProviderTests {
             "foRMat>=lESs",
             [
                 .init(
+                    isNegated: false,
                     filterType: "format",
                     comparison: .greaterThanOrEqual,
                     options: [.init(value: "timeless", range: stringIndexRange(4, 8))]
