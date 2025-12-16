@@ -160,7 +160,7 @@ let scryfallFilterTypes: [ScryfallFilterType] = [
     ]),
     
     // MARK: - Format Legality
-    .init("format", enumerationValues: scryfallSupportedFormats),
+    .init("format", ["f"], enumerationValues: scryfallSupportedFormats),
     .init("banned", enumerationValues: scryfallSupportedFormats),
     .init("restricted", enumerationValues: scryfallSupportedFormats),
     // see also `is`
