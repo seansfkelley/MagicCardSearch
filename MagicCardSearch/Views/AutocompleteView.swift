@@ -95,7 +95,7 @@ struct AutocompleteView: View {
                         .listRowInsets(.vertical, 0)
 
                 case .enumeration(let suggestion):
-                    enumerationRow(suggestion)
+                    enumerationRows(suggestion)
                         .listRowInsets(.vertical, 0)
                 
                 case .name(let suggestion):
@@ -156,19 +156,28 @@ struct AutocompleteView: View {
         }
     }
     
-    private func enumerationRow(_ suggestion: EnumerationSuggestion) -> some View {
-        HStack(spacing: 12) {
-            Image(systemName: "list.bullet.circle")
-                .foregroundStyle(.secondary)
-
-            HorizontallyScrollablePillSelector(
-                label: "\(suggestion.filterType)\(suggestion.comparison.rawValue)",
-                labelRange: nil,
-                options: suggestion.options
-            ) { option in
-                let filter = SearchFilterContent.keyValue(suggestion.filterType, suggestion.comparison, option)
+    private func enumerationRows(_ suggestion: EnumerationSuggestion) -> some View {
+        ForEach(suggestion.options, id: \.value) { option in
+            Button {
+                let filter = SearchFilterContent.keyValue(suggestion.filterType, suggestion.comparison, option.value)
                 onSuggestionTap(.filter(suggestion.isNegated ? .negated(filter) : .basic(filter)))
+            } label: {
+                HStack(spacing: 12) {
+                    Image(systemName: "list.bullet.circle")
+                        .foregroundStyle(.secondary)
+                    
+                    let prefix = "\(suggestion.isNegated ? "-" : "")\(suggestion.filterType)\(suggestion.comparison.rawValue)"
+                    let formattedOption = "\(prefix)\(option.value)"
+                    
+                    HighlightedText(
+                        text: formattedOption,
+                        highlightRange: option.range.map { $0.offset(with: formattedOption, by: prefix.count) },
+                    )
+                    Spacer(minLength: 0)
+                }
+                .contentShape(Rectangle())
             }
+            .buttonStyle(.plain)
         }
     }
     
