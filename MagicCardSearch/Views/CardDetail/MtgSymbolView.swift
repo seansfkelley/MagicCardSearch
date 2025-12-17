@@ -8,16 +8,21 @@
 import SwiftUI
 import ScryfallKit
 
-private let bareSymbolCodes = Set(["E", "CHAOS", "TK"])
+private let bareSymbolCodes = Set(["e", "chaos", "tk", "p", "h"])
 // Xcode does not like these assets having crazy names.
 private let aliasedAssetNames = [
     "∞": "infinity",
     "½": "half",
 ]
+private let alternateGenericBackgroundColors = [
+    // TODO: Ensure that this is still black in dark mode and Color isn't being clever.
+    "q": Color.black,
+]
 
 enum MtgSymbol {
     case bare(String)
     case generic(String) // Includes generic mana, tap, etc.
+    case genericWithBackground(String, Color)
     case basic(Card.Color)
     case hybrid(Card.Color, Card.Color)
     case genericHybrid(String, Card.Color) // Left side is always 2, but might as well future-proof...
@@ -32,45 +37,51 @@ enum MtgSymbol {
     }
     
     static func fromString(_ symbol: String) -> MtgSymbol {
-        let cleaned = symbol.trimmingCharacters(in: CharacterSet(charactersIn: "{}")).uppercased()
+        let cleaned = symbol.trimmingCharacters(in: CharacterSet(charactersIn: "{}")).lowercased()
         
         if bareSymbolCodes.contains(cleaned) {
-            return .bare(cleaned.lowercased())
+            return .bare(cleaned)
         }
         
-        if let basic = Card.Color(rawValue: cleaned) {
+        if let basic = Card.Color(rawValue: cleaned.uppercased()) {
             return .basic(basic)
         }
         
-        if cleaned == "P" {
+        if cleaned == "h" {
             return .phyrexian(.C)
         }
         
         let parts = cleaned.split(separator: "/")
-        if parts.count == 3 && parts.last == "P" {
-            if let left = Card.Color(rawValue: String(parts[0])), let right = Card.Color(rawValue: String(parts[1])) {
+        if parts.count == 3 && parts.last == "p" {
+            if let left = Card.Color(rawValue: String(parts[0]).uppercased()), let right = Card.Color(
+                rawValue: String(parts[1].uppercased())
+            ) {
                 return .phyrexianHybrid(left, right)
             }
         }
         
         if parts.count == 2 {
-            let left = Card.Color(rawValue: String(parts[0]))
-            let right = Card.Color(rawValue: String(parts[1]))
+            let left = Card.Color(rawValue: String(parts[0]).uppercased())
+            let right = Card.Color(rawValue: String(parts[1]).uppercased())
             
-            if left == nil, let right = right {
+            if left == nil, let right {
                 return .genericHybrid(String(parts[0]), right)
             }
             
-            if let left = left, parts[1] == "P" {
+            if let left, parts[1] == "p" {
                 return .phyrexian(left)
             }
             
-            if let left = left, let right = right {
+            if let left, let right = right {
                 return .hybrid(left, right)
             }
         }
         
-        return .generic(cleaned.lowercased())
+        if let color = alternateGenericBackgroundColors[cleaned] {
+            return .genericWithBackground(cleaned, color)
+        } else {
+            return .generic(cleaned)
+        }
     }
 }
 
@@ -105,6 +116,7 @@ struct MtgSymbolView: View {
         switch symbol {
         case .bare(let symbol): bare(symbol)
         case .generic(let symbol): generic(symbol)
+        case .genericWithBackground(let symbol, let color): genericWithBackground(symbol, color)
         case .basic(let color): basic(color)
         case .hybrid(let left, let right): hybrid(left, right)
         case .genericHybrid(let left, let right): genericHybrid(left, right)
@@ -129,6 +141,15 @@ struct MtgSymbolView: View {
         }
     }
     
+    private func genericWithBackground(_ symbol: String, _ color: Color) -> some View {
+        regularWithFixedBackground(color) {
+            Image(aliasedAssetNames[symbol] ?? symbol)
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: size * 0.8, height: size * 0.8)
+        }
+    }
+    
     private func basic(_ color: Card.Color) -> some View {
         regular(color) {
             Image(color.assetName)
@@ -139,7 +160,7 @@ struct MtgSymbolView: View {
     }
 
     private func hybrid(_ left: Card.Color, _ right: Card.Color) -> some View {
-        split(left, right) {
+        split(left, right, saturated: left == .C && right == .B) {
             Image(left.assetName)
                 .resizable()
                 .aspectRatio(contentMode: .fit)
@@ -172,7 +193,7 @@ struct MtgSymbolView: View {
     
     private func phyrexian(_ color: Card.Color) -> some View {
         regular(color, oversize: true, saturated: true) {
-            Image("p")
+            Image("h")
                 .resizable()
                 .aspectRatio(contentMode: .fit)
                 .frame(width: oversize, height: oversize)
@@ -182,13 +203,13 @@ struct MtgSymbolView: View {
     
     private func phyrexianHybrid(_ left: Card.Color, _ right: Card.Color) -> some View {
         split(left, right, saturated: true) {
-            Image("p")
+            Image("h")
                 .resizable()
                 .aspectRatio(contentMode: .fit)
                 .frame(width: oversize * 0.5, height: oversize * 0.5)
                 .offset(x: -oversize * 0.16, y: -oversize * 0.16)
 
-            Image("p")
+            Image("h")
                 .resizable()
                 .aspectRatio(contentMode: .fit)
                 .frame(width: oversize * 0.5, height: oversize * 0.5)
@@ -221,6 +242,29 @@ struct MtgSymbolView: View {
             
             Circle()
                 .fill(actualColor)
+                .frame(width: actualSize, height: actualSize)
+            
+            image()
+        }
+    }
+    
+    private func regularWithFixedBackground(
+        _ color: Color,
+        oversize isOversized: Bool = false,
+        @ViewBuilder image: () -> some View,
+    ) -> some View {
+        let actualSize = isOversized ? oversize : size
+        
+        return ZStack {
+            if showDropShadow {
+                Circle()
+                    .fill(.black)
+                    .frame(width: actualSize, height: actualSize)
+                    .offset(x: -1, y: 1)
+            }
+            
+            Circle()
+                .fill(color)
                 .frame(width: actualSize, height: actualSize)
             
             image()
@@ -339,7 +383,8 @@ struct MtgSymbolView: View {
                     MtgSymbolView("{B/P}", size: 32)
                     MtgSymbolView("{R/P}", size: 32)
                     MtgSymbolView("{G/P}", size: 32)
-                    MtgSymbolView("{P}", size: 32)
+                    MtgSymbolView("{C/P}", size: 32)
+                    MtgSymbolView("{H}", size: 32) // Rage Extractor
                 }
             }
             VStack(alignment: .leading, spacing: 8) {
@@ -351,6 +396,17 @@ struct MtgSymbolView: View {
                     MtgSymbolView("{2/B}", size: 32)
                     MtgSymbolView("{2/R}", size: 32)
                     MtgSymbolView("{2/G}", size: 32)
+                }
+            }
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Hybrid Colorless/Colored")
+                    .font(.headline)
+                HStack(spacing: 8) {
+                    MtgSymbolView("{C/W}", size: 32)
+                    MtgSymbolView("{C/U}", size: 32)
+                    MtgSymbolView("{C/B}", size: 32)
+                    MtgSymbolView("{C/R}", size: 32)
+                    MtgSymbolView("{C/G}", size: 32)
                 }
             }
             VStack(alignment: .leading, spacing: 8) {
@@ -378,8 +434,10 @@ struct MtgSymbolView: View {
                     MtgSymbolView("{S}", size: 32)
                     MtgSymbolView("{T}", size: 32)
                     MtgSymbolView("{Q}", size: 32)
+                    MtgSymbolView("{A}", size: 32)
                     MtgSymbolView("{E}", size: 32)
                     MtgSymbolView("{CHAOS}", size: 32)
+                    MtgSymbolView("{P}", size: 32)
                 }
             }
             VStack(alignment: .leading, spacing: 8) {
@@ -391,6 +449,7 @@ struct MtgSymbolView: View {
                     MtgSymbolView("{B/U}", size: 32, showDropShadow: true)
                     MtgSymbolView("{G/P}", size: 32, showDropShadow: true)
                     MtgSymbolView("{T}", size: 32, showDropShadow: true)
+                    MtgSymbolView("{Q}", size: 32, showDropShadow: true)
                     MtgSymbolView("{E}", size: 32, showDropShadow: true)
                 }
             }
