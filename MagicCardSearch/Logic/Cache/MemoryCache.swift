@@ -9,16 +9,16 @@ import Foundation
 /// Configuration for memory caching behavior.
 final class MemoryCache<Key: Hashable & Sendable, Value: Sendable>: Cache, @unchecked Sendable {
     let cache = NSCache<WrappedKey<Key>, Entry<Value>>()
-    let expirationInterval: TimeInterval
+    let expiration: Expiration
     
-    init(expirationInterval: TimeInterval) {
-        self.expirationInterval = expirationInterval
+    init(expiration: Expiration) {
+        self.expiration = expiration
     }
     
     // MARK: - Cache Protocol Conformance
     
     func insert(_ value: Value, forKey key: Key) {
-        let expirationDate = Date().addingTimeInterval(expirationInterval)
+        let expirationDate = expiration.expirationDate()
         let entry = Entry(value: value, expirationDate: expirationDate)
         cache.setObject(entry, forKey: WrappedKey(key))
     }
@@ -80,14 +80,15 @@ final class MemoryCache<Key: Hashable & Sendable, Value: Sendable>: Cache, @unch
     
     final class Entry<V> {
         let value: V
-        let expirationDate: Date
+        let expirationDate: Date?
         
-        init(value: V, expirationDate: Date) {
+        init(value: V, expirationDate: Date?) {
             self.value = value
             self.expirationDate = expirationDate
         }
         
         var isExpired: Bool {
+            guard let expirationDate else { return false }
             return Date() > expirationDate
         }
     }

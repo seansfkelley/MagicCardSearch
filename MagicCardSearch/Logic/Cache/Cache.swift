@@ -7,6 +7,24 @@
 
 import Foundation
 
+enum Expiration: Sendable {
+    case never
+    case interval(TimeInterval)
+    case date(Date)
+    
+    /// Converts the expiration to an optional expiration date based on the current time
+    func expirationDate(from baseDate: Date = Date()) -> Date? {
+        switch self {
+        case .never:
+            return nil
+        case .interval(let timeInterval):
+            return baseDate.addingTimeInterval(timeInterval)
+        case .date(let date):
+            return date
+        }
+    }
+}
+
 /// A protocol defining the core caching interface for storing and retrieving values.
 protocol Cache<Key, Value>: Sendable {
     associatedtype Key: Hashable & Sendable

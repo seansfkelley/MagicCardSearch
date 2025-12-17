@@ -14,15 +14,27 @@ import Foundation
 /// Example usage:
 /// ```swift
 /// // Option 1: Provide your own cache instances for maximum control
-/// let memoryCache = MemoryCache<String, Data>(expirationInterval: 60 * 5) // 5 minutes
-/// let diskCache = DiskCache<String, Data>(name: "images", expirationInterval: 60 * 60 * 24)! // 1 day
+/// let memoryCache = MemoryCache<String, Data>(expiration: .interval(60 * 5)) // 5 minutes
+/// let diskCache = DiskCache<String, Data>(name: "images", expiration: .interval(60 * 60 * 24))! // 1 day
 /// let hybridCache = HybridCache(memoryCache: memoryCache, diskCache: diskCache)
 ///
-/// // Option 2: Use convenience initializers
+/// // Option 2: Use convenience initializers with the same expiration for both
 /// let cache = HybridCache<String, Data>(
 ///     name: "images",
-///     memoryExpiration: 60 * 5,    // 5 minutes in memory
-///     diskExpiration: 60 * 60 * 24  // 1 day on disk
+///     expiration: .interval(60 * 60 * 24)  // 1 day
+/// )
+///
+/// // Option 3: Use separate expirations for memory and disk
+/// let cache2 = HybridCache<String, Data>(
+///     name: "images",
+///     memoryExpiration: .interval(60 * 5),    // 5 minutes in memory
+///     diskExpiration: .interval(60 * 60 * 24)  // 1 day on disk
+/// )
+///
+/// // Option 4: Use a never-expiring cache
+/// let permanentCache = HybridCache<String, Data>(
+///     name: "permanent",
+///     expiration: .never
 /// )
 ///
 /// // Use the cache
@@ -102,3 +114,35 @@ final class HybridCache<Key: Hashable & Sendable, Value: Codable & Sendable>: Ca
         }
     }
 }
+
+// MARK: - Convenience Initializers
+
+extension HybridCache {
+    /// Creates a hybrid cache with the specified name and expiration policy.
+    /// This convenience initializer creates both memory and disk caches with the same expiration.
+    /// - Parameters:
+    ///   - name: The name to use for the disk cache directory
+    ///   - expiration: The expiration policy to use for both caches
+    convenience init?(name: String, expiration: Expiration) {
+        guard let diskCache = DiskCache<Key, Value>(name: name, expiration: expiration) else {
+            return nil
+        }
+        let memoryCache = MemoryCache<Key, Value>(expiration: expiration)
+        self.init(memoryCache: memoryCache, diskCache: diskCache)
+    }
+    
+    /// Creates a hybrid cache with the specified name and separate expiration policies.
+    /// - Parameters:
+    ///   - name: The name to use for the disk cache directory
+    ///   - memoryExpiration: The expiration policy for the memory cache
+    ///   - diskExpiration: The expiration policy for the disk cache
+    convenience init?(name: String, memoryExpiration: Expiration, diskExpiration: Expiration) {
+        guard let diskCache = DiskCache<Key, Value>(name: name, expiration: diskExpiration) else {
+            return nil
+        }
+        let memoryCache = MemoryCache<Key, Value>(expiration: memoryExpiration)
+        self.init(memoryCache: memoryCache, diskCache: diskCache)
+    }
+}
+
+

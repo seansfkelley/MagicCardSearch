@@ -10,30 +10,30 @@ import Foundation
 /// Configuration for disk caching behavior.
 final class DiskCache<Key: Hashable & Sendable, Value: Codable & Sendable>: Cache, @unchecked Sendable {
     let cacheURL: URL
-    let expirationInterval: TimeInterval
+    let expiration: Expiration
     private let fileManager: FileManager
     private let queue = DispatchQueue(label: "com.magicardsearch.diskcache", attributes: .concurrent)
     
-    init?(expirationInterval: TimeInterval, fileManager: FileManager = .default) {
+    init?(expiration: Expiration, fileManager: FileManager = .default) {
         guard let cachesURL = fileManager.urls(for: .cachesDirectory, in: .userDomainMask).first else {
             return nil
         }
         
         self.fileManager = fileManager
-        self.expirationInterval = expirationInterval
+        self.expiration = expiration
         self.cacheURL = cachesURL.appendingPathComponent("DiskCache", isDirectory: true)
         
         // Create cache directory if needed
         try? fileManager.createDirectory(at: cacheURL, withIntermediateDirectories: true)
     }
     
-    init?(name: String, expirationInterval: TimeInterval, fileManager: FileManager = .default) {
+    init?(name: String, expiration: Expiration, fileManager: FileManager = .default) {
         guard let cachesURL = fileManager.urls(for: .cachesDirectory, in: .userDomainMask).first else {
             return nil
         }
         
         self.fileManager = fileManager
-        self.expirationInterval = expirationInterval
+        self.expiration = expiration
         self.cacheURL = cachesURL.appendingPathComponent(name, isDirectory: true)
         
         // Create cache directory if needed
@@ -44,17 +44,17 @@ final class DiskCache<Key: Hashable & Sendable, Value: Codable & Sendable>: Cach
     
     func insert(_ value: Value, forKey key: Key) {
         let fileURL = self.fileURL(for: key)
-        let expirationDate = Date().addingTimeInterval(expirationInterval)
+        let expirationDate = expiration.expirationDate()
         write(value, to: fileURL, expirationDate: expirationDate)
     }
     
     func value(forKey key: Key) -> Value? {
         let fileURL = self.fileURL(for: key)
-        guard let (value, expirationDate): (Value, Date) = read(from: fileURL) else {
+        guard let (value, expirationDate): (Value, Date?) = read(from: fileURL) else {
             return nil
         }
         
-        guard Date() <= expirationDate else {
+        if let expirationDate, Date() > expirationDate {
             removeValue(forKey: key)
             return nil
         }
@@ -87,7 +87,7 @@ final class DiskCache<Key: Hashable & Sendable, Value: Codable & Sendable>: Cach
         return cacheURL.appendingPathComponent(fileName)
     }
     
-    private func write(_ value: Value, to fileURL: URL, expirationDate: Date) {
+    private func write(_ value: Value, to fileURL: URL, expirationDate: Date?) {
         queue.async(flags: .barrier) { [weak self] in
             guard let self else { return }
             
@@ -101,7 +101,7 @@ final class DiskCache<Key: Hashable & Sendable, Value: Codable & Sendable>: Cach
         }
     }
     
-    private func read(from fileURL: URL) -> (value: Value, expirationDate: Date)? {
+    private func read(from fileURL: URL) -> (value: Value, expirationDate: Date?)? {
         return queue.sync {
             guard let data = try? Data(contentsOf: fileURL),
                   let wrapper = try? JSONDecoder().decode(CacheEntryWrapper<Value>.self, from: data) else {
@@ -139,5 +139,5 @@ final class DiskCache<Key: Hashable & Sendable, Value: Codable & Sendable>: Cach
 }
 private struct CacheEntryWrapper<T: Codable>: Codable {
     let value: T
-    let expirationDate: Date
+    let expirationDate: Date?
 }
