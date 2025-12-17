@@ -10,23 +10,23 @@ import ScryfallKit
 import SVGKit
 
 struct SymbolView: View {
-    // SVG data cache: Hybrid mode with 30 days disk, 1 day memory
-    private static let svgDataCache = HybridCache<String, Data>(
-        name: "SymbolSvg",
-        cacheMode: .hybrid,
-        memoryExpiration: 60 * 60 * 24,      // 1 day
-        diskExpiration: 60 * 60 * 24 * 30    // 30 days
-    )
-    
     struct RenderedImageCacheKey: Hashable, Sendable {
         let symbol: String
         let size: CGFloat
         let oversize: CGFloat
     }
     
-    // Rendered image cache: Memory-only with no expiration
-    private static let renderedImageCache = HybridCache<RenderedImageCacheKey, CodableImage>(
-        memoryOnlyWithExpiration: TimeInterval.infinity
+    private static let svgDataCache: any Cache<String, Data> = {
+        let memoryCache = MemoryCache<String, Data>(expiration: .interval(60 * 60 * 24))
+        return if let diskCache = DiskCache<String, Data>(name: "SymbolSvg", expiration: .interval(60 * 60 * 24 * 30)) {
+            HybridCache(memoryCache: memoryCache, diskCache: diskCache)
+        } else {
+            memoryCache
+        }
+    }()
+    
+    private static var renderedImageCache: any Cache<RenderedImageCacheKey, UIImage> = MemoryCache(
+        expiration: .never
     )
     
     let symbol: String
@@ -46,12 +46,7 @@ struct SymbolView: View {
         oversize: CGFloat? = nil,
         showDropShadow: Bool = false
     ) {
-        let normalized = symbol.trimmingCharacters(in: .whitespaces).uppercased()
-        let withBraces = normalized.hasPrefix("{") && normalized.hasSuffix("}")
-            ? normalized
-            : "{\(normalized)}"
-        
-        self.symbol = withBraces
+        self.symbol = symbol
         self.size = size
         self.oversize = oversize ?? size
     }
@@ -80,16 +75,14 @@ struct SymbolView: View {
     }
     
     private func loadAndRender() async {
-        // Check rendered image cache
-        if let cachedImage = Self.renderedImageCache[imageCacheKey] {
+        if let renderedImage = Self.renderedImageCache[imageCacheKey] {
             await MainActor.run {
-                self.renderedImage = cachedImage.image
+                self.renderedImage = renderedImage
                 self.isLoading = false
             }
             return
         }
         
-        // Get symbol metadata from cache
         let symbolResult = await ScryfallMetadataCache.shared.symbol(self.symbol)
         guard case .success(let symbolData) = symbolResult,
               let svgUriString = symbolData.svgUri,
@@ -99,40 +92,32 @@ struct SymbolView: View {
         }
         
         do {
-            // Try to get SVG data from cache, or fetch and cache it
             let svgData = try await Self.svgDataCache.get(forKey: self.symbol) {
-                // Fetch SVG data from network
                 let (data, _) = try await URLSession.shared.data(from: url)
                 return data
             }
             
-            // Parse and render SVG
             guard let svgImage = SVGKImage(data: svgData) else {
                 await MainActor.run { isLoading = false }
                 return
             }
             
-            // Get the original SVG size to preserve aspect ratio
+            let targetSize = symbolData.hybrid || symbolData.phyrexian ? oversize : size
             let originalSize = svgImage.size
-            
-            // Scale to fit within target size while maintaining aspect ratio
             let aspectRatio = originalSize.width / originalSize.height
             let scaledSize = CGSize(
-                width: size * aspectRatio,
-                height: size
+                width: targetSize * aspectRatio,
+                height: targetSize
             )
             
-            // Set the scaled size
             svgImage.size = scaledSize
             
-            // Convert to UIImage
             guard let uiImage = svgImage.uiImage else {
                 await MainActor.run { isLoading = false }
                 return
             }
             
-            // Cache the rendered image (wrap in CodableImage)
-            Self.renderedImageCache[imageCacheKey] = uiImage.codable
+            Self.renderedImageCache[imageCacheKey] = uiImage
             
             await MainActor.run {
                 self.renderedImage = uiImage

@@ -144,5 +144,3 @@ extension HybridCache {
         self.init(memoryCache: memoryCache, diskCache: diskCache)
     }
 }
-
-
