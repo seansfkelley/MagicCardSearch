@@ -57,28 +57,29 @@ private struct LineView: View {
         var pieces: [Text] = []
         let pattern = #/\{[^}]+\}/#
         var lastIterationIndex = text.startIndex
-        var lastSymbol: MtgSymbol?
+        var wasLastSymbol = false
         
         for match in text.matches(of: pattern) {
             if lastIterationIndex < match.range.lowerBound {
                 let textPart = String(text[lastIterationIndex..<match.range.lowerBound])
                 pieces.append(Text(textPart))
-                lastSymbol = nil
-            } else if lastSymbol != nil {
+                wasLastSymbol = false
+            } else if wasLastSymbol {
                 pieces.append(Text(" ").font(.system(size: fontSize * 0.3)))
             }
             
-            let symbol = MtgSymbol.fromString(String(text[match.range]))
+            let symbol = String(text[match.range])
             if let image = renderSymbol(symbol) {
                 pieces.append(
                     Text(image)
                         // This reduces, but does not elimiate, vertical spacing.
                         .font(.system(size: 1))
-                        .baselineOffset(symbol.isOversized ? fontSize * -0.3 : fontSize * -0.15)
+                    // TODO: Put this back.
+//                        .baselineOffset(symbol.isOversized ? fontSize * -0.3 : fontSize * -0.15)
                 )
             }
             
-            lastSymbol = symbol
+            wasLastSymbol = true
             lastIterationIndex = match.range.upperBound
         }
         
@@ -93,7 +94,7 @@ private struct LineView: View {
     
     // TODO: Can this be done with the TextRenderer protocol or something instead of
     // rendering it to a temporary image?
-    private func renderSymbol(_ symbol: MtgSymbol) -> Image? {
+    private func renderSymbol(_ symbol: String) -> Image? {
         let renderer = ImageRenderer(content: MtgSymbolView(symbol, size: fontSize)
             .environment(\.colorScheme, colorScheme))
         renderer.scale = 3.0

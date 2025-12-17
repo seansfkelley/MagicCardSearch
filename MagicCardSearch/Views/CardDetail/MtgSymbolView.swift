@@ -7,303 +7,118 @@
 
 import SwiftUI
 import ScryfallKit
-
-private let bareSymbolCodes = Set(["e", "chaos", "tk", "p", "h"])
-// Xcode does not like these assets having crazy names.
-private let aliasedAssetNames = [
-    "∞": "infinity",
-    "½": "half",
-]
-private let alternateGenericBackgroundColors = [
-    // TODO: Ensure that this is still black in dark mode and Color isn't being clever.
-    "q": Color.black,
-]
-
-enum MtgSymbol {
-    case bare(String)
-    case generic(String) // Includes generic mana, tap, etc.
-    case genericWithBackground(String, Color)
-    case basic(Card.Color)
-    case hybrid(Card.Color, Card.Color)
-    case genericHybrid(String, Card.Color) // Left side is always 2, but might as well future-proof...
-    case phyrexian(Card.Color)
-    case phyrexianHybrid(Card.Color, Card.Color)
-    
-    var isOversized: Bool {
-        switch self {
-        case .hybrid, .genericHybrid, .phyrexian, .phyrexianHybrid: true
-        default: false
-        }
-    }
-    
-    static func fromString(_ symbol: String) -> MtgSymbol {
-        let cleaned = symbol.trimmingCharacters(in: CharacterSet(charactersIn: "{}")).lowercased()
-        
-        if bareSymbolCodes.contains(cleaned) {
-            return .bare(cleaned)
-        }
-        
-        if let basic = Card.Color(rawValue: cleaned.uppercased()) {
-            return .basic(basic)
-        }
-        
-        if cleaned == "h" {
-            return .phyrexian(.C)
-        }
-        
-        let parts = cleaned.split(separator: "/")
-        if parts.count == 3 && parts.last == "p" {
-            if let left = Card.Color(rawValue: String(parts[0]).uppercased()), let right = Card.Color(
-                rawValue: String(parts[1].uppercased())
-            ) {
-                return .phyrexianHybrid(left, right)
-            }
-        }
-        
-        if parts.count == 2 {
-            let left = Card.Color(rawValue: String(parts[0]).uppercased())
-            let right = Card.Color(rawValue: String(parts[1]).uppercased())
-            
-            if left == nil, let right {
-                return .genericHybrid(String(parts[0]), right)
-            }
-            
-            if let left, parts[1] == "p" {
-                return .phyrexian(left)
-            }
-            
-            if let left, let right = right {
-                return .hybrid(left, right)
-            }
-        }
-        
-        if let color = alternateGenericBackgroundColors[cleaned] {
-            return .genericWithBackground(cleaned, color)
-        } else {
-            return .generic(cleaned)
-        }
-    }
-}
+import SVGKit
 
 struct MtgSymbolView: View {
-    let symbol: MtgSymbol
+    private static let symbolCache: NSCache<NSString, UIImage> = {
+        let cache = NSCache<NSString, UIImage>()
+        cache.countLimit = 200
+        return cache
+    }()
+    
+    let symbol: String
     let size: CGFloat
     let oversize: CGFloat
-    let showDropShadow: Bool
-
+    
+    @State private var renderedImage: UIImage?
+    @State private var isLoading = true
+    
     init?(
         _ symbol: String,
         size: CGFloat = 16,
         oversize: CGFloat? = nil,
         showDropShadow: Bool = false
     ) {
-        self.init(MtgSymbol.fromString(symbol), size: size, oversize: oversize, showDropShadow: showDropShadow)
-    }
-    
-    init(
-        _ symbol: MtgSymbol,
-        size: CGFloat = 16,
-        oversize: CGFloat? = nil,
-        showDropShadow: Bool = false
-    ) {
-        self.symbol = symbol
+        let normalized = symbol.trimmingCharacters(in: .whitespaces).uppercased()
+        let withBraces = normalized.hasPrefix("{") && normalized.hasSuffix("}")
+            ? normalized
+            : "{\(normalized)}"
+        
+        self.symbol = withBraces
         self.size = size
-        self.oversize = floor(oversize ?? size * 1.25)
-        self.showDropShadow = showDropShadow
+        self.oversize = oversize ?? size
     }
-
+    
     var body: some View {
-        switch symbol {
-        case .bare(let symbol): bare(symbol)
-        case .generic(let symbol): generic(symbol)
-        case .genericWithBackground(let symbol, let color): genericWithBackground(symbol, color)
-        case .basic(let color): basic(color)
-        case .hybrid(let left, let right): hybrid(left, right)
-        case .genericHybrid(let left, let right): genericHybrid(left, right)
-        case .phyrexian(let color): phyrexian(color)
-        case .phyrexianHybrid(let left, let right): phyrexianHybrid(left, right)
-        }
-    }
-    
-    private func bare(_ symbol: String) -> some View {
-        Image(aliasedAssetNames[symbol] ?? symbol)
-            .resizable()
-            .aspectRatio(contentMode: .fit)
-            .frame(width: size, height: size)
-    }
-    
-    private func generic(_ symbol: String) -> some View {
-        regular(Card.Color.C) {
-            Image(aliasedAssetNames[symbol] ?? symbol)
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .frame(width: size * 0.8, height: size * 0.8)
-        }
-    }
-    
-    private func genericWithBackground(_ symbol: String, _ color: Color) -> some View {
-        regularWithFixedBackground(color) {
-            Image(aliasedAssetNames[symbol] ?? symbol)
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .frame(width: size * 0.8, height: size * 0.8)
-        }
-    }
-    
-    private func basic(_ color: Card.Color) -> some View {
-        regular(color) {
-            Image(color.assetName)
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .frame(width: size * 0.8, height: size * 0.8)
-        }
-    }
-
-    private func hybrid(_ left: Card.Color, _ right: Card.Color) -> some View {
-        split(left, right, saturated: left == .C && right == .B) {
-            Image(left.assetName)
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .frame(width: oversize * 0.4, height: oversize * 0.4)
-                .offset(x: -oversize * 0.16, y: -oversize * 0.16)
-
-            Image(right.assetName)
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .frame(width: oversize * 0.4, height: oversize * 0.4)
-                .offset(x: oversize * 0.175, y: oversize * 0.175)
-        }
-    }
-    
-    private func genericHybrid(_ left: String, _ right: Card.Color) -> some View {
-        split(Card.Color.C, right, saturated: right == .B) {
-            Image(aliasedAssetNames[left] ?? left)
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .frame(width: oversize * 0.4, height: oversize * 0.4)
-                .offset(x: -oversize * 0.16, y: -oversize * 0.16)
-
-            Image(right.assetName)
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .frame(width: oversize * 0.4, height: oversize * 0.4)
-                .offset(x: oversize * 0.175, y: oversize * 0.175)
-        }
-    }
-    
-    private func phyrexian(_ color: Card.Color) -> some View {
-        regular(color, oversize: true, saturated: true) {
-            Image("h")
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .frame(width: oversize, height: oversize)
-                .clipShape(.circle)
-        }
-    }
-    
-    private func phyrexianHybrid(_ left: Card.Color, _ right: Card.Color) -> some View {
-        split(left, right, saturated: true) {
-            Image("h")
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .frame(width: oversize * 0.5, height: oversize * 0.5)
-                .offset(x: -oversize * 0.16, y: -oversize * 0.16)
-
-            Image("h")
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .frame(width: oversize * 0.5, height: oversize * 0.5)
-                .offset(x: oversize * 0.175, y: oversize * 0.175)
-        }
-    }
-
-    private func unknown(_ symbol: String) -> some View {
-        Text(symbol)
-            .font(.system(size: size * 0.6))
-            .foregroundStyle(.secondary)
-    }
-    
-    private func regular(
-        _ color: Card.Color,
-        oversize isOversized: Bool = false,
-        saturated isSaturated: Bool = false,
-        @ViewBuilder image: () -> some View,
-    ) -> some View {
-        let actualSize = isOversized ? oversize : size
-        let actualColor = isSaturated ? color.saturatedUiColor : color.basicUiColor
-        
-        return ZStack {
-            if showDropShadow {
+        Group {
+            if let image = renderedImage {
+                Image(uiImage: image)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: size, height: size)
+            } else if isLoading {
                 Circle()
-                    .fill(.black)
-                    .frame(width: actualSize, height: actualSize)
-                    .offset(x: -1, y: 1)
+                    .fill(.secondary.opacity(0.2))
+                    .frame(width: size, height: size)
+            } else {
+                Text(symbol)
+                    .font(.system(size: size * 0.5))
+                    .foregroundStyle(.secondary)
+                    .frame(width: size, height: size)
+            }
+        }
+        .task {
+            await loadAndRenderSVG()
+        }
+    }
+    
+    private func loadAndRenderSVG() async {
+        let cacheKey = "\(symbol)_\(Int(size))" as NSString
+        
+        if let cachedImage = MtgSymbolView.symbolCache.object(forKey: cacheKey) {
+            await MainActor.run {
+                self.renderedImage = cachedImage
+                self.isLoading = false
+            }
+            return
+        }
+        
+        guard let symbol = try? await MTGSymbolCache.shared.getSymbol(byNotation: symbol),
+              let svgUriString = symbol.svgUri,
+              let url = URL(string: svgUriString) else {
+            await MainActor.run { isLoading = false }
+            return
+        }
+        
+        do {
+            let (data, _) = try await URLSession.shared.data(from: url)
+            
+            // Parse and render SVG
+            guard let svgImage = SVGKImage(data: data) else {
+                await MainActor.run { isLoading = false }
+                return
             }
             
-            Circle()
-                .fill(actualColor)
-                .frame(width: actualSize, height: actualSize)
+            // Get the original SVG size to preserve aspect ratio
+            let originalSize = svgImage.size
             
-            image()
-        }
-    }
-    
-    private func regularWithFixedBackground(
-        _ color: Color,
-        oversize isOversized: Bool = false,
-        @ViewBuilder image: () -> some View,
-    ) -> some View {
-        let actualSize = isOversized ? oversize : size
-        
-        return ZStack {
-            if showDropShadow {
-                Circle()
-                    .fill(.black)
-                    .frame(width: actualSize, height: actualSize)
-                    .offset(x: -1, y: 1)
+            // Scale to fit within target size while maintaining aspect ratio
+            let aspectRatio = originalSize.width / originalSize.height
+            let scaledSize = CGSize(
+                width: size * aspectRatio,
+                height: size
+            )
+            
+            // Set the scaled size
+            svgImage.size = scaledSize
+            
+            // Convert to UIImage
+            guard let uiImage = svgImage.uiImage else {
+                await MainActor.run { isLoading = false }
+                return
             }
             
-            Circle()
-                .fill(color)
-                .frame(width: actualSize, height: actualSize)
+            // Cache the rendered image
+            MtgSymbolView.symbolCache.setObject(uiImage, forKey: cacheKey)
             
-            image()
-        }
-    }
-    
-    private func split<Content: View>(
-        _ left: Card.Color,
-        _ right: Card.Color,
-        saturated isSaturated: Bool = false,
-        @ViewBuilder images: () -> Content
-    ) -> some View {
-        let actualLeftColor = isSaturated ? left.saturatedUiColor : left.basicUiColor
-        let actualRightColor = isSaturated ? right.saturatedUiColor : right.basicUiColor
-        
-        return ZStack {
-            if showDropShadow {
-                Circle()
-                    .fill(.black)
-                    .frame(width: oversize, height: oversize)
-                    .offset(x: -1, y: 1)
+            await MainActor.run {
+                self.renderedImage = uiImage
+                self.isLoading = false
             }
-            
-            Circle()
-                .fill(
-                    LinearGradient(
-                        stops: [
-                            .init(color: actualLeftColor, location: 0.0),
-                            .init(color: actualLeftColor, location: 0.5),
-                            .init(color: actualRightColor, location: 0.5),
-                            .init(color: actualRightColor, location: 1.0),
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-                .frame(width: oversize, height: oversize)
-            
-            images()
+        } catch {
+            await MainActor.run {
+                self.isLoading = false
+            }
         }
     }
 }
@@ -354,6 +169,7 @@ struct MtgSymbolView: View {
                     MtgSymbolView("{X}", size: 32)
                     MtgSymbolView("{Y}", size: 32)
                     MtgSymbolView("{Z}", size: 32)
+                    MtgSymbolView("{∞}", size: 32)
                 }
             }
             VStack(alignment: .leading, spacing: 8) {
@@ -446,7 +262,7 @@ struct MtgSymbolView: View {
                 HStack(spacing: 8) {
                     MtgSymbolView("{W}", size: 32, showDropShadow: true)
                     MtgSymbolView("{0}", size: 32, showDropShadow: true)
-                    MtgSymbolView("{B/U}", size: 32, showDropShadow: true)
+                    MtgSymbolView("{U/B}", size: 32, showDropShadow: true)
                     MtgSymbolView("{G/P}", size: 32, showDropShadow: true)
                     MtgSymbolView("{T}", size: 32, showDropShadow: true)
                     MtgSymbolView("{Q}", size: 32, showDropShadow: true)
