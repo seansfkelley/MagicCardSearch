@@ -7,13 +7,7 @@
 
 import SwiftUI
 import SVGKit
-
-// TODO: Scryfall would prefer that we load up the set metadata and consult it for SVG paths, which
-// I would like to do but can't be bothered yet.
-private let nonstandardSvgLocations = [
-    "sld": "star",
-    "plst": "planeswalker",
-]
+import ScryfallKit
 
 struct SetIconView: View {
     private static let setIconCache: NSCache<NSString, UIImage> = {
@@ -64,9 +58,9 @@ struct SetIconView: View {
             return
         }
         
-        let urlString = "https://svgs.scryfall.io/sets/\(nonstandardSvgLocations[setCode.lowercased()] ?? setCode.lowercased()).svg"
-        
-        guard let url = URL(string: urlString) else {
+        // Get the SVG URI from MTGSetCache
+        guard let set = try? await MTGSetCache.shared.getSet(byCode: setCode),
+              let url = URL(string: set.iconSvgUri) else {
             await MainActor.run { isLoading = false }
             return
         }
