@@ -26,7 +26,9 @@ enum Expiration: Sendable {
 }
 
 /// A protocol defining the core caching interface for storing and retrieving values.
-protocol Cache<Key, Value>: Sendable {
+/// - Note: This protocol is constrained to classes (reference types) to allow non-mutating
+///         methods to modify the cache's internal state, which is essential for actor isolation.
+protocol Cache<Key, Value>: AnyObject, Sendable {
     associatedtype Key: Hashable & Sendable
     associatedtype Value: Sendable
     
@@ -44,6 +46,10 @@ protocol Cache<Key, Value>: Sendable {
 extension Cache {
     /// Retrieves the value for the given key, or executes the provided closure if not found.
     /// The result of the closure is automatically cached.
+    /// 
+    /// - Note: This method is not marked as `mutating` because all conforming types are reference types (classes).
+    ///         If you need to support value types (structs), add a `mutating` version of this method.
+    /// 
     /// - Parameters:
     ///   - key: The key to look up
     ///   - fetchValue: A closure that returns a value if the key is not found in cache
@@ -60,6 +66,10 @@ extension Cache {
     
     /// Async version: Retrieves the value for the given key, or executes the provided async closure if not found.
     /// The result of the closure is automatically cached.
+    /// 
+    /// - Note: This method is not marked as `mutating` because all conforming types are reference types (classes).
+    ///         If you need to support value types (structs), add a `mutating` version of this method.
+    /// 
     /// - Parameters:
     ///   - key: The key to look up
     ///   - fetchValue: An async closure that returns a value if the key is not found in cache

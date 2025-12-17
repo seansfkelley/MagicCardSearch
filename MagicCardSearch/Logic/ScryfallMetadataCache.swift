@@ -40,8 +40,8 @@ actor ScryfallMetadataCache {
     // MARK: - Private Properties
 
     private let scryfallClient = ScryfallClient()
-    private let symbolCache: HybridCache<String, [SymbolCode: Card.Symbol]>
-    private let setCache: HybridCache<String, [SetCode: MTGSet]>
+    private var symbolCache: HybridCache<String, [SymbolCode: Card.Symbol]>
+    private var setCache: HybridCache<String, [SetCode: MTGSet]>
 
     private init() {
         symbolCache = HybridCache(

@@ -4,8 +4,10 @@
 //
 //  Created by Sean Kelley on 2025-12-17.
 //
-
 import Foundation
+import Logging
+
+private let logger = Logger(label: "DiskCache")
 
 /// Configuration for disk caching behavior.
 final class DiskCache<Key: Hashable & Sendable, Value: Codable & Sendable>: Cache, @unchecked Sendable {
@@ -52,11 +54,13 @@ final class DiskCache<Key: Hashable & Sendable, Value: Codable & Sendable>: Cach
                     includingPropertiesForKeys: nil
                 )
                 
+                logger.debug("Clearing all cache entries", metadata: ["count": "\(contents.count)"])
+                
                 for fileURL in contents {
                     try? self.fileManager.removeItem(at: fileURL)
                 }
             } catch {
-                print("Failed to clear disk cache: \(error)")
+                logger.error("Failed to clear disk cache", metadata: ["error": "\(error)"])
             }
         }
     }
@@ -65,22 +69,30 @@ final class DiskCache<Key: Hashable & Sendable, Value: Codable & Sendable>: Cach
         get {
             let fileURL = self.fileURL(for: key)
             guard let (value, expirationDate): (Value, Date?) = read(from: fileURL) else {
+                logger.debug("Cache miss", metadata: ["key": "\(key)"])
                 return nil
             }
             
             if let expirationDate, Date() > expirationDate {
+                logger.debug("Cache expired", metadata: [
+                    "key": "\(key)",
+                    "expirationDate": "\(expirationDate)",
+                ])
                 removeItem(at: fileURL)
                 return nil
             }
             
+            logger.debug("Cache hit", metadata: ["key": "\(key)"])
             return value
         }
         set {
             let fileURL = self.fileURL(for: key)
             if let value = newValue {
+                logger.debug("Cache set", metadata: ["key": "\(key)"])
                 let expirationDate = expiration.expirationDate()
                 write(value, to: fileURL, expirationDate: expirationDate)
             } else {
+                logger.debug("Cache remove", metadata: ["key": "\(key)"])
                 removeItem(at: fileURL)
             }
         }
@@ -102,7 +114,10 @@ final class DiskCache<Key: Hashable & Sendable, Value: Codable & Sendable>: Cach
                 let data = try JSONEncoder().encode(wrapper)
                 try data.write(to: fileURL)
             } catch {
-                print("Failed to write cache entry to disk: \(error)")
+                logger.error("Failed to write cache entry to disk", metadata: [
+                    "fileURL": "\(fileURL.path)",
+                    "error": "\(error)",
+                ])
             }
         }
     }

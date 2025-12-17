@@ -5,13 +5,16 @@
 //  Created by Sean Kelley on 2025-12-17.
 //
 import Foundation
+import Logging
+
+private let logger = Logger(label: "MemoryCache")
 
 /// Configuration for memory caching behavior.
 final class MemoryCache<Key: Hashable & Sendable, Value: Sendable>: Cache, @unchecked Sendable {
     let cache = NSCache<WrappedKey<Key>, Entry<Value>>()
     let expiration: Expiration
     
-    init(expiration: Expiration) {
+    init(expiration: Expiration, label: String = "MemoryCache") {
         self.expiration = expiration
     }
     
@@ -24,22 +27,30 @@ final class MemoryCache<Key: Hashable & Sendable, Value: Sendable>: Cache, @unch
     subscript(key: Key) -> Value? {
         get {
             guard let entry = cache.object(forKey: WrappedKey(key)) else {
+                logger.debug("Cache miss", metadata: ["key": "\(key)"])
                 return nil
             }
             
             guard !entry.isExpired else {
+                logger.debug("Cache expired", metadata: [
+                    "key": "\(key)",
+                    "expirationDate": "\(entry.expirationDate?.description ?? "nil")",
+                ])
                 cache.removeObject(forKey: WrappedKey(key))
                 return nil
             }
             
+            logger.debug("Cache hit", metadata: ["key": "\(key)"])
             return entry.value
         }
         set {
             if let value = newValue {
+                logger.debug("Cache set", metadata: ["key": "\(key)"])
                 let expirationDate = expiration.expirationDate()
                 let entry = Entry(value: value, expirationDate: expirationDate)
                 cache.setObject(entry, forKey: WrappedKey(key))
             } else {
+                logger.debug("Cache remove", metadata: ["key": "\(key)"])
                 cache.removeObject(forKey: WrappedKey(key))
             }
         }

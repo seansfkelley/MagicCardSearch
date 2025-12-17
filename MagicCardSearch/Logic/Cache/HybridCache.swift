@@ -1,11 +1,14 @@
 //
-//  DiskCache.swift
+//  HybridCache.swift
 //  MagicCardSearch
 //
 //  Created by Sean Kelley on 2025-12-17.
 //
 
 import Foundation
+import Logging
+
+private let logger = Logger(label: "HybridCache")
 
 /// A generic cache that stores Codable values both in memory and on disk.
 /// This cache composes a MemoryCache and DiskCache, delegating to each as appropriate.
@@ -61,7 +64,8 @@ final class HybridCache<Key: Hashable & Sendable, Value: Codable & Sendable>: Ca
     /// - Parameters:
     ///   - memoryCache: The memory cache to use for fast access
     ///   - diskCache: The disk cache to use for persistent storage
-    init(memoryCache: MemoryCache<Key, Value>, diskCache: DiskCache<Key, Value>) {
+    ///   - label: The label to use for logging (defaults to "HybridCache")
+    init(memoryCache: MemoryCache<Key, Value>, diskCache: DiskCache<Key, Value>, label: String = "HybridCache") {
         self.memoryCache = memoryCache
         self.diskCache = diskCache
     }
@@ -79,21 +83,26 @@ final class HybridCache<Key: Hashable & Sendable, Value: Codable & Sendable>: Ca
     subscript(key: Key) -> Value? {
         get {
             if let memoryValue = memoryCache[key] {
+                logger.debug("Cache hit from memory", metadata: ["key": "\(key)"])
                 return memoryValue
             }
             
             if let diskValue = diskCache[key] {
+                logger.debug("Cache hit from disk, promoting to memory", metadata: ["key": "\(key)"])
                 memoryCache[key] = diskValue
                 return diskValue
             }
             
+            logger.debug("Cache miss", metadata: ["key": "\(key)"])
             return nil
         }
         set {
             if let value = newValue {
+                logger.debug("Cache set", metadata: ["key": "\(key)"])
                 memoryCache[key] = value
                 diskCache[key] = value
             } else {
+                logger.debug("Cache remove", metadata: ["key": "\(key)"])
                 memoryCache[key] = nil
                 diskCache[key] = nil
             }
@@ -107,26 +116,26 @@ extension HybridCache {
     /// Creates a hybrid cache with the specified name and expiration policy.
     /// This convenience initializer creates both memory and disk caches with the same expiration.
     /// - Parameters:
-    ///   - name: The name to use for the disk cache directory
+    ///   - name: The name to use for the disk cache directory and logger label
     ///   - expiration: The expiration policy to use for both caches
     convenience init?(name: String, expiration: Expiration) {
         guard let diskCache = DiskCache<Key, Value>(name: name, expiration: expiration) else {
             return nil
         }
-        let memoryCache = MemoryCache<Key, Value>(expiration: expiration)
-        self.init(memoryCache: memoryCache, diskCache: diskCache)
+        let memoryCache = MemoryCache<Key, Value>(expiration: expiration, label: "\(name).memory")
+        self.init(memoryCache: memoryCache, diskCache: diskCache, label: name)
     }
     
     /// Creates a hybrid cache with the specified name and separate expiration policies.
     /// - Parameters:
-    ///   - name: The name to use for the disk cache directory
+    ///   - name: The name to use for the disk cache directory and logger label
     ///   - memoryExpiration: The expiration policy for the memory cache
     ///   - diskExpiration: The expiration policy for the disk cache
     convenience init?(name: String, memoryExpiration: Expiration, diskExpiration: Expiration) {
         guard let diskCache = DiskCache<Key, Value>(name: name, expiration: diskExpiration) else {
             return nil
         }
-        let memoryCache = MemoryCache<Key, Value>(expiration: memoryExpiration)
-        self.init(memoryCache: memoryCache, diskCache: diskCache)
+        let memoryCache = MemoryCache<Key, Value>(expiration: memoryExpiration, label: "\(name).memory")
+        self.init(memoryCache: memoryCache, diskCache: diskCache, label: name)
     }
 }

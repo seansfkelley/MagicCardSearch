@@ -9,6 +9,8 @@
 /* Begin PBXBuildFile section */
 		210115BC2EEF9543000D6D32 /* Nuke in Frameworks */ = {isa = PBXBuildFile; productRef = 210115BB2EEF9543000D6D32 /* Nuke */; };
 		210115BE2EEF9543000D6D32 /* NukeUI in Frameworks */ = {isa = PBXBuildFile; productRef = 210115BD2EEF9543000D6D32 /* NukeUI */; };
+		21058ADE2EF36FC700F093EF /* InMemoryLogging in Frameworks */ = {isa = PBXBuildFile; productRef = 21058ADD2EF36FC700F093EF /* InMemoryLogging */; };
+		21058AE02EF36FC700F093EF /* Logging in Frameworks */ = {isa = PBXBuildFile; productRef = 21058ADF2EF36FC700F093EF /* Logging */; };
 		213F299A2EE9285400E058DB /* SVGKitSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 213F29992EE9285400E058DB /* SVGKitSwift */; };
 		21A856BD2EE3AAE400E72541 /* ScryfallKit in Frameworks */ = {isa = PBXBuildFile; productRef = 21A856BC2EE3AAE400E72541 /* ScryfallKit */; };
 		21D3972C2EE225C5008B3EFD /* WrappingHStack in Frameworks */ = {isa = PBXBuildFile; productRef = 21D3972B2EE225C5008B3EFD /* WrappingHStack */; };
@@ -126,8 +128,10 @@
 			files = (
 				210115BE2EEF9543000D6D32 /* NukeUI in Frameworks */,
 				213F299A2EE9285400E058DB /* SVGKitSwift in Frameworks */,
+				21058AE02EF36FC700F093EF /* Logging in Frameworks */,
 				21D3972C2EE225C5008B3EFD /* WrappingHStack in Frameworks */,
 				21A856BD2EE3AAE400E72541 /* ScryfallKit in Frameworks */,
+				21058ADE2EF36FC700F093EF /* InMemoryLogging in Frameworks */,
 				210115BC2EEF9543000D6D32 /* Nuke in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -233,6 +237,8 @@
 				213F29992EE9285400E058DB /* SVGKitSwift */,
 				210115BB2EEF9543000D6D32 /* Nuke */,
 				210115BD2EEF9543000D6D32 /* NukeUI */,
+				21058ADD2EF36FC700F093EF /* InMemoryLogging */,
+				21058ADF2EF36FC700F093EF /* Logging */,
 			);
 			productName = MagicCardSearch;
 			productReference = 2137B5AD2EE139C60066BF7E /* MagicCardSearch.app */;
@@ -327,6 +333,7 @@
 				213F29982EE9285400E058DB /* XCRemoteSwiftPackageReference "SVGKit" */,
 				21A5FCA72EE9E7FA0034E695 /* XCRemoteSwiftPackageReference "SwiftLintPlugins" */,
 				210115BA2EEF9543000D6D32 /* XCRemoteSwiftPackageReference "Nuke" */,
+				21058ADC2EF36FC700F093EF /* XCRemoteSwiftPackageReference "swift-log" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 2137B5AE2EE139C60066BF7E /* Products */;
@@ -803,6 +810,14 @@
 				minimumVersion = 12.8.0;
 			};
 		};
+		21058ADC2EF36FC700F093EF /* XCRemoteSwiftPackageReference "swift-log" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/apple/swift-log";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.8.0;
+			};
+		};
 		213F29982EE9285400E058DB /* XCRemoteSwiftPackageReference "SVGKit" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/SVGKit/SVGKit";
@@ -847,6 +862,16 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 210115BA2EEF9543000D6D32 /* XCRemoteSwiftPackageReference "Nuke" */;
 			productName = NukeUI;
+		};
+		21058ADD2EF36FC700F093EF /* InMemoryLogging */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 21058ADC2EF36FC700F093EF /* XCRemoteSwiftPackageReference "swift-log" */;
+			productName = InMemoryLogging;
+		};
+		21058ADF2EF36FC700F093EF /* Logging */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 21058ADC2EF36FC700F093EF /* XCRemoteSwiftPackageReference "swift-log" */;
+			productName = Logging;
 		};
 		213F29992EE9285400E058DB /* SVGKitSwift */ = {
 			isa = XCSwiftPackageProductDependency;
