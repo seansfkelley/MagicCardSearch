@@ -9,7 +9,6 @@
 /* Begin PBXBuildFile section */
 		210115BC2EEF9543000D6D32 /* Nuke in Frameworks */ = {isa = PBXBuildFile; productRef = 210115BB2EEF9543000D6D32 /* Nuke */; };
 		210115BE2EEF9543000D6D32 /* NukeUI in Frameworks */ = {isa = PBXBuildFile; productRef = 210115BD2EEF9543000D6D32 /* NukeUI */; };
-		211182F22EF334030060328C /* Cache in Frameworks */ = {isa = PBXBuildFile; productRef = 211182F12EF334030060328C /* Cache */; };
 		213F299A2EE9285400E058DB /* SVGKitSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 213F29992EE9285400E058DB /* SVGKitSwift */; };
 		21A856BD2EE3AAE400E72541 /* ScryfallKit in Frameworks */ = {isa = PBXBuildFile; productRef = 21A856BC2EE3AAE400E72541 /* ScryfallKit */; };
 		21D3972C2EE225C5008B3EFD /* WrappingHStack in Frameworks */ = {isa = PBXBuildFile; productRef = 21D3972B2EE225C5008B3EFD /* WrappingHStack */; };
@@ -128,7 +127,6 @@
 				210115BE2EEF9543000D6D32 /* NukeUI in Frameworks */,
 				213F299A2EE9285400E058DB /* SVGKitSwift in Frameworks */,
 				21D3972C2EE225C5008B3EFD /* WrappingHStack in Frameworks */,
-				211182F22EF334030060328C /* Cache in Frameworks */,
 				21A856BD2EE3AAE400E72541 /* ScryfallKit in Frameworks */,
 				210115BC2EEF9543000D6D32 /* Nuke in Frameworks */,
 			);
@@ -235,7 +233,6 @@
 				213F29992EE9285400E058DB /* SVGKitSwift */,
 				210115BB2EEF9543000D6D32 /* Nuke */,
 				210115BD2EEF9543000D6D32 /* NukeUI */,
-				211182F12EF334030060328C /* Cache */,
 			);
 			productName = MagicCardSearch;
 			productReference = 2137B5AD2EE139C60066BF7E /* MagicCardSearch.app */;
@@ -330,7 +327,6 @@
 				213F29982EE9285400E058DB /* XCRemoteSwiftPackageReference "SVGKit" */,
 				21A5FCA72EE9E7FA0034E695 /* XCRemoteSwiftPackageReference "SwiftLintPlugins" */,
 				210115BA2EEF9543000D6D32 /* XCRemoteSwiftPackageReference "Nuke" */,
-				211182F02EF334030060328C /* XCRemoteSwiftPackageReference "Cache" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 2137B5AE2EE139C60066BF7E /* Products */;
@@ -807,14 +803,6 @@
 				minimumVersion = 12.8.0;
 			};
 		};
-		211182F02EF334030060328C /* XCRemoteSwiftPackageReference "Cache" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/hyperoslo/Cache";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 7.4.0;
-			};
-		};
 		213F29982EE9285400E058DB /* XCRemoteSwiftPackageReference "SVGKit" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/SVGKit/SVGKit";
@@ -859,11 +847,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 210115BA2EEF9543000D6D32 /* XCRemoteSwiftPackageReference "Nuke" */;
 			productName = NukeUI;
-		};
-		211182F12EF334030060328C /* Cache */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 211182F02EF334030060328C /* XCRemoteSwiftPackageReference "Cache" */;
-			productName = Cache;
 		};
 		213F29992EE9285400E058DB /* SVGKitSwift */ = {
 			isa = XCSwiftPackageProductDependency;

@@ -1,15 +1,6 @@
 {
-  "originHash" : "f061dcae4b46749a1a8a232c3bc2cbf5c9d6576559cd9805957ebf17174b1f64",
+  "originHash" : "3de9139142231122adc56dca086f3498c10448e2536ad13545b912b0c2e3ec8e",
   "pins" : [
-    {
-      "identity" : "cache",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/hyperoslo/Cache",
-      "state" : {
-        "revision" : "24e47109e31b2031cb26e25cc1b81b607496066c",
-        "version" : "7.4.0"
-      }
-    },
     {
       "identity" : "cocoalumberjack",
       "kind" : "remoteSourceControl",
