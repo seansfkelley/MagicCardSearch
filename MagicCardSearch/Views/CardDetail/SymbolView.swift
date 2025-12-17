@@ -48,7 +48,7 @@ struct SymbolView: View {
     ) {
         self.symbol = SymbolCode(symbol)
         self.size = size
-        self.oversize = oversize ?? size
+        self.oversize = oversize ?? size * 1.25
     }
     
     var body: some View {
