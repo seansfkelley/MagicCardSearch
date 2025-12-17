@@ -275,7 +275,7 @@ struct LazyPagingDetailNavigator<ItemReference: Nameable, Item: Identifiable, Co
     private var navigationTitle: String {
         if currentIndex >= 0 && currentIndex < items.count {
             let itemRef = items[currentIndex]
-            if case .loaded(let item) = loadedItems[itemRef.id] {
+            if case .loaded = loadedItems[itemRef.id] {
                 // If we have access to the loaded item, we could potentially show more info
                 // For now, just use the display name
                 return itemRef.name

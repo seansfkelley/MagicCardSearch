@@ -186,7 +186,13 @@ struct CardAllPrintsView: View {
         do {
             let searchQuery = printFilterSettings.toQueryFor(oracleId: oracleId)
             
-            let newPrints = try await cardSearchService.searchByRawQuery(searchQuery)
+            let rawPrints = try await cardSearchService.searchByRawQuery(searchQuery)
+            
+            let newPrints = rawPrints.sorted(using: [
+                KeyPathComparator(\.releasedAtAsDate, order: .reverse),
+                KeyPathComparator(\.set, order: .forward),
+                KeyPathComparator(\.collectorNumber, comparator: .localizedStandard),
+            ])
             
             loadState = .loaded(.success(newPrints))
             
