@@ -8,6 +8,13 @@
 import SwiftUI
 import SVGKit
 
+// TODO: Scryfall would prefer that we load up the set metadata and consult it for SVG paths, which
+// I would like to do but can't be bothered yet.
+private let nonstandardSvgLocations = [
+    "sld": "star",
+    "plst": "planeswalker",
+]
+
 struct SetIconView: View {
     private static let setIconCache: NSCache<NSString, UIImage> = {
         let cache = NSCache<NSString, UIImage>()
@@ -57,12 +64,14 @@ struct SetIconView: View {
             return
         }
         
-        let urlString = "https://svgs.scryfall.io/sets/\(setCode.lowercased()).svg"
+        let urlString = "https://svgs.scryfall.io/sets/\(nonstandardSvgLocations[setCode.lowercased()] ?? setCode.lowercased()).svg"
         
         guard let url = URL(string: urlString) else {
             await MainActor.run { isLoading = false }
             return
         }
+        
+        print("Requesting icon \(url)")
         
         do {
             let (data, _) = try await URLSession.shared.data(from: url)
