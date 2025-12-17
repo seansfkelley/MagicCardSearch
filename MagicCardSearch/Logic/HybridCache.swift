@@ -9,8 +9,7 @@ import Foundation
 
 /// A generic cache that stores Codable values both in memory and on disk.
 /// Based on implementation from Swift by Sundell: https://www.swiftbysundell.com/articles/caching-in-swift/
-final class HybridCache<Key: Hashable, Value: Codable> {
-    
+final class HybridCache<Key: Hashable, Value: Codable>: @unchecked Sendable {
     // MARK: - Private Types
     
     private final class WrappedKey: NSObject {
@@ -137,7 +136,7 @@ final class HybridCache<Key: Hashable, Value: Codable> {
     ///   - key: The key to look up
     ///   - fetchValue: A closure that returns a value if the key is not found in cache
     /// - Returns: The cached value or the result of the closure
-    func get(forKey key: Key, orFetch fetchValue: () throws -> Value) rethrows -> Value {
+    func get(forKey key: Key, orFetch fetchValue: @Sendable () throws -> Value) rethrows -> Value {
         if let cachedValue = value(forKey: key) {
             return cachedValue
         }
@@ -153,7 +152,7 @@ final class HybridCache<Key: Hashable, Value: Codable> {
     ///   - key: The key to look up
     ///   - fetchValue: An async closure that returns a value if the key is not found in cache
     /// - Returns: The cached value or the result of the closure
-    func get(forKey key: Key, orFetch fetchValue: () async throws -> Value) async rethrows -> Value {
+    func get(forKey key: Key, orFetch fetchValue: @Sendable () async throws -> Value) async rethrows -> Value {
         if let cachedValue = value(forKey: key) {
             return cachedValue
         }

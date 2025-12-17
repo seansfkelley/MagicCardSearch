@@ -7,6 +7,11 @@
 import Foundation
 import ScryfallKit
 
+enum ScryfallMetadataError: Error {
+    case errorLoadingData(Error)
+    case noSuchValue(String)
+}
+
 actor ScryfallMetadataCache {
     // MARK: - Singleton
 
@@ -32,60 +37,109 @@ actor ScryfallMetadataCache {
 
     // MARK: - Public Methods
 
-    public func symbol(_ symbol: String) async -> Result<Card.Symbol, Error> {
-        let cacheKey = "symbology"
-
+    public func symbol(_ symbol: String) async -> Result<Card.Symbol, ScryfallMetadataError> {
+        let allSymbolMetadata: [String: Card.Symbol]
         do {
-            // Try to retrieve from cache, or fetch and cache if not found
-            let symbolDict = try await symbolCache.get(forKey: cacheKey) {
-                // Fetch from Scryfall
-                let symbolList = try await scryfallClient.getSymbology()
-                
-                // Convert array to dictionary keyed by symbol notation
-                return Dictionary(uniqueKeysWithValues: symbolList.data.map { ($0.symbol, $0) })
-            }
-
-            // Find the requested symbol
-            guard let foundSymbol = symbolDict[symbol] else {
-                throw NSError(
-                    domain: "ScryfallMetadataCache",
-                    code: 404,
-                    userInfo: [NSLocalizedDescriptionKey: "Symbol '\(symbol)' not found"]
+            allSymbolMetadata = try await symbolCache.get(forKey: "symbology") {
+                let allSymbols = try await self.fetchAllPages {
+                    try await scryfallClient.getSymbology()
+                }
+                return Dictionary(
+                    uniqueKeysWithValues: allSymbols.map { ($0.symbol.uppercased(), $0) },
                 )
             }
-
-            return .success(foundSymbol)
         } catch {
-            return .failure(error)
+            return .failure(.errorLoadingData(error))
+        }
+        
+        let normalizedSymbol = symbol.trimmingCharacters(in: .whitespaces).uppercased()
+        let withBraces = normalizedSymbol.hasPrefix("{") && normalizedSymbol.hasSuffix("}")
+            ? normalizedSymbol
+            : "{\(normalizedSymbol)}"
+
+        if let foundSymbol = allSymbolMetadata[normalizedSymbol] {
+            return .success(foundSymbol)
+        } else {
+            return .failure(.noSuchValue(normalizedSymbol))
         }
     }
 
-    public func set(_ setCode: String) async -> Result<MTGSet, Error> {
-        let cacheKey = "sets"
-        let normalizedCode = setCode.lowercased()
-
+    public func set(_ setCode: String) async -> Result<MTGSet, ScryfallMetadataError> {
+        let allSetMetadata: [String: MTGSet]
         do {
-            // Try to retrieve from cache, or fetch and cache if not found
-            let setDict = try await setCache.get(forKey: cacheKey) {
-                // Fetch from Scryfall
-                let setList = try await scryfallClient.getSets()
-                
-                // Convert array to dictionary keyed by normalized (lowercased) set code
-                return Dictionary(uniqueKeysWithValues: setList.data.map { ($0.code.lowercased(), $0) })
+            allSetMetadata = try await setCache.get(forKey: "sets") {
+                let allSets = try await self.fetchAllPages {
+                    try await scryfallClient.getSets()
+                }
+                return Dictionary(uniqueKeysWithValues: allSets.map { ($0.code.uppercased(), $0) })
             }
-
-            // Find the requested set
-            guard let foundSet = setDict[normalizedCode] else {
-                throw NSError(
-                    domain: "ScryfallMetadataCache",
-                    code: 404,
-                    userInfo: [NSLocalizedDescriptionKey: "Set '\(setCode)' not found"]
-                )
-            }
-
-            return .success(foundSet)
         } catch {
-            return .failure(error)
+            return .failure(.errorLoadingData(error))
         }
+
+        if let set = allSetMetadata[setCode.uppercased()] {
+            return .success(set)
+        } else {
+            return .failure(.noSuchValue(setCode.uppercased()))
+        }
+    }
+    
+    // MARK: - Private Methods
+    
+    /// Fetches all pages from an initial ObjectList request and returns a flat array
+    /// - Parameter initialRequest: A closure that performs the initial ScryfallClient request
+    /// - Returns: An array containing all items from all pages
+    private func fetchAllPages<T: Codable>(
+        initialRequest: () async throws -> ObjectList<T>
+    ) async throws -> [T] {
+        var allItems: [T] = []
+        var currentList = try await initialRequest()
+        allItems.append(contentsOf: currentList.data)
+        
+        // Fetch additional pages if they exist
+        while let nextPageURL = currentList.nextPage {
+            currentList = try await self.fetchObjectList(from: nextPageURL)
+            allItems.append(contentsOf: currentList.data)
+        }
+        
+        return allItems
+    }
+    
+    /// Fetches a Scryfall ObjectList from a URL using URLSession and ScryfallKit's ObjectList type
+    private func fetchObjectList<T: Codable>(from urlString: String) async throws -> ObjectList<T> {
+        guard let url = URL(string: urlString) else {
+            throw NSError(
+                domain: "ScryfallMetadataCache",
+                code: 400,
+                userInfo: [NSLocalizedDescriptionKey: "Invalid URL: \(urlString)"]
+            )
+        }
+        
+        var request = URLRequest(url: url)
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        
+        let (data, response) = try await URLSession.shared.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw NSError(
+                domain: "ScryfallMetadataCache",
+                code: 500,
+                userInfo: [NSLocalizedDescriptionKey: "Invalid response type"]
+            )
+        }
+        
+        guard httpResponse.statusCode == 200 else {
+            throw NSError(
+                domain: "ScryfallMetadataCache",
+                code: httpResponse.statusCode,
+                userInfo: [NSLocalizedDescriptionKey: "HTTP error: \(httpResponse.statusCode)"]
+            )
+        }
+        
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        decoder.dateDecodingStrategy = .iso8601
+        
+        return try decoder.decode(ObjectList<T>.self, from: data)
     }
 }
