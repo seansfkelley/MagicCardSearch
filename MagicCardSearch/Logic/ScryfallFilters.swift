@@ -181,7 +181,12 @@ let scryfallFilterTypes: [ScryfallFilterType] = [
     // MARK: - Border, Frame, Foil & Resolution
     .init("border", enumerationValues: ["black", "white", "silver", "borderless"]),
     .init("frame", enumerationValues: [
-        "1993", "1997", "2003", "2015", "future", "legendary", "colorshifted", "tombstone", "enchantment",
+        "1993", "1997", "2003", "2015", "future",
+        // https://scryfall.com/docs/api/frames
+        "colorshifted", "companion", "compasslanddf", "convertdfc", "devoid", "draft", "enchantment",
+        "etched", "extendedart", "fandfc", "inverted", "legendary", "lesson", "miracle",
+        "mooneldrazidfc", "originpwdfc", "shatteredglass", "showcase", "snow", "spree", "sunmoondfc",
+        "tombstone", "upsidedowndfc", "waxingandwaningmoondfc",
         // discovered independently, not listed in the documentation
         "old", "new",
     ]),
