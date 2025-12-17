@@ -42,40 +42,46 @@ final class DiskCache<Key: Hashable & Sendable, Value: Codable & Sendable>: Cach
     
     // MARK: - Cache Protocol Conformance
     
-    func insert(_ value: Value, forKey key: Key) {
-        let fileURL = self.fileURL(for: key)
-        let expirationDate = expiration.expirationDate()
-        write(value, to: fileURL, expirationDate: expirationDate)
-    }
-    
-    func value(forKey key: Key) -> Value? {
-        let fileURL = self.fileURL(for: key)
-        guard let (value, expirationDate): (Value, Date?) = read(from: fileURL) else {
-            return nil
+    func clearAll() {
+        queue.async(flags: .barrier) { [weak self] in
+            guard let self else { return }
+            
+            do {
+                let contents = try self.fileManager.contentsOfDirectory(
+                    at: self.cacheURL,
+                    includingPropertiesForKeys: nil
+                )
+                
+                for fileURL in contents {
+                    try? self.fileManager.removeItem(at: fileURL)
+                }
+            } catch {
+                print("Failed to clear disk cache: \(error)")
+            }
         }
-        
-        if let expirationDate, Date() > expirationDate {
-            removeValue(forKey: key)
-            return nil
-        }
-        
-        return value
-    }
-    
-    func removeValue(forKey key: Key) {
-        let fileURL = self.fileURL(for: key)
-        removeItem(at: fileURL)
     }
     
     subscript(key: Key) -> Value? {
         get {
-            return value(forKey: key)
+            let fileURL = self.fileURL(for: key)
+            guard let (value, expirationDate): (Value, Date?) = read(from: fileURL) else {
+                return nil
+            }
+            
+            if let expirationDate, Date() > expirationDate {
+                removeItem(at: fileURL)
+                return nil
+            }
+            
+            return value
         }
         set {
+            let fileURL = self.fileURL(for: key)
             if let value = newValue {
-                insert(value, forKey: key)
+                let expirationDate = expiration.expirationDate()
+                write(value, to: fileURL, expirationDate: expirationDate)
             } else {
-                removeValue(forKey: key)
+                removeItem(at: fileURL)
             }
         }
     }
@@ -117,26 +123,8 @@ final class DiskCache<Key: Hashable & Sendable, Value: Codable & Sendable>: Cach
             try? self.fileManager.removeItem(at: fileURL)
         }
     }
-    
-    func clearAll() {
-        queue.async(flags: .barrier) { [weak self] in
-            guard let self else { return }
-            
-            do {
-                let contents = try self.fileManager.contentsOfDirectory(
-                    at: self.cacheURL,
-                    includingPropertiesForKeys: nil
-                )
-                
-                for fileURL in contents {
-                    try? self.fileManager.removeItem(at: fileURL)
-                }
-            } catch {
-                print("Failed to clear disk cache: \(error)")
-            }
-        }
-    }
 }
+
 private struct CacheEntryWrapper<T: Codable>: Codable {
     let value: T
     let expirationDate: Date?

@@ -37,10 +37,16 @@ import Foundation
 ///     expiration: .never
 /// )
 ///
-/// // Use the cache
-/// cache.insert(imageData, forKey: "avatar.jpg")
-/// if let data = cache.value(forKey: "avatar.jpg") {
+/// // Use the cache with subscripts
+/// cache["avatar.jpg"] = imageData
+/// if let data = cache["avatar.jpg"] {
 ///     // Use cached data
+/// }
+///
+/// // Or use the convenience method
+/// let data = cache.get(forKey: "avatar.jpg") {
+///     // Fetch the data if not cached
+///     return fetchImageData()
 /// }
 /// ```
 final class HybridCache<Key: Hashable & Sendable, Value: Codable & Sendable>: Cache, @unchecked Sendable {
@@ -62,37 +68,6 @@ final class HybridCache<Key: Hashable & Sendable, Value: Codable & Sendable>: Ca
     
     // MARK: - Cache Protocol Conformance
     
-    /// Inserts a value for the given key in both memory and disk caches.
-    func insert(_ value: Value, forKey key: Key) {
-        // Store in both caches
-        memoryCache.insert(value, forKey: key)
-        diskCache.insert(value, forKey: key)
-    }
-    
-    /// Retrieves the value for the given key, checking memory first, then disk.
-    /// If found on disk but not in memory, the value is restored to the memory cache.
-    func value(forKey key: Key) -> Value? {
-        // Check memory cache first (fast path)
-        if let memoryValue = memoryCache.value(forKey: key) {
-            return memoryValue
-        }
-        
-        // Check disk cache (slower path)
-        if let diskValue = diskCache.value(forKey: key) {
-            // Restore to memory cache for future fast access
-            memoryCache.insert(diskValue, forKey: key)
-            return diskValue
-        }
-        
-        return nil
-    }
-    
-    /// Removes the value for the given key from both memory and disk caches.
-    func removeValue(forKey key: Key) {
-        memoryCache.removeValue(forKey: key)
-        diskCache.removeValue(forKey: key)
-    }
-    
     /// Clears all cached values from both memory and disk.
     func clearAll() {
         memoryCache.clearAll()
@@ -103,13 +78,24 @@ final class HybridCache<Key: Hashable & Sendable, Value: Codable & Sendable>: Ca
     
     subscript(key: Key) -> Value? {
         get {
-            return value(forKey: key)
+            if let memoryValue = memoryCache[key] {
+                return memoryValue
+            }
+            
+            if let diskValue = diskCache[key] {
+                memoryCache[key] = diskValue
+                return diskValue
+            }
+            
+            return nil
         }
         set {
             if let value = newValue {
-                insert(value, forKey: key)
+                memoryCache[key] = value
+                diskCache[key] = value
             } else {
-                removeValue(forKey: key)
+                memoryCache[key] = nil
+                diskCache[key] = nil
             }
         }
     }

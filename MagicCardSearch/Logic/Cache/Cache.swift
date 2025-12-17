@@ -30,25 +30,13 @@ protocol Cache<Key, Value>: Sendable {
     associatedtype Key: Hashable & Sendable
     associatedtype Value: Sendable
     
-    /// Inserts a value for the given key.
-    /// - Parameters:
-    ///   - value: The value to store
-    ///   - key: The key to associate with the value
-    func insert(_ value: Value, forKey key: Key)
-    
-    /// Retrieves the value for the given key, if it exists and hasn't expired.
-    /// - Parameter key: The key to look up
-    /// - Returns: The cached value, or nil if not found or expired
-    func value(forKey key: Key) -> Value?
-    
-    /// Removes the value for the given key.
-    /// - Parameter key: The key whose value should be removed
-    func removeValue(forKey key: Key)
-    
     /// Clears all cached values.
     func clearAll()
     
     /// Subscript access to cached values.
+    /// - Parameter key: The key to store or retrieve the value
+    /// - Returns: The cached value, or nil if not found or expired
+    /// - Note: Setting to nil removes the value for the given key
     subscript(key: Key) -> Value? { get set }
 }
 
@@ -61,12 +49,12 @@ extension Cache {
     ///   - fetchValue: A closure that returns a value if the key is not found in cache
     /// - Returns: The cached value or the result of the closure
     func get(forKey key: Key, orFetch fetchValue: @Sendable () throws -> Value) rethrows -> Value {
-        if let cachedValue = value(forKey: key) {
+        if let cachedValue = self[key] {
             return cachedValue
         }
         
         let fetchedValue = try fetchValue()
-        insert(fetchedValue, forKey: key)
+        self[key] = fetchedValue
         return fetchedValue
     }
     
@@ -77,12 +65,12 @@ extension Cache {
     ///   - fetchValue: An async closure that returns a value if the key is not found in cache
     /// - Returns: The cached value or the result of the closure
     func get(forKey key: Key, orFetch fetchValue: @Sendable () async throws -> Value) async rethrows -> Value {
-        if let cachedValue = value(forKey: key) {
+        if let cachedValue = self[key] {
             return cachedValue
         }
         
         let fetchedValue = try await fetchValue()
-        insert(fetchedValue, forKey: key)
+        self[key] = fetchedValue
         return fetchedValue
     }
 }

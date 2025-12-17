@@ -17,42 +17,30 @@ final class MemoryCache<Key: Hashable & Sendable, Value: Sendable>: Cache, @unch
     
     // MARK: - Cache Protocol Conformance
     
-    func insert(_ value: Value, forKey key: Key) {
-        let expirationDate = expiration.expirationDate()
-        let entry = Entry(value: value, expirationDate: expirationDate)
-        cache.setObject(entry, forKey: WrappedKey(key))
-    }
-    
-    func value(forKey key: Key) -> Value? {
-        guard let entry = cache.object(forKey: WrappedKey(key)) else {
-            return nil
-        }
-        
-        guard !entry.isExpired else {
-            removeValue(forKey: key)
-            return nil
-        }
-        
-        return entry.value
-    }
-    
-    func removeValue(forKey key: Key) {
-        cache.removeObject(forKey: WrappedKey(key))
-    }
-    
     func clearAll() {
         cache.removeAllObjects()
     }
     
     subscript(key: Key) -> Value? {
         get {
-            return value(forKey: key)
+            guard let entry = cache.object(forKey: WrappedKey(key)) else {
+                return nil
+            }
+            
+            guard !entry.isExpired else {
+                cache.removeObject(forKey: WrappedKey(key))
+                return nil
+            }
+            
+            return entry.value
         }
         set {
             if let value = newValue {
-                insert(value, forKey: key)
+                let expirationDate = expiration.expirationDate()
+                let entry = Entry(value: value, expirationDate: expirationDate)
+                cache.setObject(entry, forKey: WrappedKey(key))
             } else {
-                removeValue(forKey: key)
+                cache.removeObject(forKey: WrappedKey(key))
             }
         }
     }

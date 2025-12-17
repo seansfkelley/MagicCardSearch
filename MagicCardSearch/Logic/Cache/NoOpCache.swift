@@ -15,12 +15,6 @@ final class NoOpCache<Key: Hashable & Sendable, Value: Sendable>: Cache, Sendabl
     
     // MARK: - Cache Protocol Conformance
     
-    func insert(_ value: Value, forKey key: Key) { }
-    
-    func value(forKey key: Key) -> Value? { nil }
-    
-    func removeValue(forKey key: Key) {}
-    
     func clearAll() {}
     
     subscript(key: Key) -> Value? {
