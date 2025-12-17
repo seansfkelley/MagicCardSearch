@@ -10,17 +10,33 @@ import SVGKit
 import ScryfallKit
 
 struct SetIconView: View {
-    private static let setIconCache: NSCache<NSString, UIImage> = {
-        let cache = NSCache<NSString, UIImage>()
-        cache.countLimit = 100
-        return cache
+    struct RenderedImageCacheKey: Hashable, Sendable {
+        let setCode: String
+        let size: CGFloat
+    }
+    
+    private static let svgDataCache: any Cache<String, Data> = {
+        let memoryCache = MemoryCache<String, Data>(expiration: .interval(60 * 60 * 24))
+        return if let diskCache = DiskCache<String, Data>(name: "SymbolSvg", expiration: .interval(60 * 60 * 24 * 30)) {
+            HybridCache(memoryCache: memoryCache, diskCache: diskCache)
+        } else {
+            memoryCache
+        }
     }()
+    
+    private static let renderedImageCache: any Cache<RenderedImageCacheKey, UIImage> = MemoryCache<RenderedImageCacheKey, UIImage>(
+        expiration: .never
+    )
     
     let setCode: String
     var size: CGFloat = 32
     
     @State private var renderedImage: UIImage?
     @State private var isLoading = true
+    
+    private var imageCacheKey: RenderedImageCacheKey {
+        RenderedImageCacheKey(setCode: setCode.lowercased(), size: size)
+    }
     
     var body: some View {
         Group {
@@ -42,36 +58,41 @@ struct SetIconView: View {
             }
         }
         .task {
-            await loadAndRenderSVG()
+            await loadAndRender()
         }
     }
     
-    private func loadAndRenderSVG() async {
-        let cacheKey = "\(setCode.lowercased())_\(Int(size))" as NSString
-        
-        // Check cache first
-        if let cachedImage = SetIconView.setIconCache.object(forKey: cacheKey) {
+    private func loadAndRender() async {
+        // Check rendered image cache
+        if let renderedImage = Self.renderedImageCache[imageCacheKey] {
             await MainActor.run {
-                self.renderedImage = cachedImage
+                self.renderedImage = renderedImage
                 self.isLoading = false
             }
             return
         }
         
-        // Get the SVG URI from MTGSetCache
-        guard let set = try? await MTGSetCache.shared.getSet(byCode: setCode),
-              let url = URL(string: set.iconSvgUri) else {
+        let symbolResult = await ScryfallMetadataCache.shared.symbol(self.symbol)
+        guard case .success(let symbolData) = symbolResult,
+              let svgUriString = symbolData.svgUri,
+              let url = URL(string: svgUriString) else {
             await MainActor.run { isLoading = false }
             return
         }
         
-        print("Requesting icon \(url)")
+        let svgCacheKey = setCode.lowercased()
         
         do {
-            let (data, _) = try await URLSession.shared.data(from: url)
+            // Try to get SVG data from cache, or fetch and cache it
+            let svgData = try await Self.svgDataCache.get(forKey: svgCacheKey) {
+                // Fetch SVG data from network
+                print("Requesting icon \(url)")
+                let (data, _) = try await URLSession.shared.data(from: url)
+                return data
+            }
             
             // Parse and render SVG
-            guard let svgImage = SVGKImage(data: data) else {
+            guard let svgImage = SVGKImage(data: svgData) else {
                 await MainActor.run { isLoading = false }
                 return
             }
@@ -95,8 +116,8 @@ struct SetIconView: View {
                 return
             }
             
-            // Cache the rendered image
-            SetIconView.setIconCache.setObject(uiImage, forKey: cacheKey)
+            // Cache the rendered image (wrap in CodableImage)
+            Self.renderedImageCache[imageCacheKey] = uiImage.codable
             
             await MainActor.run {
                 self.renderedImage = uiImage

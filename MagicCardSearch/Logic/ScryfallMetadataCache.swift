@@ -13,6 +13,26 @@ enum ScryfallMetadataError: Error {
 }
 
 actor ScryfallMetadataCache {
+    struct SymbolCode: Equatable, Hashable, Sendable, Codable {
+        let normalized: String
+        
+        init(_ symbol: String) {
+            let trimmed = symbol.trimmingCharacters(in: .whitespaces).uppercased()
+            let braced = trimmed.hasPrefix("{") && trimmed.hasSuffix("}")
+                ? trimmed
+                : "{\(trimmed)}"
+            self.normalized = braced
+        }
+    }
+    
+    struct SetCode: Equatable, Hashable, Sendable, Codable {
+        let normalized: String
+        
+        init(_ set: String) {
+            self.normalized = set.trimmingCharacters(in: .whitespaces).uppercased()
+        }
+    }
+    
     // MARK: - Singleton
 
     public static let shared = ScryfallMetadataCache()
@@ -20,8 +40,8 @@ actor ScryfallMetadataCache {
     // MARK: - Private Properties
 
     private let scryfallClient = ScryfallClient()
-    private let symbolCache: HybridCache<String, [String: Card.Symbol]>
-    private let setCache: HybridCache<String, [String: MTGSet]>
+    private let symbolCache: HybridCache<String, [SymbolCode: Card.Symbol]>
+    private let setCache: HybridCache<String, [SetCode: MTGSet]>
 
     private init() {
         symbolCache = HybridCache(
@@ -37,50 +57,45 @@ actor ScryfallMetadataCache {
 
     // MARK: - Public Methods
 
-    public func symbol(_ symbol: String) async -> Result<Card.Symbol, ScryfallMetadataError> {
-        let allSymbolMetadata: [String: Card.Symbol]
+    public func symbol(_ symbol: SymbolCode) async -> Result<Card.Symbol, ScryfallMetadataError> {
+        let allSymbolMetadata: [SymbolCode: Card.Symbol]
         do {
             allSymbolMetadata = try await symbolCache.get(forKey: "symbology") {
                 let allSymbols = try await self.fetchAllPages {
                     try await scryfallClient.getSymbology()
                 }
                 return Dictionary(
-                    uniqueKeysWithValues: allSymbols.map { ($0.symbol.uppercased(), $0) },
+                    uniqueKeysWithValues: allSymbols.map { (SymbolCode($0.symbol), $0) }
                 )
             }
         } catch {
             return .failure(.errorLoadingData(error))
         }
-        
-        let normalizedSymbol = symbol.trimmingCharacters(in: .whitespaces).uppercased()
-        let withBraces = normalizedSymbol.hasPrefix("{") && normalizedSymbol.hasSuffix("}")
-            ? normalizedSymbol
-            : "{\(normalizedSymbol)}"
 
-        if let foundSymbol = allSymbolMetadata[normalizedSymbol] {
+        if let foundSymbol = allSymbolMetadata[symbol] {
             return .success(foundSymbol)
         } else {
-            return .failure(.noSuchValue(normalizedSymbol))
+            return .failure(.noSuchValue(symbol.normalized))
         }
     }
 
-    public func set(_ setCode: String) async -> Result<MTGSet, ScryfallMetadataError> {
-        let allSetMetadata: [String: MTGSet]
+    public func set(_ setCode: SetCode) async -> Result<MTGSet, ScryfallMetadataError> {
+        let allSetMetadata: [SetCode: MTGSet]
         do {
             allSetMetadata = try await setCache.get(forKey: "sets") {
                 let allSets = try await self.fetchAllPages {
                     try await scryfallClient.getSets()
                 }
-                return Dictionary(uniqueKeysWithValues: allSets.map { ($0.code.uppercased(), $0) })
+                return Dictionary(uniqueKeysWithValues: allSets.map { (SetCode($0.code), $0) })
             }
         } catch {
             return .failure(.errorLoadingData(error))
         }
 
-        if let set = allSetMetadata[setCode.uppercased()] {
-            return .success(set)
+        if let foundSet = allSetMetadata[setCode] {
+            return .success(foundSet)
         } else {
-            return .failure(.noSuchValue(setCode.uppercased()))
+            return .failure(.noSuchValue(setCode.normalized))
         }
     }
     
