@@ -10,44 +10,31 @@ import SVGKit
 import ScryfallKit
 
 struct SetIconView: View {
-    private struct RenderedImageCacheKey: Hashable, Sendable {
-        let setCode: SetCode
-        let size: CGFloat
-    }
-    
     private static let svgDataCache: any Cache<SetCode, Data> = {
         let memoryCache = MemoryCache<SetCode, Data>(expiration: .interval(60 * 60 * 24))
-        return if let diskCache = DiskCache<SetCode, Data>(name: "SymbolSvg", expiration: .interval(60 * 60 * 24 * 30)) {
+        return if let diskCache = DiskCache<SetCode, Data>(name: "SetIconSvg", expiration: .interval(60 * 60 * 24 * 30)) {
             HybridCache(memoryCache: memoryCache, diskCache: diskCache)
         } else {
             memoryCache
         }
     }()
     
-    private static var renderedImageCache: any Cache<RenderedImageCacheKey, UIImage> = MemoryCache<RenderedImageCacheKey, UIImage>(
-        expiration: .never
-    )
+    private static var renderedImageCache: any Cache<SetCode, UIImage> = {
+        return MemoryCache<SetCode, UIImage>(expiration: .never)
+    }()
     
     let setCode: SetCode
     var size: CGFloat = 32
     
-    @State private var renderedImage: UIImage?
-    @State private var isLoading = true
-    
-    private var imageCacheKey: RenderedImageCacheKey {
-        RenderedImageCacheKey(setCode: setCode, size: size)
-    }
+    @State private var imageResult: LoadableResult<UIImage> = .unloaded
     
     var body: some View {
         Group {
-            if let image = renderedImage {
+            if case .success(let image) = imageResult.latestResult {
                 Image(uiImage: image)
                     .resizable()
                     .renderingMode(.template)
                     .aspectRatio(contentMode: .fit)
-                    .frame(width: size, height: size)
-            } else if isLoading {
-                ProgressView()
                     .frame(width: size, height: size)
             } else {
                 Image(systemName: "square.stack.3d.up")
@@ -63,10 +50,20 @@ struct SetIconView: View {
     }
     
     private func loadAndRender() async {
-        if let renderedImage = Self.renderedImageCache[imageCacheKey] {
+        switch imageResult {
+        case .loaded, .loading:
+            return
+        case .unloaded:
+            break
+        }
+        
+        await MainActor.run {
+            imageResult = .loading(nil)
+        }
+        
+        if let renderedImage = Self.renderedImageCache[setCode] {
             await MainActor.run {
-                self.renderedImage = renderedImage
-                self.isLoading = false
+                self.imageResult = .loaded(.success(renderedImage))
             }
             return
         }
@@ -74,7 +71,9 @@ struct SetIconView: View {
         let symbolResult = await ScryfallMetadataCache.shared.set(self.setCode)
         guard case .success(let symbolData) = symbolResult,
               let url = URL(string: symbolData.iconSvgUri) else {
-            await MainActor.run { isLoading = false }
+            await MainActor.run {
+                imageResult = .loaded(.failure(NSError(domain: "SetIconView", code: 1, userInfo: [NSLocalizedDescriptionKey: "Failed to get set metadata"])))
+            }
             return
         }
         
@@ -86,34 +85,27 @@ struct SetIconView: View {
             }
             
             guard let svgImage = SVGKImage(data: svgData) else {
-                await MainActor.run { isLoading = false }
+                await MainActor.run {
+                    imageResult = .loaded(.failure(NSError(domain: "SetIconView", code: 2, userInfo: [NSLocalizedDescriptionKey: "Failed to create SVG image"])))
+                }
                 return
             }
-            
-            let originalSize = svgImage.size
-            
-            let aspectRatio = originalSize.width / originalSize.height
-            let scaledSize = CGSize(
-                width: size * aspectRatio,
-                height: size
-            )
-            
-            svgImage.size = scaledSize
             
             guard let uiImage = svgImage.uiImage else {
-                await MainActor.run { isLoading = false }
+                await MainActor.run {
+                    imageResult = .loaded(.failure(NSError(domain: "SetIconView", code: 3, userInfo: [NSLocalizedDescriptionKey: "Failed to render SVG to UIImage"])))
+                }
                 return
             }
             
-            Self.renderedImageCache[imageCacheKey] = uiImage
+            Self.renderedImageCache[setCode] = uiImage
             
             await MainActor.run {
-                self.renderedImage = uiImage
-                self.isLoading = false
+                self.imageResult = .loaded(.success(uiImage))
             }
         } catch {
             await MainActor.run {
-                self.isLoading = false
+                self.imageResult = .loaded(.failure(error))
             }
         }
     }

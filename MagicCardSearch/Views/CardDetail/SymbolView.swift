@@ -16,12 +16,6 @@ struct SymbolView: View {
         SymbolCode("E"), SymbolCode("CHAOS"), SymbolCode("P"), SymbolCode("H"),
     ])
     
-    private struct RenderedImageCacheKey: Hashable, Sendable {
-        let symbol: SymbolCode
-        let size: CGFloat
-        let oversize: CGFloat
-    }
-    
     private static let svgDataCache: any Cache<SymbolCode, Data> = {
         let memoryCache = MemoryCache<SymbolCode, Data>(expiration: .interval(60 * 60 * 24))
         return if let diskCache = DiskCache<SymbolCode, Data>(name: "SymbolSvg", expiration: .interval(60 * 60 * 24 * 30)) {
@@ -31,7 +25,7 @@ struct SymbolView: View {
         }
     }()
     
-    private static var renderedImageCache: any Cache<RenderedImageCacheKey, UIImage> = {
+    private static var renderedImageCache: any Cache<SymbolCode, UIImage> = {
         return MemoryCache(expiration: .never)
     }()
     
@@ -41,10 +35,6 @@ struct SymbolView: View {
     let showDropShadow: Bool
     
     @State private var imageResult: LoadableResult<(Card.Symbol, UIImage)> = .unloaded
-    
-    private var imageCacheKey: RenderedImageCacheKey {
-        RenderedImageCacheKey(symbol: symbol, size: size, oversize: oversize)
-    }
     
     init(
         _ symbol: String,
@@ -118,7 +108,7 @@ struct SymbolView: View {
             return
         }
         
-        if let renderedImage = Self.renderedImageCache[imageCacheKey] {
+        if let renderedImage = Self.renderedImageCache[symbol] {
             await MainActor.run {
                 self.imageResult = .loaded(.success((symbolData, renderedImage)))
             }
@@ -145,7 +135,7 @@ struct SymbolView: View {
                 return
             }
             
-            Self.renderedImageCache[imageCacheKey] = uiImage
+            Self.renderedImageCache[symbol] = uiImage
             
             await MainActor.run {
                 self.imageResult = .loaded(.success((symbolData, uiImage)))
