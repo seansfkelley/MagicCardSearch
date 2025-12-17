@@ -7,7 +7,7 @@
 import Foundation
 import ScryfallKit
 
-struct SymbolCode: Equatable, Hashable, Sendable, Codable {
+struct SymbolCode: Equatable, Hashable, Sendable, Codable, CustomStringConvertible {
     let normalized: String
     
     init(_ symbol: String) {
@@ -17,13 +17,21 @@ struct SymbolCode: Equatable, Hashable, Sendable, Codable {
             : "{\(trimmed)}"
         self.normalized = braced
     }
+    
+    var description: String {
+        "Symbol\(normalized)"
+    }
 }
 
-struct SetCode: Equatable, Hashable, Sendable, Codable {
+struct SetCode: Equatable, Hashable, Sendable, Codable, CustomStringConvertible {
     let normalized: String
     
     init(_ set: String) {
         self.normalized = set.trimmingCharacters(in: .whitespaces).uppercased()
+    }
+    
+    var description: String {
+        "Set[\(normalized)]"
     }
 }
 
