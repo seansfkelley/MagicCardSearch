@@ -18,6 +18,8 @@ struct SearchResultsDetailNavigator: View {
     var onNearEnd: (() -> Void)?
     var onRetryNextPage: (() -> Void)?
     
+    @ObservedObject private var listManager = BookmarkedCardListManager.shared
+    
     init(cards: [Card],
          initialIndex: Int,
          totalCount: Int = 0,
@@ -47,10 +49,7 @@ struct SearchResultsDetailNavigator: View {
             isLoadingNextPage: isLoadingNextPage,
             nextPageError: nextPageError,
             loadDistance: 1,
-            loader: { card in
-                // Since cards are already loaded, just return the card immediately
-                return card
-            },
+            loader: { $0 },
             onNearEnd: onNearEnd,
             onRetryNextPage: onRetryNextPage
         ) { card in
@@ -61,6 +60,24 @@ struct SearchResultsDetailNavigator: View {
                     set: { cardFlipStates[card.id] = $0 }
                 )
             )
+        } toolbarContent: { card in
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    let listItem = BookmarkedCard(from: card)
+                    listManager.toggleCard(listItem)
+                } label: {
+                    Image(
+                        systemName: listManager.contains(cardWithId: card.id)
+                            ? "bookmark.fill" : "bookmark"
+                    )
+                }
+            }
+
+            if let url = URL(string: card.scryfallUri) {
+                ToolbarItem(placement: .topBarTrailing) {
+                    ShareLink(item: url)
+                }
+            }
         }
     }
 }

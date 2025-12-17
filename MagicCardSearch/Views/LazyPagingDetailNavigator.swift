@@ -18,7 +18,7 @@ extension Card: Nameable {}
 
 /// A generic lazy-loading detail navigator that supports paging through items with automatic loading
 /// of items within a specified range of the current position.
-struct LazyPagingDetailNavigator<ItemReference: Nameable, Item: Identifiable, Content: View>: View where ItemReference.ID == Item.ID {
+struct LazyPagingDetailNavigator<ItemReference: Nameable, Item: Identifiable, Content: View, Toolbar: ToolbarContent>: View where ItemReference.ID == Item.ID {
     // MARK: - Types
     
     /// Represents an item that can be in various loading states
@@ -40,6 +40,7 @@ struct LazyPagingDetailNavigator<ItemReference: Nameable, Item: Identifiable, Co
     let loadDistance: Int
     let loader: (ItemReference) async throws -> Item
     let content: (Item) -> Content
+    let toolbarContent: ((Item) -> Toolbar)?
     var onNearEnd: (() -> Void)?
     var onRetryNextPage: (() -> Void)?
     
@@ -61,7 +62,8 @@ struct LazyPagingDetailNavigator<ItemReference: Nameable, Item: Identifiable, Co
         loader: @escaping (ItemReference) async throws -> Item,
         onNearEnd: (() -> Void)? = nil,
         onRetryNextPage: (() -> Void)? = nil,
-        @ViewBuilder content: @escaping (Item) -> Content
+        @ViewBuilder content: @escaping (Item) -> Content,
+        @ToolbarContentBuilder toolbarContent: @escaping (Item) -> Toolbar
     ) {
         self.items = items
         self.initialIndex = initialIndex
@@ -72,6 +74,7 @@ struct LazyPagingDetailNavigator<ItemReference: Nameable, Item: Identifiable, Co
         self.loadDistance = loadDistance
         self.loader = loader
         self.content = content
+        self.toolbarContent = toolbarContent
         self.onNearEnd = onNearEnd
         self.onRetryNextPage = onRetryNextPage
         self._currentIndex = State(initialValue: initialIndex)
@@ -113,6 +116,15 @@ struct LazyPagingDetailNavigator<ItemReference: Nameable, Item: Identifiable, Co
                     } label: {
                         Image(systemName: "xmark")
                     }
+                }
+                
+                // Add item-specific toolbar content for the current item
+                if let toolbarContent = toolbarContent,
+                   currentIndex >= 0,
+                   currentIndex < items.count,
+                   let itemRef = items[safe: currentIndex],
+                   case .loaded(let item) = loadedItems[itemRef.id] {
+                    toolbarContent(item)
                 }
             }
             .safeAreaInset(edge: .bottom) {

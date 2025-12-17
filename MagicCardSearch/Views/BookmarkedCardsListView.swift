@@ -182,6 +182,7 @@ private struct BookmarkedCardDetailNavigator: View {
     let initialIndex: Int
     
     @State private var cardFlipStates: [UUID: Bool] = [:]
+    @ObservedObject private var listManager = BookmarkedCardListManager.shared
     
     private let cardSearchService = CardSearchService()
     
@@ -206,6 +207,24 @@ private struct BookmarkedCardDetailNavigator: View {
                     set: { cardFlipStates[card.id] = $0 }
                 )
             )
+        } toolbarContent: { card in
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    let listItem = BookmarkedCard(from: card)
+                    listManager.toggleCard(listItem)
+                } label: {
+                    Image(
+                        systemName: listManager.contains(cardWithId: card.id)
+                            ? "bookmark.fill" : "bookmark"
+                    )
+                }
+            }
+
+            if let url = URL(string: card.scryfallUri) {
+                ToolbarItem(placement: .topBarTrailing) {
+                    ShareLink(item: url)
+                }
+            }
         }
     }
 }

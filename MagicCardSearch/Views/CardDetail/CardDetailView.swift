@@ -130,25 +130,6 @@ struct CardDetailView: View {
         .task {
             await loadRulings(from: card.rulingsUri)
         }
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    let listItem = BookmarkedCard(from: card)
-                    listManager.toggleCard(listItem)
-                } label: {
-                    Image(
-                        systemName: listManager.contains(cardWithId: card.id)
-                            ? "bookmark.fill" : "bookmark"
-                    )
-                }
-            }
-
-            if let url = URL(string: card.scryfallUri) {
-                ToolbarItem(placement: .topBarTrailing) {
-                    ShareLink(item: url)
-                }
-            }
-        }
         .sheet(item: $relatedCardToShow) { relatedCard in
             NavigationStack {
                 CardDetailView(card: relatedCard, isFlipped: $isFlipped)
