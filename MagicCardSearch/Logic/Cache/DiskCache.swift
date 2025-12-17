@@ -13,21 +13,27 @@ private let logger = Logger(label: "DiskCache")
 final class DiskCache<Key: Hashable & Sendable, Value: Codable & Sendable>: Cache, @unchecked Sendable {
     let cacheURL: URL
     let expiration: Expiration
+    let nonce: String?
     private let fileManager: FileManager
     private let queue = DispatchQueue(label: "com.magicardsearch.diskcache", attributes: .concurrent)
     private let inFlightTracker: InFlightRequestTracker<Key, Value>
     
-    init?(name: String, expiration: Expiration, fileManager: FileManager = .default) {
+    init?(name: String, expiration: Expiration, nonce: String? = nil, fileManager: FileManager = .default) {
         guard let cachesURL = fileManager.urls(for: .cachesDirectory, in: .userDomainMask).first else {
             return nil
         }
         
         self.fileManager = fileManager
         self.expiration = expiration
+        self.nonce = nonce
         self.cacheURL = cachesURL.appendingPathComponent(name, isDirectory: true)
         self.inFlightTracker = InFlightRequestTracker(label: "DiskCache.\(name)")
         
         try? fileManager.createDirectory(at: cacheURL, withIntermediateDirectories: true)
+        
+        if let nonce {
+            logger.debug("DiskCache initialized with nonce", metadata: ["nonce": "\(nonce)"])
+        }
     }
     
     // MARK: - Cache Protocol Conformance
@@ -90,8 +96,18 @@ final class DiskCache<Key: Hashable & Sendable, Value: Codable & Sendable>: Cach
     subscript(key: Key) -> Value? {
         get {
             let fileURL = self.fileURL(for: key)
-            guard let (value, expirationDate): (Value, Date?) = read(from: fileURL) else {
+            guard let (value, expirationDate, cachedNonce): (Value, Date?, String?) = read(from: fileURL) else {
                 logger.debug("Cache miss", metadata: ["key": "\(key)"])
+                return nil
+            }
+            
+            if self.nonce != cachedNonce {
+                logger.debug("Cache nonce mismatch, invalidating entry", metadata: [
+                    "key": "\(key)",
+                    "currentNonce": "\(self.nonce ?? "nil")",
+                    "cachedNonce": "\(cachedNonce ?? "nil")",
+                ])
+                removeItem(at: fileURL)
                 return nil
             }
             
@@ -112,7 +128,7 @@ final class DiskCache<Key: Hashable & Sendable, Value: Codable & Sendable>: Cach
             if let value = newValue {
                 logger.debug("Cache set", metadata: ["key": "\(key)"])
                 let expirationDate = expiration.expirationDate()
-                write(value, to: fileURL, expirationDate: expirationDate)
+                write(value, to: fileURL, expirationDate: expirationDate, nonce: self.nonce)
             } else {
                 logger.debug("Cache remove", metadata: ["key": "\(key)"])
                 removeItem(at: fileURL)
@@ -127,12 +143,12 @@ final class DiskCache<Key: Hashable & Sendable, Value: Codable & Sendable>: Cach
         return cacheURL.appendingPathComponent(fileName)
     }
     
-    private func write(_ value: Value, to fileURL: URL, expirationDate: Date?) {
+    private func write(_ value: Value, to fileURL: URL, expirationDate: Date?, nonce: String?) {
         queue.async(flags: .barrier) { [weak self] in
             guard let self else { return }
             
             do {
-                let wrapper = CacheEntryWrapper(value: value, expirationDate: expirationDate)
+                let wrapper = CacheEntryWrapper(value: value, expirationDate: expirationDate, nonce: nonce)
                 let data = try JSONEncoder().encode(wrapper)
                 try data.write(to: fileURL)
             } catch {
@@ -144,13 +160,13 @@ final class DiskCache<Key: Hashable & Sendable, Value: Codable & Sendable>: Cach
         }
     }
     
-    private func read(from fileURL: URL) -> (value: Value, expirationDate: Date?)? {
+    private func read(from fileURL: URL) -> (value: Value, expirationDate: Date?, nonce: String?)? {
         return queue.sync {
             guard let data = try? Data(contentsOf: fileURL),
                   let wrapper = try? JSONDecoder().decode(CacheEntryWrapper<Value>.self, from: data) else {
                 return nil
             }
-            return (wrapper.value, wrapper.expirationDate)
+            return (wrapper.value, wrapper.expirationDate, wrapper.nonce)
         }
     }
     
@@ -165,4 +181,5 @@ final class DiskCache<Key: Hashable & Sendable, Value: Codable & Sendable>: Cach
 private struct CacheEntryWrapper<T: Codable>: Codable {
     let value: T
     let expirationDate: Date?
+    let nonce: String?
 }

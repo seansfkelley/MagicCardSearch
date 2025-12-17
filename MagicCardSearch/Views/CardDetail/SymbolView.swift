@@ -18,7 +18,10 @@ struct SymbolView: View {
     
     private static let svgDataCache: any Cache<SymbolCode, Data> = {
         let memoryCache = MemoryCache<SymbolCode, Data>(expiration: .interval(60 * 60 * 24))
-        return if let diskCache = DiskCache<SymbolCode, Data>(name: "SymbolSvg", expiration: .interval(60 * 60 * 24 * 30)) {
+        return if let diskCache = DiskCache<SymbolCode, Data>(
+            name: "SymbolSvg",
+            expiration: .interval(60 * 60 * 24 * 30),
+        ) {
             HybridCache(memoryCache: memoryCache, diskCache: diskCache)
         } else {
             memoryCache

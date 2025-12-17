@@ -51,19 +51,19 @@ actor ScryfallMetadataCache {
     // MARK: - Private Properties
 
     private let scryfallClient = ScryfallClient()
-    private var symbolCache: HybridCache<String, [SymbolCode: Card.Symbol]>
-    private var setCache: HybridCache<String, [SetCode: MTGSet]>
+    private var symbolCache: any Cache<String, [SymbolCode: Card.Symbol]>
+    private var setCache: any Cache<String, [SetCode: MTGSet]>
 
     private init() {
         symbolCache = HybridCache(
             name: "ScryfallSymbols",
-            expiration: .interval(30 * 24 * 60 * 60)  // 30 days
-        )!
+            expiration: .interval(30 * 24 * 60 * 60),
+        ) ?? MemoryCache(expiration: .never)
 
         setCache = HybridCache(
             name: "ScryfallSets",
-            expiration: .interval(24 * 60 * 60)  // 1 day
-        )!
+            expiration: .interval(24 * 60 * 60),
+        ) ?? MemoryCache(expiration: .never)
     }
 
     // MARK: - Public Methods

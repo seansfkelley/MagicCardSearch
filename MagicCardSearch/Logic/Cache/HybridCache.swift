@@ -40,6 +40,14 @@ private let logger = Logger(label: "HybridCache")
 ///     expiration: .never
 /// )
 ///
+/// // Option 5: Use cache-busting with a nonce
+/// let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
+/// let versionedCache = HybridCache<String, Data>(
+///     name: "versionedData",
+///     expiration: .never,
+///     nonce: appVersion  // Will invalidate cache when app version changes
+/// )
+///
 /// // Use the cache with subscripts
 /// cache["avatar.jpg"] = imageData
 /// if let data = cache["avatar.jpg"] {
@@ -160,8 +168,9 @@ extension HybridCache {
     /// - Parameters:
     ///   - name: The name to use for the disk cache directory and logger label
     ///   - expiration: The expiration policy to use for both caches
-    convenience init?(name: String, expiration: Expiration) {
-        guard let diskCache = DiskCache<Key, Value>(name: name, expiration: expiration) else {
+    ///   - nonce: An optional cache-busting nonce. If provided, any existing disk cache entries with a different nonce will be invalidated.
+    convenience init?(name: String, expiration: Expiration, nonce: String? = nil) {
+        guard let diskCache = DiskCache<Key, Value>(name: name, expiration: expiration, nonce: nonce) else {
             return nil
         }
         let memoryCache = MemoryCache<Key, Value>(expiration: expiration)
@@ -173,8 +182,9 @@ extension HybridCache {
     ///   - name: The name to use for the disk cache directory and logger label
     ///   - memoryExpiration: The expiration policy for the memory cache
     ///   - diskExpiration: The expiration policy for the disk cache
-    convenience init?(name: String, memoryExpiration: Expiration, diskExpiration: Expiration) {
-        guard let diskCache = DiskCache<Key, Value>(name: name, expiration: diskExpiration) else {
+    ///   - nonce: An optional cache-busting nonce. If provided, any existing disk cache entries with a different nonce will be invalidated.
+    convenience init?(name: String, memoryExpiration: Expiration, diskExpiration: Expiration, nonce: String? = nil) {
+        guard let diskCache = DiskCache<Key, Value>(name: name, expiration: diskExpiration, nonce: nonce) else {
             return nil
         }
         let memoryCache = MemoryCache<Key, Value>(expiration: memoryExpiration)
