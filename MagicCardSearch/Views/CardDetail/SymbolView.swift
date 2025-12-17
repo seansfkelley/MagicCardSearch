@@ -10,7 +10,7 @@ import ScryfallKit
 import SVGKit
 
 struct SymbolView: View {
-    struct RenderedImageCacheKey: Hashable, Sendable {
+    private struct RenderedImageCacheKey: Hashable, Sendable {
         let symbol: SymbolCode
         let size: CGFloat
         let oversize: CGFloat
@@ -40,7 +40,7 @@ struct SymbolView: View {
         RenderedImageCacheKey(symbol: symbol, size: size, oversize: oversize)
     }
     
-    init?(
+    init(
         _ symbol: String,
         size: CGFloat = 16,
         oversize: CGFloat? = nil,

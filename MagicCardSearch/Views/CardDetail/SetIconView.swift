@@ -10,7 +10,7 @@ import SVGKit
 import ScryfallKit
 
 struct SetIconView: View {
-    struct RenderedImageCacheKey: Hashable, Sendable {
+    private struct RenderedImageCacheKey: Hashable, Sendable {
         let setCode: SetCode
         let size: CGFloat
     }
