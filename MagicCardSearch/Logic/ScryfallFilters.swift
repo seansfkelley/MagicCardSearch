@@ -280,7 +280,8 @@ let scryfallFilterTypes: [ScryfallFilterType] = [
         // empty -- we don't enumerate the languages
     ]),
     
-    // MARK: - Others not listed in the documentation
+    // MARK: - Layout
+    // https://scryfall.com/docs/api/layouts
     .init("layout", enumerationValues: [
         "normal", "split", "flip", "transform", "meld", "leveler", "saga", "adventure", "planar",
         "scheme", "vanguard", "token", "emblem", "augment", "host", "class", "battle", "case",
