@@ -40,47 +40,30 @@ protocol Cache<Key, Value>: AnyObject, Sendable {
     /// - Returns: The cached value, or nil if not found or expired
     /// - Note: Setting to nil removes the value for the given key
     subscript(key: Key) -> Value? { get set }
-}
-
-/// Extension providing convenience methods for caches.
-extension Cache {
+    
     /// Retrieves the value for the given key, or executes the provided closure if not found.
     /// The result of the closure is automatically cached.
-    /// 
-    /// - Note: This method is not marked as `mutating` because all conforming types are reference types (classes).
-    ///         If you need to support value types (structs), add a `mutating` version of this method.
-    /// 
+    ///
+    /// This method ensures that only one fetch operation is in progress for a given key at a time.
+    /// If multiple concurrent requests are made for the same key, they will all wait for the
+    /// single in-flight request to complete.
+    ///
     /// - Parameters:
     ///   - key: The key to look up
     ///   - fetchValue: A closure that returns a value if the key is not found in cache
     /// - Returns: The cached value or the result of the closure
-    func get(forKey key: Key, orFetch fetchValue: @Sendable () throws -> Value) rethrows -> Value {
-        if let cachedValue = self[key] {
-            return cachedValue
-        }
-        
-        let fetchedValue = try fetchValue()
-        self[key] = fetchedValue
-        return fetchedValue
-    }
+    func get(forKey key: Key, orFetch fetchValue: @escaping @Sendable () throws -> Value) throws -> Value
     
     /// Async version: Retrieves the value for the given key, or executes the provided async closure if not found.
     /// The result of the closure is automatically cached.
-    /// 
-    /// - Note: This method is not marked as `mutating` because all conforming types are reference types (classes).
-    ///         If you need to support value types (structs), add a `mutating` version of this method.
-    /// 
+    ///
+    /// This method ensures that only one fetch operation is in progress for a given key at a time.
+    /// If multiple concurrent requests are made for the same key, they will all wait for the
+    /// single in-flight request to complete.
+    ///
     /// - Parameters:
     ///   - key: The key to look up
     ///   - fetchValue: An async closure that returns a value if the key is not found in cache
     /// - Returns: The cached value or the result of the closure
-    func get(forKey key: Key, orFetch fetchValue: @Sendable () async throws -> Value) async rethrows -> Value {
-        if let cachedValue = self[key] {
-            return cachedValue
-        }
-        
-        let fetchedValue = try await fetchValue()
-        self[key] = fetchedValue
-        return fetchedValue
-    }
+    func get(forKey key: Key, orFetch fetchValue: @escaping @Sendable () async throws -> Value) async throws -> Value
 }

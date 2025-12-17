@@ -6,6 +6,9 @@
 //
 import Foundation
 import ScryfallKit
+import Logging
+
+private let logger = Logger(label: "ScryfallMetadataCache")
 
 struct SymbolCode: Equatable, Hashable, Sendable, Codable, CustomStringConvertible {
     let normalized: String
@@ -69,8 +72,9 @@ actor ScryfallMetadataCache {
         let allSymbolMetadata: [SymbolCode: Card.Symbol]
         do {
             allSymbolMetadata = try await symbolCache.get(forKey: "symbology") {
+                logger.info("Fetching symbology...")
                 let allSymbols = try await self.fetchAllPages {
-                    try await scryfallClient.getSymbology()
+                    try await self.scryfallClient.getSymbology()
                 }
                 return Dictionary(
                     uniqueKeysWithValues: allSymbols.map { (SymbolCode($0.symbol), $0) }
@@ -91,8 +95,9 @@ actor ScryfallMetadataCache {
         let allSetMetadata: [SetCode: MTGSet]
         do {
             allSetMetadata = try await setCache.get(forKey: "sets") {
+                logger.info("Fetching sets...")
                 let allSets = try await self.fetchAllPages {
-                    try await scryfallClient.getSets()
+                    try await self.scryfallClient.getSets()
                 }
                 return Dictionary(uniqueKeysWithValues: allSets.map { (SetCode($0.code), $0) })
             }

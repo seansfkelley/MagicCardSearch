@@ -17,6 +17,14 @@ final class NoOpCache<Key: Hashable & Sendable, Value: Sendable>: Cache, Sendabl
     
     func clearAll() {}
     
+    func get(forKey key: Key, orFetch fetchValue: @Sendable () throws -> Value) throws -> Value {
+        try fetchValue()
+    }
+
+    func get(forKey key: Key, orFetch fetchValue: @Sendable () async throws -> Value) async throws -> Value {
+        try await fetchValue()
+    }
+    
     subscript(key: Key) -> Value? {
         get { nil }
         // swiftlint:disable:next unused_setter_value

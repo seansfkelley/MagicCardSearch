@@ -14,7 +14,7 @@ struct MagicCardSearchApp: App {
         // Configure logging to show debug level logs with a cleaner format
         LoggingSystem.bootstrap { label in
             var handler = CompactLogHandler(label: label)
-            handler.logLevel = .debug
+            handler.logLevel = .info
             return handler
         }
     }

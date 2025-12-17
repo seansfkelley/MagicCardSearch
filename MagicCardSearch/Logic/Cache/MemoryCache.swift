@@ -13,15 +13,48 @@ private let logger = Logger(label: "MemoryCache")
 final class MemoryCache<Key: Hashable & Sendable, Value: Sendable>: Cache, @unchecked Sendable {
     let cache = NSCache<WrappedKey<Key>, Entry<Value>>()
     let expiration: Expiration
+    private let inFlightTracker: InFlightRequestTracker<Key, Value>
     
-    init(expiration: Expiration, label: String = "MemoryCache") {
+    init(expiration: Expiration) {
         self.expiration = expiration
+        self.inFlightTracker = InFlightRequestTracker(label: "MemoryCache")
     }
     
     // MARK: - Cache Protocol Conformance
     
     func clearAll() {
         cache.removeAllObjects()
+        
+        Task {
+            await inFlightTracker.cancelAll()
+        }
+    }
+    
+    // MARK: - Get Methods with Request Coalescing
+    
+    /// Retrieves the value for the given key, or executes the provided closure if not found.
+    /// Ensures only one fetch operation is in progress per key.
+    func get(forKey key: Key, orFetch fetchValue: @Sendable () throws -> Value) throws -> Value {
+        if let cachedValue = self[key] {
+            return cachedValue
+        }
+        
+        let fetchedValue = try fetchValue()
+        self[key] = fetchedValue
+        return fetchedValue
+    }
+    
+    /// Async version: Retrieves the value for the given key, or executes the provided async closure if not found.
+    /// Ensures only one fetch operation is in progress per key.
+    func get(forKey key: Key, orFetch fetchValue: @escaping @Sendable () async throws -> Value) async throws -> Value {
+        if let cachedValue = self[key] {
+            return cachedValue
+        }
+        
+        let value = try await inFlightTracker.getOrFetch(forKey: key, fetch: fetchValue)
+        
+        self[key] = value
+        return value
     }
     
     subscript(key: Key) -> Value? {

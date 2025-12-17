@@ -58,6 +58,9 @@ final class HybridCache<Key: Hashable & Sendable, Value: Codable & Sendable>: Ca
     private let memoryCache: MemoryCache<Key, Value>
     private let diskCache: DiskCache<Key, Value>
     
+    // Track in-flight requests to prevent duplicate fetches
+    private let inFlightTracker: InFlightRequestTracker<Key, Value>
+    
     // MARK: - Initialization
     
     /// Creates a hybrid cache with the provided memory and disk caches.
@@ -68,6 +71,7 @@ final class HybridCache<Key: Hashable & Sendable, Value: Codable & Sendable>: Ca
     init(memoryCache: MemoryCache<Key, Value>, diskCache: DiskCache<Key, Value>, label: String = "HybridCache") {
         self.memoryCache = memoryCache
         self.diskCache = diskCache
+        self.inFlightTracker = InFlightRequestTracker(label: label)
     }
     
     // MARK: - Cache Protocol Conformance
@@ -76,6 +80,44 @@ final class HybridCache<Key: Hashable & Sendable, Value: Codable & Sendable>: Ca
     func clearAll() {
         memoryCache.clearAll()
         diskCache.clearAll()
+        
+        // Cancel all in-flight requests
+        Task {
+            await inFlightTracker.cancelAll()
+        }
+    }
+    
+    // MARK: - Get Methods with Request Coalescing
+    
+    /// Retrieves the value for the given key, or executes the provided closure if not found.
+    /// Ensures only one fetch operation is in progress per key.
+    func get(forKey key: Key, orFetch fetchValue: @escaping @Sendable () throws -> Value) throws -> Value {
+        // Check cache first
+        if let cachedValue = self[key] {
+            return cachedValue
+        }
+        
+        // This is the synchronous version - we can't really coalesce sync requests
+        // since they're blocking anyway. Just fetch and cache.
+        let fetchedValue = try fetchValue()
+        self[key] = fetchedValue
+        return fetchedValue
+    }
+    
+    /// Async version: Retrieves the value for the given key, or executes the provided async closure if not found.
+    /// Ensures only one fetch operation is in progress per key.
+    func get(forKey key: Key, orFetch fetchValue: @escaping @Sendable () async throws -> Value) async throws -> Value {
+        // Check cache first
+        if let cachedValue = self[key] {
+            return cachedValue
+        }
+        
+        // Use the in-flight tracker to coalesce requests
+        let value = try await inFlightTracker.getOrFetch(forKey: key, fetch: fetchValue)
+        
+        // Cache the value
+        self[key] = value
+        return value
     }
     
     // MARK: - Subscript
@@ -122,7 +164,7 @@ extension HybridCache {
         guard let diskCache = DiskCache<Key, Value>(name: name, expiration: expiration) else {
             return nil
         }
-        let memoryCache = MemoryCache<Key, Value>(expiration: expiration, label: "\(name).memory")
+        let memoryCache = MemoryCache<Key, Value>(expiration: expiration)
         self.init(memoryCache: memoryCache, diskCache: diskCache, label: name)
     }
     
@@ -135,7 +177,7 @@ extension HybridCache {
         guard let diskCache = DiskCache<Key, Value>(name: name, expiration: diskExpiration) else {
             return nil
         }
-        let memoryCache = MemoryCache<Key, Value>(expiration: memoryExpiration, label: "\(name).memory")
+        let memoryCache = MemoryCache<Key, Value>(expiration: memoryExpiration)
         self.init(memoryCache: memoryCache, diskCache: diskCache, label: name)
     }
 }
