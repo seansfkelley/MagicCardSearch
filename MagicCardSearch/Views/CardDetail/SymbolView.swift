@@ -11,14 +11,14 @@ import SVGKit
 
 struct SymbolView: View {
     struct RenderedImageCacheKey: Hashable, Sendable {
-        let symbol: String
+        let symbol: SymbolCode
         let size: CGFloat
         let oversize: CGFloat
     }
     
-    private static let svgDataCache: any Cache<String, Data> = {
-        let memoryCache = MemoryCache<String, Data>(expiration: .interval(60 * 60 * 24))
-        return if let diskCache = DiskCache<String, Data>(name: "SymbolSvg", expiration: .interval(60 * 60 * 24 * 30)) {
+    private static let svgDataCache: any Cache<SymbolCode, Data> = {
+        let memoryCache = MemoryCache<SymbolCode, Data>(expiration: .interval(60 * 60 * 24))
+        return if let diskCache = DiskCache<SymbolCode, Data>(name: "SymbolSvg", expiration: .interval(60 * 60 * 24 * 30)) {
             HybridCache(memoryCache: memoryCache, diskCache: diskCache)
         } else {
             memoryCache
@@ -29,7 +29,7 @@ struct SymbolView: View {
         expiration: .never
     )
     
-    let symbol: String
+    let symbol: SymbolCode
     let size: CGFloat
     let oversize: CGFloat
     
@@ -46,7 +46,7 @@ struct SymbolView: View {
         oversize: CGFloat? = nil,
         showDropShadow: Bool = false
     ) {
-        self.symbol = symbol
+        self.symbol = SymbolCode(symbol)
         self.size = size
         self.oversize = oversize ?? size
     }
@@ -63,7 +63,7 @@ struct SymbolView: View {
                     .fill(.secondary.opacity(0.2))
                     .frame(width: size, height: size)
             } else {
-                Text(symbol)
+                Text(symbol.normalized)
                     .font(.system(size: size * 0.5))
                     .foregroundStyle(.secondary)
                     .frame(width: size, height: size)

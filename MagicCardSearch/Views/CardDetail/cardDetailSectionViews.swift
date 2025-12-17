@@ -88,7 +88,7 @@ struct CardSetInfoSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 12) {
-                SetIconView(setCode: setCode)
+                SetIconView(setCode: SetCode(setCode))
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(setName)

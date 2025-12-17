@@ -273,7 +273,7 @@ private struct CardListRow: View {
                 }
                 
                 HStack(spacing: 4) {
-                    SetIconView(setCode: card.setCode, size: 12)
+                    SetIconView(setCode: SetCode(card.setCode), size: 12)
                     Text(card.setCode.uppercased())
                         .font(.caption2)
                         .foregroundStyle(.secondary)

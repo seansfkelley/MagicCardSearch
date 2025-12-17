@@ -7,32 +7,32 @@
 import Foundation
 import ScryfallKit
 
+struct SymbolCode: Equatable, Hashable, Sendable, Codable {
+    let normalized: String
+    
+    init(_ symbol: String) {
+        let trimmed = symbol.trimmingCharacters(in: .whitespaces).uppercased()
+        let braced = trimmed.hasPrefix("{") && trimmed.hasSuffix("}")
+            ? trimmed
+            : "{\(trimmed)}"
+        self.normalized = braced
+    }
+}
+
+struct SetCode: Equatable, Hashable, Sendable, Codable {
+    let normalized: String
+    
+    init(_ set: String) {
+        self.normalized = set.trimmingCharacters(in: .whitespaces).uppercased()
+    }
+}
+
 enum ScryfallMetadataError: Error {
     case errorLoadingData(Error)
     case noSuchValue(String)
 }
 
 actor ScryfallMetadataCache {
-    struct SymbolCode: Equatable, Hashable, Sendable, Codable {
-        let normalized: String
-        
-        init(_ symbol: String) {
-            let trimmed = symbol.trimmingCharacters(in: .whitespaces).uppercased()
-            let braced = trimmed.hasPrefix("{") && trimmed.hasSuffix("}")
-                ? trimmed
-                : "{\(trimmed)}"
-            self.normalized = braced
-        }
-    }
-    
-    struct SetCode: Equatable, Hashable, Sendable, Codable {
-        let normalized: String
-        
-        init(_ set: String) {
-            self.normalized = set.trimmingCharacters(in: .whitespaces).uppercased()
-        }
-    }
-    
     // MARK: - Singleton
 
     public static let shared = ScryfallMetadataCache()
