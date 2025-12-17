@@ -16,19 +16,6 @@ final class DiskCache<Key: Hashable & Sendable, Value: Codable & Sendable>: Cach
     private let fileManager: FileManager
     private let queue = DispatchQueue(label: "com.magicardsearch.diskcache", attributes: .concurrent)
     
-    init?(expiration: Expiration, fileManager: FileManager = .default) {
-        guard let cachesURL = fileManager.urls(for: .cachesDirectory, in: .userDomainMask).first else {
-            return nil
-        }
-        
-        self.fileManager = fileManager
-        self.expiration = expiration
-        self.cacheURL = cachesURL.appendingPathComponent("DiskCache", isDirectory: true)
-        
-        // Create cache directory if needed
-        try? fileManager.createDirectory(at: cacheURL, withIntermediateDirectories: true)
-    }
-    
     init?(name: String, expiration: Expiration, fileManager: FileManager = .default) {
         guard let cachesURL = fileManager.urls(for: .cachesDirectory, in: .userDomainMask).first else {
             return nil
