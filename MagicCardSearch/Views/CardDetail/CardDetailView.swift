@@ -10,7 +10,6 @@ import SwiftUI
 
 struct CardDetailView: View {
     let card: Card
-    var isCurrentlyVisible: Bool = true
     @Binding var isFlipped: Bool
 
     @State private var relatedCardToShow: Card?
@@ -132,23 +131,21 @@ struct CardDetailView: View {
             await loadRulings(from: card.rulingsUri)
         }
         .toolbar {
-            if isCurrentlyVisible {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        let listItem = BookmarkedCard(from: card)
-                        listManager.toggleCard(listItem)
-                    } label: {
-                        Image(
-                            systemName: listManager.contains(cardWithId: card.id)
-                                ? "bookmark.fill" : "bookmark"
-                        )
-                    }
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    let listItem = BookmarkedCard(from: card)
+                    listManager.toggleCard(listItem)
+                } label: {
+                    Image(
+                        systemName: listManager.contains(cardWithId: card.id)
+                            ? "bookmark.fill" : "bookmark"
+                    )
                 }
+            }
 
-                if let url = URL(string: card.scryfallUri) {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        ShareLink(item: url)
-                    }
+            if let url = URL(string: card.scryfallUri) {
+                ToolbarItem(placement: .topBarTrailing) {
+                    ShareLink(item: url)
                 }
             }
         }

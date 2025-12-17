@@ -9,7 +9,7 @@
 import Foundation
 import ScryfallKit
 
-struct BookmarkedCard: Identifiable, Codable, Equatable, Hashable, Comparable {
+struct BookmarkedCard: Identifiable, Nameable, Codable, Equatable, Hashable, Comparable {
     let id: UUID
     let name: String
     let typeLine: String?

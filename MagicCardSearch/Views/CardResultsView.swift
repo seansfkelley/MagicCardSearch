@@ -132,7 +132,7 @@ struct CardResultsView: View {
                 set: { selectedCardIndex = $0?.index }
             )
         ) { identifier in
-            CardDetailNavigator(
+            SearchResultsDetailNavigator(
                 cards: results,
                 initialIndex: identifier.index,
                 totalCount: totalCount,

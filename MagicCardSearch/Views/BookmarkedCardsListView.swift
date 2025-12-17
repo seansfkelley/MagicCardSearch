@@ -147,7 +147,7 @@ struct BookmarkedCardsListView: View {
             }
         }
         .sheet(item: $detailSheetState) { state in
-            CardDetailNavigatorFromList(
+            BookmarkedCardDetailNavigator(
                 cards: state.cards,
                 initialIndex: state.index
             )
@@ -177,92 +177,36 @@ struct BookmarkedCardsListView: View {
 
 // MARK: - Card Detail Navigator From List
 
-private struct CardDetailNavigatorFromList: View {
+private struct BookmarkedCardDetailNavigator: View {
     let cards: [BookmarkedCard]
     let initialIndex: Int
     
-    @State private var fullCards: [Card] = []
-    @State private var isLoading = true
-    @State private var error: Error?
-    @Environment(\.dismiss) private var dismiss
     @State private var cardFlipStates: [UUID: Bool] = [:]
     
     private let cardSearchService = CardSearchService()
     
     var body: some View {
-        Group {
-            if isLoading {
-                VStack(spacing: 16) {
-                    ProgressView()
-                        .scaleEffect(1.5)
-                    Text("Loading card details...")
-                        .font(.title3)
-                        .foregroundStyle(.secondary)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if let error = error {
-                VStack(spacing: 16) {
-                    Image(systemName: "exclamationmark.triangle")
-                        .font(.system(size: 60))
-                        .foregroundStyle(.secondary)
-                    
-                    Text("Failed to load card details")
-                        .font(.title2)
-                        .fontWeight(.semibold)
-                    
-                    Text(error.localizedDescription)
-                        .font(.body)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 32)
-                    
-                    Button("Try Again") {
-                        Task {
-                            await loadCards()
-                        }
-                    }
-                    .buttonStyle(.borderedProminent)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if !fullCards.isEmpty {
-                CardDetailNavigator(
-                    cards: fullCards,
-                    initialIndex: initialIndex,
-                    totalCount: fullCards.count,
-                    cardFlipStates: $cardFlipStates,
-                )
-            } else {
-                Text("No cards to display")
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            }
-        }
-        .task {
-            await loadCards()
-        }
-    }
-    
-    private func loadCards() async {
-        isLoading = true
-        error = nil
-        
-        print("Loading \(cards.count) cards from list...")
-        
-        do {
-            // Fetch full card details for all cards in the list
-            var loadedCards: [Card] = []
-            for card in cards {
+        LazyPagingDetailNavigator(
+            items: cards,
+            initialIndex: initialIndex,
+            totalCount: cards.count,
+            hasMorePages: false,
+            isLoadingNextPage: false,
+            nextPageError: nil,
+            loadDistance: 1,
+            loader: { card in
                 print("Fetching card: \(card.name) (ID: \(card.id))")
-                let fullCard = try await cardSearchService.fetchCard(byId: card.id)
-                loadedCards.append(fullCard)
+                return try await cardSearchService.fetchCard(byId: card.id)
             }
-            fullCards = loadedCards
-            print("Successfully loaded \(fullCards.count) cards")
-        } catch {
-            print("Error loading cards: \(error)")
-            self.error = error
+        ) { card in
+            CardDetailView(
+                card: card,
+                isFlipped: Binding(
+                    get: { cardFlipStates[card.id] ?? false },
+                    set: { cardFlipStates[card.id] = $0 }
+                )
+            )
         }
-        
-        isLoading = false
     }
 }
 
