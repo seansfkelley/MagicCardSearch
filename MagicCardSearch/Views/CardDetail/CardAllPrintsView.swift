@@ -276,6 +276,7 @@ private struct CardPrintsDetailView: View {
                 currentIndex = newIndex
                 // n.b. not animated to prevent excessive motion and potential image loads.
                 mainScrollPosition.scrollTo(id: newCardId)
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
             }
         }
     }
