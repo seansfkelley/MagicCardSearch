@@ -9,7 +9,14 @@ import Foundation
 
 /// A generic cache that stores Codable values both in memory and on disk.
 /// Based on implementation from Swift by Sundell: https://www.swiftbysundell.com/articles/caching-in-swift/
-final class HybridCache<Key: Hashable, Value: Codable>: @unchecked Sendable {
+final class HybridCache<Key: Hashable & Sendable, Value: Codable & Sendable>: @unchecked Sendable {
+    // MARK: - Public Types
+    
+    enum CacheMode {
+        case hybrid
+        case memoryOnly
+    }
+    
     // MARK: - Private Types
     
     private final class WrappedKey: NSObject {
@@ -48,47 +55,100 @@ final class HybridCache<Key: Hashable, Value: Codable>: @unchecked Sendable {
     // MARK: - Private Properties
     
     private let memoryCache = NSCache<WrappedKey, Entry>()
-    private let diskCacheURL: URL
-    private let expirationInterval: TimeInterval
+    private let diskCacheURL: URL?
+    private let memoryExpirationInterval: TimeInterval
+    private let diskExpirationInterval: TimeInterval
+    private let cacheMode: CacheMode
     private let fileManager: FileManager
     private let queue = DispatchQueue(label: "com.magicardsearch.diskcache", attributes: .concurrent)
     
     // MARK: - Initialization
     
-    /// Creates a new disk cache.
+    /// Creates a new cache with full configuration options.
+    /// - Parameters:
+    ///   - name: The name of the cache directory on disk (ignored for memory-only mode)
+    ///   - cacheMode: The caching mode (.hybrid or .memoryOnly)
+    ///   - memoryExpiration: Time interval before memory-cached items expire
+    ///   - diskExpiration: Time interval before disk-cached items expire (ignored for memory-only mode)
+    ///   - fileManager: The file manager to use for disk operations
+    init(
+        name: String,
+        cacheMode: CacheMode = .hybrid,
+        memoryExpiration: TimeInterval,
+        diskExpiration: TimeInterval? = nil,
+        fileManager: FileManager = .default
+    ) {
+        self.fileManager = fileManager
+        self.cacheMode = cacheMode
+        self.memoryExpirationInterval = memoryExpiration
+        self.diskExpirationInterval = diskExpiration ?? memoryExpiration
+        
+        if cacheMode == .hybrid {
+            let cachesURL = fileManager.urls(for: .cachesDirectory, in: .userDomainMask)[0]
+            self.diskCacheURL = cachesURL.appendingPathComponent(name, isDirectory: true)
+            
+            // Create cache directory if needed
+            if let diskCacheURL {
+                try? fileManager.createDirectory(at: diskCacheURL, withIntermediateDirectories: true)
+            }
+        } else {
+            self.diskCacheURL = nil
+        }
+    }
+    
+    /// Convenience initializer for hybrid mode with the same expiration for both memory and disk.
     /// - Parameters:
     ///   - name: The name of the cache directory on disk
-    ///   - expirationDays: Number of days before cached items expire
+    ///   - expiration: Time interval before cached items expire (applies to both memory and disk)
     ///   - fileManager: The file manager to use for disk operations
-    init(name: String, expirationDays: Int, fileManager: FileManager = .default) {
-        self.fileManager = fileManager
-        self.expirationInterval = TimeInterval(expirationDays * 24 * 60 * 60)
-        
-        let cachesURL = fileManager.urls(for: .cachesDirectory, in: .userDomainMask)[0]
-        diskCacheURL = cachesURL.appendingPathComponent(name, isDirectory: true)
-        
-        // Create cache directory if needed
-        try? fileManager.createDirectory(at: diskCacheURL, withIntermediateDirectories: true)
+    convenience init(
+        name: String,
+        expiration: TimeInterval,
+        fileManager: FileManager = .default
+    ) {
+        self.init(
+            name: name,
+            cacheMode: .hybrid,
+            memoryExpiration: expiration,
+            diskExpiration: expiration,
+            fileManager: fileManager
+        )
+    }
+    
+    /// Convenience initializer for memory-only mode.
+    /// - Parameters:
+    ///   - expiration: Time interval before cached items expire
+    convenience init(memoryOnlyWithExpiration expiration: TimeInterval) {
+        self.init(
+            name: "",
+            cacheMode: .memoryOnly,
+            memoryExpiration: expiration,
+            diskExpiration: nil,
+            fileManager: .default
+        )
     }
     
     // MARK: - Public Methods
     
     /// Inserts a value for the given key.
     func insert(_ value: Value, forKey key: Key) {
-        let expirationDate = Date().addingTimeInterval(expirationInterval)
-        let entry = Entry(value: value, expirationDate: expirationDate)
+        let memoryExpirationDate = Date().addingTimeInterval(memoryExpirationInterval)
+        let entry = Entry(value: value, expirationDate: memoryExpirationDate)
         
         // Store in memory cache
         memoryCache.setObject(entry, forKey: WrappedKey(key))
         
-        // Store on disk asynchronously
+        // Store on disk asynchronously (only in hybrid mode)
+        guard cacheMode == .hybrid, let diskCacheURL else { return }
+        
         queue.async(flags: .barrier) { [weak self] in
-            guard let self = self else { return }
+            guard let self else { return }
             
-            let fileURL = self.fileURL(for: key)
+            let fileURL = self.fileURL(for: key, diskCacheURL: diskCacheURL)
             
             do {
-                let wrapper = CacheEntryWrapper(value: value, expirationDate: expirationDate)
+                let diskExpirationDate = Date().addingTimeInterval(self.diskExpirationInterval)
+                let wrapper = CacheEntryWrapper(value: value, expirationDate: diskExpirationDate)
                 let data = try JSONEncoder().encode(wrapper)
                 try data.write(to: fileURL)
             } catch {
@@ -108,9 +168,13 @@ final class HybridCache<Key: Hashable, Value: Codable>: @unchecked Sendable {
             return entry.value
         }
         
-        // Check disk cache
+        // Check disk cache (only in hybrid mode)
+        guard cacheMode == .hybrid, let diskCacheURL else {
+            return nil
+        }
+        
         return queue.sync {
-            let fileURL = fileURL(for: key)
+            let fileURL = self.fileURL(for: key, diskCacheURL: diskCacheURL)
             
             guard let data = try? Data(contentsOf: fileURL),
                   let wrapper = try? JSONDecoder().decode(CacheEntryWrapper<Value>.self, from: data) else {
@@ -122,8 +186,9 @@ final class HybridCache<Key: Hashable, Value: Codable>: @unchecked Sendable {
                 return nil
             }
             
-            // Restore to memory cache
-            let entry = Entry(value: wrapper.value, expirationDate: wrapper.expirationDate)
+            // Restore to memory cache with memory expiration
+            let memoryExpirationDate = Date().addingTimeInterval(memoryExpirationInterval)
+            let entry = Entry(value: wrapper.value, expirationDate: memoryExpirationDate)
             memoryCache.setObject(entry, forKey: WrappedKey(key))
             
             return wrapper.value
@@ -166,10 +231,12 @@ final class HybridCache<Key: Hashable, Value: Codable>: @unchecked Sendable {
     func removeValue(forKey key: Key) {
         memoryCache.removeObject(forKey: WrappedKey(key))
         
+        guard cacheMode == .hybrid, let diskCacheURL else { return }
+        
         queue.async(flags: .barrier) { [weak self] in
-            guard let self = self else { return }
-            let fileURL = self.fileURL(for: key)
-            try? self.fileManager.removeItem(at: fileURL)
+            guard let self else { return }
+            let fileURL = self.fileURL(for: key, diskCacheURL: diskCacheURL)
+            try? fileManager.removeItem(at: fileURL)
         }
     }
     
@@ -177,17 +244,19 @@ final class HybridCache<Key: Hashable, Value: Codable>: @unchecked Sendable {
     func clearAll() {
         memoryCache.removeAllObjects()
         
+        guard cacheMode == .hybrid, let diskCacheURL else { return }
+        
         queue.async(flags: .barrier) { [weak self] in
-            guard let self = self else { return }
+            guard let self else { return }
             
             do {
-                let contents = try self.fileManager.contentsOfDirectory(
-                    at: self.diskCacheURL,
+                let contents = try fileManager.contentsOfDirectory(
+                    at: diskCacheURL,
                     includingPropertiesForKeys: nil
                 )
                 
                 for fileURL in contents {
-                    try? self.fileManager.removeItem(at: fileURL)
+                    try? fileManager.removeItem(at: fileURL)
                 }
             } catch {
                 print("Failed to clear disk cache: \(error)")
@@ -212,7 +281,7 @@ final class HybridCache<Key: Hashable, Value: Codable>: @unchecked Sendable {
     
     // MARK: - Private Methods
     
-    private func fileURL(for key: Key) -> URL {
+    private func fileURL(for key: Key, diskCacheURL: URL) -> URL {
         let fileName = String(describing: key).addingPercentEncoding(withAllowedCharacters: .alphanumerics) ?? "cache"
         return diskCacheURL.appendingPathComponent(fileName)
     }

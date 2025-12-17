@@ -8,35 +8,25 @@
 import SwiftUI
 import ScryfallKit
 import SVGKit
-import Cache
 
 struct SymbolView: View {
-    private static let svgDataCache: Storage<String, Data>? = {
-        let diskConfig = DiskConfig(
-            name: "SymbolSvg",
-            expiry: .seconds(60 * 60 * 24 * 30),
-            maxSize: 10_000_000,
-        )
-        let memoryConfig = MemoryConfig(
-            expiry: .seconds(60 * 60 * 24),
-        )
-        
-        return try? Storage<String, Data>(
-            diskConfig: diskConfig,
-            memoryConfig: memoryConfig,
-            fileManager: FileManager.default,
-            transformer: TransformerFactory.forData(),
-        )
-    }()
+    // SVG data cache: Hybrid mode with 30 days disk, 1 day memory
+    private static let svgDataCache = HybridCache<String, Data>(
+        name: "SymbolSvg",
+        cacheMode: .hybrid,
+        memoryExpiration: 60 * 60 * 24,      // 1 day
+        diskExpiration: 60 * 60 * 24 * 30    // 30 days
+    )
     
-    struct RenderedImageCacheKey: Hashable {
+    struct RenderedImageCacheKey: Hashable, Sendable {
         let symbol: String
         let size: CGFloat
         let oversize: CGFloat
     }
     
-    private static let renderedImageCache = MemoryStorage<RenderedImageCacheKey, UIImage>(
-        config: MemoryConfig(expiry: .never)
+    // Rendered image cache: Memory-only with no expiration
+    private static let renderedImageCache = HybridCache<RenderedImageCacheKey, CodableImage>(
+        memoryOnlyWithExpiration: TimeInterval.infinity
     )
     
     let symbol: String
@@ -90,16 +80,19 @@ struct SymbolView: View {
     }
     
     private func loadAndRender() async {
-        if let cachedImage = try? Self.renderedImageCache.object(forKey: imageCacheKey) {
+        // Check rendered image cache
+        if let cachedImage = Self.renderedImageCache[imageCacheKey] {
             await MainActor.run {
-                self.renderedImage = cachedImage
+                self.renderedImage = cachedImage.image
                 self.isLoading = false
             }
             return
         }
         
-        guard let symbol = try? await SymbologyCatalog.shared.getSymbol(byNotation: symbol),
-              let svgUriString = symbol.svgUri,
+        // Get symbol metadata from cache
+        let symbolResult = await ScryfallMetadataCache.shared.symbol(self.symbol)
+        guard case .success(let symbolData) = symbolResult,
+              let svgUriString = symbolData.svgUri,
               let url = URL(string: svgUriString) else {
             await MainActor.run { isLoading = false }
             return
@@ -107,16 +100,10 @@ struct SymbolView: View {
         
         do {
             // Try to get SVG data from cache, or fetch and cache it
-            let svgData: Data
-            if let cachedData = try? SymbolView.svgDataCache?.object(forKey: self.symbol) {
-                svgData = cachedData
-            } else {
+            let svgData = try await Self.svgDataCache.get(forKey: self.symbol) {
                 // Fetch SVG data from network
                 let (data, _) = try await URLSession.shared.data(from: url)
-                svgData = data
-                
-                // Cache the SVG data for future use
-                try? SymbolView.svgDataCache?.setObject(data, forKey: self.symbol)
+                return data
             }
             
             // Parse and render SVG
@@ -144,8 +131,8 @@ struct SymbolView: View {
                 return
             }
             
-            // Cache the rendered image
-            try? SymbolView.renderedImageCache.setObject(uiImage, forKey: renderedCacheKey)
+            // Cache the rendered image (wrap in CodableImage)
+            Self.renderedImageCache[imageCacheKey] = uiImage.codable
             
             await MainActor.run {
                 self.renderedImage = uiImage

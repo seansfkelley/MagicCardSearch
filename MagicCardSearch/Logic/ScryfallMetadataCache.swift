@@ -26,12 +26,12 @@ actor ScryfallMetadataCache {
     private init() {
         symbolCache = HybridCache(
             name: "ScryfallSymbols",
-            expirationDays: 30,
+            expiration: 30 * 24 * 60 * 60  // 30 days
         )
 
         setCache = HybridCache(
             name: "ScryfallSets",
-            expirationDays: 1,
+            expiration: 24 * 60 * 60  // 1 day
         )
     }
 
