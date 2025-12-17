@@ -10,6 +10,12 @@ import ScryfallKit
 import SVGKit
 
 struct SymbolView: View {
+    // AFAICT Scryfall's symbology doesn't tell us about this, so we need to hardcode it to know
+    // what to do about drop shadows.
+    private static let symbolsWithoutBackgrounds = Set([
+        SymbolCode("E"), SymbolCode("CHAOS"), SymbolCode("P"), SymbolCode("H"),
+    ])
+    
     private struct RenderedImageCacheKey: Hashable, Sendable {
         let symbol: SymbolCode
         let size: CGFloat
@@ -17,24 +23,34 @@ struct SymbolView: View {
     }
     
     private static let svgDataCache: any Cache<SymbolCode, Data> = {
+        #if DEBUG || targetEnvironment(simulator)
+        print("In development mode; using no-op SVG cache.")
+        return NoOpCache<SymbolCode, Data>()
+        #else
         let memoryCache = MemoryCache<SymbolCode, Data>(expiration: .interval(60 * 60 * 24))
         return if let diskCache = DiskCache<SymbolCode, Data>(name: "SymbolSvg", expiration: .interval(60 * 60 * 24 * 30)) {
             HybridCache(memoryCache: memoryCache, diskCache: diskCache)
         } else {
             memoryCache
         }
+        #endif
     }()
     
-    private static var renderedImageCache: any Cache<RenderedImageCacheKey, UIImage> = MemoryCache(
-        expiration: .never
-    )
+    private static var renderedImageCache: any Cache<RenderedImageCacheKey, UIImage> = {
+        #if DEBUG || targetEnvironment(simulator)
+        print("In development mode; using no-op image cache.")
+        return NoOpCache<RenderedImageCacheKey, UIImage>()
+        #else
+        return MemoryCache(expiration: .never)
+        #endif
+    }()
     
     let symbol: SymbolCode
     let size: CGFloat
     let oversize: CGFloat
+    let showDropShadow: Bool
     
-    @State private var renderedImage: UIImage?
-    @State private var isLoading = true
+    @State private var imageResult: LoadableResult<(Card.Symbol, UIImage)> = .unloaded
     
     private var imageCacheKey: RenderedImageCacheKey {
         RenderedImageCacheKey(symbol: symbol, size: size, oversize: oversize)
@@ -49,24 +65,40 @@ struct SymbolView: View {
         self.symbol = SymbolCode(symbol)
         self.size = size
         self.oversize = oversize ?? size * 1.25
+        self.showDropShadow = showDropShadow
+    }
+    
+    var targetSize: CGFloat {
+        if case .success((let symbol, _)) = imageResult.latestResult {
+            symbol.hybrid || symbol.phyrexian ? oversize : size
+        } else {
+            size
+        }
     }
     
     var body: some View {
-        Group {
-            if let image = renderedImage {
+        ZStack {
+            if showDropShadow && !Self.symbolsWithoutBackgrounds.contains(symbol) {
+                Circle()
+                    .fill(Color.black)
+                    .frame(width: targetSize, height: targetSize)
+                    .offset(x: -1, y: 1)
+            }
+            
+            if case .success((_, let image)) = imageResult.latestResult {
                 Image(uiImage: image)
                     .resizable()
                     .aspectRatio(contentMode: .fit)
-                    .frame(width: size, height: size)
-            } else if isLoading {
+                    .frame(width: targetSize, height: targetSize)
+            } else if case .failure = imageResult.latestResult {
+                Text(symbol.normalized)
+                    .font(.system(size: targetSize * 0.5))
+                    .foregroundStyle(.secondary)
+                    .frame(width: targetSize, height: targetSize)
+            } else {
                 Circle()
                     .fill(.secondary.opacity(0.2))
-                    .frame(width: size, height: size)
-            } else {
-                Text(symbol.normalized)
-                    .font(.system(size: size * 0.5))
-                    .foregroundStyle(.secondary)
-                    .frame(width: size, height: size)
+                    .frame(width: targetSize, height: targetSize)
             }
         }
         .task {
@@ -75,19 +107,31 @@ struct SymbolView: View {
     }
     
     private func loadAndRender() async {
-        if let renderedImage = Self.renderedImageCache[imageCacheKey] {
-            await MainActor.run {
-                self.renderedImage = renderedImage
-                self.isLoading = false
-            }
+        switch imageResult {
+        case .loaded, .loading:
             return
+        case .unloaded:
+            break
+        }
+        
+        await MainActor.run {
+            imageResult = .loading(nil)
         }
         
         let symbolResult = await ScryfallMetadataCache.shared.symbol(self.symbol)
         guard case .success(let symbolData) = symbolResult,
               let svgUriString = symbolData.svgUri,
               let url = URL(string: svgUriString) else {
-            await MainActor.run { isLoading = false }
+            await MainActor.run {
+                imageResult = .loaded(.failure(NSError(domain: "SymbolView", code: 1, userInfo: [NSLocalizedDescriptionKey: "Failed to get symbol metadata"])))
+            }
+            return
+        }
+        
+        if let renderedImage = Self.renderedImageCache[imageCacheKey] {
+            await MainActor.run {
+                self.imageResult = .loaded(.success((symbolData, renderedImage)))
+            }
             return
         }
         
@@ -98,34 +142,27 @@ struct SymbolView: View {
             }
             
             guard let svgImage = SVGKImage(data: svgData) else {
-                await MainActor.run { isLoading = false }
+                await MainActor.run {
+                    imageResult = .loaded(.failure(NSError(domain: "SymbolView", code: 2, userInfo: [NSLocalizedDescriptionKey: "Failed to create SVG image"])))
+                }
                 return
             }
             
-            let targetSize = symbolData.hybrid || symbolData.phyrexian ? oversize : size
-            let originalSize = svgImage.size
-            let aspectRatio = originalSize.width / originalSize.height
-            let scaledSize = CGSize(
-                width: targetSize * aspectRatio,
-                height: targetSize
-            )
-            
-            svgImage.size = scaledSize
-            
             guard let uiImage = svgImage.uiImage else {
-                await MainActor.run { isLoading = false }
+                await MainActor.run {
+                    imageResult = .loaded(.failure(NSError(domain: "SymbolView", code: 3, userInfo: [NSLocalizedDescriptionKey: "Failed to render SVG to UIImage"])))
+                }
                 return
             }
             
             Self.renderedImageCache[imageCacheKey] = uiImage
             
             await MainActor.run {
-                self.renderedImage = uiImage
-                self.isLoading = false
+                self.imageResult = .loaded(.success((symbolData, uiImage)))
             }
         } catch {
             await MainActor.run {
-                self.isLoading = false
+                self.imageResult = .loaded(.failure(error))
             }
         }
     }
