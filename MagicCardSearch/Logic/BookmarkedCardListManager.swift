@@ -7,6 +7,55 @@
 
 import Foundation
 
+// MARK: - Sort Option
+
+enum BookmarkedCardSortOption: String, CaseIterable, Identifiable {
+    case name
+    case dateAddedNewest
+    case dateAddedOldest
+    case releaseDateNewest
+    case releaseDateOldest
+    
+    var id: String { rawValue }
+    
+    var displayName: String {
+        switch self {
+        case .name:
+            return "Name"
+        case .releaseDateNewest, .releaseDateOldest:
+            return "Release Date"
+        case .dateAddedNewest, .dateAddedOldest:
+            return "Date Added"
+        }
+    }
+    
+    var subtitle: String? {
+        switch self {
+        case .name:
+            return nil
+        case .releaseDateNewest, .dateAddedNewest:
+            return "Newest First"
+        case .releaseDateOldest, .dateAddedOldest:
+            return "Oldest First"
+        }
+    }
+    
+    var systemImage: String {
+        switch self {
+        case .name:
+            return "textformat.abc"
+        case .releaseDateNewest:
+            return "calendar.badge.clock"
+        case .releaseDateOldest:
+            return "calendar"
+        case .dateAddedNewest:
+            return "clock.badge.checkmark"
+        case .dateAddedOldest:
+            return "clock"
+        }
+    }
+}
+
 @MainActor
 class BookmarkedCardListManager: ObservableObject {
     static let shared = BookmarkedCardListManager()
@@ -68,6 +117,49 @@ class BookmarkedCardListManager: ObservableObject {
     
     func contains(cardWithId cardId: UUID) -> Bool {
         cardIds.contains(cardId)
+    }
+    
+    func sortedCards(by option: BookmarkedCardSortOption) -> [BookmarkedCard] {
+        switch option {
+        case .name:
+            return cards.sorted(using: [
+                KeyPathComparator(\.name),
+                KeyPathComparator(\.setCode),
+                KeyPathComparator(\.collectorNumber),
+            ])
+            
+        case .releaseDateNewest:
+            return cards.sorted(using: [
+                KeyPathComparator(\.releasedAt, order: .reverse),
+                KeyPathComparator(\.name),
+                KeyPathComparator(\.setCode),
+                KeyPathComparator(\.collectorNumber),
+            ])
+            
+        case .releaseDateOldest:
+            return cards.sorted(using: [
+                KeyPathComparator(\.releasedAt),
+                KeyPathComparator(\.name),
+                KeyPathComparator(\.setCode),
+                KeyPathComparator(\.collectorNumber),
+            ])
+            
+        case .dateAddedNewest:
+            return cards.sorted(using: [
+                KeyPathComparator(\.addedToListAt, order: .reverse),
+                KeyPathComparator(\.name),
+                KeyPathComparator(\.setCode),
+                KeyPathComparator(\.collectorNumber),
+            ])
+            
+        case .dateAddedOldest:
+            return cards.sorted(using: [
+                KeyPathComparator(\.addedToListAt),
+                KeyPathComparator(\.name),
+                KeyPathComparator(\.setCode),
+                KeyPathComparator(\.collectorNumber),
+            ])
+        }
     }
     
     var sortedCards: [BookmarkedCard] {

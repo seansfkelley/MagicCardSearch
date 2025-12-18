@@ -15,9 +15,15 @@ struct BookmarkedCardsListView: View {
     @State private var editMode: EditMode = .inactive
     @State private var selectedCards: Set<UUID> = []
     @State private var detailSheetState: SheetState?
+    @AppStorage("bookmarkedCardsSortOption")
+    private var sortOption: BookmarkedCardSortOption = .name
     
     private var isEditing: Bool {
         return editMode == .active
+    }
+    
+    private var sortedCards: [BookmarkedCard] {
+        listManager.sortedCards(by: sortOption)
     }
 
     var body: some View {
@@ -42,12 +48,12 @@ struct BookmarkedCardsListView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
                     List(selection: $selectedCards) {
-                        ForEach(Array(listManager.sortedCards.enumerated()), id: \.element.id) { index, card in
+                        ForEach(Array(sortedCards.enumerated()), id: \.element.id) { index, card in
                             CardListRow(card: card)
                                 .contentShape(Rectangle())
                                 .onTapGesture {
                                     if !isEditing {
-                                        detailSheetState = SheetState(index: index, cards: listManager.sortedCards)
+                                        detailSheetState = SheetState(index: index, cards: sortedCards)
                                     }
                                 }
                                 .tag(card.id)
@@ -66,7 +72,7 @@ struct BookmarkedCardsListView: View {
                     .environment(\.editMode, $editMode)
                 }
             }
-            .navigationTitle("Saved Cards")
+            .navigationTitle("Bookmarks")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -101,7 +107,7 @@ struct BookmarkedCardsListView: View {
                         } else {
                             Button {
                                 withAnimation {
-                                    selectedCards = Set(listManager.sortedCards.map(\.id))
+                                    selectedCards = Set(listManager.cards.map(\.id))
                                 }
                             } label: {
                                 Text("Select All")
@@ -124,6 +130,32 @@ struct BookmarkedCardsListView: View {
                         .disabled(selectedCards.isEmpty)
                     }
                 } else {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Menu {
+                            Picker("Sort Order", selection: $sortOption) {
+                                ForEach(BookmarkedCardSortOption.allCases) { option in
+                                    Label {
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text(option.displayName)
+                                            if let subtitle = option.subtitle {
+                                                Text(subtitle)
+                                                    .font(.caption)
+                                                    .foregroundStyle(.secondary)
+                                            }
+                                        }
+                                    } icon: {
+                                        Image(systemName: option.systemImage)
+                                    }
+                                    .tag(option)
+                                }
+                            }
+                            .pickerStyle(.inline)
+                        } label: {
+                            Image(systemName: "arrow.up.arrow.down")
+                        }
+                        .disabled(listManager.cards.isEmpty)
+                    }
+                    
                     ToolbarItem(placement: .topBarTrailing) {
                         Button {
                             withAnimation {
@@ -171,7 +203,7 @@ struct BookmarkedCardsListView: View {
     // MARK: - Shareable Text
 
     private var shareableText: String {
-        listManager.sortedCards.map { "1 \($0.name) (\($0.setCode.uppercased())" }.joined(separator: "\n")
+        sortedCards.map { "1 \($0.name) (\($0.setCode.uppercased()))" }.joined(separator: "\n")
     }
 }
 
