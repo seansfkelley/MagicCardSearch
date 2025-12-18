@@ -25,9 +25,8 @@ struct SearchResultsGridView: View {
         ZStack {
             if case .unloaded = results {
                 ContentUnavailableView(
-                    "Start Your Search",
-                    systemImage: "text.magnifyingglass",
-                    description: Text("Tap the search bar below and start typing to add filters")
+                    "No Results",
+                    systemImage: "magnifyingglass",
                 )
             } else if case .errored(let searchResults, let error) = results, searchResults?.cards.isEmpty ?? true {
                 ContentUnavailableView {
@@ -45,7 +44,6 @@ struct SearchResultsGridView: View {
                 ContentUnavailableView(
                     "No Results",
                     systemImage: "magnifyingglass",
-                    description: Text("Try adjusting your search filters")
                 )
             } else if let searchResults = results.latestValue, !searchResults.cards.isEmpty {
                 ScrollView {

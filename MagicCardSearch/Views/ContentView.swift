@@ -7,6 +7,11 @@
 
 import SwiftUI
 
+enum MainContentType {
+    case home
+    case results
+}
+
 struct ContentView: View {
     private let historySuggestionProvider = HistorySuggestionProvider()
     @State private var searchFilters: [SearchFilter] = []
@@ -22,6 +27,7 @@ struct ContentView: View {
     @State private var results: LoadableResult<SearchResults, SearchErrorState> = .unloaded
     @State private var showWarningsPopover = false
     @State private var searchTask: Task<Void, Never>?
+    @State private var mainContentType: MainContentType = .home
     @FocusState private var isSearchFocused: Bool
     
     private let searchService = CardSearchService()
@@ -44,12 +50,19 @@ struct ContentView: View {
                 Color(uiColor: .systemBackground)
                     .ignoresSafeArea()
                 
-                SearchResultsGridView(
-                    results: $results,
-                    onLoadNextPage: loadNextPageIfNeeded,
-                    onRetryNextPage: retryNextPage
-                )
-                .opacity(isSearchFocused ? 0 : 1)
+                switch mainContentType {
+                case .home:
+                    ContentUnavailableView(
+                        "Home!",
+                        systemImage: "magnifyingglass",
+                    )
+                case .results:
+                    SearchResultsGridView(
+                        results: $results,
+                        onLoadNextPage: loadNextPageIfNeeded,
+                        onRetryNextPage: retryNextPage
+                    )
+                }
                 
                 if isSearchFocused {
                     AutocompleteView(
@@ -98,10 +111,14 @@ struct ContentView: View {
                 }
                 
                 ToolbarItem(placement: .principal) {
-                    Image("HeaderIcon")
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(height: 40)
+                    Button {
+                        mainContentType = .home
+                    } label: {
+                        Image("HeaderIcon")
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(height: 32)
+                    }
                 }
                 
                 ToolbarItem(placement: .topBarTrailing) {
@@ -178,6 +195,8 @@ struct ContentView: View {
     // MARK: - Helper Methods
     
     private func performSearch() {
+        mainContentType = .results
+        
         searchTask?.cancel()
 
         guard !searchFilters.isEmpty else {
