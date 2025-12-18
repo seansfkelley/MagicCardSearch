@@ -15,15 +15,24 @@ struct CardResultsView: View {
     @Binding var warnings: [String]
     var historySuggestionProvider: HistorySuggestionProvider
     
+    private struct SearchResults {
+        let totalCount: Int
+        let cards: [Card]
+        let nextPageUrl: String?
+    }
+    
+    @State private var results: LoadableResult<SearchResults, SearchErrorState>
+    
     @State private var results: [Card] = []
     @State private var totalCount: Int = 0
     @State private var nextPageURL: String?
     @State private var isLoading = false
     @State private var isLoadingNextPage = false
     @State private var nextPageError: SearchErrorState?
+    @State private var errorState: SearchErrorState?
+    
     @State private var selectedCardIndex: Int?
     @State private var searchTask: Task<Void, Never>?
-    @State private var errorState: SearchErrorState?
     @State private var cardFlipStates: [UUID: Bool] = [:]
 
     private let service = CardSearchService()
