@@ -22,21 +22,8 @@ struct MagicCardSearchApp: App {
         WindowGroup {
             ContentView()
                 .task {
-                    await prefetchMetadata()
+                    await ScryfallCatalogs.shared.prefetchAll()
                 }
-        }
-    }
-    
-    /// Pre-fetches Scryfall metadata (symbols and sets) in the background on app launch
-    private func prefetchMetadata() async {
-        await withTaskGroup(of: Void.self) { group in
-            group.addTask {
-                _ = await ScryfallCatalogs.shared.prefetchSymbology()
-            }
-            
-            group.addTask {
-                _ = await ScryfallCatalogs.shared.prefetchSets()
-            }
         }
     }
 }

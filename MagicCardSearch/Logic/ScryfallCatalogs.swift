@@ -135,6 +135,45 @@ final class ScryfallCatalogs {
             return .failure(.errorLoadingData(error))
         }
     }
+    
+    /// Prefetches all catalog data into the cache
+    /// - Returns: Result indicating success or failure of the prefetch operation
+    @discardableResult
+    public func prefetchCatalogs() async -> Result<Void, ScryfallMetadataError> {
+        do {
+            logger.info("Fetching catalogs...")
+            
+            typealias CatalogType = Catalog.`Type`
+            for catalogType in CatalogType.allCases {
+                _ = try await stringCache.get(forKey: catalogType) {
+                    logger.debug("Fetching catalog", metadata: ["type": "\(catalogType.rawValue)"])
+                    let catalog = try await self.scryfallClient.getCatalog(type: catalogType)
+                    return Set(catalog.data)
+                }
+            }
+            
+            return .success(())
+        } catch {
+            return .failure(.errorLoadingData(error))
+        }
+    }
+    
+    /// Pre-fetches Scryfall metadata (symbols, sets, and catalogs) in the background
+    public func prefetchAll() async {
+        await withTaskGroup(of: Void.self) { group in
+            group.addTask {
+                _ = await self.prefetchSymbology()
+            }
+            
+            group.addTask {
+                _ = await self.prefetchSets()
+            }
+            
+            group.addTask {
+                _ = await self.prefetchCatalogs()
+            }
+        }
+    }
 
     // MARK: - Private Methods
     
