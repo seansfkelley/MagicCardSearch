@@ -63,18 +63,17 @@ struct ContentView: View {
                         onLoadNextPage: loadNextPageIfNeeded,
                         onRetryNextPage: retryNextPage
                     )
-                }
-                
-                if isSearchFocused {
-                    AutocompleteView(
-                        inputText: inputText,
-                        provider: autocompleteProvider,
-                        searchHistoryTracker: searchHistoryTracker,
-                        filters: searchFilters,
-                        isSearchFocused: isSearchFocused,
-                    ) { suggestion in
-                            handleSuggestionTap(suggestion)
-                            inputSelection = TextSelection(insertionPoint: inputText.endIndex)
+                    if isSearchFocused {
+                        AutocompleteView(
+                            inputText: inputText,
+                            provider: autocompleteProvider,
+                            searchHistoryTracker: searchHistoryTracker,
+                            filters: searchFilters,
+                            isSearchFocused: isSearchFocused,
+                        ) { suggestion in
+                                handleSuggestionTap(suggestion)
+                                inputSelection = TextSelection(insertionPoint: inputText.endIndex)
+                        }
                     }
                 }
             }
@@ -115,6 +114,7 @@ struct ContentView: View {
                 ToolbarItem(placement: .principal) {
                     Button {
                         mainContentType = .home
+                        isSearchFocused = false
                     } label: {
                         Image("HeaderIcon")
                             .resizable()
@@ -149,6 +149,11 @@ struct ContentView: View {
             }
             .toolbarBackground(.hidden, for: .navigationBar)
             .navigationBarTitleDisplayMode(.inline)
+        }
+        .onChange(of: isSearchFocused) { _, isFocused in
+            if isFocused {
+                mainContentType = .results
+            }
         }
         .onChange(of: searchFilters) {
             // Clear warnings when filters change by resetting to unloaded or keeping existing results

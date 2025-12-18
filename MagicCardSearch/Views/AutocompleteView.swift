@@ -130,7 +130,7 @@ struct AutocompleteView: View {
         } label: {
             Label("Pin", systemImage: "pin")
         }
-        .tint(.blue)
+        .tint(.orange)
     }
     
     private func pinnedRow(_ suggestion: PinnedFilterSuggestion) -> some View {
