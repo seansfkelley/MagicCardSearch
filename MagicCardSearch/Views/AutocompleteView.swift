@@ -97,10 +97,6 @@ struct AutocompleteView: View {
 
                 case .enumeration(let suggestion):
                     enumerationRows(suggestion)
-                    // TODO: Implement this by making enumerations give a filter object.
-//                        .swipeActions(edge: .leading, allowsFullSwipe: true) {
-//                            pinSwipeAction(for: suggestion.filter)
-//                        }
                         .listRowInsets(.vertical, 0)
                 
                 case .name(let suggestion):
@@ -188,9 +184,11 @@ struct AutocompleteView: View {
     
     private func enumerationRows(_ suggestion: EnumerationSuggestion) -> some View {
         ForEach(suggestion.options, id: \.value) { option in
+            let filterContent = SearchFilterContent.keyValue(suggestion.filterType, suggestion.comparison, option.value)
+            let filter: SearchFilter = suggestion.isNegated ? .negated(filterContent) : .basic(filterContent)
+            
             Button {
-                let filter = SearchFilterContent.keyValue(suggestion.filterType, suggestion.comparison, option.value)
-                onSuggestionTap(.filter(suggestion.isNegated ? .negated(filter) : .basic(filter)))
+                onSuggestionTap(.filter(filter))
             } label: {
                 HStack(spacing: 12) {
                     Image(systemName: "list.bullet.circle")
@@ -208,6 +206,9 @@ struct AutocompleteView: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                pinSwipeAction(for: filter)
+            }
         }
     }
     
