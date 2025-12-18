@@ -39,7 +39,11 @@ struct SymbolView: View {
     }
     
     private var targetSize: CGFloat {
-        symbol.normalized.contains("/") ? oversize : size
+        if let symbol = ScryfallMetadataCache.shared.symbols[symbol] {
+            symbol.phyrexian || symbol.hybrid ? oversize : size
+        } else {
+            size
+        }
     }
     
     var body: some View {

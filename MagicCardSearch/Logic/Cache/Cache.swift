@@ -25,13 +25,23 @@ enum Expiration: Sendable {
     }
 }
 
-/// A protocol defining the core caching interface for storing and retrieving values.
+/// A protocol defining a readonly caching interface for retrieving values.
 /// - Note: This protocol is constrained to classes (reference types) to allow non-mutating
-///         methods to modify the cache's internal state, which is essential for actor isolation.
-protocol Cache<Key, Value>: AnyObject, Sendable {
+///         methods to interact with the cache's internal state, which is essential for actor isolation.
+protocol ReadonlyCache<Key, Value>: AnyObject, Sendable {
     associatedtype Key: Hashable & Sendable
     associatedtype Value: Sendable
     
+    /// Subscript access to cached values (readonly).
+    /// - Parameter key: The key to retrieve the value
+    /// - Returns: The cached value, or nil if not found or expired
+    subscript(key: Key) -> Value? { get }
+}
+
+/// A protocol defining the core caching interface for storing and retrieving values.
+/// - Note: This protocol is constrained to classes (reference types) to allow non-mutating
+///         methods to modify the cache's internal state, which is essential for actor isolation.
+protocol Cache<Key, Value>: ReadonlyCache {
     /// Clears all cached values.
     func clearAll()
     

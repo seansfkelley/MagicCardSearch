@@ -40,33 +40,41 @@ struct SetCode: Equatable, Hashable, Sendable, Codable, CustomStringConvertible 
 
 enum ScryfallMetadataError: Error {
     case errorLoadingData(Error?)
-    case noSuchValue(String)
 }
 
 actor ScryfallMetadataCache {
     // MARK: - Singleton
 
     public static let shared = ScryfallMetadataCache()
-    public static let symbolSvgCache: any Cache<SymbolCode, Data> = HybridCache(
-        name: "SymbolSvgs",
-        expiration: .interval(30 * 24 * 60 * 60)
-    ) ?? MemoryCache(expiration: .never)
+    
+    // MARK: - Public Properties
+    
+    // TODO: Figure out how to make these read-only.
+    public var sets: [SetCode: MTGSet] = [:]
+    public var symbols: [SymbolCode: Card.Symbol] = [:]
+    public var symbolSvg: [SymbolCode: Data] = [:]
 
     // MARK: - Private Properties
-
+    
     private let scryfallClient = ScryfallClient()
-    private var symbolCache: any Cache<String, [SymbolCode: Card.Symbol]>
     private var setCache: any Cache<String, [SetCode: MTGSet]>
+    private var symbolCache: any Cache<String, [SymbolCode: Card.Symbol]>
+    private let symbolSvgCache: any Cache<SymbolCode, Data>
 
     private init() {
+        setCache = HybridCache(
+            name: "ScryfallSets",
+            expiration: .interval(24 * 60 * 60),
+        ) ?? MemoryCache(expiration: .never)
+        
         symbolCache = HybridCache(
             name: "ScryfallSymbols",
             expiration: .interval(30 * 24 * 60 * 60),
         ) ?? MemoryCache(expiration: .never)
-
-        setCache = HybridCache(
-            name: "ScryfallSets",
-            expiration: .interval(24 * 60 * 60),
+        
+        symbolSvgCache = HybridCache(
+            name: "ScryfallSymbolSvgs",
+            expiration: .interval(30 * 24 * 60 * 60)
         ) ?? MemoryCache(expiration: .never)
     }
 
@@ -77,7 +85,7 @@ actor ScryfallMetadataCache {
     @discardableResult
     public func prefetchSymbology() async -> Result<Void, ScryfallMetadataError> {
         do {
-            let symbolDict = try await symbolCache.get(forKey: "symbology") {
+            symbols = try await symbolCache.get(forKey: "symbology") {
                 logger.info("Fetching symbology...")
                 let allSymbols = try await self.fetchAllPages {
                     try await self.scryfallClient.getSymbology()
@@ -87,9 +95,8 @@ actor ScryfallMetadataCache {
                 )
             }
             
-            // Prefetch SVGs for all symbols
-            logger.info("Prefetching \(symbolDict.count) symbol SVGs...")
-            await prefetchSymbolSvgs(from: symbolDict)
+            logger.info("Prefetching \(symbols.count) symbol SVGs...")
+            await prefetchSymbolSvgs(from: symbols)
             
             return .success(())
         } catch {
@@ -102,7 +109,7 @@ actor ScryfallMetadataCache {
     @discardableResult
     public func prefetchSets() async -> Result<Void, ScryfallMetadataError> {
         do {
-            _ = try await setCache.get(forKey: "sets") {
+            sets = try await setCache.get(forKey: "sets") {
                 logger.info("Fetching sets...")
                 let allSets = try await self.fetchAllPages {
                     try await self.scryfallClient.getSets()
@@ -115,50 +122,6 @@ actor ScryfallMetadataCache {
         }
     }
 
-    public func symbol(_ symbol: SymbolCode) async -> Result<Card.Symbol, ScryfallMetadataError> {
-        let allSymbolMetadata: [SymbolCode: Card.Symbol]
-        do {
-            allSymbolMetadata = try await symbolCache.get(forKey: "symbology") {
-                logger.info("Fetching symbology...")
-                let allSymbols = try await self.fetchAllPages {
-                    try await self.scryfallClient.getSymbology()
-                }
-                return Dictionary(
-                    uniqueKeysWithValues: allSymbols.map { (SymbolCode($0.symbol), $0) }
-                )
-            }
-        } catch {
-            return .failure(.errorLoadingData(error))
-        }
-
-        if let foundSymbol = allSymbolMetadata[symbol] {
-            return .success(foundSymbol)
-        } else {
-            return .failure(.noSuchValue(symbol.normalized))
-        }
-    }
-
-    public func set(_ setCode: SetCode) async -> Result<MTGSet, ScryfallMetadataError> {
-        let allSetMetadata: [SetCode: MTGSet]
-        do {
-            allSetMetadata = try await setCache.get(forKey: "sets") {
-                logger.info("Fetching sets...")
-                let allSets = try await self.fetchAllPages {
-                    try await self.scryfallClient.getSets()
-                }
-                return Dictionary(uniqueKeysWithValues: allSets.map { (SetCode($0.code), $0) })
-            }
-        } catch {
-            return .failure(.errorLoadingData(error))
-        }
-
-        if let foundSet = allSetMetadata[setCode] {
-            return .success(foundSet)
-        } else {
-            return .failure(.noSuchValue(setCode.normalized))
-        }
-    }
-    
     // MARK: - Private Methods
     
     private func prefetchSymbolSvgs(from symbols: [SymbolCode: Card.Symbol]) async {
@@ -172,11 +135,11 @@ actor ScryfallMetadataCache {
             let batchEnd = min(batchStart + batchSize, symbolArray.count)
             let batch = symbolArray[batchStart..<batchEnd]
             
-            await withTaskGroup(of: Void.self) { group in
+            await withTaskGroup(of: (SymbolCode, Data)?.self) { group in
                 for (symbolCode, symbolData) in batch {
                     group.addTask {
                         do {
-                            _ = try await Self.symbolSvgCache.get(forKey: symbolCode) {
+                            let data = try await self.symbolSvgCache.get(forKey: symbolCode) {
                                 if let svgUri = symbolData.svgUri,
                                    let url = URL(string: svgUri) {
                                     logger.debug("Fetching symbol SVG", metadata: [
@@ -189,12 +152,20 @@ actor ScryfallMetadataCache {
                                     throw ScryfallMetadataError.errorLoadingData(nil)
                                 }
                             }
+                            return (symbolCode, data)
                         } catch {
                             logger.warning("Failed to fetch symbol SVG; this symbol will not render properly", metadata: [
                                 "symbolCode": "\(symbolCode)",
                                 "error": "\(error)",
                             ])
+                            return nil
                         }
+                    }
+                }
+                
+                for await result in group {
+                    if let (symbolCode, data) = result {
+                        symbolSvg[symbolCode] = data
                     }
                 }
             }

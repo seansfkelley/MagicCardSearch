@@ -68,7 +68,7 @@ struct SetIconView: View {
             return
         }
         
-        let symbolResult = await ScryfallMetadataCache.shared.set(self.setCode)
+        let symbolResult = await ScryfallMetadataCache.shared.sets[setCode]
         guard case .success(let symbolData) = symbolResult,
               let url = URL(string: symbolData.iconSvgUri) else {
             await MainActor.run {
