@@ -98,12 +98,12 @@ let scryfallFilterTypes: [ScryfallFilterType] = [
     // see also `has`
     
     // MARK: - Card Types
-    .init("type", ["t"]),
+    .init("type", ["t"]), // Enumeration values loaded from Scryfall.
     
     // MARK: - Card Text
     .init("oracle", ["o"]),
     .init("fulloracle", ["fo"]),
-    .init("keyword", ["kw"]),
+    .init("keyword", ["kw"]), // Enumeration values loaded from Scryfall.
     
     // MARK: - Mana Costs
     .init("mana", ["m"]),
@@ -140,9 +140,9 @@ let scryfallFilterTypes: [ScryfallFilterType] = [
     // see also `new` and `in`
     
     // MARK: - Sets and Blocks
-    .init("set", ["s", "edition", "e"]), // n.b. technically this would be an enumeration but there are tooooooo many and they change too often
+    .init("set", ["s", "edition", "e"]), // Enumeration values loaded from Scryfall.
     .init("number", ["cn"], comparisonKinds: .all),
-    .init("block", ["b"]), // n.b. technically this would be an enumeration but there are tooooooo many also
+    .init("block", ["b"]), // Enumeration values loaded from Scryfall.
     .init("st", enumerationValues: [
         // primary product types
         "core", "expansion", "draftinnovation",
@@ -174,7 +174,7 @@ let scryfallFilterTypes: [ScryfallFilterType] = [
     // MARK: - Artist, Flavor Text and Watermark
     .init("artist", ["a"], comparisonKinds: .all),
     .init("flavor", ["ft"]),
-    .init("watermark", ["wm"]),
+    .init("watermark", ["wm"]), // Enumeration values loaded from Scryfall.
     .init("illustrations", comparisonKinds: .all),
     // see also `has` and `new`
     
