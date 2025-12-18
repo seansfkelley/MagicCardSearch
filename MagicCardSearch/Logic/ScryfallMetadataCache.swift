@@ -96,7 +96,7 @@ final class ScryfallMetadataCache {
         do {
             symbols = try await symbolCache.get(forKey: "symbology") {
                 logger.info("Fetching symbology...")
-                let allSymbols = try await self.fetchAllPages {
+                let allSymbols = try await ScryfallPagination.fetchAllPages {
                     try await self.scryfallClient.getSymbology()
                 }
                 return Dictionary(
@@ -119,7 +119,7 @@ final class ScryfallMetadataCache {
         do {
             sets = try await setCache.get(forKey: "sets") {
                 logger.info("Fetching sets...")
-                let allSets = try await self.fetchAllPages {
+                let allSets = try await ScryfallPagination.fetchAllPages {
                     try await self.scryfallClient.getSets()
                 }
                 return Dictionary(uniqueKeysWithValues: allSets.map { (SetCode($0.code), $0) })
@@ -182,62 +182,5 @@ final class ScryfallMetadataCache {
         }
         
         logger.info("Completed SVG prefetch")
-    }
-    
-    /// Fetches all pages from an initial ObjectList request and returns a flat array
-    /// - Parameter initialRequest: A closure that performs the initial ScryfallClient request
-    /// - Returns: An array containing all items from all pages
-    private func fetchAllPages<T: Codable>(
-        initialRequest: () async throws -> ObjectList<T>
-    ) async throws -> [T] {
-        var allItems: [T] = []
-        var currentList = try await initialRequest()
-        allItems.append(contentsOf: currentList.data)
-        
-        // Fetch additional pages if they exist
-        while let nextPageURL = currentList.nextPage {
-            currentList = try await self.fetchObjectList(from: nextPageURL)
-            allItems.append(contentsOf: currentList.data)
-        }
-        
-        return allItems
-    }
-    
-    /// Fetches a Scryfall ObjectList from a URL using URLSession and ScryfallKit's ObjectList type
-    private func fetchObjectList<T: Codable>(from urlString: String) async throws -> ObjectList<T> {
-        guard let url = URL(string: urlString) else {
-            throw NSError(
-                domain: "ScryfallMetadataCache",
-                code: 400,
-                userInfo: [NSLocalizedDescriptionKey: "Invalid URL: \(urlString)"]
-            )
-        }
-        
-        var request = URLRequest(url: url)
-        request.setValue("application/json", forHTTPHeaderField: "Accept")
-        
-        let (data, response) = try await URLSession.shared.data(for: request)
-        
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw NSError(
-                domain: "ScryfallMetadataCache",
-                code: 500,
-                userInfo: [NSLocalizedDescriptionKey: "Invalid response type"]
-            )
-        }
-        
-        guard httpResponse.statusCode == 200 else {
-            throw NSError(
-                domain: "ScryfallMetadataCache",
-                code: httpResponse.statusCode,
-                userInfo: [NSLocalizedDescriptionKey: "HTTP error: \(httpResponse.statusCode)"]
-            )
-        }
-        
-        let decoder = JSONDecoder()
-        decoder.keyDecodingStrategy = .convertFromSnakeCase
-        decoder.dateDecodingStrategy = .iso8601
-        
-        return try decoder.decode(ObjectList<T>.self, from: data)
     }
 }
