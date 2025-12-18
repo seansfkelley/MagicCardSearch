@@ -16,6 +16,7 @@ struct HomeView: View {
     @State private var selectedCardIndex: Int?
     
     private let featuredState = FeaturedCardsState.shared
+    private let featuredCardLimit = 15
     
     var body: some View {
         ScrollView {
@@ -30,12 +31,12 @@ struct HomeView: View {
                         HStack(spacing: 12) {
                             switch featuredState.results {
                             case .loading(nil, _), .unloaded:
-                                ForEach(0..<15, id: \.self) { _ in
+                                ForEach(0..<featuredCardLimit, id: \.self) { _ in
                                     ProgressView()
                                         .frame(width: 120, height: 168)
                                 }
                             case .loading(let results?, _), .loaded(let results, _), .errored(let results?, _):
-                                ForEach(Array(results.cards.prefix(15).enumerated()), id: \.element.id) { index, card in
+                                ForEach(Array(results.cards.prefix(featuredCardLimit).enumerated()), id: \.element.id) { index, card in
                                     Button {
                                         selectedCardIndex = index
                                     } label: {
@@ -53,25 +54,27 @@ struct HomeView: View {
                                     .buttonStyle(.plain)
                                 }
                                 
-                                Button {
-                                    onSearchSelected([
-                                        .basic(.keyValue("set", .including, "ecl"))
-                                    ])
-                                } label: {
-                                    RoundedRectangle(cornerRadius: 12)
-                                        .strokeBorder(Color.accentColor, lineWidth: 2)
-                                        .frame(width: 120, height: 168)
-                                        .overlay {
-                                            VStack(spacing: 8) {
-                                                Image(systemName: "arrow.right.circle.fill")
-                                                    .font(.largeTitle)
-                                                    .foregroundColor(.accentColor)
-                                                Text("View All")
-                                                    .font(.subheadline)
-                                                    .bold()
-                                                    .foregroundColor(.accentColor)
+                                if results.totalCount > featuredCardLimit {
+                                    Button {
+                                        onSearchSelected([
+                                            .basic(.keyValue("set", .including, "ecl"))
+                                        ])
+                                    } label: {
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .strokeBorder(Color.accentColor, lineWidth: 2)
+                                            .frame(width: 120, height: 168)
+                                            .overlay {
+                                                VStack(spacing: 8) {
+                                                    Image(systemName: "arrow.right.circle.fill")
+                                                        .font(.largeTitle)
+                                                        .foregroundColor(.accentColor)
+                                                    Text("View All")
+                                                        .font(.subheadline)
+                                                        .bold()
+                                                        .foregroundColor(.accentColor)
+                                                }
                                             }
-                                        }
+                                    }
                                 }
                             case .errored(nil, _):
                                 EmptyView()
