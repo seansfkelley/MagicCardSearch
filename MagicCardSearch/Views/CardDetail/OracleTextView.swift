@@ -74,7 +74,8 @@ private struct LineView: View {
                     Text(image)
                         // This reduces, but does not elimiate, vertical spacing.
                         .font(.system(size: 1))
-                        .baselineOffset(symbol.isOversized ?? false ? fontSize * -0.3 : fontSize * -0.15)
+                        // Multiplicative factors chosen empirically.
+                        .baselineOffset(symbol.isOversized ?? false ? fontSize * -0.15 : fontSize * -0.05)
                 )
             }
             
@@ -94,7 +95,7 @@ private struct LineView: View {
     // TODO: Can this be done with the TextRenderer protocol or something instead of
     // rendering it to a temporary image?
     private func renderSymbol(_ symbol: SymbolCode) -> Image? {
-        let renderer = ImageRenderer(content: SymbolView(symbol, size: fontSize)
+        let renderer = ImageRenderer(content: SymbolView(symbol, size: fontSize * 0.8)
             .environment(\.colorScheme, colorScheme))
         renderer.scale = 3.0
         if let uiImage = renderer.uiImage {
