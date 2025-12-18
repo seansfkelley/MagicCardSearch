@@ -58,32 +58,25 @@ struct SetIconView: View {
         }
     }
     
-    // swiftlint:disable:next function_body_length
     private func loadAndRender() async {
         guard case .unloaded = imageResult else {
             return
         }
-
-        await MainActor.run {
-            imageResult = .loading(nil, nil)
-        }
         
         if let renderedImage = Self.renderedImageCache[renderedImageCacheKey] {
-            await MainActor.run {
-                self.imageResult = .loaded(renderedImage, nil)
-            }
+            self.imageResult = .loaded(renderedImage, nil)
             return
         }
         
         let set = ScryfallMetadataCache.shared.sets[setCode]
         guard let set, let url = URL(string: set.iconSvgUri) else {
-            await MainActor.run {
-                imageResult = .errored(nil, NSError(domain: "SetIconView", code: 1, userInfo: [NSLocalizedDescriptionKey: "Failed to get set metadata"]))
-            }
+            imageResult = .errored(nil, NSError(domain: "SetIconView", code: 1, userInfo: [NSLocalizedDescriptionKey: "Failed to get set metadata"]))
             return
         }
         
         do {
+            imageResult = .loading(nil, nil)
+            
             let svgData = try await Self.svgDataCache.get(forKey: setCode) {
                 print("Requesting icon \(url)")
                 let (data, _) = try await URLSession.shared.data(from: url)
@@ -91,9 +84,7 @@ struct SetIconView: View {
             }
             
             guard let svgImage = SVGKImage(data: svgData) else {
-                await MainActor.run {
-                    imageResult = .errored(nil, NSError(domain: "SetIconView", code: 2, userInfo: [NSLocalizedDescriptionKey: "Failed to create SVG image"]))
-                }
+                imageResult = .errored(nil, NSError(domain: "SetIconView", code: 2, userInfo: [NSLocalizedDescriptionKey: "Failed to create SVG image"]))
                 return
             }
             
@@ -111,21 +102,15 @@ struct SetIconView: View {
             svgImage.size = scaledSize
             
             guard let uiImage = svgImage.uiImage else {
-                await MainActor.run {
-                    imageResult = .errored(nil, NSError(domain: "SetIconView", code: 3, userInfo: [NSLocalizedDescriptionKey: "Failed to render SVG to UIImage"]))
-                }
+                imageResult = .errored(nil, NSError(domain: "SetIconView", code: 3, userInfo: [NSLocalizedDescriptionKey: "Failed to render SVG to UIImage"]))
                 return
             }
             
             Self.renderedImageCache[renderedImageCacheKey] = uiImage
             
-            await MainActor.run {
-                self.imageResult = .loaded(uiImage, nil)
-            }
+            self.imageResult = .loaded(uiImage, nil)
         } catch {
-            await MainActor.run {
-                self.imageResult = .errored(nil, error)
-            }
+            self.imageResult = .errored(nil, error)
         }
     }
 }

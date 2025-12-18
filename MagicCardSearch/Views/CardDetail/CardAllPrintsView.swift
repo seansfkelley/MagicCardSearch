@@ -98,7 +98,7 @@ struct CardAllPrintsView: View {
                     }
                 }
                 
-                if case .loading(let previous?, _) = loadState {
+                if case .loading = loadState {
                     VStack {
                         Spacer()
                         HStack {
@@ -178,10 +178,11 @@ struct CardAllPrintsView: View {
         } else {
             currentPrints[safe: currentIndex]?.id
         }
-        loadState = .loading(loadState.latestValue, loadState.latestError)
 
         do {
             let searchQuery = printFilterSettings.toQueryFor(oracleId: oracleId)
+            
+            loadState = .loading(loadState.latestValue, loadState.latestError)
             
             let rawPrints = try await cardSearchService.searchByRawQuery(searchQuery)
             
