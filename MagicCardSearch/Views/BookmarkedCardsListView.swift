@@ -134,17 +134,15 @@ struct BookmarkedCardsListView: View {
                         Menu {
                             Picker("Sort Order", selection: $sortOption) {
                                 ForEach(BookmarkedCardSortOption.allCases) { option in
-                                    Label {
-                                        VStack(alignment: .leading, spacing: 2) {
+                                    Button(action: {}) {
+                                        if let subtitle = option.subtitle {
                                             Text(option.displayName)
-                                            if let subtitle = option.subtitle {
-                                                Text(subtitle)
-                                                    .font(.caption)
-                                                    .foregroundStyle(.secondary)
-                                            }
+                                            Text(subtitle)
+                                                .font(.caption)
+                                                .foregroundStyle(.secondary)
+                                        } else {
+                                            Text(option.displayName)
                                         }
-                                    } icon: {
-                                        Image(systemName: option.systemImage)
                                     }
                                     .tag(option)
                                 }

@@ -39,21 +39,6 @@ enum BookmarkedCardSortOption: String, CaseIterable, Identifiable {
             return "Oldest First"
         }
     }
-    
-    var systemImage: String {
-        switch self {
-        case .name:
-            return "textformat.abc"
-        case .releaseDateNewest:
-            return "calendar.badge.clock"
-        case .releaseDateOldest:
-            return "calendar"
-        case .dateAddedNewest:
-            return "clock.badge.checkmark"
-        case .dateAddedOldest:
-            return "clock"
-        }
-    }
 }
 
 @MainActor
