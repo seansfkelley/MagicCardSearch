@@ -56,6 +56,7 @@ struct SearchConfiguration: Equatable, Codable {
         case toughness = "Toughness"
         case artist = "Artist Name"
         case edhrec = "EDHREC Rank"
+        case spoiled = "Spoiler Date"
         
         // Use the enum case name itself as the API key
         var apiValue: String {
@@ -78,6 +79,7 @@ struct SearchConfiguration: Equatable, Codable {
             case .toughness: .toughness
             case .artist: .artist
             case .edhrec: .edhrec
+            case .spoiled: .spoiled
             }
         }
     }

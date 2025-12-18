@@ -1,5 +1,5 @@
 {
-  "originHash" : "3de9139142231122adc56dca086f3498c10448e2536ad13545b912b0c2e3ec8e",
+  "originHash" : "bee95899be27790826ece0b0de4b476358b4cef1aaba9ca3b42026db931d3095",
   "pins" : [
     {
       "identity" : "cocoalumberjack",
@@ -25,7 +25,7 @@
       "location" : "https://github.com/seansfkelley/ScryfallKit",
       "state" : {
         "branch" : "gamechanger-and-legalities",
-        "revision" : "d7190e946a6bdcf3785e67332f87d62c79b0f030"
+        "revision" : "0d9588281f49d5ca16295c7ec0c73350eebda83e"
       }
     },
     {
