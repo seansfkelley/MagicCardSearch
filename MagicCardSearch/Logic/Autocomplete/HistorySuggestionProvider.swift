@@ -17,12 +17,12 @@ struct HistorySuggestion: Equatable {
 class HistorySuggestionProvider {
     // MARK: - Properties
 
-    private let historyTracker: SearchHistoryTracker
+    private let searchHistoryTracker: SearchHistoryTracker
     
     // MARK: - Initialization
 
-    init(historyTracker: SearchHistoryTracker) {
-        self.historyTracker = historyTracker
+    init(with tracker: SearchHistoryTracker) {
+        self.searchHistoryTracker = tracker
     }
 
     // MARK: - Public Methods
@@ -33,12 +33,12 @@ class HistorySuggestionProvider {
         }
         
         // TODO: Seems like someone else should be running this, not us.
-        historyTracker.maybeGarbageCollectHistory()
+        searchHistoryTracker.maybeGarbageCollectHistory()
         
         let trimmedSearchTerm = searchTerm.trimmingCharacters(in: .whitespaces)
         
         return Array(
-            historyTracker.sortedHistory
+            searchHistoryTracker.sortedHistory
                 .lazy
                 .filter { !excludedFilters.contains($0.filter) }
                 .compactMap { entry in

@@ -15,6 +15,7 @@ struct AutocompleteView: View {
 
     let inputText: String
     let provider: CombinedSuggestionProvider
+    let searchHistoryTracker: SearchHistoryTracker
     let filters: [SearchFilter]
     let isSearchFocused: Bool
     let onSuggestionTap: (AcceptedSuggestion) -> Void
@@ -61,28 +62,28 @@ struct AutocompleteView: View {
         List {
             ForEach(Array(suggestions.enumerated()), id: \.offset) { _, suggestion in
                 switch suggestion {
-                case .history(let suggestion):
-                    historyRow(suggestion)
+                case .pinned(let suggestion):
+                    pinnedRow(suggestion)
                         .swipeActions(edge: .leading, allowsFullSwipe: true) {
                             Button {
-                                if suggestion.isPinned {
-                                    provider.historyProvider.unpin(filter: suggestion.filter)
-                                } else {
-                                    provider.historyProvider.pin(filter: suggestion.filter)
-                                }
+                                provider.pinnedFilterProvider.unpin(filter: suggestion.filter)
+                                // If unpinning, keep the filter around in case you want to re-pin it.
+                                searchHistoryTracker.recordUsage(of: suggestion.filter)
                                 nonce += 1
                             } label: {
-                                if suggestion.isPinned {
-                                    Label("Unpin", systemImage: "pin.slash")
-                                } else {
-                                    Label("Pin", systemImage: "pin")
-                                }
+                                Label("Unpin", systemImage: "pin.slash")
                             }
                             .tint(.orange)
                         }
+                        .listRowInsets(.vertical, 0)
+                case .history(let suggestion):
+                    historyRow(suggestion)
+                        .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                            pinSwipeAction(for: suggestion.filter)
+                        }
                         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                             Button(role: .destructive) {
-                                provider.historyProvider.delete(filter: suggestion.filter)
+                                searchHistoryTracker.delete(filter: suggestion.filter)
                                 nonce += 1
                             } label: {
                                 Label("Delete", systemImage: "trash")
@@ -96,6 +97,10 @@ struct AutocompleteView: View {
 
                 case .enumeration(let suggestion):
                     enumerationRows(suggestion)
+                    // TODO: Implement this by making enumerations give a filter object.
+//                        .swipeActions(edge: .leading, allowsFullSwipe: true) {
+//                            pinSwipeAction(for: suggestion.filter)
+//                        }
                         .listRowInsets(.vertical, 0)
                 
                 case .name(let suggestion):
@@ -115,6 +120,36 @@ struct AutocompleteView: View {
                 nonce += 1
             }
         }
+    }
+    
+    @ViewBuilder
+    private func pinSwipeAction(for filter: SearchFilter) -> some View {
+        Button {
+            provider.pinnedFilterProvider.pin(filter: filter)
+            nonce += 1
+        } label: {
+            Label("Pin", systemImage: "pin")
+        }
+        .tint(.blue)
+    }
+    
+    private func pinnedRow(_ suggestion: PinnedFilterSuggestion) -> some View {
+        let filterString = suggestion.filter.queryStringWithEditingRange.0
+        return Button {
+            onSuggestionTap(.filter(suggestion.filter))
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "pin.fill")
+                    .foregroundStyle(.secondary)
+                HighlightedText(
+                    text: filterString,
+                    highlightRange: suggestion.matchRange
+                )
+                Spacer(minLength: 0)
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 
     private func historyRow(_ suggestion: HistorySuggestion) -> some View {
@@ -329,75 +364,5 @@ struct HighlightedText: View {
         attributedString[attrRange].font = .body.bold()
 
         return attributedString
-    }
-}
-
-// MARK: - Preview
-
-#Preview("Filter Type Suggestions") {
-    AutocompleteView(
-        inputText: "set",
-        provider: CombinedSuggestionProvider(
-            pinnedFilter: PinnedFilterSuggestionProvider(),
-            history: HistorySuggestionProvider(historyTracker: SearchHistoryTracker()),
-            filterType: FilterTypeSuggestionProvider(),
-            enumeration: EnumerationSuggestionProvider(),
-            name: NameSuggestionProvider(),
-        ),
-        filters: [],
-        isSearchFocused: true,
-    ) { suggestion in
-        print("Selected: \(suggestion)")
-    }
-}
-
-#Preview("Enumeration Suggestions - Empty") {
-    AutocompleteView(
-        inputText: "format:",
-        provider: CombinedSuggestionProvider(
-            pinnedFilter: PinnedFilterSuggestionProvider(),
-            history: HistorySuggestionProvider(historyTracker: SearchHistoryTracker()),
-            filterType: FilterTypeSuggestionProvider(),
-            enumeration: EnumerationSuggestionProvider(),
-            name: NameSuggestionProvider(),
-        ),
-        filters: [],
-        isSearchFocused: true,
-    ) { suggestion in
-        print("Selected: \(suggestion)")
-    }
-}
-
-#Preview("Enumeration Suggestions - Filtered") {
-    AutocompleteView(
-        inputText: "format=m",
-        provider: CombinedSuggestionProvider(
-            pinnedFilter: PinnedFilterSuggestionProvider(),
-            history: HistorySuggestionProvider(historyTracker: SearchHistoryTracker()),
-            filterType: FilterTypeSuggestionProvider(),
-            enumeration: EnumerationSuggestionProvider(),
-            name: NameSuggestionProvider(),
-        ),
-        filters: [],
-        isSearchFocused: true,
-    ) { suggestion in
-        print("Selected: \(suggestion)")
-    }
-}
-
-#Preview("Name Suggestions") {
-    AutocompleteView(
-        inputText: "Black Lot",
-        provider: CombinedSuggestionProvider(
-            pinnedFilter: PinnedFilterSuggestionProvider(),
-            history: HistorySuggestionProvider(historyTracker: SearchHistoryTracker()),
-            filterType: FilterTypeSuggestionProvider(),
-            enumeration: EnumerationSuggestionProvider(),
-            name: NameSuggestionProvider(),
-        ),
-        filters: [],
-        isSearchFocused: true,
-    ) { suggestion in
-        print("Selected: \(suggestion)")
     }
 }

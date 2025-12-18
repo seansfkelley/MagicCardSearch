@@ -34,10 +34,11 @@ struct ContentView: View {
     
     init() {
         _autocompleteProvider = State(initialValue: CombinedSuggestionProvider(
-            historyProvider: HistorySuggestionProvider(historyTracker: searchHistoryTracker),
-            filterProvider: FilterTypeSuggestionProvider(),
-            enumerationProvider: EnumerationSuggestionProvider(),
-            nameProvider: NameSuggestionProvider(debounce: .milliseconds(500))
+            pinnedFilter: PinnedFilterSuggestionProvider(),
+            history: HistorySuggestionProvider(with: searchHistoryTracker),
+            filterType: FilterTypeSuggestionProvider(),
+            enumeration: EnumerationSuggestionProvider(),
+            name: NameSuggestionProvider(debounce: .milliseconds(500))
         ))
     }
     
@@ -68,8 +69,9 @@ struct ContentView: View {
                     AutocompleteView(
                         inputText: inputText,
                         provider: autocompleteProvider,
+                        searchHistoryTracker: searchHistoryTracker,
                         filters: searchFilters,
-                        isSearchFocused: isSearchFocused
+                        isSearchFocused: isSearchFocused,
                     ) { suggestion in
                             handleSuggestionTap(suggestion)
                             inputSelection = TextSelection(insertionPoint: inputText.endIndex)
