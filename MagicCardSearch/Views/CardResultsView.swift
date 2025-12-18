@@ -12,16 +12,8 @@ struct CardResultsView: View {
     var allowedToSearch: Bool
     @Binding var filters: [SearchFilter]
     @Binding var searchConfig: SearchConfiguration
+    @Binding var results: LoadableResult<SearchResults, SearchErrorState>
     var historySuggestionProvider: HistorySuggestionProvider
-    
-    private struct SearchResults {
-        let totalCount: Int
-        let cards: [Card]
-        let warnings: [String]
-        let nextPageUrl: String?
-    }
-    
-    @State private var results: LoadableResult<SearchResults, SearchErrorState> = .unloaded
     @State private var selectedCardIndex: Int?
     @State private var searchTask: Task<Void, Never>?
     @State private var cardFlipStates: [UUID: Bool] = [:]
@@ -61,7 +53,7 @@ struct CardResultsView: View {
                     systemImage: "text.magnifyingglass",
                     description: Text("Tap the search bar below and start typing to add filters")
                 )
-            } else if case .errored(let searchResults?, let error) = results, searchResults?.cards.isEmpty {
+            } else if case .errored(let searchResults, let error) = results, searchResults?.cards.isEmpty ?? true {
                 ContentUnavailableView {
                     Label(error.title, systemImage: error.iconName)
                 } description: {
@@ -89,7 +81,7 @@ struct CardResultsView: View {
                     systemImage: "magnifyingglass",
                     description: Text("Try adjusting your search filters")
                 )
-            } else if let searchResults = results.latestValue, searchResults.hasCards {
+            } else if let searchResults = results.latestValue, !searchResults.cards.isEmpty {
                 ScrollView {
                     VStack(spacing: 0) {
                         Text("\(searchResults.totalCount) \(searchResults.totalCount == 1 ? "result" : "results")")
@@ -342,6 +334,7 @@ struct CardResultCell: View {
             .basic(.keyValue("manavalue", .greaterThanOrEqual, "4")),
         ]
         @State private var config = SearchConfiguration()
+        @State private var results: LoadableResult<SearchResults, SearchErrorState> = .unloaded
         @State private var historySuggestionProvider = HistorySuggestionProvider()
 
         var body: some View {
@@ -349,6 +342,7 @@ struct CardResultCell: View {
                 allowedToSearch: true,
                 filters: $filters,
                 searchConfig: $config,
+                results: $results,
                 historySuggestionProvider: historySuggestionProvider
             )
         }

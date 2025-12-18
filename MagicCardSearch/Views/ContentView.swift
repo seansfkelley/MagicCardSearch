@@ -19,7 +19,7 @@ struct ContentView: View {
     @State private var autocompleteProvider: CombinedSuggestionProvider
     @State private var inputSelection: TextSelection?
     @State private var pendingSelection: TextSelection?
-    @State private var warnings: [String] = []
+    @State private var results: LoadableResult<SearchResults, SearchErrorState> = .unloaded
     @State private var showWarningsPopover = false
     @FocusState private var isSearchFocused: Bool
     
@@ -47,8 +47,8 @@ struct ContentView: View {
                     allowedToSearch: !isSearchFocused,
                     filters: $filters,
                     searchConfig: $searchConfig,
-                    warnings: $warnings,
-                    historySuggestionProvider: historySuggestionProvider,
+                    results: $results,
+                    historySuggestionProvider: historySuggestionProvider
                 )
                 .opacity(isSearchFocused ? 0 : 1)
                 
@@ -72,7 +72,7 @@ struct ContentView: View {
                     inputSelection: $inputSelection,
                     pendingSelection: $pendingSelection,
                     isSearchFocused: _isSearchFocused,
-                    warnings: warnings,
+                    warnings: results.latestValue?.warnings ?? [],
                     showWarningsPopover: $showWarningsPopover,
                     onFilterEdit: handleFilterEdit,
                     autocompleteProvider: autocompleteProvider
@@ -127,7 +127,15 @@ struct ContentView: View {
             .navigationBarTitleDisplayMode(.inline)
         }
         .onChange(of: filters) {
-            warnings = []
+            // Clear warnings when filters change by resetting to unloaded or keeping existing results
+            if case .loaded(let searchResults, _) = results {
+                results = .loaded(SearchResults(
+                    totalCount: searchResults.totalCount,
+                    cards: searchResults.cards,
+                    warnings: [],
+                    nextPageUrl: searchResults.nextPageUrl
+                ), nil)
+            }
         }
         .sheet(isPresented: $showDisplaySheet, onDismiss: {
             if let pending = pendingSearchConfig, pending != searchConfig {
