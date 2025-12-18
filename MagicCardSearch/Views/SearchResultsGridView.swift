@@ -9,7 +9,7 @@ import SwiftUI
 import ScryfallKit
 
 struct SearchResultsGridView: View {
-    @Binding var results: LoadableResult<SearchResults, SearchErrorState>
+    let state: SearchResultsState
     
     @State private var selectedCardIndex: Int?
     @State private var cardFlipStates: [UUID: Bool] = [:]
@@ -18,6 +18,10 @@ struct SearchResultsGridView: View {
         GridItem(.flexible(), spacing: 16),
         GridItem(.flexible(), spacing: 16),
     ]
+    
+    private var results: LoadableResult<SearchResults, SearchErrorState> {
+        state.results
+    }
 
     var body: some View {
         ZStack {
@@ -66,7 +70,7 @@ struct SearchResultsGridView: View {
                                 }
                                 .onAppear {
                                     if index == searchResults.cards.count - 4 {
-                                        onLoadNextPage()
+                                        state.loadNextPageIfNeeded()
                                     }
                                 }
                             }
@@ -101,7 +105,7 @@ struct SearchResultsGridView: View {
             )
         ) { identifier in
             SearchResultsDetailNavigator(
-                results: $results,
+                state: state,
                 initialIndex: identifier.index,
                 cardFlipStates: $cardFlipStates
             )
@@ -136,7 +140,7 @@ struct SearchResultsGridView: View {
                     }
 
                     Button("Retry") {
-                        onRetryNextPage()
+                        state.retryNextPage()
                     }
                     .buttonStyle(.borderedProminent)
                 }
@@ -186,14 +190,10 @@ struct CardResultCell: View {
 
 #Preview {
     struct PreviewWrapper: View {
-        @State private var results: LoadableResult<SearchResults, SearchErrorState> = .unloaded
+        let state = SearchResultsState()
 
         var body: some View {
-            SearchResultsGridView(
-                results: $results,
-                onLoadNextPage: { print("Load next page") },
-                onRetryNextPage: { print("Retry next page") }
-            )
+            SearchResultsGridView(state: state)
         }
     }
 

@@ -24,13 +24,17 @@ struct ContentView: View {
     @State private var autocompleteProvider: CombinedSuggestionProvider
     @State private var inputSelection: TextSelection?
     @State private var pendingSelection: TextSelection?
-    @State private var results: LoadableResult<SearchResults, SearchErrorState> = .unloaded
+    @State private var searchResultsState = SearchResultsState()
     @State private var showWarningsPopover = false
     @State private var searchTask: Task<Void, Never>?
     @State private var mainContentType: MainContentType = .home
     @FocusState private var isSearchFocused: Bool
     
     private let searchService = CardSearchService()
+    
+    private var results: LoadableResult<SearchResults, SearchErrorState> {
+        searchResultsState.results
+    }
     
     init() {
         _autocompleteProvider = State(initialValue: CombinedSuggestionProvider(
@@ -58,7 +62,7 @@ struct ContentView: View {
                         performSearch()
                     }
                 case .results:
-                    SearchResultsGridView(results: $results)
+                    SearchResultsGridView(state: searchResultsState)
                     
                     if isSearchFocused {
                         AutocompleteView(
@@ -155,7 +159,7 @@ struct ContentView: View {
         .onChange(of: searchFilters) {
             // Clear warnings when filters change by resetting to unloaded or keeping existing results
             if case .loaded(let searchResults, _) = results {
-                results = .loaded(SearchResults(
+                searchResultsState.results = .loaded(SearchResults(
                     totalCount: searchResults.totalCount,
                     cards: searchResults.cards,
                     warnings: [],
@@ -208,14 +212,14 @@ struct ContentView: View {
         searchTask?.cancel()
 
         guard !searchFilters.isEmpty else {
-            results = .unloaded
+            searchResultsState.results = .unloaded
             searchTask = nil
             return
         }
 
         print("Searching...")
 
-        results = .loading(results.latestValue, nil)
+        searchResultsState.results = .loading(searchResultsState.results.latestValue, nil)
 
         searchHistoryTracker.recordUsage(of: searchFilters)
         for filter in searchFilters {
@@ -234,11 +238,11 @@ struct ContentView: View {
                     warnings: searchResult.warnings,
                     nextPageUrl: searchResult.nextPageURL,
                 )
-                results = .loaded(searchResults, nil)
+                searchResultsState.results = .loaded(searchResults, nil)
             } catch {
                 if !Task.isCancelled {
                     print("Search error: \(error)")
-                    results = .errored(results.latestValue, SearchErrorState(from: error))
+                    searchResultsState.results = .errored(searchResultsState.results.latestValue, SearchErrorState(from: error))
                 }
             }
         }

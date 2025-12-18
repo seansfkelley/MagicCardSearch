@@ -8,16 +8,6 @@
 import SwiftUI
 import ScryfallKit
 
-@MainActor
-@Observable
-class FeaturedCardsCache {
-    static let shared = FeaturedCardsCache()
-    
-    var result: LoadableResult<SearchResults, SearchErrorState> = .unloaded
-    
-    private init() {}
-}
-
 struct HomeView: View {
     let searchHistoryTracker: SearchHistoryTracker
     let onSearchSelected: ([SearchFilter]) -> Void
@@ -25,7 +15,7 @@ struct HomeView: View {
     @State private var cardFlipStates: [UUID: Bool] = [:]
     @State private var selectedCardIndex: Int?
     
-    private let cache = FeaturedCardsCache.shared
+    private let featuredState = FeaturedCardsState.shared
     
     var body: some View {
         ScrollView {
@@ -38,7 +28,7 @@ struct HomeView: View {
                     
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 12) {
-                            switch cache.result {
+                            switch featuredState.results {
                             case .loading(nil, _), .unloaded:
                                 ForEach(0..<15, id: \.self) { _ in
                                     ProgressView()
@@ -139,10 +129,7 @@ struct HomeView: View {
             )
         ) { identifier in
             SearchResultsDetailNavigator(
-                results: Binding(
-                    get: { cache.result },
-                    set: { cache.result = $0 }
-                ),
+                state: featuredState,
                 initialIndex: identifier.index,
                 cardFlipStates: $cardFlipStates
             )
@@ -150,11 +137,11 @@ struct HomeView: View {
     }
     
     private func loadFeaturedCards() async {
-        guard case .unloaded = cache.result else {
+        guard case .unloaded = featuredState.results else {
             return
         }
         
-        cache.result = .loading(nil, nil)
+        featuredState.results = .loading(nil, nil)
         
         do {
             let filters: [SearchFilter] = [.basic(.keyValue("set", .including, "ecl"))]
@@ -165,10 +152,21 @@ struct HomeView: View {
                 warnings: result.warnings,
                 nextPageUrl: result.nextPageURL
             )
-            cache.result = .loaded(searchResults, nil)
+            featuredState.results = .loaded(searchResults, nil)
         } catch {
             print("Failed to load featured cards: \(error)")
-            cache.result = .errored(nil, SearchErrorState(from: error))
+            featuredState.results = .errored(nil, SearchErrorState(from: error))
         }
+    }
+}
+// MARK: - Featured Cards State
+
+@MainActor
+@Observable
+class FeaturedCardsState: SearchResultsState {
+    static let shared = FeaturedCardsState()
+    
+    override private init(results: LoadableResult<SearchResults, SearchErrorState> = .unloaded) {
+        super.init(results: results)
     }
 }
