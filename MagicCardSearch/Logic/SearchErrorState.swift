@@ -8,7 +8,7 @@
 import SwiftUI
 import ScryfallKit
 
-enum SearchErrorState {
+enum SearchErrorState: Error {
     case clientError // 4xx errors (excluding 404 from searches)
     case serverError // 5xx errors
     case networkError // Connection issues
