@@ -16,18 +16,7 @@ struct SymbolView: View {
         SymbolCode("E"), SymbolCode("CHAOS"), SymbolCode("P"), SymbolCode("H"),
     ])
     
-    private static let svgDataCache: any Cache<SymbolCode, Data> = {
-        let memoryCache = MemoryCache<SymbolCode, Data>(expiration: .interval(60 * 60 * 24))
-        return if let diskCache = DiskCache<SymbolCode, Data>(
-            name: "SymbolSvg",
-            expiration: .interval(60 * 60 * 24 * 30),
-        ) {
-            HybridCache(memoryCache: memoryCache, diskCache: diskCache)
-        } else {
-            memoryCache
-        }
-    }()
-    
+    // Memory-only cache for rendered UIImages to avoid re-rendering SVGs
     private static var renderedImageCache: any Cache<SymbolCode, UIImage> = {
         return MemoryCache(expiration: .never)
     }()
@@ -36,8 +25,6 @@ struct SymbolView: View {
     let size: CGFloat
     let oversize: CGFloat
     let showDropShadow: Bool
-    
-    @State private var imageResult: LoadableResult<(Card.Symbol, UIImage)> = .unloaded
     
     init(
         _ symbol: String,
@@ -51,12 +38,8 @@ struct SymbolView: View {
         self.showDropShadow = showDropShadow
     }
     
-    var targetSize: CGFloat {
-        if case .success((let symbol, _)) = imageResult.latestResult {
-            symbol.hybrid || symbol.phyrexian ? oversize : size
-        } else {
-            size
-        }
+    private var targetSize: CGFloat {
+        symbol.normalized.contains("/") ? oversize : size
     }
     
     var body: some View {
@@ -68,86 +51,38 @@ struct SymbolView: View {
                     .offset(x: -1, y: 1)
             }
             
-            if case .success((_, let image)) = imageResult.latestResult {
+            if let image = renderSymbol() {
                 Image(uiImage: image)
                     .resizable()
                     .aspectRatio(contentMode: .fit)
                     .frame(width: targetSize, height: targetSize)
-            } else if case .failure = imageResult.latestResult {
+            } else {
+                // Fallback: show the symbol text
                 Text(symbol.normalized)
                     .font(.system(size: targetSize * 0.5))
                     .foregroundStyle(.secondary)
                     .frame(width: targetSize, height: targetSize)
-            } else {
-                Circle()
-                    .fill(.secondary.opacity(0.2))
-                    .frame(width: targetSize, height: targetSize)
             }
-        }
-        .task {
-            await loadAndRender()
         }
     }
     
-    private func loadAndRender() async {
-        switch imageResult {
-        case .loaded, .loading:
-            return
-        case .unloaded:
-            break
+    private func renderSymbol() -> UIImage? {
+        if let cachedImage = Self.renderedImageCache[symbol] {
+            return cachedImage
         }
         
-        await MainActor.run {
-            imageResult = .loading(nil)
+        guard let svgData = ScryfallMetadataCache.symbolSvgCache[symbol] else {
+            return nil
         }
         
-        let symbolResult = await ScryfallMetadataCache.shared.symbol(self.symbol)
-        guard case .success(let symbolData) = symbolResult,
-              let svgUriString = symbolData.svgUri,
-              let url = URL(string: svgUriString) else {
-            await MainActor.run {
-                imageResult = .loaded(.failure(NSError(domain: "SymbolView", code: 1, userInfo: [NSLocalizedDescriptionKey: "Failed to get symbol metadata"])))
-            }
-            return
+        guard let svgImage = SVGKImage(data: svgData),
+              let uiImage = svgImage.uiImage else {
+            return nil
         }
         
-        if let renderedImage = Self.renderedImageCache[symbol] {
-            await MainActor.run {
-                self.imageResult = .loaded(.success((symbolData, renderedImage)))
-            }
-            return
-        }
+        Self.renderedImageCache[symbol] = uiImage
         
-        do {
-            let svgData = try await Self.svgDataCache.get(forKey: self.symbol) {
-                let (data, _) = try await URLSession.shared.data(from: url)
-                return data
-            }
-            
-            guard let svgImage = SVGKImage(data: svgData) else {
-                await MainActor.run {
-                    imageResult = .loaded(.failure(NSError(domain: "SymbolView", code: 2, userInfo: [NSLocalizedDescriptionKey: "Failed to create SVG image"])))
-                }
-                return
-            }
-            
-            guard let uiImage = svgImage.uiImage else {
-                await MainActor.run {
-                    imageResult = .loaded(.failure(NSError(domain: "SymbolView", code: 3, userInfo: [NSLocalizedDescriptionKey: "Failed to render SVG to UIImage"])))
-                }
-                return
-            }
-            
-            Self.renderedImageCache[symbol] = uiImage
-            
-            await MainActor.run {
-                self.imageResult = .loaded(.success((symbolData, uiImage)))
-            }
-        } catch {
-            await MainActor.run {
-                self.imageResult = .loaded(.failure(error))
-            }
-        }
+        return uiImage
     }
 }
 
