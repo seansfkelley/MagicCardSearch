@@ -24,6 +24,15 @@ struct SymbolCode: Equatable, Hashable, Sendable, Codable, CustomStringConvertib
     var description: String {
         "Symbol\(normalized)"
     }
+    
+    /// Nil, if the metadata telling us this is not yet loaded.
+    @MainActor var isOversized: Bool? {
+        if let symbol = ScryfallMetadataCache.shared.symbols[self] {
+            symbol.phyrexian || symbol.hybrid
+        } else {
+            nil
+        }
+    }
 }
 
 struct SetCode: Equatable, Hashable, Sendable, Codable, CustomStringConvertible {
@@ -42,14 +51,14 @@ enum ScryfallMetadataError: Error {
     case errorLoadingData(Error?)
 }
 
-actor ScryfallMetadataCache {
+@MainActor
+final class ScryfallMetadataCache {
     // MARK: - Singleton
 
     public static let shared = ScryfallMetadataCache()
     
     // MARK: - Public Properties
     
-    // TODO: Figure out how to make these read-only.
     public var sets: [SetCode: MTGSet] = [:]
     public var symbols: [SymbolCode: Card.Symbol] = [:]
     public var symbolSvg: [SymbolCode: Data] = [:]
@@ -59,7 +68,7 @@ actor ScryfallMetadataCache {
     private let scryfallClient = ScryfallClient()
     private var setCache: any Cache<String, [SetCode: MTGSet]>
     private var symbolCache: any Cache<String, [SymbolCode: Card.Symbol]>
-    private let symbolSvgCache: any Cache<SymbolCode, Data>
+    private var symbolSvgCache: any Cache<SymbolCode, Data>
 
     private init() {
         setCache = HybridCache(
@@ -95,7 +104,6 @@ actor ScryfallMetadataCache {
                 )
             }
             
-            logger.info("Prefetching \(symbols.count) symbol SVGs...")
             await prefetchSymbolSvgs(from: symbols)
             
             return .success(())
@@ -125,6 +133,8 @@ actor ScryfallMetadataCache {
     // MARK: - Private Methods
     
     private func prefetchSymbolSvgs(from symbols: [SymbolCode: Card.Symbol]) async {
+        logger.info("Prefetching \(symbols.count) symbol SVGs...")
+        
         let batchSize = 10
         let symbolArray = Array(symbols)
         

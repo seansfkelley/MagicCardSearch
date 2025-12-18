@@ -30,10 +30,10 @@ struct ManaCostView: View {
         }
     }
 
-    private func safelyParseManaCost(_ cost: String) -> [String]? {
+    private func safelyParseManaCost(_ cost: String) -> [SymbolCode]? {
         let pattern = #/\{[^}]+\}/#
         
-        var symbols: [String] = []
+        var symbols: [SymbolCode] = []
         var consumedLength = 0
         
         for match in cost.matches(of: pattern) {
@@ -44,7 +44,7 @@ struct ManaCostView: View {
                 return nil
             }
             
-            symbols.append(String(cost[matchRange]))
+            symbols.append(SymbolCode(String(cost[matchRange])))
             consumedLength = cost.distance(from: cost.startIndex, to: matchRange.upperBound)
         }
         

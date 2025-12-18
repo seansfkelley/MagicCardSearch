@@ -107,23 +107,23 @@ struct SearchBarView: View {
         }
     }
 
-    private func insertSymbol(_ symbol: String) {
+    private func insertSymbol(_ symbol: SymbolCode) {
         if let selection = inputSelection {
             switch selection.indices {
             case .selection(let range):
-                inputText.replaceSubrange(range, with: symbol)
-                let location = inputText.index(range.lowerBound, offsetBy: symbol.count)
+                inputText.replaceSubrange(range, with: symbol.normalized)
+                let location = inputText.index(range.lowerBound, offsetBy: symbol.normalized.count)
                 inputSelection = .init(range: location..<location)
             case .multiSelection:
                 // TODO: how or why
                 // swiftlint:disable:next fallthrough
                 fallthrough
             @unknown default:
-                inputText += symbol
+                inputText += symbol.normalized
                 inputSelection = .init(range: inputText.endIndex..<inputText.endIndex)
             }
         } else {
-            inputText += symbol
+            inputText += symbol.normalized
             inputSelection = .init(range: inputText.endIndex..<inputText.endIndex)
         }
     }
@@ -132,40 +132,40 @@ struct SearchBarView: View {
 // MARK: - Symbol Picker
 
 struct SymbolPickerView: View {
-    let onSymbolSelected: (String) -> Void
+    let onSymbolSelected: (SymbolCode) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             SymbolGroupRow(
-                symbols: ["{T}", "{Q}", "{S}", "{E}"],
+                symbols: [SymbolCode("{T}"), SymbolCode("{Q}"), SymbolCode("{S}"), SymbolCode("{E}")],
                 onSymbolTapped: onSymbolSelected
             )
 
             SymbolGroupRow(
-                symbols: ["{W}", "{U}", "{B}", "{R}", "{G}", "{C}"],
+                symbols: [SymbolCode("{W}"), SymbolCode("{U}"), SymbolCode("{B}"), SymbolCode("{R}"), SymbolCode("{G}"), SymbolCode("{C}")],
                 onSymbolTapped: onSymbolSelected
             )
 
             SymbolGroupRow(
-                symbols: ["{X}", "{1}", "{2}", "{3}", "{4}", "{5}", "{6}", "{7}", "{8}", "{9}"],
+                symbols: [SymbolCode("{X}"), SymbolCode("{1}"), SymbolCode("{2}"), SymbolCode("{3}"), SymbolCode("{4}"), SymbolCode("{5}"), SymbolCode("{6}"), SymbolCode("{7}"), SymbolCode("{8}"), SymbolCode("{9}")],
                 onSymbolTapped: onSymbolSelected
             )
 
             SymbolGroupRow(
                 symbols: [
-                    "{W/U}", "{W/B}", "{U/B}", "{U/R}", "{B/R}",
-                    "{B/G}", "{R/W}", "{R/G}", "{G/W}", "{G/U}",
+                    SymbolCode("{W/U}"), SymbolCode("{W/B}"), SymbolCode("{U/B}"), SymbolCode("{U/R}"), SymbolCode("{B/R}"),
+                    SymbolCode("{B/G}"), SymbolCode("{R/W}"), SymbolCode("{R/G}"), SymbolCode("{G/W}"), SymbolCode("{G/U}"),
                 ],
                 onSymbolTapped: onSymbolSelected
             )
 
             SymbolGroupRow(
-                symbols: ["{2/W}", "{2/U}", "{2/B}", "{2/R}", "{2/G}" ],
+                symbols: [SymbolCode("{2/W}"), SymbolCode("{2/U}"), SymbolCode("{2/B}"), SymbolCode("{2/R}"), SymbolCode("{2/G}") ],
                 onSymbolTapped: onSymbolSelected
             )
 
             SymbolGroupRow(
-                symbols: ["{W/P}", "{U/P}", "{B/P}", "{R/P}", "{G/P}" ],
+                symbols: [SymbolCode("{W/P}"), SymbolCode("{U/P}"), SymbolCode("{B/P}"), SymbolCode("{R/P}"), SymbolCode("{G/P}") ],
                 onSymbolTapped: onSymbolSelected
             )
         }
@@ -174,8 +174,8 @@ struct SymbolPickerView: View {
 }
 
 struct SymbolGroupRow: View {
-    let symbols: [String]
-    let onSymbolTapped: (String) -> Void
+    let symbols: [SymbolCode]
+    let onSymbolTapped: (SymbolCode) -> Void
 
     var body: some View {
         ViewThatFits {

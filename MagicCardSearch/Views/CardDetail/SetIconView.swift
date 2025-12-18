@@ -68,9 +68,8 @@ struct SetIconView: View {
             return
         }
         
-        let symbolResult = await ScryfallMetadataCache.shared.sets[setCode]
-        guard case .success(let symbolData) = symbolResult,
-              let url = URL(string: symbolData.iconSvgUri) else {
+        let set = ScryfallMetadataCache.shared.sets[setCode]
+        guard let set, let url = URL(string: set.iconSvgUri) else {
             await MainActor.run {
                 imageResult = .loaded(.failure(NSError(domain: "SetIconView", code: 1, userInfo: [NSLocalizedDescriptionKey: "Failed to get set metadata"])))
             }
