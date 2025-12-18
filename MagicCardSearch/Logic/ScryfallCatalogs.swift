@@ -47,20 +47,6 @@ struct SetCode: Equatable, Hashable, Sendable, Codable, CustomStringConvertible 
     }
 }
 
-enum StringCatalogType: String {
-    case superType = "supertypes"
-    case cardType = "card-types"
-    case artifactType = "artifact-types"
-    case battleType = "battle-types"
-    case creatureType = "creature-types"
-    case enchantmentType = "enchantment-types"
-    case landType = "land-types"
-    case planeswalkerType = "planeswalker-types"
-    case spellType = "spell-types"
-    case keyword = "keyword-abilities"
-    case watermark = "watermarks"
-}
-
 enum ScryfallMetadataError: Error {
     case errorLoadingData(Error?)
 }
@@ -82,7 +68,7 @@ final class ScryfallCatalogs {
     private let scryfallClient = ScryfallClient()
     private var setCache: any Cache<String, [SetCode: MTGSet]>
     private var symbolCache: any Cache<String, [SymbolCode: Card.Symbol]>
-    private var stringCache: any Cache<StringCatalogType, Set<String>>
+    private var stringCache: any Cache<Catalog.`Type`, Set<String>>
     private var symbolSvgCache: any Cache<SymbolCode, Data>
 
     private init() {
