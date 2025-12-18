@@ -161,7 +161,7 @@ struct SearchResultsGridView: View {
 
 // MARK: - Sheet Identifier
 
-private struct SheetIdentifier: Identifiable {
+struct SheetIdentifier: Identifiable {
     let index: Int
     var id: Int { index }
 }

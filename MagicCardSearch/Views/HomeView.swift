@@ -8,13 +8,24 @@
 import SwiftUI
 import ScryfallKit
 
+@MainActor
+@Observable
+class FeaturedCardsCache {
+    static let shared = FeaturedCardsCache()
+    
+    var result: LoadableResult<SearchResults, SearchErrorState> = .unloaded
+    
+    private init() {}
+}
+
 struct HomeView: View {
     let searchHistoryTracker: SearchHistoryTracker
     let onSearchSelected: ([SearchFilter]) -> Void
     
     @State private var cardFlipStates: [UUID: Bool] = [:]
+    @State private var selectedCardIndex: Int?
     
-    private static var featuredCardsCache: LoadableResult<SearchResults, SearchErrorState> = .unloaded
+    private let cache = FeaturedCardsCache.shared
     
     var body: some View {
         ScrollView {
@@ -27,22 +38,27 @@ struct HomeView: View {
                     
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 12) {
-                            switch Self.featuredCardsCache {
+                            switch cache.result {
                             case .loading(nil, _), .unloaded:
                                 ForEach(0..<15, id: \.self) { _ in
                                     ProgressView()
                                         .frame(width: 120, height: 168)
                                 }
                             case .loading(let results?, _), .loaded(let results, _), .errored(let results?, _):
-                                ForEach(results.cards.prefix(15), id: \.id) { card in
-                                    CardResultCell(
-                                        card: card,
-                                        isFlipped: Binding(
-                                            get: { cardFlipStates[card.id] ?? false },
-                                            set: { cardFlipStates[card.id] = $0 }
+                                ForEach(Array(results.cards.prefix(15).enumerated()), id: \.element.id) { index, card in
+                                    Button {
+                                        selectedCardIndex = index
+                                    } label: {
+                                        CardResultCell(
+                                            card: card,
+                                            isFlipped: Binding(
+                                                get: { cardFlipStates[card.id] ?? false },
+                                                set: { cardFlipStates[card.id] = $0 }
+                                            )
                                         )
-                                    )
-                                    .frame(width: 120)
+                                        .frame(width: 120)
+                                    }
+                                    .buttonStyle(.plain)
                                 }
                                 
                                 Button {
@@ -116,14 +132,34 @@ struct HomeView: View {
         .task {
             await loadFeaturedCards()
         }
+        .sheet(
+            item: Binding(
+                get: { selectedCardIndex.map { SheetIdentifier(index: $0) } },
+                set: { selectedCardIndex = $0?.index }
+            )
+        ) { identifier in
+            if case .loaded(let results, _) = cache.result {
+                SearchResultsDetailNavigator(
+                    cards: results.cards,
+                    initialIndex: identifier.index,
+                    totalCount: results.totalCount,
+                    hasMorePages: results.nextPageUrl != nil,
+                    isLoadingNextPage: false,
+                    nextPageError: nil,
+                    cardFlipStates: $cardFlipStates,
+                    onNearEnd: nil,
+                    onRetryNextPage: nil
+                )
+            }
+        }
     }
     
     private func loadFeaturedCards() async {
-        guard case .unloaded = Self.featuredCardsCache else {
+        guard case .unloaded = cache.result else {
             return
         }
         
-        Self.featuredCardsCache = .loading(nil, nil)
+        cache.result = .loading(nil, nil)
         
         do {
             let filters: [SearchFilter] = [.basic(.keyValue("set", .including, "ecl"))]
@@ -134,10 +170,10 @@ struct HomeView: View {
                 warnings: result.warnings,
                 nextPageUrl: result.nextPageURL
             )
-            Self.featuredCardsCache = .loaded(searchResults, nil)
+            cache.result = .loaded(searchResults, nil)
         } catch {
             print("Failed to load featured cards: \(error)")
-            Self.featuredCardsCache = .errored(nil, SearchErrorState(from: error))
+            cache.result = .errored(nil, SearchErrorState(from: error))
         }
     }
 }
