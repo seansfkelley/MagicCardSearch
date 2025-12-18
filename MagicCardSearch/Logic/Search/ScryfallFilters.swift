@@ -246,7 +246,7 @@ let scryfallFilterTypes: [ScryfallFilterType] = [
     .init("prefer", enumerationValues: [
         "oldest", "newest", "usd-low", "usd-high", "eur-low", "eur-high", "tix-low", "tix-high", "promo"
     ]),
-    .init("direction", enumerationValues: ["asc", "desc"]),
+    .init("direction", ["dir"], enumerationValues: ["asc", "desc"]),
     
     // MARK: - Combined from Multiple Preceding Categories
     .init("has", enumerationValues: [
