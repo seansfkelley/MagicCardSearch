@@ -62,6 +62,11 @@ final class ScryfallCatalogs {
     public var sets: [SetCode: MTGSet] = [:]
     public var symbols: [SymbolCode: Card.Symbol] = [:]
     public var symbolSvg: [SymbolCode: Data] = [:]
+    
+    /// Access catalog data by type
+    public func getCatalog(_ catalogType: Catalog.`Type`) -> Set<String>? {
+        return stringCache[catalogType]
+    }
 
     // MARK: - Private Properties
     
@@ -143,8 +148,7 @@ final class ScryfallCatalogs {
         do {
             logger.info("Fetching catalogs...")
             
-            typealias CatalogType = Catalog.`Type`
-            for catalogType in CatalogType.allCases {
+            for catalogType in Catalog.`Type`.allCases {
                 _ = try await stringCache.get(forKey: catalogType) {
                     logger.debug("Fetching catalog", metadata: ["type": "\(catalogType.rawValue)"])
                     let catalog = try await self.scryfallClient.getCatalog(type: catalogType)
@@ -155,23 +159,6 @@ final class ScryfallCatalogs {
             return .success(())
         } catch {
             return .failure(.errorLoadingData(error))
-        }
-    }
-    
-    /// Pre-fetches Scryfall metadata (symbols, sets, and catalogs) in the background
-    public func prefetchAll() async {
-        await withTaskGroup(of: Void.self) { group in
-            group.addTask {
-                _ = await self.prefetchSymbology()
-            }
-            
-            group.addTask {
-                _ = await self.prefetchSets()
-            }
-            
-            group.addTask {
-                _ = await self.prefetchCatalogs()
-            }
         }
     }
 
