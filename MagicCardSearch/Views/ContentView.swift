@@ -220,6 +220,7 @@ struct ContentView: View {
 
         results = .loading(results.latestValue, nil)
 
+        searchHistoryTracker.recordUsage(of: searchFilters)
         for filter in searchFilters {
             searchHistoryTracker.recordUsage(of: filter)
         }

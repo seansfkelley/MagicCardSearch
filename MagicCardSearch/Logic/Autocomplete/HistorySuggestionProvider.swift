@@ -38,7 +38,7 @@ class HistorySuggestionProvider {
         let trimmedSearchTerm = searchTerm.trimmingCharacters(in: .whitespaces)
         
         return Array(
-            searchHistoryTracker.sortedHistory
+            searchHistoryTracker.sortedFilterHistory
                 .lazy
                 .filter { !excludedFilters.contains($0.filter) }
                 .compactMap { entry in
