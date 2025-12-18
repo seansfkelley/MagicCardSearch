@@ -12,7 +12,7 @@ struct CardAllPrintsView: View {
     let oracleId: String
     let initialCardId: UUID
 
-    @State private var loadState: LoadableResult<[Card]> = .unloaded
+    @State private var loadState: LoadableResult<[Card], Error> = .unloaded
     @State private var currentIndex: Int = 0
     @State private var showFilterPopover = false
     @State private var printFilterSettings = PrintFilterSettings()
@@ -35,11 +35,8 @@ struct CardAllPrintsView: View {
     }
     
     private var currentPrints: [Card] {
-        switch loadState.latestResult {
-        case .success(let cards): cards
-        case .failure: []
-        case nil: []
-        }
+        // TODO: Do we want to lie like this?
+        loadState.latestValue ?? []
     }
     
     private var currentCard: Card? {
@@ -54,7 +51,7 @@ struct CardAllPrintsView: View {
             ZStack {
                 if case .unloaded = loadState {
                     EmptyView()
-                } else if case .success(let cards) = loadState.latestResult {
+                } else if let cards = loadState.latestValue {
                     if cards.isEmpty {
                         if printFilterSettings.isDefault {
                             ContentUnavailableView(
@@ -86,7 +83,7 @@ struct CardAllPrintsView: View {
                             currentIndex: $currentIndex
                         )
                     }
-                } else if case .failure(let error) = loadState.latestResult {
+                } else if let error = loadState.latestError {
                     ContentUnavailableView {
                         Label("Failed to load prints", systemImage: "exclamationmark.triangle")
                     } description: {
@@ -101,7 +98,7 @@ struct CardAllPrintsView: View {
                     }
                 }
                 
-                if case .loading(let previous?) = loadState, case .success = previous {
+                if case .loading(let previous?, _) = loadState {
                     VStack {
                         Spacer()
                         HStack {
@@ -181,7 +178,7 @@ struct CardAllPrintsView: View {
         } else {
             currentPrints[safe: currentIndex]?.id
         }
-        loadState = .loading(loadState.latestResult)
+        loadState = .loading(loadState.latestValue, loadState.latestError)
 
         do {
             let searchQuery = printFilterSettings.toQueryFor(oracleId: oracleId)
@@ -194,7 +191,7 @@ struct CardAllPrintsView: View {
                 KeyPathComparator(\.collectorNumber, comparator: .localizedStandard),
             ])
             
-            loadState = .loaded(.success(newPrints))
+            loadState = .loaded(newPrints, nil)
             
             if let targetCardId,
                let index = newPrints.firstIndex( where: { $0.id == targetCardId }) {
@@ -207,7 +204,7 @@ struct CardAllPrintsView: View {
             print("Loaded \(newPrints.count) prints for query: \(searchQuery)")
         } catch {
             print("Error loading prints: \(error)")
-            loadState = .loaded(.failure(error))
+            loadState = .errored(nil, error)
         }
     }
 }

@@ -4,16 +4,27 @@
 //
 //  Created by Sean Kelley on 2025-12-15.
 //
-enum LoadableResult<T> {
+enum LoadableResult<T, E: Error> {
     case unloaded
-    case loading(Result<T, Error>?)
-    case loaded(Result<T, Error>)
+    case loading(T?, E?)
+    case loaded(T, E?)
+    case errored(T?, E)
     
-    var latestResult: Result<T, Error>? {
+    var latestValue: T? {
         return switch self {
         case .unloaded: nil
-        case .loading(let result): result
-        case .loaded(let result): result
+        case .loading(let value, _): value
+        case .loaded(let value, _): value
+        case .errored(let value, _): value
+        }
+    }
+    
+    var latestError: E? {
+        return switch self {
+        case .unloaded: nil
+        case .loading(_, let error): error
+        case .loaded(_, let error): error
+        case .errored(_, let error): error
         }
     }
 }
