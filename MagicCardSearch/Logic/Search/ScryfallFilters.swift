@@ -204,6 +204,12 @@ let scryfallFilterTypes: [ScryfallFilterType] = [
         enumerationValues: ["now", "today"],
         comparisonKinds: .all
     ),
+    .init(
+        "date",
+        // n.b. would also include sets, but, you know
+        enumerationValues: ["now", "today"],
+        comparisonKinds: .all
+    ),
     
     // MARK: - Tagger Tags
     .init("art", ["atag", "arttag"]),

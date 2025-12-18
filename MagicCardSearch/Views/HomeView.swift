@@ -22,24 +22,11 @@ struct HomeView: View {
         ScrollView {
             VStack(spacing: 32) {
                 VStack(alignment: .leading, spacing: 12) {
-                    switch featuredState.featuredSet {
-                    case .unloaded, .loading(nil, _):
-                        Text("Loading Spoilers...")
-                            .font(.title2)
-                            .bold()
-                            .padding(.horizontal)
-                    case .loading(let set?, _), .loaded(let set, _), .errored(let set?, _):
-                        Text("\(set.name) Spoilers")
-                            .font(.title2)
-                            .bold()
-                            .padding(.horizontal)
-                    case .errored(nil, _):
-                        Text("Featured")
-                            .font(.title2)
-                            .bold()
-                            .padding(.horizontal)
-                    }
-                    
+                    Text("Recent Spoilers")
+                        .font(.title2)
+                        .bold()
+                        .padding(.horizontal)
+
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 12) {
                             switch featuredState.results {
@@ -69,11 +56,9 @@ struct HomeView: View {
                                 
                                 if results.totalCount > featuredCardLimit {
                                     Button {
-                                        if case .loaded(let set, _) = featuredState.featuredSet {
-                                            onSearchSelected([
-                                                .basic(.keyValue("set", .including, set.code))
-                                            ])
-                                        }
+                                        onSearchSelected([
+                                            .basic(.keyValue("date", .greaterThanOrEqual, "today")),
+                                        ])
                                     } label: {
                                         RoundedRectangle(cornerRadius: 12)
                                             .strokeBorder(Color.accentColor, lineWidth: 2)
@@ -195,70 +180,40 @@ struct HomeView: View {
         }
         
         featuredState.results = .loading(nil, nil)
-        featuredState.featuredSet = .loading(nil, nil)
+        
+        let searchService = CardSearchService()
         
         do {
-            let searchResults = try await fetchNewestSetCards()
+            let searchResult = try await searchService.search(
+                filters: [
+                    .basic(.keyValue("date", .greaterThanOrEqual, "today")),
+                ],
+                config: SearchConfiguration(
+                    uniqueMode: .prints,
+                    sortField: .spoiled,
+                    sortOrder: .descending
+                ),
+            )
+            let searchResults = SearchResults(
+                totalCount: searchResult.totalCount,
+                cards: searchResult.cards,
+                warnings: searchResult.warnings,
+                nextPageUrl: searchResult.nextPageURL,
+            )
+
             featuredState.results = .loaded(searchResults, nil)
         } catch {
-            print("Failed to load featured cards: \(error)")
-            featuredState.results = .errored(nil, SearchErrorState(from: error))
-            featuredState.featuredSet = .errored(nil, SearchErrorState(from: error))
+            print("Search error: \(error)")
+            featuredState.results = .errored(featuredState.results.latestValue, SearchErrorState(from: error))
         }
-    }
-    
-    private func fetchNewestSetCards() async throws -> SearchResults {
-        let metadataCache = ScryfallMetadataCache.shared
-        if metadataCache.sets.isEmpty {
-            _ = await metadataCache.prefetchSets()
-        }
-        
-        guard let newestSet = metadataCache.sets.values
-            .compactMap({ set -> (MTGSet, Date)? in
-                guard let date = set.date else { return nil }
-                return (set, date)
-            })
-            .max(by: { $0.1 < $1.1 }) else {
-            throw NSError(
-                domain: "HomeView",
-                code: -1,
-                userInfo: [NSLocalizedDescriptionKey: "No sets found"]
-            )
-        }
-        
-        let setToFeature = newestSet.0
-        
-        featuredState.featuredSet = .loaded(setToFeature, nil)
-        
-        let scryfallClient = ScryfallClient()
-        let allCards = try await ScryfallPagination.fetchAllPages { @Sendable in
-            try await scryfallClient.searchCards(query: "set:\(setToFeature.code)")
-        }
-        
-        let sortedCards = allCards.sorted(using: [
-            KeyPathComparator(\.preview?.previewedAt, order: .reverse)
-        ])
-        
-        return SearchResults(
-            totalCount: sortedCards.count,
-            cards: sortedCards,
-            warnings: [],
-            nextPageUrl: nil
-        )
     }
 }
 // MARK: - Featured Cards State
 
 @MainActor
 @Observable
-class FeaturedCardsState: SearchResultsState {
+private class FeaturedCardsState: SearchResultsState {
     static let shared = FeaturedCardsState()
-    
-    var featuredSet: LoadableResult<MTGSet, SearchErrorState> = .unloaded
-    
-    override private init(results: LoadableResult<SearchResults, SearchErrorState> = .unloaded) {
-        super.init(results: results)
-    }
 }
 // MARK: - Example Search
 
