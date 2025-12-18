@@ -58,12 +58,14 @@ struct SearchResultsGridView: View {
 
                         LazyVGrid(columns: columns, spacing: 16) {
                             ForEach(Array(searchResults.cards.enumerated()), id: \.element.id) { index, card in
-                                CardResultCell(
+                                CardView(
                                     card: card,
+                                    quality: .small,
                                     isFlipped: Binding(
                                         get: { cardFlipStates[card.id] ?? false },
                                         set: { cardFlipStates[card.id] = $0 }
-                                    )
+                                    ),
+                                    cornerRadius: 8,
                                 )
                                 .onTapGesture {
                                     selectedCardIndex = index
@@ -100,7 +102,7 @@ struct SearchResultsGridView: View {
         .animation(.easeInOut(duration: 0.2), value: results.isInitiallyLoading)
         .sheet(
             item: Binding(
-                get: { selectedCardIndex.map { SheetIdentifier(index: $0) } },
+                get: { selectedCardIndex.map { IdentifiableIndex(index: $0) } },
                 set: { selectedCardIndex = $0?.index }
             )
         ) { identifier in
@@ -148,41 +150,6 @@ struct SearchResultsGridView: View {
                 .padding(.vertical, 30)
             }
         }
-    }
-}
-
-// MARK: - Sheet Identifier
-
-struct SheetIdentifier: Identifiable {
-    let index: Int
-    var id: Int { index }
-}
-
-// MARK: - Card Result Cell
-
-struct CardResultCell: View {
-    let card: Card
-    @Binding var isFlipped: Bool
-
-    var body: some View {
-        Group {
-            if let faces = card.cardFaces, card.layout.isDoubleFaced && faces.count >= 2 {
-                FlippableCardFaceView(
-                    frontFace: faces[0],
-                    backFace: faces[1],
-                    imageQuality: .small,
-                    isShowingBackFace: $isFlipped
-                )
-            } else {
-                CardFaceView(
-                    face: card,
-                    imageQuality: .small
-                )
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-            }
-        }
-        .aspectRatio(0.7, contentMode: .fit)
-        .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
     }
 }
 

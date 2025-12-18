@@ -24,26 +24,14 @@ struct CardDetailView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 0) {
-                if let faces = card.cardFaces, card.layout.isDoubleFaced && faces.count >= 2 {
-                    FlippableCardFaceView(
-                        frontFace: faces[0],
-                        backFace: faces[1],
-                        imageQuality: .large,
-                        isShowingBackFace: $isFlipped
-                    )
-                    .shadow(color: .black.opacity(0.2), radius: 8, x: 0, y: 4)
-                    .padding(.horizontal)
-                    .padding(.bottom, 24)
-                } else {
-                    CardFaceView(
-                        face: card,
-                        imageQuality: .large,
-                    )
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
-                    .shadow(color: .black.opacity(0.2), radius: 8, x: 0, y: 4)
-                    .padding(.horizontal)
-                    .padding(.bottom, 24)
-                }
+                CardView(
+                    card: card,
+                    quality: .large,
+                    isFlipped: $isFlipped,
+                    cornerRadius: 16,
+                )
+                .padding(.horizontal)
+                .padding(.bottom, 24)
                 
                 if let faces = card.cardFaces {
                     let uniqueFaces = faces.uniqued(by: \.oracleId)

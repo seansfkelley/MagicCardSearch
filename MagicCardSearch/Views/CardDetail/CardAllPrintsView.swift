@@ -301,25 +301,16 @@ private struct PagingCardImageView: View {
             LazyHStack(spacing: 0) {
                 ForEach(cards, id: \.id) { card in
                     VStack(spacing: 0) {
-                        if let faces = card.cardFaces, card.layout.isDoubleFaced && faces.count >= 2 {
-                            FlippableCardFaceView(
-                                frontFace: faces[0],
-                                backFace: faces[1],
-                                imageQuality: .large,
-                                isShowingBackFace: Binding(
-                                    get: { cardFlipStates[card.id] ?? false },
-                                    set: { cardFlipStates[card.id] = $0 }
-                                )
-                            )
-                            .padding(.horizontal)
-                        } else {
-                            CardFaceView(
-                                face: card,
-                                imageQuality: .large,
-                            )
-                            .clipShape(RoundedRectangle(cornerRadius: 16))
-                            .padding(.horizontal)
-                        }
+                        CardView(
+                            card: card,
+                            quality: .large,
+                            isFlipped: Binding(
+                                get: { cardFlipStates[card.id] ?? false },
+                                set: { cardFlipStates[card.id] = $0 }
+                            ),
+                            cornerRadius: 16,
+                        )
+                        .padding(.horizontal)
                         
                         CardSetInfoSection(
                             setCode: card.set,

@@ -39,12 +39,14 @@ struct HomeView: View {
                                     Button {
                                         selectedCardIndex = index
                                     } label: {
-                                        CardResultCell(
+                                        CardView(
                                             card: card,
+                                            quality: .small,
                                             isFlipped: Binding(
                                                 get: { cardFlipStates[card.id] ?? false },
                                                 set: { cardFlipStates[card.id] = $0 }
-                                            )
+                                            ),
+                                            cornerRadius: 8,
                                         )
                                         .frame(width: 120)
                                     }
@@ -91,16 +93,10 @@ struct HomeView: View {
                                 Button {
                                     onSearchSelected(entry.filters)
                                 } label: {
-                                    VStack(alignment: .leading, spacing: 4) {
-                                        Text(entry.filters.map { $0.queryStringWithEditingRange.0 }.joined(separator: " "))
-                                            .font(.body)
-                                            .foregroundStyle(.primary)
-                                            .lineLimit(2)
-                                        
-                                        Text(RelativeDateTimeFormatter().localizedString(for: entry.lastUsedDate, relativeTo: Date()))
-                                            .font(.caption)
-                                            .foregroundStyle(.secondary)
-                                    }
+                                    Text(entry.filters.map { $0.queryStringWithEditingRange.0 }.joined(separator: " "))
+                                        .font(.body)
+                                        .foregroundStyle(.primary)
+                                        .lineLimit(2)
                                 }
                                 .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                                     Button(role: .destructive) {
@@ -124,7 +120,7 @@ struct HomeView: View {
         }
         .sheet(
             item: Binding(
-                get: { selectedCardIndex.map { SheetIdentifier(index: $0) } },
+                get: { selectedCardIndex.map { IdentifiableIndex(index: $0) } },
                 set: { selectedCardIndex = $0?.index }
             )
         ) { identifier in
