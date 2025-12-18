@@ -53,10 +53,10 @@ struct ContentView: View {
                 
                 switch mainContentType {
                 case .home:
-                    ContentUnavailableView(
-                        "Home!",
-                        systemImage: "magnifyingglass",
-                    )
+                    HomeView(searchHistoryTracker: searchHistoryTracker) { filters in
+                        searchFilters = filters
+                        performSearch()
+                    }
                 case .results:
                     SearchResultsGridView(
                         results: $results,
