@@ -8,7 +8,7 @@
 import Foundation
 
 enum Suggestion: Equatable {
-    case pinned(PinnedFilterEntry)
+    case pinned(PinnedFilterSuggestion)
     case history(HistorySuggestion)
     case filter(FilterTypeSuggestion)
     case enumeration(EnumerationSuggestion)
@@ -46,27 +46,30 @@ class CombinedSuggestionProvider {
         return AsyncStream<[Suggestion]> { continuation in
             var allSuggestions: [Suggestion] = []
             
-            let historySuggestions = self.historyProvider.getSuggestions(
+            let pinnedSuggestions = self.pinnedFilterProvider.getSuggestions(
                 for: searchTerm,
                 excluding: existingFilters,
+            )
+            allSuggestions.append(contentsOf: pinnedSuggestions.map { Suggestion.pinned($0) })
+            
+            let historySuggestions = self.historyProvider.getSuggestions(
+                for: searchTerm,
+                excluding: Set(pinnedSuggestions.map { $0.filter }).union(existingFilters),
                 limit: 10
             )
-                .map { Suggestion.history($0) }
-            allSuggestions.append(contentsOf: historySuggestions)
+            allSuggestions.append(contentsOf: historySuggestions.map { Suggestion.history($0) })
             
             let filterSuggestions = self.filterTypeProvider.getSuggestions(
                 for: searchTerm,
                 limit: 4
             )
-                .map { Suggestion.filter($0) }
-            allSuggestions.append(contentsOf: filterSuggestions)
+            allSuggestions.append(contentsOf: filterSuggestions.map { Suggestion.filter($0) })
             
             let enumerationSuggestions = self.enumerationProvider.getSuggestions(
                 for: searchTerm,
                 limit: 1
             )
-                .map { Suggestion.enumeration($0) }
-            allSuggestions.append(contentsOf: enumerationSuggestions)
+            allSuggestions.append(contentsOf: enumerationSuggestions.map { Suggestion.enumeration($0) })
             
             continuation.yield(allSuggestions)
             
@@ -81,14 +84,13 @@ class CombinedSuggestionProvider {
                     limit: 10,
                     permitBareSearchTerm: allSuggestions.isEmpty,
                 )
-                    .map { Suggestion.name($0) }
                 
                 guard loadingState.isStillCurrent(id: currentTaskId), !Task.isCancelled else {
                     continuation.finish()
                     return
                 }
                 
-                allSuggestions.append(contentsOf: nameSuggestions)
+                allSuggestions.append(contentsOf: nameSuggestions.map { Suggestion.name($0) })
                 
                 continuation.yield(allSuggestions)
                 

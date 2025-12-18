@@ -123,13 +123,8 @@ struct AutocompleteView: View {
             onSuggestionTap(.filter(suggestion.filter))
         } label: {
             HStack(spacing: 12) {
-                if suggestion.isPinned {
-                    Image(systemName: "pin.fill")
-                        .foregroundStyle(.secondary)
-                } else {
-                    Image(systemName: "clock.arrow.circlepath")
-                        .foregroundStyle(.secondary)
-                }
+                Image(systemName: "clock.arrow.circlepath")
+                    .foregroundStyle(.secondary)
                 HighlightedText(
                     text: filterString,
                     highlightRange: suggestion.matchRange
@@ -343,10 +338,11 @@ struct HighlightedText: View {
     AutocompleteView(
         inputText: "set",
         provider: CombinedSuggestionProvider(
-            historyProvider: HistorySuggestionProvider(historyTracker: SearchHistoryTracker()),
-            filterProvider: FilterTypeSuggestionProvider(),
-            enumerationProvider: EnumerationSuggestionProvider(),
-            nameProvider: NameSuggestionProvider()
+            pinnedFilter: PinnedFilterSuggestionProvider(),
+            history: HistorySuggestionProvider(historyTracker: SearchHistoryTracker()),
+            filterType: FilterTypeSuggestionProvider(),
+            enumeration: EnumerationSuggestionProvider(),
+            name: NameSuggestionProvider(),
         ),
         filters: [],
         isSearchFocused: true,
@@ -359,10 +355,11 @@ struct HighlightedText: View {
     AutocompleteView(
         inputText: "format:",
         provider: CombinedSuggestionProvider(
-            historyProvider: HistorySuggestionProvider(historyTracker: SearchHistoryTracker()),
-            filterProvider: FilterTypeSuggestionProvider(),
-            enumerationProvider: EnumerationSuggestionProvider(),
-            nameProvider: NameSuggestionProvider()
+            pinnedFilter: PinnedFilterSuggestionProvider(),
+            history: HistorySuggestionProvider(historyTracker: SearchHistoryTracker()),
+            filterType: FilterTypeSuggestionProvider(),
+            enumeration: EnumerationSuggestionProvider(),
+            name: NameSuggestionProvider(),
         ),
         filters: [],
         isSearchFocused: true,
@@ -375,10 +372,11 @@ struct HighlightedText: View {
     AutocompleteView(
         inputText: "format=m",
         provider: CombinedSuggestionProvider(
-            historyProvider: HistorySuggestionProvider(historyTracker: SearchHistoryTracker()),
-            filterProvider: FilterTypeSuggestionProvider(),
-            enumerationProvider: EnumerationSuggestionProvider(),
-            nameProvider: NameSuggestionProvider()
+            pinnedFilter: PinnedFilterSuggestionProvider(),
+            history: HistorySuggestionProvider(historyTracker: SearchHistoryTracker()),
+            filterType: FilterTypeSuggestionProvider(),
+            enumeration: EnumerationSuggestionProvider(),
+            name: NameSuggestionProvider(),
         ),
         filters: [],
         isSearchFocused: true,
@@ -391,10 +389,11 @@ struct HighlightedText: View {
     AutocompleteView(
         inputText: "Black Lot",
         provider: CombinedSuggestionProvider(
-            historyProvider: HistorySuggestionProvider(historyTracker: SearchHistoryTracker()),
-            filterProvider: FilterTypeSuggestionProvider(),
-            enumerationProvider: EnumerationSuggestionProvider(),
-            nameProvider: NameSuggestionProvider()
+            pinnedFilter: PinnedFilterSuggestionProvider(),
+            history: HistorySuggestionProvider(historyTracker: SearchHistoryTracker()),
+            filterType: FilterTypeSuggestionProvider(),
+            enumeration: EnumerationSuggestionProvider(),
+            name: NameSuggestionProvider(),
         ),
         filters: [],
         isSearchFocused: true,

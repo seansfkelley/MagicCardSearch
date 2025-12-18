@@ -8,8 +8,9 @@
 import Foundation
 import Observation
 
-struct PinnedFilterSuggestion {
+struct PinnedFilterSuggestion: Equatable {
     let filter: SearchFilter
+    let matchRange: Range<String.Index>?
 }
 
 struct PinnedFilterEntry: Codable {
@@ -35,6 +36,31 @@ class PinnedFilterSuggestionProvider {
     }
     
     // MARK: - Public Methods
+    
+    func getSuggestions(for searchTerm: String, excluding excludedFilters: Set<SearchFilter>) -> [PinnedFilterSuggestion] {
+        let trimmedSearchTerm = searchTerm.trimmingCharacters(in: .whitespaces)
+        
+        return pinnedFiltersByFilter
+            .values
+            .sorted(using: [
+                KeyPathComparator(\.pinnedDate, order: .reverse),
+                KeyPathComparator(\.lastUsedDate, order: .reverse),
+                KeyPathComparator(\.filter.queryStringWithEditingRange.0, comparator: .localizedStandard),
+            ])
+            .filter { !excludedFilters.contains($0.filter) }
+            .compactMap { entry in
+                if trimmedSearchTerm.isEmpty {
+                    return PinnedFilterSuggestion(filter: entry.filter, matchRange: nil)
+                }
+                
+                let filterString = entry.filter.queryStringWithEditingRange.0
+                if let range = filterString.range(of: trimmedSearchTerm, options: .caseInsensitive) {
+                    return PinnedFilterSuggestion(filter: entry.filter, matchRange: range)
+                }
+                
+                return nil
+            }
+    }
     
     func pin(filter: SearchFilter) {
         let now = Date.now
@@ -79,6 +105,11 @@ class PinnedFilterSuggestionProvider {
     
     func isPinned(_ filter: SearchFilter) -> Bool {
         return pinnedFiltersByFilter[filter] != nil
+    }
+    
+    func delete(filter: SearchFilter) {
+        pinnedFiltersByFilter.removeValue(forKey: filter)
+        savePinnedFilters()
     }
     
     // MARK: - Persistence

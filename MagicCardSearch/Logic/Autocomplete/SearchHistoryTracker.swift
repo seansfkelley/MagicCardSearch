@@ -10,7 +10,6 @@ import Observation
 struct HistoryEntry: Codable {
     let filter: SearchFilter
     let lastUsedDate: Date
-    let isPinned: Bool // Only used for garbage collection logic
 }
 
 @Observable
@@ -24,6 +23,22 @@ class SearchHistoryTracker {
     private let maxAgeInDays: Int
     // TODO: Is this really the right way to do persistence? Should I dependecy-inject it?
     private let persistenceKey: String
+    
+    private var sortedCache: [HistoryEntry]?
+    
+    var sortedHistory: [HistoryEntry] {
+        if let cached = sortedCache {
+            return cached
+        }
+
+        let sorted = historyByFilter.values.sorted(using: [
+            KeyPathComparator(\.lastUsedDate, order: .reverse),
+            KeyPathComparator(\.filter.queryStringWithEditingRange.0, comparator: .localizedStandard),
+        ])
+
+        sortedCache = sorted
+        return sorted
+    }
 
     // MARK: - Initialization
 
@@ -42,22 +57,27 @@ class SearchHistoryTracker {
         let entry = HistoryEntry(
             filter: filter,
             lastUsedDate: Date(),
-            isPinned: false // History doesn't track pinning anymore
         )
         historyByFilter[filter] = entry
+        invalidateCache()
         saveHistory()
     }
 
     func delete(filter: SearchFilter) {
         historyByFilter.removeValue(forKey: filter)
+        invalidateCache()
         saveHistory()
     }
 
+    // TODO: Can this be auto-run on the set of historyByFilter?
+    private func invalidateCache() {
+        sortedCache = nil
+    }
+    
     // MARK: - Garbage Collection
 
-    func maybeGarbageCollectHistory(sortedHistory: [HistoryEntry]) {
-        // If the last entry is pinned, there is nothing we can collect.
-        guard !sortedHistory.isEmpty && !sortedHistory.last!.isPinned else {
+    func maybeGarbageCollectHistory() {
+        guard !sortedHistory.isEmpty else {
             return
         }
         
@@ -66,19 +86,19 @@ class SearchHistoryTracker {
         var reducedHistory = sortedHistory
         
         let cutoff = Date.now.addingTimeInterval(TimeInterval(-maxAgeInDays * 24 * 60 * 60))
-        if let i = reducedHistory.firstIndex(where: { !$0.isPinned && $0.lastUsedDate < cutoff }) {
+        if let i = reducedHistory.firstIndex(where: { $0.lastUsedDate < cutoff }) {
             reducedHistory = Array(reducedHistory[..<i])
         }
     
-        if reducedHistory.count > hardLimit,
-           let i = reducedHistory.firstIndex(where: { !$0.isPinned }) {
-            reducedHistory = Array(reducedHistory[..<max(i, softLimit)])
+        if reducedHistory.count > hardLimit {
+            reducedHistory = Array(reducedHistory[..<softLimit])
         }
         
         if reducedHistory.count != originalCount {
             historyByFilter = reducedHistory.reduce(into: [:]) { dict, entry in
                 dict[entry.filter] = entry
             }
+            invalidateCache()
             saveHistory()
             
             print("Garbage collected \(reducedHistory.count - originalCount) history entries")
