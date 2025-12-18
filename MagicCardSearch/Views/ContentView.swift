@@ -13,7 +13,7 @@ enum MainContentType {
 }
 
 struct ContentView: View {
-    private let historySuggestionProvider = HistorySuggestionProvider()
+    private let searchHistoryTracker = SearchHistoryTracker()
     @State private var searchFilters: [SearchFilter] = []
     @State private var inputText: String = ""
     @State private var showDisplaySheet = false
@@ -34,7 +34,7 @@ struct ContentView: View {
     
     init() {
         _autocompleteProvider = State(initialValue: CombinedSuggestionProvider(
-            historyProvider: historySuggestionProvider,
+            historyProvider: HistorySuggestionProvider(historyTracker: searchHistoryTracker),
             filterProvider: FilterTypeSuggestionProvider(),
             enumerationProvider: EnumerationSuggestionProvider(),
             nameProvider: NameSuggestionProvider(debounce: .milliseconds(500))
@@ -87,7 +87,7 @@ struct ContentView: View {
                     warnings: results.latestValue?.warnings ?? [],
                     showWarningsPopover: $showWarningsPopover,
                     onFilterEdit: handleFilterEdit,
-                    historySuggestionProvider: historySuggestionProvider,
+                    searchHistoryTracker: searchHistoryTracker,
                     onSubmit: performSearch,
                     autocompleteProvider: autocompleteProvider
                 )
@@ -214,7 +214,7 @@ struct ContentView: View {
         results = .loading(results.latestValue, nil)
 
         for filter in searchFilters {
-            historySuggestionProvider.recordUsage(of: filter)
+            searchHistoryTracker.recordUsage(of: filter)
         }
 
         searchTask = Task {

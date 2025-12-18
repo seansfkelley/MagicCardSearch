@@ -343,7 +343,7 @@ struct HighlightedText: View {
     AutocompleteView(
         inputText: "set",
         provider: CombinedSuggestionProvider(
-            historyProvider: HistorySuggestionProvider(),
+            historyProvider: HistorySuggestionProvider(historyTracker: SearchHistoryTracker()),
             filterProvider: FilterTypeSuggestionProvider(),
             enumerationProvider: EnumerationSuggestionProvider(),
             nameProvider: NameSuggestionProvider()
@@ -359,7 +359,7 @@ struct HighlightedText: View {
     AutocompleteView(
         inputText: "format:",
         provider: CombinedSuggestionProvider(
-            historyProvider: HistorySuggestionProvider(),
+            historyProvider: HistorySuggestionProvider(historyTracker: SearchHistoryTracker()),
             filterProvider: FilterTypeSuggestionProvider(),
             enumerationProvider: EnumerationSuggestionProvider(),
             nameProvider: NameSuggestionProvider()
@@ -375,7 +375,7 @@ struct HighlightedText: View {
     AutocompleteView(
         inputText: "format=m",
         provider: CombinedSuggestionProvider(
-            historyProvider: HistorySuggestionProvider(),
+            historyProvider: HistorySuggestionProvider(historyTracker: SearchHistoryTracker()),
             filterProvider: FilterTypeSuggestionProvider(),
             enumerationProvider: EnumerationSuggestionProvider(),
             nameProvider: NameSuggestionProvider()
@@ -391,7 +391,7 @@ struct HighlightedText: View {
     AutocompleteView(
         inputText: "Black Lot",
         provider: CombinedSuggestionProvider(
-            historyProvider: HistorySuggestionProvider(),
+            historyProvider: HistorySuggestionProvider(historyTracker: SearchHistoryTracker()),
             filterProvider: FilterTypeSuggestionProvider(),
             enumerationProvider: EnumerationSuggestionProvider(),
             nameProvider: NameSuggestionProvider()

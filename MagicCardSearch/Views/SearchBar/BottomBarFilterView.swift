@@ -16,7 +16,7 @@ struct BottomBarFilterView: View {
     let warnings: [String]
     @Binding var showWarningsPopover: Bool
     let onFilterEdit: (SearchFilter) -> Void
-    let historySuggestionProvider: HistorySuggestionProvider
+    let searchHistoryTracker: SearchHistoryTracker
     let onSubmit: () -> Void
     @State var searchIconOpacity: CGFloat = 1
     
@@ -109,7 +109,7 @@ struct BottomBarFilterView: View {
                         inputSelection: $inputSelection,
                         isSearchFocused: _isSearchFocused,
                         autocompleteProvider: autocompleteProvider,
-                        historySuggestionProvider: historySuggestionProvider,
+                        searchHistoryTracker: searchHistoryTracker,
                         onSubmit: onSubmit
                     )
                     // In order to use isSearchFocused as the one and only state management for

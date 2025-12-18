@@ -17,7 +17,7 @@ struct SearchBarView: View {
     
     @Bindable var autocompleteProvider: CombinedSuggestionProvider
     
-    let historySuggestionProvider: HistorySuggestionProvider
+    let searchHistoryTracker: SearchHistoryTracker
     let onSubmit: () -> Void
 
     var body: some View {
@@ -106,12 +106,12 @@ struct SearchBarView: View {
 
         if let filter = SearchFilter.tryParseUnambiguous(trimmed) {
             filters.append(filter)
-            historySuggestionProvider.recordUsage(of: filter)
+            searchHistoryTracker.recordUsage(of: filter)
             inputText = ""
         } else if fallbackToNameFilter {
             let filter = SearchFilter.basic(.name(trimmed, false))
             filters.append(filter)
-            historySuggestionProvider.recordUsage(of: filter)
+            searchHistoryTracker.recordUsage(of: filter)
             inputText = ""
         }
     }
