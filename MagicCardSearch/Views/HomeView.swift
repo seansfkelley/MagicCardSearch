@@ -138,19 +138,14 @@ struct HomeView: View {
                 set: { selectedCardIndex = $0?.index }
             )
         ) { identifier in
-            if case .loaded(let results, _) = cache.result {
-                SearchResultsDetailNavigator(
-                    cards: results.cards,
-                    initialIndex: identifier.index,
-                    totalCount: results.totalCount,
-                    hasMorePages: results.nextPageUrl != nil,
-                    isLoadingNextPage: false,
-                    nextPageError: nil,
-                    cardFlipStates: $cardFlipStates,
-                    onNearEnd: nil,
-                    onRetryNextPage: nil
-                )
-            }
+            SearchResultsDetailNavigator(
+                results: Binding(
+                    get: { cache.result },
+                    set: { cache.result = $0 }
+                ),
+                initialIndex: identifier.index,
+                cardFlipStates: $cardFlipStates
+            )
         }
     }
     

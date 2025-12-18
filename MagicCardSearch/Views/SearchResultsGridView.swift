@@ -10,8 +10,6 @@ import ScryfallKit
 
 struct SearchResultsGridView: View {
     @Binding var results: LoadableResult<SearchResults, SearchErrorState>
-    let onLoadNextPage: () -> Void
-    let onRetryNextPage: () -> Void
     
     @State private var selectedCardIndex: Int?
     @State private var cardFlipStates: [UUID: Bool] = [:]
@@ -103,19 +101,9 @@ struct SearchResultsGridView: View {
             )
         ) { identifier in
             SearchResultsDetailNavigator(
-                cards: results.latestValue?.cards ?? [],
+                results: $results,
                 initialIndex: identifier.index,
-                totalCount: results.latestValue?.totalCount ?? 0,
-                hasMorePages: results.latestValue?.nextPageUrl != nil,
-                isLoadingNextPage: results.isLoadingNextPage,
-                nextPageError: results.nextPageError,
-                cardFlipStates: $cardFlipStates,
-                onNearEnd: {
-                    onLoadNextPage()
-                },
-                onRetryNextPage: {
-                    onRetryNextPage()
-                }
+                cardFlipStates: $cardFlipStates
             )
         }
     }

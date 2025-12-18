@@ -8,36 +8,31 @@ import SwiftUI
 import ScryfallKit
 
 struct SearchResultsDetailNavigator: View {
-    let cards: [Card]
+    @Binding var results: LoadableResult<SearchResults, SearchErrorState>
     let initialIndex: Int
-    let totalCount: Int
-    let hasMorePages: Bool
-    let isLoadingNextPage: Bool
-    let nextPageError: SearchErrorState?
     @Binding var cardFlipStates: [UUID: Bool]
-    var onNearEnd: (() -> Void)?
-    var onRetryNextPage: (() -> Void)?
     
     @ObservedObject private var listManager = BookmarkedCardListManager.shared
+    private let searchService = CardSearchService()
     
-    init(cards: [Card],
-         initialIndex: Int,
-         totalCount: Int = 0,
-         hasMorePages: Bool = false,
-         isLoadingNextPage: Bool = false,
-         nextPageError: SearchErrorState? = nil,
-         cardFlipStates: Binding<[UUID: Bool]>,
-         onNearEnd: (() -> Void)? = nil,
-         onRetryNextPage: (() -> Void)? = nil) {
-        self.cards = cards
-        self.initialIndex = initialIndex
-        self.totalCount = totalCount
-        self.hasMorePages = hasMorePages
-        self.isLoadingNextPage = isLoadingNextPage
-        self.nextPageError = nextPageError
-        self._cardFlipStates = cardFlipStates
-        self.onNearEnd = onNearEnd
-        self.onRetryNextPage = onRetryNextPage
+    private var cards: [Card] {
+        results.latestValue?.cards ?? []
+    }
+    
+    private var totalCount: Int {
+        results.latestValue?.totalCount ?? 0
+    }
+    
+    private var hasMorePages: Bool {
+        results.latestValue?.nextPageUrl != nil
+    }
+    
+    private var isLoadingNextPage: Bool {
+        results.isLoadingNextPage
+    }
+    
+    private var nextPageError: SearchErrorState? {
+        results.nextPageError
     }
     
     var body: some View {
@@ -50,8 +45,8 @@ struct SearchResultsDetailNavigator: View {
             nextPageError: nextPageError,
             loadDistance: 1,
             loader: { $0 },
-            onNearEnd: onNearEnd,
-            onRetryNextPage: onRetryNextPage
+            onNearEnd: loadNextPageIfNeeded,
+            onRetryNextPage: retryNextPage
         ) { card in
             CardDetailView(
                 card: card,
@@ -78,6 +73,41 @@ struct SearchResultsDetailNavigator: View {
                     ShareLink(item: url)
                 }
             }
+        }
+    }
+    
+    private func loadNextPageIfNeeded() {
+        guard case .loaded(let searchResults, _) = results,
+              let nextUrl = searchResults.nextPageUrl else {
+            return
+        }
+
+        print("Loading next page \(nextUrl)")
+
+        results = .loading(searchResults, nil)
+
+        Task {
+            do {
+                let searchResult = try await searchService.fetchNextPage(from: nextUrl)
+                let updatedResults = SearchResults(
+                    totalCount: searchResults.totalCount,
+                    cards: searchResults.cards + searchResult.cards,
+                    warnings: searchResults.warnings,
+                    nextPageUrl: searchResult.nextPageURL
+                )
+                results = .loaded(updatedResults, nil)
+            } catch {
+                print("Error loading next page: \(error)")
+                results = .errored(searchResults, SearchErrorState(from: error))
+            }
+        }
+    }
+
+    private func retryNextPage() {
+        // Clear the error and retry
+        if case .errored(let value, _) = results, let searchResults = value {
+            results = .loaded(searchResults, nil)
+            loadNextPageIfNeeded()
         }
     }
 }
