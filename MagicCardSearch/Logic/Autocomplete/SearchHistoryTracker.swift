@@ -7,16 +7,32 @@
 import Foundation
 import Observation
 
-struct HistoryEntry: Codable {
+struct FilterEntry: Codable {
     let filter: SearchFilter
     let lastUsedDate: Date
+}
+
+struct CompleteSearchEntry: Codable {
+    let filters: [SearchFilter]
+    let lastUsedDate: Date
+}
+
+struct HistoryData: Codable {
+    var filterEntries: [SearchFilter: FilterEntry]
+    var completeSearchEntries: [CompleteSearchEntry]
+    
+    init(filterEntries: [SearchFilter: FilterEntry] = [:], completeSearchEntries: [CompleteSearchEntry] = []) {
+        self.filterEntries = filterEntries
+        self.completeSearchEntries = completeSearchEntries
+    }
 }
 
 @Observable
 class SearchHistoryTracker {
     // MARK: - Properties
 
-    private(set) var historyByFilter: [SearchFilter: HistoryEntry] = [:]
+    private(set) var filterEntries: [SearchFilter: FilterEntry] = [:]
+    private(set) var completeSearchEntries: [CompleteSearchEntry] = []
 
     private let hardLimit: Int
     private let softLimit: Int
@@ -24,14 +40,14 @@ class SearchHistoryTracker {
     // TODO: Is this really the right way to do persistence? Should I dependecy-inject it?
     private let persistenceKey: String
     
-    private var sortedCache: [HistoryEntry]?
+    private var sortedCache: [FilterEntry]?
     
-    var sortedHistory: [HistoryEntry] {
+    var sortedFilterHistory: [FilterEntry] {
         if let cached = sortedCache {
             return cached
         }
 
-        let sorted = historyByFilter.values.sorted(using: [
+        let sorted = filterEntries.values.sorted(using: [
             KeyPathComparator(\.lastUsedDate, order: .reverse),
             KeyPathComparator(\.filter.queryStringWithEditingRange.0, comparator: .localizedStandard),
         ])
@@ -54,54 +70,99 @@ class SearchHistoryTracker {
     // MARK: - Public Methods
 
     func recordUsage(of filter: SearchFilter) {
-        let entry = HistoryEntry(
+        let entry = FilterEntry(
             filter: filter,
             lastUsedDate: Date(),
         )
-        historyByFilter[filter] = entry
+        filterEntries[filter] = entry
         invalidateCache()
+        saveHistory()
+    }
+    
+    func recordUsage(of filters: [SearchFilter]) {
+        if let existingIndex = completeSearchEntries.firstIndex(where: { $0.filters == filters }) {
+            completeSearchEntries.remove(at: existingIndex)
+        }
+        
+        let entry = CompleteSearchEntry(
+            filters: filters,
+            lastUsedDate: Date()
+        )
+        completeSearchEntries.insert(entry, at: 0)
         saveHistory()
     }
 
     func delete(filter: SearchFilter) {
-        historyByFilter.removeValue(forKey: filter)
+        filterEntries.removeValue(forKey: filter)
         invalidateCache()
         saveHistory()
     }
+    
+    func delete(filters: [SearchFilter]) {
+        if let index = completeSearchEntries.firstIndex(where: { $0.filters == filters }) {
+            completeSearchEntries.remove(at: index)
+            saveHistory()
+        }
+    }
 
-    // TODO: Can this be auto-run on the set of historyByFilter?
+    // TODO: Can this be auto-run on the set of filterEntries?
     private func invalidateCache() {
         sortedCache = nil
     }
     
     // MARK: - Garbage Collection
-
-    func maybeGarbageCollectHistory() {
-        guard !sortedHistory.isEmpty else {
-            return
+    
+    private func truncateByAgeAndSize<T>(_ entries: [T], getDate: (T) -> Date) -> [T] {
+        guard !entries.isEmpty else {
+            return entries
         }
         
-        let originalCount = sortedHistory.count
-        
-        var reducedHistory = sortedHistory
+        var truncated = entries
         
         let cutoff = Date.now.addingTimeInterval(TimeInterval(-maxAgeInDays * 24 * 60 * 60))
-        if let i = reducedHistory.firstIndex(where: { $0.lastUsedDate < cutoff }) {
-            reducedHistory = Array(reducedHistory[..<i])
-        }
-    
-        if reducedHistory.count > hardLimit {
-            reducedHistory = Array(reducedHistory[..<softLimit])
+        if let i = truncated.firstIndex(where: { getDate($0) < cutoff }) {
+            truncated = Array(truncated[..<i])
         }
         
-        if reducedHistory.count != originalCount {
-            historyByFilter = reducedHistory.reduce(into: [:]) { dict, entry in
-                dict[entry.filter] = entry
-            }
-            invalidateCache()
-            saveHistory()
+        if truncated.count > hardLimit {
+            truncated = Array(truncated[..<softLimit])
+        }
+        
+        return truncated
+    }
+
+    func maybeGarbageCollectHistory() {
+        var didModify = false
+
+        if !sortedFilterHistory.isEmpty {
+            let originalCount = sortedFilterHistory.count
+            let reducedHistory = truncateByAgeAndSize(sortedFilterHistory) { $0.lastUsedDate }
             
-            print("Garbage collected \(reducedHistory.count - originalCount) history entries")
+            if reducedHistory.count != originalCount {
+                filterEntries = reducedHistory.reduce(into: [:]) { dict, entry in
+                    dict[entry.filter] = entry
+                }
+                invalidateCache()
+                didModify = true
+                
+                print("Garbage collected \(originalCount - reducedHistory.count) filter entries")
+            }
+        }
+        
+        if !completeSearchEntries.isEmpty {
+            let originalCount = completeSearchEntries.count
+            let reducedSearches = truncateByAgeAndSize(completeSearchEntries) { $0.lastUsedDate }
+            
+            if reducedSearches.count != originalCount {
+                completeSearchEntries = reducedSearches
+                didModify = true
+                
+                print("Garbage collected \(originalCount - reducedSearches.count) complete search entries")
+            }
+        }
+        
+        if didModify {
+            saveHistory()
         }
     }
 
@@ -109,9 +170,13 @@ class SearchHistoryTracker {
 
     private func saveHistory() {
         do {
+            let historyData = HistoryData(
+                filterEntries: filterEntries,
+                completeSearchEntries: completeSearchEntries
+            )
             let encoder = JSONEncoder()
             encoder.dateEncodingStrategy = .iso8601
-            let data = try encoder.encode(historyByFilter)
+            let data = try encoder.encode(historyData)
             UserDefaults.standard.set(data, forKey: persistenceKey)
         } catch {
             print("Failed to save filter history: \(error)")
@@ -126,10 +191,13 @@ class SearchHistoryTracker {
         do {
             let decoder = JSONDecoder()
             decoder.dateDecodingStrategy = .iso8601
-            historyByFilter = try decoder.decode([SearchFilter: HistoryEntry].self, from: data)
+            let historyData = try decoder.decode(HistoryData.self, from: data)
+            filterEntries = historyData.filterEntries
+            completeSearchEntries = historyData.completeSearchEntries
         } catch {
             print("Failed to load filter history: \(error)")
-            historyByFilter = [:]
+            filterEntries = [:]
+            completeSearchEntries = []
         }
     }
 }
