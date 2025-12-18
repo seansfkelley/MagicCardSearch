@@ -8,7 +8,7 @@ import Foundation
 import ScryfallKit
 import Logging
 
-private let logger = Logger(label: "ScryfallMetadataCache")
+private let logger = Logger(label: "ScryfallCatalogs")
 
 struct SymbolCode: Equatable, Hashable, Sendable, Codable, CustomStringConvertible {
     let normalized: String
@@ -27,7 +27,7 @@ struct SymbolCode: Equatable, Hashable, Sendable, Codable, CustomStringConvertib
     
     /// Nil, if the metadata telling us this is not yet loaded.
     @MainActor var isOversized: Bool? {
-        if let symbol = ScryfallMetadataCache.shared.symbols[self] {
+        if let symbol = ScryfallCatalogs.shared.symbols[self] {
             symbol.phyrexian || symbol.hybrid
         } else {
             nil
@@ -52,10 +52,10 @@ enum ScryfallMetadataError: Error {
 }
 
 @MainActor
-final class ScryfallMetadataCache {
+final class ScryfallCatalogs {
     // MARK: - Singleton
 
-    public static let shared = ScryfallMetadataCache()
+    public static let shared = ScryfallCatalogs()
     
     // MARK: - Public Properties
     

@@ -31,11 +31,11 @@ struct MagicCardSearchApp: App {
     private func prefetchMetadata() async {
         await withTaskGroup(of: Void.self) { group in
             group.addTask {
-                _ = await ScryfallMetadataCache.shared.prefetchSymbology()
+                _ = await ScryfallCatalogs.shared.prefetchSymbology()
             }
             
             group.addTask {
-                _ = await ScryfallMetadataCache.shared.prefetchSets()
+                _ = await ScryfallCatalogs.shared.prefetchSets()
             }
         }
     }

@@ -68,7 +68,7 @@ struct SetIconView: View {
             return
         }
         
-        let set = ScryfallMetadataCache.shared.sets[setCode]
+        let set = ScryfallCatalogs.shared.sets[setCode]
         guard let set, let url = URL(string: set.iconSvgUri) else {
             imageResult = .errored(nil, NSError(domain: "SetIconView", code: 1, userInfo: [NSLocalizedDescriptionKey: "Failed to get set metadata"]))
             return
