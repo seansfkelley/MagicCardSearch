@@ -11,7 +11,6 @@ import Logging
 @main
 struct MagicCardSearchApp: App {
     init() {
-        // Configure logging to show debug level logs with a cleaner format
         LoggingSystem.bootstrap { label in
             var handler = CompactLogHandler(label: label)
             handler.logLevel = .info
@@ -22,10 +21,26 @@ struct MagicCardSearchApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .task {
+                    await prefetchMetadata()
+                }
+        }
+    }
+    
+    /// Pre-fetches Scryfall metadata (symbols and sets) in the background on app launch
+    private func prefetchMetadata() async {
+        await withTaskGroup(of: Void.self) { group in
+            group.addTask {
+                _ = await ScryfallMetadataCache.shared.prefetchSymbology()
+            }
+            
+            group.addTask {
+                _ = await ScryfallMetadataCache.shared.prefetchSets()
+            }
         }
     }
 }
-/// A compact log handler that produces cleaner output without the source module
+
 struct CompactLogHandler: LogHandler {
     var logLevel: Logger.Level = .info
     var metadata: Logger.Metadata = [:]
