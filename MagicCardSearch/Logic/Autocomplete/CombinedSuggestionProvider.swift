@@ -8,6 +8,7 @@
 import Foundation
 
 enum Suggestion: Equatable {
+    case pinned(PinnedFilterEntry)
     case history(HistorySuggestion)
     case filter(FilterTypeSuggestion)
     case enumeration(EnumerationSuggestion)
@@ -17,23 +18,26 @@ enum Suggestion: Equatable {
 @MainActor
 @Observable
 class CombinedSuggestionProvider {
+    let pinnedFilterProvider: PinnedFilterSuggestionProvider
     let historyProvider: HistorySuggestionProvider
-    let filterProvider: FilterTypeSuggestionProvider
+    let filterTypeProvider: FilterTypeSuggestionProvider
     let enumerationProvider: EnumerationSuggestionProvider
     let nameProvider: NameSuggestionProvider
     
     let loadingState = DebouncedLoadingState()
     
     init(
-        historyProvider: HistorySuggestionProvider,
-        filterProvider: FilterTypeSuggestionProvider,
-        enumerationProvider: EnumerationSuggestionProvider,
-        nameProvider: NameSuggestionProvider
+        pinnedFilter: PinnedFilterSuggestionProvider,
+        history: HistorySuggestionProvider,
+        filterType: FilterTypeSuggestionProvider,
+        enumeration: EnumerationSuggestionProvider,
+        name: NameSuggestionProvider
     ) {
-        self.historyProvider = historyProvider
-        self.filterProvider = filterProvider
-        self.enumerationProvider = enumerationProvider
-        self.nameProvider = nameProvider
+        self.pinnedFilterProvider = pinnedFilter
+        self.historyProvider = history
+        self.filterTypeProvider = filterType
+        self.enumerationProvider = enumeration
+        self.nameProvider = name
     }
 
     func getSuggestions(for searchTerm: String, existingFilters: Set<SearchFilter>) -> AsyncStream<[Suggestion]> {
@@ -50,7 +54,7 @@ class CombinedSuggestionProvider {
                 .map { Suggestion.history($0) }
             allSuggestions.append(contentsOf: historySuggestions)
             
-            let filterSuggestions = self.filterProvider.getSuggestions(
+            let filterSuggestions = self.filterTypeProvider.getSuggestions(
                 for: searchTerm,
                 limit: 4
             )

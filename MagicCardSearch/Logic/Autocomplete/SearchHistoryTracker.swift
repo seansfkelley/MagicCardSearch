@@ -10,7 +10,7 @@ import Observation
 struct HistoryEntry: Codable {
     let filter: SearchFilter
     let lastUsedDate: Date
-    let isPinned: Bool
+    let isPinned: Bool // Only used for garbage collection logic
 }
 
 @Observable
@@ -39,24 +39,10 @@ class SearchHistoryTracker {
     // MARK: - Public Methods
 
     func recordUsage(of filter: SearchFilter) {
-        let wasPinned = historyByFilter[filter]?.isPinned ?? false
-
         let entry = HistoryEntry(
             filter: filter,
             lastUsedDate: Date(),
-            isPinned: wasPinned
-        )
-        historyByFilter[filter] = entry
-        saveHistory()
-    }
-
-    func updatePinStatus(for filter: SearchFilter, isPinned: Bool) {
-        guard var entry = historyByFilter[filter] else { return }
-
-        entry = HistoryEntry(
-            filter: entry.filter,
-            lastUsedDate: .now,
-            isPinned: isPinned
+            isPinned: false // History doesn't track pinning anymore
         )
         historyByFilter[filter] = entry
         saveHistory()

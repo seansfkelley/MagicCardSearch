@@ -14,33 +14,80 @@ struct HistorySuggestion: Equatable {
     let matchRange: Range<String.Index>?
 }
 
+/// Combined entry that merges history and pinned filter data
+private struct CombinedEntry {
+    let filter: SearchFilter
+    let lastUsedDate: Date
+    let isPinned: Bool
+    let pinnedDate: Date?
+}
+
 @Observable
 class HistorySuggestionProvider {
     // MARK: - Properties
 
     private let historyTracker: SearchHistoryTracker
-    private var sortedCache: [HistoryEntry]?
+    private let pinnedFilterProvider: PinnedFilterSuggestionProvider
+    private var sortedCache: [CombinedEntry]?
 
     // MARK: - Initialization
 
-    init(historyTracker: SearchHistoryTracker) {
+    init(historyTracker: SearchHistoryTracker, pinnedFilterProvider: PinnedFilterSuggestionProvider) {
         self.historyTracker = historyTracker
+        self.pinnedFilterProvider = pinnedFilterProvider
     }
 
-    private var sortedHistory: [HistoryEntry] {
+    private var sortedHistory: [CombinedEntry] {
         if let cached = sortedCache {
             return cached
         }
 
-        let sorted = historyTracker.historyByFilter.values.sorted { lhs, rhs in
+        // Merge history and pinned filters
+        var combinedByFilter: [SearchFilter: CombinedEntry] = [:]
+        
+        // Add all history entries
+        for (filter, historyEntry) in historyTracker.historyByFilter {
+            let pinnedEntry = pinnedFilterProvider.pinnedFiltersByFilter[filter]
+            
+            combinedByFilter[filter] = CombinedEntry(
+                filter: filter,
+                lastUsedDate: pinnedEntry?.lastUsedDate ?? historyEntry.lastUsedDate,
+                isPinned: pinnedEntry != nil,
+                pinnedDate: pinnedEntry?.pinnedDate
+            )
+        }
+        
+        // Add any pinned filters that aren't in history
+        for (filter, pinnedEntry) in pinnedFilterProvider.pinnedFiltersByFilter {
+            if combinedByFilter[filter] == nil {
+                combinedByFilter[filter] = CombinedEntry(
+                    filter: filter,
+                    lastUsedDate: pinnedEntry.lastUsedDate,
+                    isPinned: true,
+                    pinnedDate: pinnedEntry.pinnedDate
+                )
+            }
+        }
+
+        let sorted = combinedByFilter.values.sorted { lhs, rhs in
+            // Pinned items first
             if lhs.isPinned != rhs.isPinned {
                 return lhs.isPinned
             }
+            
+            // Among pinned items, sort by pinned date (most recently pinned first)
+            if lhs.isPinned, let lhsPinned = lhs.pinnedDate, let rhsPinned = rhs.pinnedDate {
+                if lhsPinned != rhsPinned {
+                    return lhsPinned > rhsPinned
+                }
+            }
 
+            // Then by last used date
             if lhs.lastUsedDate != rhs.lastUsedDate {
                 return lhs.lastUsedDate > rhs.lastUsedDate
             }
 
+            // Finally alphabetically
             let lhsString = lhs.filter.queryStringWithEditingRange.0
             let rhsString = rhs.filter.queryStringWithEditingRange.0
             return lhsString.localizedCompare(rhsString) == .orderedAscending
@@ -62,7 +109,16 @@ class HistorySuggestionProvider {
         }
         
         let history = sortedHistory
-        historyTracker.maybeGarbageCollectHistory(sortedHistory: history)
+        
+        // Convert to HistoryEntry format for garbage collection
+        let historyEntries = history.map { combined in
+            HistoryEntry(
+                filter: combined.filter,
+                lastUsedDate: combined.lastUsedDate,
+                isPinned: combined.isPinned
+            )
+        }
+        historyTracker.maybeGarbageCollectHistory(sortedHistory: historyEntries)
         
         // Invalidate cache if garbage collection may have modified history
         invalidateCache()
@@ -87,7 +143,7 @@ class HistorySuggestionProvider {
                         return HistorySuggestion(
                             filter: entry.filter,
                             isPinned: entry.isPinned,
-                            matchRange: range,
+                            matchRange: range
                         )
                     }
                     
@@ -98,17 +154,18 @@ class HistorySuggestionProvider {
     }
 
     func pin(filter: SearchFilter) {
-        historyTracker.updatePinStatus(for: filter, isPinned: true)
+        pinnedFilterProvider.pin(filter: filter)
         invalidateCache()
     }
 
     func unpin(filter: SearchFilter) {
-        historyTracker.updatePinStatus(for: filter, isPinned: false)
+        pinnedFilterProvider.unpin(filter: filter)
         invalidateCache()
     }
 
     func delete(filter: SearchFilter) {
         historyTracker.delete(filter: filter)
+        pinnedFilterProvider.delete(filter: filter)
         invalidateCache()
     }
 }
