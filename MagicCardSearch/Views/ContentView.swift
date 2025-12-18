@@ -45,7 +45,9 @@ struct ContentView: View {
                     .ignoresSafeArea()
                 
                 SearchResultsGridView(
-                    results: $results
+                    results: $results,
+                    onLoadNextPage: loadNextPageIfNeeded,
+                    onRetryNextPage: retryNextPage
                 )
                 .opacity(isSearchFocused ? 0 : 1)
                 
@@ -72,9 +74,9 @@ struct ContentView: View {
                     warnings: results.latestValue?.warnings ?? [],
                     showWarningsPopover: $showWarningsPopover,
                     onFilterEdit: handleFilterEdit,
-                    autocompleteProvider: autocompleteProvider,
                     historySuggestionProvider: historySuggestionProvider,
-                    onSubmit: performSearch
+                    onSubmit: performSearch,
+                    autocompleteProvider: autocompleteProvider
                 )
             }
             .toolbar {
@@ -211,6 +213,41 @@ struct ContentView: View {
                     results = .errored(results.latestValue, SearchErrorState(from: error))
                 }
             }
+        }
+    }
+    
+    private func loadNextPageIfNeeded() {
+        guard case .loaded(let searchResults, _) = results,
+              let nextUrl = searchResults.nextPageUrl else {
+            return
+        }
+
+        print("Loading next page \(nextUrl)")
+
+        results = .loading(searchResults, nil)
+
+        Task {
+            do {
+                let searchResult = try await searchService.fetchNextPage(from: nextUrl)
+                let updatedResults = SearchResults(
+                    totalCount: searchResults.totalCount,
+                    cards: searchResults.cards + searchResult.cards,
+                    warnings: searchResults.warnings,
+                    nextPageUrl: searchResult.nextPageURL,
+                )
+                results = .loaded(updatedResults, nil)
+            } catch {
+                print("Error loading next page: \(error)")
+                results = .errored(searchResults, SearchErrorState(from: error))
+            }
+        }
+    }
+
+    private func retryNextPage() {
+        // Clear the error and retry
+        if case .errored(let value, _) = results, let searchResults = value {
+            results = .loaded(searchResults, nil)
+            loadNextPageIfNeeded()
         }
     }
     

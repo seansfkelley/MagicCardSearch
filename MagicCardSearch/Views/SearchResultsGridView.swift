@@ -10,6 +10,9 @@ import ScryfallKit
 
 struct SearchResultsGridView: View {
     @Binding var results: LoadableResult<SearchResults, SearchErrorState>
+    let onLoadNextPage: () -> Void
+    let onRetryNextPage: () -> Void
+    
     @State private var selectedCardIndex: Int?
     @State private var cardFlipStates: [UUID: Bool] = [:]
     
@@ -66,7 +69,7 @@ struct SearchResultsGridView: View {
                                 }
                                 .onAppear {
                                     if index == searchResults.cards.count - 4 {
-                                        loadNextPageIfNeeded()
+                                        onLoadNextPage()
                                     }
                                 }
                             }
@@ -109,47 +112,12 @@ struct SearchResultsGridView: View {
                 nextPageError: results.nextPageError,
                 cardFlipStates: $cardFlipStates,
                 onNearEnd: {
-                    loadNextPageIfNeeded()
+                    onLoadNextPage()
                 },
                 onRetryNextPage: {
-                    retryNextPage()
+                    onRetryNextPage()
                 }
             )
-        }
-    }
-
-    private func loadNextPageIfNeeded() {
-        guard case .loaded(let searchResults, _) = results,
-              let nextUrl = searchResults.nextPageUrl else {
-            return
-        }
-
-        print("Loading next page \(nextUrl)")
-
-        results = .loading(searchResults, nil)
-
-        Task {
-            do {
-                let searchResult = try await service.fetchNextPage(from: nextUrl)
-                let updatedResults = SearchResults(
-                    totalCount: searchResults.totalCount,
-                    cards: searchResults.cards + searchResult.cards,
-                    warnings: searchResults.warnings,
-                    nextPageUrl: searchResult.nextPageURL,
-                )
-                results = .loaded(updatedResults, nil)
-            } catch {
-                print("Error loading next page: \(error)")
-                results = .errored(searchResults, SearchErrorState(from: error))
-            }
-        }
-    }
-
-    private func retryNextPage() {
-        // Clear the error and retry
-        if case .errored(let value, _) = results, let searchResults = value {
-            results = .loaded(searchResults, nil)
-            loadNextPageIfNeeded()
         }
     }
 
@@ -181,7 +149,7 @@ struct SearchResultsGridView: View {
                     }
 
                     Button("Retry") {
-                        retryNextPage()
+                        onRetryNextPage()
                     }
                     .buttonStyle(.borderedProminent)
                 }
@@ -235,7 +203,9 @@ struct CardResultCell: View {
 
         var body: some View {
             SearchResultsGridView(
-                results: $results
+                results: $results,
+                onLoadNextPage: { print("Load next page") },
+                onRetryNextPage: { print("Retry next page") }
             )
         }
     }
