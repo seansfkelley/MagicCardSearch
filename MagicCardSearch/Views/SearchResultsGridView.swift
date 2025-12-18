@@ -1,5 +1,5 @@
 //
-//  CardResultsView.swift
+//  SearchResultsGridView.swift
 //  MagicCardSearch
 //
 //  Created by Sean Kelley on 2025-12-05.
@@ -8,38 +8,11 @@
 import SwiftUI
 import ScryfallKit
 
-struct CardResultsView: View {
-    var allowedToSearch: Bool
-    @Binding var filters: [SearchFilter]
-    @Binding var searchConfig: SearchConfiguration
+struct SearchResultsGridView: View {
     @Binding var results: LoadableResult<SearchResults, SearchErrorState>
-    var historySuggestionProvider: HistorySuggestionProvider
     @State private var selectedCardIndex: Int?
-    @State private var searchTask: Task<Void, Never>?
     @State private var cardFlipStates: [UUID: Bool] = [:]
     
-    private var isInitiallyLoading: Bool {
-        if case .loading(let value, _) = results, value == nil {
-            return true
-        }
-        return false
-    }
-    
-    private var isLoadingNextPage: Bool {
-        if case .loading(let value, _) = results, value != nil {
-            return true
-        }
-        return false
-    }
-    
-    private var nextPageError: SearchErrorState? {
-        if case .errored(let value, let error) = results, (value?.cards.count ?? 0) > 0 {
-            return error
-        }
-        return nil
-    }
-
-    private let service = CardSearchService()
     private let columns = [
         GridItem(.flexible(), spacing: 16),
         GridItem(.flexible(), spacing: 16),
@@ -47,7 +20,7 @@ struct CardResultsView: View {
 
     var body: some View {
         ZStack {
-            if filters.isEmpty {
+            if case .unloaded = results {
                 ContentUnavailableView(
                     "Start Your Search",
                     systemImage: "text.magnifyingglass",
@@ -58,22 +31,12 @@ struct CardResultsView: View {
                     Label(error.title, systemImage: error.iconName)
                 } description: {
                     Text(error.description)
-                } actions: {
-                    Button("Try Again") {
-                        maybePerformSearch()
-                    }
-                    .buttonStyle(.borderedProminent)
                 }
             } else if case .errored(nil, let error) = results {
                 ContentUnavailableView {
                     Label(error.title, systemImage: error.iconName)
                 } description: {
                     Text(error.description)
-                } actions: {
-                    Button("Try Again") {
-                        maybePerformSearch()
-                    }
-                    .buttonStyle(.borderedProminent)
                 }
             } else if case .loaded(let searchResults, _) = results, searchResults.cards.isEmpty {
                 ContentUnavailableView(
@@ -110,7 +73,7 @@ struct CardResultsView: View {
                         }
                         .padding(.horizontal)
 
-                        if searchResults.nextPageUrl != nil || isLoadingNextPage || nextPageError != nil {
+                        if searchResults.nextPageUrl != nil || results.isLoadingNextPage || results.nextPageError != nil {
                             paginationStatusView
                                 .padding(.horizontal)
                                 .padding(.vertical, 20)
@@ -119,7 +82,7 @@ struct CardResultsView: View {
                 }
             }
 
-            if isInitiallyLoading {
+            if results.isInitiallyLoading {
                 Color.black.opacity(0.3)
                     .ignoresSafeArea()
                     .transition(.opacity)
@@ -130,25 +93,7 @@ struct CardResultsView: View {
                     .tint(.white)
             }
         }
-        .animation(.easeInOut(duration: 0.2), value: isInitiallyLoading)
-        .onChange(of: allowedToSearch) { _, _ in
-            maybePerformSearch()
-        }
-        .onChange(of: filters) { _, _ in
-            maybePerformSearch()
-        }
-        .onChange(of: searchConfig.uniqueMode) { _, _ in
-            maybePerformSearch()
-        }
-        .onChange(of: searchConfig.sortField) { _, _ in
-            maybePerformSearch()
-        }
-        .onChange(of: searchConfig.sortOrder) { _, _ in
-            maybePerformSearch()
-        }
-        .task {
-            maybePerformSearch()
-        }
+        .animation(.easeInOut(duration: 0.2), value: results.isInitiallyLoading)
         .sheet(
             item: Binding(
                 get: { selectedCardIndex.map { SheetIdentifier(index: $0) } },
@@ -160,8 +105,8 @@ struct CardResultsView: View {
                 initialIndex: identifier.index,
                 totalCount: results.latestValue?.totalCount ?? 0,
                 hasMorePages: results.latestValue?.nextPageUrl != nil,
-                isLoadingNextPage: isLoadingNextPage,
-                nextPageError: nextPageError,
+                isLoadingNextPage: results.isLoadingNextPage,
+                nextPageError: results.nextPageError,
                 cardFlipStates: $cardFlipStates,
                 onNearEnd: {
                     loadNextPageIfNeeded()
@@ -170,49 +115,6 @@ struct CardResultsView: View {
                     retryNextPage()
                 }
             )
-        }
-    }
-
-    private func maybePerformSearch() {
-        guard allowedToSearch else {
-            return
-        }
-
-        searchTask?.cancel()
-
-        guard !filters.isEmpty else {
-            results = .unloaded
-            searchTask = nil
-            return
-        }
-
-        print("Searching...")
-
-        results = .loading(results.latestValue, nil)
-
-        for filter in filters {
-            historySuggestionProvider.recordUsage(of: filter)
-        }
-
-        searchTask = Task {
-            do {
-                let searchResult = try await service.search(
-                    filters: filters,
-                    config: searchConfig
-                )
-                let searchResults = SearchResults(
-                    totalCount: searchResult.totalCount,
-                    cards: searchResult.cards,
-                    warnings: searchResult.warnings,
-                    nextPageUrl: searchResult.nextPageURL,
-                )
-                results = .loaded(searchResults, nil)
-            } catch {
-                if !Task.isCancelled {
-                    print("Search error: \(error)")
-                    results = .errored(results.latestValue, SearchErrorState(from: error))
-                }
-            }
         }
     }
 
@@ -253,7 +155,7 @@ struct CardResultsView: View {
 
     @ViewBuilder private var paginationStatusView: some View {
         VStack(spacing: 16) {
-            if isLoadingNextPage {
+            if results.isLoadingNextPage {
                 VStack(spacing: 12) {
                     ProgressView()
                         .scaleEffect(1.2)
@@ -263,7 +165,7 @@ struct CardResultsView: View {
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 30)
-            } else if let error = nextPageError {
+            } else if let error = results.nextPageError {
                 VStack(spacing: 16) {
                     Image(systemName: error.iconName)
                         .font(.system(size: 40))
@@ -329,21 +231,11 @@ struct CardResultCell: View {
 
 #Preview {
     struct PreviewWrapper: View {
-        @State private var filters: [SearchFilter] = [
-            .basic(.keyValue("set", .equal, "7ED")),
-            .basic(.keyValue("manavalue", .greaterThanOrEqual, "4")),
-        ]
-        @State private var config = SearchConfiguration()
         @State private var results: LoadableResult<SearchResults, SearchErrorState> = .unloaded
-        @State private var historySuggestionProvider = HistorySuggestionProvider()
 
         var body: some View {
-            CardResultsView(
-                allowedToSearch: true,
-                filters: $filters,
-                searchConfig: $config,
-                results: $results,
-                historySuggestionProvider: historySuggestionProvider
+            SearchResultsGridView(
+                results: $results
             )
         }
     }

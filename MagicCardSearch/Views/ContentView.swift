@@ -9,7 +9,7 @@ import SwiftUI
 
 struct ContentView: View {
     private let historySuggestionProvider = HistorySuggestionProvider()
-    @State private var filters: [SearchFilter] = []
+    @State private var searchFilters: [SearchFilter] = []
     @State private var inputText: String = ""
     @State private var showDisplaySheet = false
     @State private var showSyntaxReference = false
@@ -21,6 +21,7 @@ struct ContentView: View {
     @State private var pendingSelection: TextSelection?
     @State private var results: LoadableResult<SearchResults, SearchErrorState> = .unloaded
     @State private var showWarningsPopover = false
+    @State private var searchTask: Task<Void, Never>?
     @FocusState private var isSearchFocused: Bool
     
     private let searchService = CardSearchService()
@@ -43,12 +44,8 @@ struct ContentView: View {
                 Color(uiColor: .systemBackground)
                     .ignoresSafeArea()
                 
-                CardResultsView(
-                    allowedToSearch: !isSearchFocused,
-                    filters: $filters,
-                    searchConfig: $searchConfig,
-                    results: $results,
-                    historySuggestionProvider: historySuggestionProvider
+                SearchResultsGridView(
+                    results: $results
                 )
                 .opacity(isSearchFocused ? 0 : 1)
                 
@@ -56,7 +53,7 @@ struct ContentView: View {
                     AutocompleteView(
                         inputText: inputText,
                         provider: autocompleteProvider,
-                        filters: filters,
+                        filters: searchFilters,
                         isSearchFocused: isSearchFocused
                     ) { suggestion in
                             handleSuggestionTap(suggestion)
@@ -67,7 +64,7 @@ struct ContentView: View {
             .contentShape(Rectangle())
             .safeAreaInset(edge: .bottom) {
                 BottomBarFilterView(
-                    filters: $filters,
+                    filters: $searchFilters,
                     inputText: $inputText,
                     inputSelection: $inputSelection,
                     pendingSelection: $pendingSelection,
@@ -75,7 +72,9 @@ struct ContentView: View {
                     warnings: results.latestValue?.warnings ?? [],
                     showWarningsPopover: $showWarningsPopover,
                     onFilterEdit: handleFilterEdit,
-                    autocompleteProvider: autocompleteProvider
+                    autocompleteProvider: autocompleteProvider,
+                    historySuggestionProvider: historySuggestionProvider,
+                    onSubmit: performSearch
                 )
             }
             .toolbar {
@@ -114,19 +113,19 @@ struct ContentView: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     ShareLink(
                         item: CardSearchService
-                            .buildSearchURL(filters: filters, config: searchConfig, forAPI: false) ?? URL(
+                            .buildSearchURL(filters: searchFilters, config: searchConfig, forAPI: false) ?? URL(
                                 string: "https://scryfall.com"
                             )!
                     ) {
                         Image(systemName: "square.and.arrow.up")
                     }
-                    .disabled(filters.isEmpty || isSearchFocused)
+                    .disabled(searchFilters.isEmpty || isSearchFocused)
                 }
             }
             .toolbarBackground(.hidden, for: .navigationBar)
             .navigationBarTitleDisplayMode(.inline)
         }
-        .onChange(of: filters) {
+        .onChange(of: searchFilters) {
             // Clear warnings when filters change by resetting to unloaded or keeping existing results
             if case .loaded(let searchResults, _) = results {
                 results = .loaded(SearchResults(
@@ -176,6 +175,45 @@ struct ContentView: View {
     
     // MARK: - Helper Methods
     
+    private func performSearch() {
+        searchTask?.cancel()
+
+        guard !searchFilters.isEmpty else {
+            results = .unloaded
+            searchTask = nil
+            return
+        }
+
+        print("Searching...")
+
+        results = .loading(results.latestValue, nil)
+
+        for filter in searchFilters {
+            historySuggestionProvider.recordUsage(of: filter)
+        }
+
+        searchTask = Task {
+            do {
+                let searchResult = try await searchService.search(
+                    filters: searchFilters,
+                    config: searchConfig
+                )
+                let searchResults = SearchResults(
+                    totalCount: searchResult.totalCount,
+                    cards: searchResult.cards,
+                    warnings: searchResult.warnings,
+                    nextPageUrl: searchResult.nextPageURL,
+                )
+                results = .loaded(searchResults, nil)
+            } catch {
+                if !Task.isCancelled {
+                    print("Search error: \(error)")
+                    results = .errored(results.latestValue, SearchErrorState(from: error))
+                }
+            }
+        }
+    }
+    
     private func handleFilterEdit(_ filter: SearchFilter) {
         let (filterString, range) = filter.queryStringWithEditingRange
         inputText = filterString
@@ -194,7 +232,7 @@ struct ContentView: View {
     private func handleSuggestionTap(_ suggestion: AutocompleteView.AcceptedSuggestion) {
         switch suggestion {
         case .filter(let filter):
-            filters.append(filter)
+            searchFilters.append(filter)
             inputText = ""
             
         case .string(let string):

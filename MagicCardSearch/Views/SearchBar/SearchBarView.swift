@@ -16,6 +16,9 @@ struct SearchBarView: View {
     @State private var showSymbolPicker = false
     
     @Bindable var autocompleteProvider: CombinedSuggestionProvider
+    
+    let historySuggestionProvider: HistorySuggestionProvider
+    let onSubmit: () -> Void
 
     var body: some View {
         ZStack {
@@ -46,6 +49,9 @@ struct SearchBarView: View {
                 .submitLabel(.search)
                 .onSubmit {
                     createNewFilterFromSearch(fallbackToNameFilter: true)
+                    // Perform search and unfocus
+                    isSearchFocused = false
+                    onSubmit()
                 }
                 
                 if !inputText.isEmpty {
@@ -100,9 +106,12 @@ struct SearchBarView: View {
 
         if let filter = SearchFilter.tryParseUnambiguous(trimmed) {
             filters.append(filter)
+            historySuggestionProvider.recordUsage(of: filter)
             inputText = ""
         } else if fallbackToNameFilter {
-            filters.append(SearchFilter.basic(.name(trimmed, false)))
+            let filter = SearchFilter.basic(.name(trimmed, false))
+            filters.append(filter)
+            historySuggestionProvider.recordUsage(of: filter)
             inputText = ""
         }
     }

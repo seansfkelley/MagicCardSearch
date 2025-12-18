@@ -16,6 +16,8 @@ struct BottomBarFilterView: View {
     let warnings: [String]
     @Binding var showWarningsPopover: Bool
     let onFilterEdit: (SearchFilter) -> Void
+    let historySuggestionProvider: HistorySuggestionProvider
+    let onSubmit: () -> Void
     @State var searchIconOpacity: CGFloat = 1
     
     /// The autocomplete provider to observe for loading state
@@ -106,7 +108,9 @@ struct BottomBarFilterView: View {
                         inputText: $inputText,
                         inputSelection: $inputSelection,
                         isSearchFocused: _isSearchFocused,
-                        autocompleteProvider: autocompleteProvider
+                        autocompleteProvider: autocompleteProvider,
+                        historySuggestionProvider: historySuggestionProvider,
+                        onSubmit: onSubmit
                     )
                     // In order to use isSearchFocused as the one and only state management for
                     // expanded/collapsed state, we need to (1) make sure that the TextField in this
