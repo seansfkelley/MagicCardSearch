@@ -10,6 +10,11 @@ import SVGKit
 import ScryfallKit
 
 struct SetIconView: View {
+    private struct RenderedImageCacheKey: Hashable {
+        let setCode: SetCode
+        let size: CGFloat
+    }
+    
     private static let svgDataCache: any Cache<SetCode, Data> = {
         let memoryCache = MemoryCache<SetCode, Data>(expiration: .interval(60 * 60 * 24))
         return if let diskCache = DiskCache<SetCode, Data>(name: "SetIconSvg", expiration: .interval(60 * 60 * 24 * 30)) {
@@ -19,12 +24,16 @@ struct SetIconView: View {
         }
     }()
     
-    private static var renderedImageCache: any Cache<SetCode, UIImage> = {
-        return MemoryCache<SetCode, UIImage>(expiration: .never)
+    private static var renderedImageCache: any Cache<RenderedImageCacheKey, UIImage> = {
+        return MemoryCache<RenderedImageCacheKey, UIImage>(expiration: .never)
     }()
     
     let setCode: SetCode
     var size: CGFloat = 32
+    
+    private var renderedImageCacheKey: RenderedImageCacheKey {
+        RenderedImageCacheKey(setCode: setCode, size: size)
+    }
     
     @State private var imageResult: LoadableResult<UIImage> = .unloaded
     
@@ -49,6 +58,7 @@ struct SetIconView: View {
         }
     }
     
+    // swiftlint:disable:next function_body_length
     private func loadAndRender() async {
         switch imageResult {
         case .loaded, .loading:
@@ -61,7 +71,7 @@ struct SetIconView: View {
             imageResult = .loading(nil)
         }
         
-        if let renderedImage = Self.renderedImageCache[setCode] {
+        if let renderedImage = Self.renderedImageCache[renderedImageCacheKey] {
             await MainActor.run {
                 self.imageResult = .loaded(.success(renderedImage))
             }
@@ -90,6 +100,19 @@ struct SetIconView: View {
                 return
             }
             
+            let originalSize = svgImage.size
+            
+            let scale = size / max(originalSize.width, originalSize.height)
+            let scaledSize = CGSize(
+                width: originalSize.width * scale,
+                height: originalSize.height * scale
+            )
+            
+            // n.b. we scale in SVG space, not in UIImage space, to get a smoother result. This means
+            // we clog the memory cache with duplicates for every size, but we use pretty consistent
+            // sizes so it should be fine.
+            svgImage.size = scaledSize
+            
             guard let uiImage = svgImage.uiImage else {
                 await MainActor.run {
                     imageResult = .loaded(.failure(NSError(domain: "SetIconView", code: 3, userInfo: [NSLocalizedDescriptionKey: "Failed to render SVG to UIImage"])))
@@ -97,7 +120,7 @@ struct SetIconView: View {
                 return
             }
             
-            Self.renderedImageCache[setCode] = uiImage
+            Self.renderedImageCache[renderedImageCacheKey] = uiImage
             
             await MainActor.run {
                 self.imageResult = .loaded(.success(uiImage))

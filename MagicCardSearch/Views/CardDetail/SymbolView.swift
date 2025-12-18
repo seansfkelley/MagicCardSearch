@@ -16,10 +16,18 @@ struct SymbolView: View {
         SymbolCode("E"), SymbolCode("CHAOS"), SymbolCode("P"), SymbolCode("H"),
     ])
     
-    // Memory-only cache for rendered UIImages to avoid re-rendering SVGs
-    private static var renderedImageCache: any Cache<SymbolCode, UIImage> = {
+    private struct RenderedImageCacheKey: Hashable {
+        let symbol: SymbolCode
+        let targetSize: CGFloat
+    }
+    
+    private static var renderedImageCache: any Cache<RenderedImageCacheKey, UIImage> = {
         return MemoryCache(expiration: .never)
     }()
+    
+    private var renderedImageCacheKey: RenderedImageCacheKey {
+        RenderedImageCacheKey(symbol: symbol, targetSize: targetSize)
+    }
     
     let symbol: SymbolCode
     let size: CGFloat
@@ -66,7 +74,7 @@ struct SymbolView: View {
     }
     
     private func renderImage() -> UIImage? {
-        if let cachedImage = Self.renderedImageCache[symbol] {
+        if let cachedImage = Self.renderedImageCache[renderedImageCacheKey] {
             return cachedImage
         }
         
@@ -74,12 +82,27 @@ struct SymbolView: View {
             return nil
         }
         
-        guard let svgImage = SVGKImage(data: svgData),
-              let uiImage = svgImage.uiImage else {
+        guard let svgImage = SVGKImage(data: svgData) else {
             return nil
         }
         
-        Self.renderedImageCache[symbol] = uiImage
+        let originalSize = svgImage.size
+        let scale = targetSize / max(originalSize.width, originalSize.height)
+        let scaledSize = CGSize(
+            width: originalSize.width * scale,
+            height: originalSize.height * scale
+        )
+        
+        // n.b. we scale in SVG space, not in UIImage space, to get a smoother result. This means
+        // we clog the memory cache with duplicates for every size, but we use pretty consistent
+        // sizes so it should be fine.
+        svgImage.size = scaledSize
+        
+        guard let uiImage = svgImage.uiImage else {
+            return nil
+        }
+        
+        Self.renderedImageCache[renderedImageCacheKey] = uiImage
         
         return uiImage
     }
