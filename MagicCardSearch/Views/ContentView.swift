@@ -116,9 +116,13 @@ struct ContentView: View {
                     } label: {
                         Image("HeaderIcon")
                             .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .frame(height: 32)
+                            .scaledToFit()
+                            // TODO: Figure out how to do this without fixed numbers. Toolbar should
+                            // set the size of the icon.
+                            .frame(width: 32, height: 32)
                     }
+                    .buttonStyle(.glass)
+                    .buttonBorderShape(.circle)
                 }
                 
                 ToolbarItem(placement: .topBarTrailing) {
