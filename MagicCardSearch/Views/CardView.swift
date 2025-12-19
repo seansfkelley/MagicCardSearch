@@ -86,7 +86,7 @@ struct CardView: View {
                 .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
             }
         }
-        .aspectRatio(0.716, contentMode: .fit)
+        .aspectRatio(Card.aspectRatio, contentMode: .fit)
         .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
     }
 }
@@ -124,7 +124,7 @@ private struct CardFaceView: View {
                         CardPlaceholderView(name: face.name)
                         ProgressView()
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            .aspectRatio(0.716, contentMode: .fit)
+                            .aspectRatio(Card.aspectRatio, contentMode: .fit)
                             .background(Color(.systemGray6).opacity(0.4))
                     }
                 }

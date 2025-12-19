@@ -360,8 +360,7 @@ private struct ThumbnailPreviewStrip: View {
     private let thumbnailSpacing: CGFloat = 8
     
     private var thumbnailWidth: CGFloat {
-        // Standard Magic card aspect ratio
-        thumbnailHeight * 0.716
+        thumbnailHeight * Card.aspectRatio
     }
     
     private var sidePadding: CGFloat {
@@ -420,7 +419,7 @@ private struct ThumbnailCardView: View {
                             .aspectRatio(contentMode: .fit)
                     } else {
                         Color.clear
-                            .aspectRatio(0.716, contentMode: .fit)
+                            .aspectRatio(Card.aspectRatio, contentMode: .fit)
                             .overlay {
                                 ProgressView()
                             }
@@ -434,7 +433,7 @@ private struct ThumbnailCardView: View {
                             .aspectRatio(contentMode: .fit)
                     } else {
                         Color.clear
-                            .aspectRatio(0.716, contentMode: .fit)
+                            .aspectRatio(Card.aspectRatio, contentMode: .fit)
                             .overlay {
                                 ProgressView()
                             }
@@ -442,7 +441,7 @@ private struct ThumbnailCardView: View {
                 }
             } else {
                 Color.clear
-                    .aspectRatio(0.716, contentMode: .fit)
+                    .aspectRatio(Card.aspectRatio, contentMode: .fit)
                     .overlay {
                         Image(systemName: "photo")
                             .foregroundStyle(.secondary)

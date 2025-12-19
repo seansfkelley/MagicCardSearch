@@ -16,27 +16,45 @@ struct HomeView: View {
     @State private var selectedCardIndex: Int?
     
     private let featuredState = FeaturedCardsState.shared
-    private let featuredCardLimit = 15
+    private let featuredWidth: CGFloat = 120
     
     var body: some View {
         ScrollView {
             VStack(spacing: 32) {
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("Recent Spoilers")
-                        .font(.title2)
-                        .bold()
-                        .padding(.horizontal)
+                    HStack(alignment: .firstTextBaseline) {
+                        Text("Recent Spoilers")
+                            .font(.title2)
+                            .bold()
+                        
+                        Spacer()
+                        
+                        Button {
+                            onSearchSelected([
+                                .basic(.keyValue("date", .greaterThanOrEqual, "today")),
+                                .basic(.keyValue("order", .including, SortMode.spoiled.rawValue)),
+                                .basic(.keyValue("dir", .including, SortDirection.desc.rawValue)),
+                                .basic(.keyValue("unique", .including, UniqueMode.prints.rawValue)),
+                            ])
+                        } label: {
+                            Text("View All")
+                                .font(.subheadline)
+                                .foregroundColor(.accentColor)
+                        }
+                    }
+                    .padding(.horizontal)
 
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 12) {
                             switch featuredState.results {
                             case .loading(nil, _), .unloaded:
-                                ForEach(0..<featuredCardLimit, id: \.self) { _ in
+                                ForEach(0..<15, id: \.self) { _ in
                                     ProgressView()
-                                        .frame(width: 120, height: 168)
+                                        .aspectRatio(Card.aspectRatio, contentMode: .fit)
+                                        .frame(width: featuredWidth)
                                 }
                             case .loading(let results?, _), .loaded(let results, _), .errored(let results?, _):
-                                ForEach(Array(results.cards.prefix(featuredCardLimit).enumerated()), id: \.element.id) { index, card in
+                                ForEach(Array(results.cards.enumerated()), id: \.element.id) { index, card in
                                     Button {
                                         selectedCardIndex = index
                                     } label: {
@@ -49,35 +67,20 @@ struct HomeView: View {
                                             ),
                                             cornerRadius: 8,
                                         )
-                                        .frame(width: 120)
+                                        .frame(width: featuredWidth)
                                     }
                                     .buttonStyle(.plain)
+                                    .onAppear {
+                                        if index == results.cards.count - 3 {
+                                            featuredState.loadNextPageIfNeeded()
+                                        }
+                                    }
                                 }
                                 
-                                if results.totalCount > featuredCardLimit {
-                                    Button {
-                                        onSearchSelected([
-                                            .basic(.keyValue("date", .greaterThanOrEqual, "today")),
-                                            .basic(.keyValue("order", .including, SortMode.spoiled.rawValue)),
-                                            .basic(.keyValue("dir", .including, SortDirection.desc.rawValue)),
-                                            .basic(.keyValue("unique", .including, UniqueMode.prints.rawValue)),
-                                        ])
-                                    } label: {
-                                        RoundedRectangle(cornerRadius: 12)
-                                            .strokeBorder(Color.accentColor, lineWidth: 2)
-                                            .frame(width: 120, height: 168)
-                                            .overlay {
-                                                VStack(spacing: 8) {
-                                                    Image(systemName: "arrow.right.circle.fill")
-                                                        .font(.largeTitle)
-                                                        .foregroundColor(.accentColor)
-                                                    Text("View All")
-                                                        .font(.subheadline)
-                                                        .bold()
-                                                        .foregroundColor(.accentColor)
-                                                }
-                                            }
-                                    }
+                                if case .loading = featuredState.results, results.nextPageUrl != nil {
+                                    ProgressView()
+                                        .aspectRatio(Card.aspectRatio, contentMode: .fit)
+                                        .frame(width: featuredWidth)
                                 }
                             case .errored(nil, _):
                                 EmptyView()

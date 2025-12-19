@@ -7,6 +7,9 @@
 
 import Foundation
 import Observation
+import Logging
+
+private let logger = Logger(label: "SearchResultsState")
 
 @MainActor
 @Observable
@@ -19,12 +22,19 @@ class SearchResultsState {
     }
     
     func loadNextPageIfNeeded() {
-        guard case .loaded(let searchResults, _) = results,
-              let nextUrl = searchResults.nextPageUrl else {
+        guard case .loaded(let searchResults, _) = results else {
+            logger.debug("Declining to load next page: not currently in loaded state")
             return
         }
         
-        print("Loading next page \(nextUrl)")
+        guard let nextUrl = searchResults.nextPageUrl else {
+            logger.debug("Declining to load next page: no nextPageUrl")
+            return
+        }
+        
+        logger.info("Loading next page", metadata: [
+            "nextPageUrl": "\(nextUrl)",
+        ])
         
         results = .loading(searchResults, nil)
         
@@ -39,16 +49,26 @@ class SearchResultsState {
                 )
                 results = .loaded(updatedResults, nil)
             } catch {
-                print("Error loading next page: \(error)")
+                logger.error("Error loading next page", metadata: [
+                    "error": "\(error)",
+                ])
                 results = .errored(searchResults, SearchErrorState(from: error))
             }
         }
     }
     
     func retryNextPage() {
-        if case .errored(let value, _) = results, let searchResults = value {
-            results = .loaded(searchResults, nil)
-            loadNextPageIfNeeded()
+        guard case .errored(let searchResults, _) = results else {
+            logger.debug("Declining to retry next page: not in errored state")
+            return
         }
+        
+        guard let searchResults else {
+            logger.debug("Declining to retry next page: never had a first page")
+            return
+        }
+        
+        results = .loaded(searchResults, nil)
+        loadNextPageIfNeeded()
     }
 }

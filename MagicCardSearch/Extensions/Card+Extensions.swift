@@ -9,6 +9,8 @@ import Foundation
 import ScryfallKit
 
 extension Card {
+    static let aspectRatio: CGFloat = 0.716
+    
     var releasedAtAsDate: Date? {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withFullDate]
