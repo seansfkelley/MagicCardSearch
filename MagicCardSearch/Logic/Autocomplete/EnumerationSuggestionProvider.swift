@@ -16,6 +16,7 @@ struct EnumerationSuggestion: Equatable {
 
 private enum CacheKey: Hashable {
     case type
+    case subtype
     case set
     case block
     case keyword
@@ -28,6 +29,7 @@ private let logger = Logger(label: "EnumerationSuggestionProvider")
 struct EnumerationSuggestionProvider {
     private static let shared = MemoryCache<CacheKey, IndexedEnumerationValues>(expiration: .never)
     
+    // swiftlint:disable:next function_body_length
     func getSuggestions(for searchTerm: String, excluding excludedFilters: Set<SearchFilter>, limit: Int) -> [EnumerationSuggestion] {
         guard limit > 0 else {
             return []
@@ -45,15 +47,6 @@ struct EnumerationSuggestionProvider {
             return []
         }
         
-        let options: IndexedEnumerationValues
-        if let cacheKey = Self.cacheKey(for: filterType.canonicalName) {
-            options = Self.getOptionsFromCache(for: cacheKey)
-        } else if let staticOptions = filterType.enumerationValues {
-            options = staticOptions
-        } else {
-            return []
-        }
-        
         let comparison = Comparison(rawValue: String(comparisonOperator))
         guard let comparison else {
             // If this fires, there's an error in the regex or something, but not a user error.
@@ -62,7 +55,28 @@ struct EnumerationSuggestionProvider {
         }
         
         let trimmedValue = value.trimmingCharacters(in: .whitespaces)
-        let matchingOpts = matchingOptions(from: options, searchTerm: trimmedValue)
+        
+        let matchingOpts: any Sequence<String>
+        if filterType.canonicalName == "type" {
+            let typeOptions = Self.getOptionsFromCache(for: .type)
+            let subtypeOptions = Self.getOptionsFromCache(for: .subtype)
+            
+            let typeMatches = matchingOptions(from: typeOptions, searchTerm: trimmedValue)
+            let subtypeMatches = matchingOptions(from: subtypeOptions, searchTerm: trimmedValue)
+            
+            matchingOpts = chain(AnySequence(typeMatches), AnySequence(subtypeMatches))
+        } else {
+            let options: IndexedEnumerationValues
+            if let cacheKey = Self.cacheKey(for: filterType.canonicalName) {
+                options = Self.getOptionsFromCache(for: cacheKey)
+            } else if let staticOptions = filterType.enumerationValues {
+                options = staticOptions
+            } else {
+                return []
+            }
+            
+            matchingOpts = matchingOptions(from: options, searchTerm: trimmedValue)
+        }
         
         return Array(matchingOpts
             .map { option in
@@ -109,19 +123,18 @@ struct EnumerationSuggestionProvider {
             return !prefixSet!.contains(option) && option.range(of: searchTerm, options: .caseInsensitive) != nil
         }
         
-        return prefixMatches + substringMatches
+        return chain(prefixMatches.lazy, substringMatches)
     }
     
     // MARK: - Cache Management
     
     private static func cacheKey(for canonicalName: String) -> CacheKey? {
         switch canonicalName {
-        case "type": return .type
-        case "set": return .set
-        case "block": return .block
-        case "keyword": return .keyword
-        case "watermark": return .watermark
-        default: return nil
+        case "set": .set
+        case "block": .block
+        case "keyword": .keyword
+        case "watermark": .watermark
+        default: nil
         }
     }
     
@@ -143,6 +156,14 @@ struct EnumerationSuggestionProvider {
                 [
                     Self.getCatalogData(.supertypes),
                     Self.getCatalogData(.cardTypes),
+                ]
+                .reduce([], (+))
+                .map { $0.lowercased() }
+            )
+            
+        case .subtype:
+            return IndexedEnumerationValues(
+                [
                     Self.getCatalogData(.artifactTypes),
                     Self.getCatalogData(.battleTypes),
                     Self.getCatalogData(.creatureTypes),
