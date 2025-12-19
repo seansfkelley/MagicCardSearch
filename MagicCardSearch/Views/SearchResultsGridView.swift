@@ -14,9 +14,11 @@ struct SearchResultsGridView: View {
     @State private var selectedCardIndex: Int?
     @State private var cardFlipStates: [UUID: Bool] = [:]
     
+    private let spacing: CGFloat = 4
+    
     private let columns = [
-        GridItem(.flexible(), spacing: 16),
-        GridItem(.flexible(), spacing: 16),
+        GridItem(.flexible(), spacing: 0),
+        GridItem(.flexible(), spacing: 0),
     ]
     
     private var results: LoadableResult<SearchResults, SearchErrorState> {
@@ -56,11 +58,11 @@ struct SearchResultsGridView: View {
                             .foregroundStyle(.secondary)
                             .padding(.vertical, 20)
 
-                        LazyVGrid(columns: columns, spacing: 16) {
+                        LazyVGrid(columns: columns, spacing: spacing) {
                             ForEach(Array(searchResults.cards.enumerated()), id: \.element.id) { index, card in
                                 CardView(
                                     card: card,
-                                    quality: .small,
+                                    quality: .normal,
                                     isFlipped: Binding(
                                         get: { cardFlipStates[card.id] ?? false },
                                         set: { cardFlipStates[card.id] = $0 }
@@ -75,9 +77,9 @@ struct SearchResultsGridView: View {
                                         state.loadNextPageIfNeeded()
                                     }
                                 }
+                                .padding(.horizontal, spacing / 2)
                             }
                         }
-                        .padding(.horizontal)
 
                         if searchResults.nextPageUrl != nil || results.isLoadingNextPage || results.nextPageError != nil {
                             paginationStatusView
@@ -85,6 +87,7 @@ struct SearchResultsGridView: View {
                                 .padding(.vertical, 20)
                         }
                     }
+                    .padding(.horizontal, spacing / 2)
                 }
             }
 
