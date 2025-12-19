@@ -97,6 +97,9 @@ private let scryfallIsEnumerationValues = [
 // MARK: - Filter Definitions
 // translated from https://scryfall.com/docs/syntax and kept in the same order/categories
 let scryfallFilterTypes: [ScryfallFilterType] = [
+    // MARK: - Name
+    .init("name"),
+    
     // MARK: - Color and Color Identity
     .init("color", ["c"], enumerationValues: scryfallColorAliases, comparisonKinds: .all),
     .init("identity", ["id"], enumerationValues: scryfallColorAliases, comparisonKinds: .all),
