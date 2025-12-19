@@ -25,7 +25,7 @@ private let logger = Logger(label: "EnumerationSuggestionProvider")
 
 @MainActor
 struct EnumerationSuggestionProvider {
-    private static let shared = MemoryCache<CacheKey, [String]>(expiration: .never)
+    private static let shared = MemoryCache<CacheKey, IndexedEnumerationValues>(expiration: .never)
     
     func getSuggestions(for searchTerm: String, excluding excludedFilters: Set<SearchFilter>, limit: Int) -> [EnumerationSuggestion] {
         guard limit > 0 else {
@@ -44,7 +44,7 @@ struct EnumerationSuggestionProvider {
             return []
         }
         
-        let options: [String]
+        let options: IndexedEnumerationValues
         if let cacheKey = Self.cacheKey(for: filterType.canonicalName) {
             options = Self.getOptionsFromCache(for: cacheKey)
         } else if let staticOptions = filterType.enumerationValues {
@@ -62,9 +62,8 @@ struct EnumerationSuggestionProvider {
         
         let trimmedValue = value.trimmingCharacters(in: .whitespaces)
         
-        // n.b. we assume options are sorted by whatever the default priority is, but don't care
-        // what it is.
         return Array(options
+            .sortedAlphabetically
             .lazy
             .map { option in
                 if negated.isEmpty {
@@ -103,7 +102,7 @@ struct EnumerationSuggestionProvider {
         }
     }
     
-    private static func getOptionsFromCache(for key: CacheKey) -> [String] {
+    private static func getOptionsFromCache(for key: CacheKey) -> IndexedEnumerationValues {
         if let options = shared[key] {
             return options
         } else {
@@ -112,50 +111,49 @@ struct EnumerationSuggestionProvider {
         }
     }
     
-    private static func fetchOptions(for key: CacheKey) -> [String] {
+    private static func fetchOptions(for key: CacheKey) -> IndexedEnumerationValues {
         let catalogs = ScryfallCatalogs.shared
         
         switch key {
         case .type:
-            return [
-                Self.getCatalogData(.supertypes),
-                Self.getCatalogData(.cardTypes),
-                Self.getCatalogData(.artifactTypes),
-                Self.getCatalogData(.battleTypes),
-                Self.getCatalogData(.creatureTypes),
-                Self.getCatalogData(.enchantmentTypes),
-                Self.getCatalogData(.landTypes),
-                Self.getCatalogData(.planeswalkerTypes),
-                Self.getCatalogData(.spellTypes),
-            ]
-            .reduce([], (+))
-            .map { $0.lowercased() }
-            .sorted(using: enumerationValueSortComparators)
+            return IndexedEnumerationValues(
+                [
+                    Self.getCatalogData(.supertypes),
+                    Self.getCatalogData(.cardTypes),
+                    Self.getCatalogData(.artifactTypes),
+                    Self.getCatalogData(.battleTypes),
+                    Self.getCatalogData(.creatureTypes),
+                    Self.getCatalogData(.enchantmentTypes),
+                    Self.getCatalogData(.landTypes),
+                    Self.getCatalogData(.planeswalkerTypes),
+                    Self.getCatalogData(.spellTypes),
+                ]
+                .reduce([], (+))
+                .map { $0.lowercased() }
+            )
             
         case .set:
-            return catalogs
-                .sets
-                .values
-                .flatMap { [$0.code, $0.name] }
-                .map { $0.lowercased().replacing(/[^a-z0-9 ]/, with: "") }
-                .sorted(using: enumerationValueSortComparators)
+            return IndexedEnumerationValues(
+                catalogs
+                    .sets
+                    .values
+                    .flatMap { [$0.code, $0.name] }
+                    .map { $0.lowercased().replacing(/[^a-z0-9 ]/, with: "") }
+            )
             
         case .block:
-            return catalogs
-                .sets
-                .values
-                .compactMap { $0.block?.lowercased().replacing(/[^a-z0-9 ]/, with: "") }
-                .sorted(using: enumerationValueSortComparators)
+            return IndexedEnumerationValues(
+                catalogs
+                    .sets
+                    .values
+                    .compactMap { $0.block?.lowercased().replacing(/[^a-z0-9 ]/, with: "") }
+            )
             
         case .keyword:
-            return Self.getCatalogData(.keywordAbilities)
-                .map { $0.lowercased() }
-                .sorted(using: enumerationValueSortComparators)
+            return IndexedEnumerationValues(Self.getCatalogData(.keywordAbilities).map { $0.lowercased() })
             
         case .watermark:
-            return Self.getCatalogData(.watermarks)
-                .map { $0.lowercased() }
-                .sorted(using: enumerationValueSortComparators)
+            return IndexedEnumerationValues(Self.getCatalogData(.watermarks).map { $0.lowercased() })
         }
     }
     

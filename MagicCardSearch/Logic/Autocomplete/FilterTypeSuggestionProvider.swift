@@ -34,7 +34,7 @@ struct FilterTypeSuggestionProvider {
             
             var bestMatch: FilterTypeSuggestion?
             
-            for candidate in filterType.names {
+            for candidate in filterType.allNames {
                 if let range = candidate.range(of: filterName, options: .caseInsensitive) {
                     let match = FilterTypeSuggestion(
                         filterType: candidate,

@@ -9,10 +9,20 @@ import Foundation
 
 // MARK: - Scryfall Filter Type
 
-let enumerationValueSortComparators: [KeyPathComparator<String>] = [
-    .init(\.count),
-    .init(\.self),
-]
+struct IndexedEnumerationValues {
+    let sortedByLength: [String]
+    let sortedAlphabetically: [String]
+    
+    init(_ values: [String]) {
+        self.sortedByLength = values.sorted(using: [
+            KeyPathComparator(\.count),
+            KeyPathComparator(\.self, comparator: .localizedStandard),
+        ])
+        self.sortedAlphabetically = values.sorted(using: [
+            KeyPathComparator(\.self, comparator: .localizedStandard),
+        ])
+    }
+}
 
 struct ScryfallFilterType {
     enum ComparisonKinds {
@@ -20,8 +30,8 @@ struct ScryfallFilterType {
     }
     
     let canonicalName: String
-    let aliases: Set<String>
-    let enumerationValues: [String]?
+    let allNames: Set<String>
+    let enumerationValues: IndexedEnumerationValues?
     let comparisonKinds: ComparisonKinds
     
     init(
@@ -31,14 +41,9 @@ struct ScryfallFilterType {
         comparisonKinds: ComparisonKinds = .equality
     ) {
         self.canonicalName = name
-        self.aliases = aliases
-        self.enumerationValues = enumerationValues?.sorted(using: enumerationValueSortComparators)
+        self.allNames = Set([canonicalName]).union(aliases)
+        self.enumerationValues = enumerationValues.map { IndexedEnumerationValues($0) }
         self.comparisonKinds = comparisonKinds
-    }
-    
-    // TODO: Cache this.
-    var names: Set<String> {
-        return Set([canonicalName]).union(aliases)
     }
 }
 
@@ -309,10 +314,9 @@ let scryfallFilterTypes: [ScryfallFilterType] = [
 let scryfallFilterByType: [String: ScryfallFilterType] = {
     var lookup: [String: ScryfallFilterType] = [:]
     for filterType in scryfallFilterTypes {
-        lookup[filterType.canonicalName] = filterType
-        for alias in filterType.aliases {
-            assert(lookup[alias] == nil)
-            lookup[alias] = filterType
+        for name in filterType.allNames {
+            assert(lookup[name] == nil)
+            lookup[name] = filterType
         }
     }
     return lookup
