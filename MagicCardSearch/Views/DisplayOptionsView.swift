@@ -25,7 +25,7 @@ struct DisplayOptionsView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Display") {
+                Section {
                     Picker("Display Mode", selection: $workingConfig.uniqueMode) {
                         ForEach(SearchConfiguration.UniqueMode.allCases, id: \.self) { mode in
                             Text(mode.rawValue).tag(mode)
@@ -33,9 +33,11 @@ struct DisplayOptionsView: View {
                     }
                     .pickerStyle(.segmented)
                     .labelsHidden()
+                } footer: {
+                    Text("Use the `unique:` filter to temporarily override this for one search.")
                 }
                 
-                Section("Sort") {
+                Section {
                     Picker("Sort by", selection: $workingConfig.sortField) {
                         ForEach(SearchConfiguration.SortField.allCases, id: \.self) { field in
                             Text(field.rawValue).tag(field)
@@ -49,6 +51,8 @@ struct DisplayOptionsView: View {
                     }
                     .pickerStyle(.segmented)
                     .labelsHidden()
+                } footer: {
+                    Text("Use the `order:` and `dir:` filters to temporarily override these for one search.")
                 }
                 
                 Section {
