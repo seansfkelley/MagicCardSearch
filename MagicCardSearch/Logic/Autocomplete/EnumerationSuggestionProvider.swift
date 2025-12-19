@@ -61,10 +61,9 @@ struct EnumerationSuggestionProvider {
         }
         
         let trimmedValue = value.trimmingCharacters(in: .whitespaces)
+        let matchingOpts = matchingOptions(from: options, searchTerm: trimmedValue)
         
-        return Array(options
-            .sortedAlphabetically
-            .lazy
+        return Array(matchingOpts
             .map { option in
                 if negated.isEmpty {
                     SearchFilter.basic(.keyValue(filterTypeName.lowercased(), comparison, option))
@@ -73,20 +72,30 @@ struct EnumerationSuggestionProvider {
                 }
             }
             .filter { !excludedFilters.contains($0) }
-            .compactMap { filter in
+            .map { filter in
                 if trimmedValue.isEmpty {
                     return EnumerationSuggestion(filter: filter, matchRange: nil)
                 }
                 
                 let filterString = filter.queryStringWithEditingRange.0
-                if let range = filterString.range(of: trimmedValue, options: .caseInsensitive) {
-                    return EnumerationSuggestion(filter: filter, matchRange: range)
-                }
-                
-                return nil
+                let range = filterString.range(of: trimmedValue, options: .caseInsensitive)
+                return EnumerationSuggestion(filter: filter, matchRange: range)
             }
             .prefix(limit)
         )
+    }
+    
+    private func matchingOptions(from options: IndexedEnumerationValues, searchTerm: String) -> any Sequence<String> {
+        if searchTerm.isEmpty {
+            return options.sortedAlphabetically
+        }
+        
+        return options
+            .sortedAlphabetically
+            .lazy
+            .filter { option in
+                option.range(of: searchTerm, options: .caseInsensitive) != nil
+            }
     }
     
     // MARK: - Cache Management
