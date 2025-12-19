@@ -59,11 +59,11 @@ struct EnumerationSuggestionProvider {
             return []
         }
         
-        let trimmedSearchTerm = searchTerm.trimmingCharacters(in: .whitespaces)
+        let trimmedValue = value.trimmingCharacters(in: .whitespaces)
         
+        // n.b. we assume options are sorted by whatever the default priority is, but don't care
+        // what it is.
         return Array(options
-            // TODO: Enumeration options should be sorted elsewhere, once.
-            .sorted()
             .lazy
             .map { option in
                 if negated.isEmpty {
@@ -74,12 +74,12 @@ struct EnumerationSuggestionProvider {
             }
             .filter { !excludedFilters.contains($0) }
             .compactMap { filter in
-                if trimmedSearchTerm.isEmpty {
+                if trimmedValue.isEmpty {
                     return EnumerationSuggestion(filter: filter, matchRange: nil)
                 }
                 
                 let filterString = filter.queryStringWithEditingRange.0
-                if let range = filterString.range(of: trimmedSearchTerm, options: .caseInsensitive) {
+                if let range = filterString.range(of: trimmedValue, options: .caseInsensitive) {
                     return EnumerationSuggestion(filter: filter, matchRange: range)
                 }
                 
@@ -129,10 +129,10 @@ struct EnumerationSuggestionProvider {
             ].reduce(into: Set<String>()) { $0.formUnion($1) }
             
         case .set:
-            return Set(catalogs.sets.keys.map { $0.normalized.lowercased() })
+            return Set(catalogs.sets.values.flatMap { [$0.code, $0.name] }.map { $0.lowercased() }.sorted())
             
         case .block:
-            return Set(catalogs.sets.values.compactMap { $0.block?.lowercased() })
+            return Set(catalogs.sets.values.compactMap { $0.block?.lowercased() }.sorted())
             
         case .keyword:
             return Self.getCatalogData(.keywordAbilities)
@@ -144,6 +144,8 @@ struct EnumerationSuggestionProvider {
     
     private static func getCatalogData(_ catalogType: Catalog.`Type`) -> Set<String> {
         // TODO: A bit gross here.
-        return Set((ScryfallCatalogs.shared.catalog(catalogType) ?? []).map { $0.lowercased() })
+        return Set(
+            (ScryfallCatalogs.shared.catalog(catalogType) ?? []).map { $0.lowercased() }.sorted(),
+        )
     }
 }

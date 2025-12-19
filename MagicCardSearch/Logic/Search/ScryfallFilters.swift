@@ -22,12 +22,12 @@ struct ScryfallFilterType {
     init(
         _ name: String,
         _ aliases: Set<String> = [],
-        enumerationValues: Set<String>? = nil,
+        enumerationValues: [String]? = nil,
         comparisonKinds: ComparisonKinds = .equality
     ) {
         self.canonicalName = name
         self.aliases = aliases
-        self.enumerationValues = enumerationValues
+        self.enumerationValues = enumerationValues.map(Set.init)
         self.comparisonKinds = comparisonKinds
     }
     
@@ -37,7 +37,7 @@ struct ScryfallFilterType {
     }
 }
 
-private let scryfallColorAliases = Set([
+private let scryfallColorAliases = [
     // guild
     "azorius", "dimir", "rakdos", "golgari", "boros", "simic", "selesnya", "orzhov", "izzet", "gruul",
     // shard
@@ -50,15 +50,15 @@ private let scryfallColorAliases = Set([
     "brokers", "obscura", "maestros", "riveteers", "cabaretti",
     // four-color
     "chaos", "aggression", "altruism", "growth", "artifice",
-])
+]
 
-private let scryfallSupportedFormats = Set([
+private let scryfallSupportedFormats = [
     "standard", "future", "historic", "timeless", "gladiator", "pioneer", "modern", "legacy",
     "pauper", "vintage", "penny", "commander", "oathbreaker", "standardbrawl", "brawl",
     "alchemy", "paupercommander", "duel", "oldschool", "premodern", "predh",
-])
+]
 
-private let scryfallIsEnumerationValues = Set([
+private let scryfallIsEnumerationValues = [
     // Mana Costs
     "hybrid", "phyrexian",
     // Multi-faced Cards
@@ -87,7 +87,7 @@ private let scryfallIsEnumerationValues = Set([
     "triland", "tangoland", "battleland", "masterpiece",
     // Not listed in the documentation, but discovered/mentioned elsewhere
     "gamechanger", "reversible", "fullart",
-])
+]
 
 // MARK: - Filter Definitions
 // translated from https://scryfall.com/docs/syntax and kept in the same order/categories
