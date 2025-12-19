@@ -4,8 +4,10 @@
 //
 //  Created by Sean Kelley on 2025-12-03.
 //
-
 import SwiftUI
+import Logging
+
+private let logger = Logger(label: "ContentView")
 
 enum MainContentType {
     case home
@@ -59,7 +61,7 @@ struct ContentView: View {
                 case .home:
                     HomeView(searchHistoryTracker: searchHistoryTracker) { filters in
                         searchFilters = filters
-                        performSearch()
+                        startNewSearch()
                     }
                 case .results:
                     if isSearchFocused {
@@ -90,7 +92,7 @@ struct ContentView: View {
                     showWarningsPopover: $showWarningsPopover,
                     onFilterEdit: handleFilterEdit,
                     searchHistoryTracker: searchHistoryTracker,
-                    onSubmit: performSearch,
+                    onSubmit: { startNewSearch() },
                     autocompleteProvider: autocompleteProvider
                 )
             }
@@ -151,6 +153,9 @@ struct ContentView: View {
             .toolbarBackground(.hidden, for: .navigationBar)
             .navigationBarTitleDisplayMode(.inline)
         }
+        .onChange(of: searchConfig) {
+            startNewSearch(keepingCurrentResults: true)
+        }
         .onChange(of: isSearchFocused) { _, isFocused in
             if isFocused {
                 mainContentType = .results
@@ -206,21 +211,31 @@ struct ContentView: View {
     
     // MARK: - Helper Methods
     
-    private func performSearch() {
+    private func startNewSearch(keepingCurrentResults: Bool = false) {
         mainContentType = .results
         
         searchTask?.cancel()
-
+        
+        logger.info("Starting new search", metadata: [
+            "keepingCurrentResults": "\(keepingCurrentResults)",
+            "filters": "\(searchFilters)",
+            "configuration": "\(searchConfig)",
+        ])
+        
         guard !searchFilters.isEmpty else {
+            logger.info("No search filters; skipping to empty result")
             searchResultsState.results = .unloaded
             searchTask = nil
             return
         }
 
-        print("Searching...")
-
-        // This is a new search, so dump all the results from any previous search.
-        searchResultsState.results = .loading(nil, nil)
+        searchResultsState.results = .loading(
+            // TODO: The following. The main search grid view does not blank out interaction because
+            // it's being too clever.
+            // keepingCurrentResults ? searchResultsState.results.latestValue : nil,
+            nil,
+            nil,
+        )
 
         searchHistoryTracker.recordUsage(of: searchFilters)
         for filter in searchFilters {
