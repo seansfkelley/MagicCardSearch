@@ -7,6 +7,7 @@
 import Foundation
 import ScryfallKit
 import Logging
+import Algorithms
 
 struct EnumerationSuggestion: Equatable {
     let filter: SearchFilter
@@ -90,12 +91,25 @@ struct EnumerationSuggestionProvider {
             return options.sortedAlphabetically
         }
         
-        return options
-            .sortedAlphabetically
-            .lazy
-            .filter { option in
-                option.range(of: searchTerm, options: .caseInsensitive) != nil
+        let lowerBound = options.sortedAlphabetically.partitioningIndex { element in
+            element.compare(searchTerm, options: [.caseInsensitive]) != .orderedAscending
+        }
+        
+        let upperBound = options.sortedAlphabetically[lowerBound...].partitioningIndex { element in
+            element.range(of: searchTerm, options: [.anchored, .caseInsensitive]) == nil
+        }
+        
+        let prefixMatches = options.sortedAlphabetically[lowerBound..<upperBound]
+        
+        var prefixSet: Set<String>?
+        let substringMatches = options.sortedByLength.lazy.filter { option in
+            if prefixSet == nil {
+                prefixSet = Set(prefixMatches)
             }
+            return !prefixSet!.contains(option) && option.range(of: searchTerm, options: .caseInsensitive) != nil
+        }
+        
+        return prefixMatches + substringMatches
     }
     
     // MARK: - Cache Management

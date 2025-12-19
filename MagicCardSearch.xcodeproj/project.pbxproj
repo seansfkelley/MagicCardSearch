@@ -11,6 +11,7 @@
 		210115BE2EEF9543000D6D32 /* NukeUI in Frameworks */ = {isa = PBXBuildFile; productRef = 210115BD2EEF9543000D6D32 /* NukeUI */; };
 		21058ADE2EF36FC700F093EF /* InMemoryLogging in Frameworks */ = {isa = PBXBuildFile; productRef = 21058ADD2EF36FC700F093EF /* InMemoryLogging */; };
 		21058AE02EF36FC700F093EF /* Logging in Frameworks */ = {isa = PBXBuildFile; productRef = 21058ADF2EF36FC700F093EF /* Logging */; };
+		21332B992EF5D04100C80208 /* Algorithms in Frameworks */ = {isa = PBXBuildFile; productRef = 21332B982EF5D04100C80208 /* Algorithms */; };
 		213F299A2EE9285400E058DB /* SVGKitSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 213F29992EE9285400E058DB /* SVGKitSwift */; };
 		21A856BD2EE3AAE400E72541 /* ScryfallKit in Frameworks */ = {isa = PBXBuildFile; productRef = 21A856BC2EE3AAE400E72541 /* ScryfallKit */; };
 		21D3972C2EE225C5008B3EFD /* WrappingHStack in Frameworks */ = {isa = PBXBuildFile; productRef = 21D3972B2EE225C5008B3EFD /* WrappingHStack */; };
@@ -130,6 +131,7 @@
 				213F299A2EE9285400E058DB /* SVGKitSwift in Frameworks */,
 				21058AE02EF36FC700F093EF /* Logging in Frameworks */,
 				21D3972C2EE225C5008B3EFD /* WrappingHStack in Frameworks */,
+				21332B992EF5D04100C80208 /* Algorithms in Frameworks */,
 				21A856BD2EE3AAE400E72541 /* ScryfallKit in Frameworks */,
 				21058ADE2EF36FC700F093EF /* InMemoryLogging in Frameworks */,
 				210115BC2EEF9543000D6D32 /* Nuke in Frameworks */,
@@ -239,6 +241,7 @@
 				210115BD2EEF9543000D6D32 /* NukeUI */,
 				21058ADD2EF36FC700F093EF /* InMemoryLogging */,
 				21058ADF2EF36FC700F093EF /* Logging */,
+				21332B982EF5D04100C80208 /* Algorithms */,
 			);
 			productName = MagicCardSearch;
 			productReference = 2137B5AD2EE139C60066BF7E /* MagicCardSearch.app */;
@@ -334,6 +337,7 @@
 				21A5FCA72EE9E7FA0034E695 /* XCRemoteSwiftPackageReference "SwiftLintPlugins" */,
 				210115BA2EEF9543000D6D32 /* XCRemoteSwiftPackageReference "Nuke" */,
 				21058ADC2EF36FC700F093EF /* XCRemoteSwiftPackageReference "swift-log" */,
+				21332B972EF5D04100C80208 /* XCRemoteSwiftPackageReference "swift-algorithms" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 2137B5AE2EE139C60066BF7E /* Products */;
@@ -818,6 +822,14 @@
 				minimumVersion = 1.8.0;
 			};
 		};
+		21332B972EF5D04100C80208 /* XCRemoteSwiftPackageReference "swift-algorithms" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/apple/swift-algorithms.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.2.1;
+			};
+		};
 		213F29982EE9285400E058DB /* XCRemoteSwiftPackageReference "SVGKit" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/SVGKit/SVGKit";
@@ -872,6 +884,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 21058ADC2EF36FC700F093EF /* XCRemoteSwiftPackageReference "swift-log" */;
 			productName = Logging;
+		};
+		21332B982EF5D04100C80208 /* Algorithms */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 21332B972EF5D04100C80208 /* XCRemoteSwiftPackageReference "swift-algorithms" */;
+			productName = Algorithms;
 		};
 		213F29992EE9285400E058DB /* SVGKitSwift */ = {
 			isa = XCSwiftPackageProductDependency;
