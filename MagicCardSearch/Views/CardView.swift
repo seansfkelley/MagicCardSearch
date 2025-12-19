@@ -120,9 +120,13 @@ private struct CardFaceView: View {
                 } else if state.error != nil {
                     CardPlaceholderView(name: face.name)
                 } else {
-                    ProgressView()
-                        .frame(maxWidth: .infinity)
-                        .aspectRatio(0.716, contentMode: .fit)
+                    ZStack {
+                        CardPlaceholderView(name: face.name)
+                        ProgressView()
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .aspectRatio(0.716, contentMode: .fit)
+                            .background(Color(.systemGray6).opacity(0.4))
+                    }
                 }
             }
         } else {
