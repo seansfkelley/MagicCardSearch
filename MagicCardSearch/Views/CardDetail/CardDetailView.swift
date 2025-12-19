@@ -207,22 +207,22 @@ struct CardDetailView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
         }
 
-        if let power = face.power, let toughness = face.toughness {
+        if let power = face.power, let toughness = face.toughness, !power.isEmpty || !toughness.isEmpty {
             Divider().padding(.horizontal)
             CardStatSection(value: "\(power)/\(toughness)")
         }
         
-        if let loyalty = face.loyalty {
+        if let loyalty = face.loyalty, !loyalty.isEmpty {
             Divider().padding(.horizontal)
             CardStatSection(value: loyalty, label: "Loyalty")
         }
         
-        if let defense = face.defense {
+        if let defense = face.defense, !defense.isEmpty {
             Divider().padding(.horizontal)
             CardStatSection(value: defense, label: "Defense")
         }
 
-        if showArtist, let artist = face.artist {
+        if showArtist, let artist = face.artist, !artist.isEmpty {
             Divider().padding(.horizontal)
             CardArtistSection(artist: artist)
         }
