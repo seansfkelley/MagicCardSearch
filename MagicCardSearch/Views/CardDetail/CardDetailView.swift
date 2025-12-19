@@ -34,28 +34,16 @@ struct CardDetailView: View {
                 .padding(.bottom, 24)
                 
                 if let faces = card.cardFaces {
-                    let uniqueFaces = faces.uniqued(by: \.oracleId)
+                    // If the faces don't have oracle IDs, this is a two-faced card with the same
+                    // card on both sides, either as a promotional art print or a more serious
+                    // printing with alt-arts on both sides. In either case, the details are
+                    // duplicative, so we only want to pick one of each.
+                    let uniqueFaces = faces.uniqued { $0.oracleId ?? "nonunique" }
                     let allArtists = faces.compactMap(\.artist)
                         .filter { !$0.isEmpty }
                         .uniqued()
                     
-                    // illustrationId is a weird choice, but this was breaking with very mysterious
-                    // logging on art cards that are the same card on both sides but with different
-                    // art. This should work more or less in the general case too, since WotC doesn't
-                    // generally use the same art on both sides -- but maybe that could happen in
-                    // the case that just the frame is different?
-                    //
-                    // The error itself seemed to be SwiftUI warning about non-uniqueness, but
-                    // something was causing it to be a horribly mangled failed string decode error
-                    // instead:
-                    //
-                    // <decode: bad range for [%{public}s] got [offs:382 len:1304 within:0]>
-                    //
-                    // I saw the real error once, when I deleted enough subviews that it didn't hit
-                    // whatever error condition caused the above, which is how I discovered this.
-                    //
-                    // FIXME: Come up with an actually unique ID.
-                    ForEach(Array(uniqueFaces.enumerated()), id: \.element.illustrationId) { index, face in
+                    ForEach(Array(uniqueFaces.enumerated()), id: \.element.oracleId) { index, face in
                         cardFaceDetailsView(face: face, showArtist: false)
                         
                         if index < uniqueFaces.count - 1 {
@@ -173,7 +161,8 @@ struct CardDetailView: View {
         .padding(.vertical, 12)
         .frame(maxWidth: .infinity, alignment: .leading)
 
-        if let typeLine = face.typeLine, !typeLine.isEmpty {
+        // The "Card" typeline happens on art cards.
+        if let typeLine = face.typeLine, !typeLine.isEmpty && typeLine != "Card" {
             Divider().padding(.horizontal)
             VStack(alignment: .leading, spacing: 8) {
                 HStack(spacing: 8) {

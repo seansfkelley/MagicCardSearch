@@ -33,6 +33,35 @@ extension Array {
             }
         }
     }
+    
+    func uniqued<T: Hashable>(by transform: (Element) -> T) -> [Element] {
+        var seen = Set<T>()
+        return filter { element in
+            let key = transform(element)
+            if seen.contains(key) {
+                return false
+            } else {
+                seen.insert(key)
+                return true
+            }
+        }
+    }
+    
+    func uniqued<T: Hashable>(by transform: (Element) -> T?) -> [Element] {
+        var seen = Set<T>()
+        return filter { element in
+            guard let key = transform(element) else {
+                return true
+            }
+            
+            if seen.contains(key) {
+                return false
+            } else {
+                seen.insert(key)
+                return true
+            }
+        }
+    }
 }
 
 extension Array where Element: Hashable {
