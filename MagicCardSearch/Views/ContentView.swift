@@ -62,8 +62,6 @@ struct ContentView: View {
                         performSearch()
                     }
                 case .results:
-                    SearchResultsGridView(state: searchResultsState)
-                    
                     if isSearchFocused {
                         AutocompleteView(
                             inputText: inputText,
@@ -72,9 +70,11 @@ struct ContentView: View {
                             filters: searchFilters,
                             isSearchFocused: isSearchFocused,
                         ) { suggestion in
-                                handleSuggestionTap(suggestion)
-                                inputSelection = TextSelection(insertionPoint: inputText.endIndex)
+                            handleSuggestionTap(suggestion)
+                            inputSelection = TextSelection(insertionPoint: inputText.endIndex)
                         }
+                    } else {
+                        SearchResultsGridView(state: searchResultsState)
                     }
                 }
             }
@@ -219,7 +219,8 @@ struct ContentView: View {
 
         print("Searching...")
 
-        searchResultsState.results = .loading(searchResultsState.results.latestValue, nil)
+        // This is a new search, so dump all the results from any previous search.
+        searchResultsState.results = .loading(nil, nil)
 
         searchHistoryTracker.recordUsage(of: searchFilters)
         for filter in searchFilters {
@@ -242,7 +243,7 @@ struct ContentView: View {
             } catch {
                 if !Task.isCancelled {
                     print("Search error: \(error)")
-                    searchResultsState.results = .errored(searchResultsState.results.latestValue, SearchErrorState(from: error))
+                    searchResultsState.results = .errored(nil, SearchErrorState(from: error))
                 }
             }
         }
