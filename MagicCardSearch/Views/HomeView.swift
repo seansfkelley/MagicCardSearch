@@ -8,6 +8,22 @@
 import SwiftUI
 import ScryfallKit
 
+private struct PlainStyling: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .font(.body)
+            .textCase(.none)
+            .foregroundStyle(.primary)
+            .listRowInsets(.init(top: 10, leading: 0, bottom: 10, trailing: 0))
+    }
+}
+
+private extension View {
+    func plainStyling() -> some View {
+        modifier(PlainStyling())
+    }
+}
+
 struct HomeView: View {
     let searchHistoryTracker: SearchHistoryTracker
     let onSearchSelected: ([SearchFilter]) -> Void
@@ -19,150 +35,129 @@ struct HomeView: View {
     private let featuredWidth: CGFloat = 120
     
     var body: some View {
-        ScrollView {
-            VStack(spacing: 32) {
-                VStack(alignment: .leading, spacing: 12) {
-                    HStack(alignment: .firstTextBaseline) {
-                        Text("Recent Spoilers")
-                            .font(.title2)
-                            .bold()
-                        
-                        Spacer()
-                        
-                        Button(action: {
-                            onSearchSelected([
-                                .basic(.keyValue("date", .greaterThanOrEqual, "today")),
-                                .basic(.keyValue("order", .including, SortMode.spoiled.rawValue)),
-                                .basic(.keyValue("dir", .including, SortDirection.desc.rawValue)),
-                                .basic(.keyValue("unique", .including, UniqueMode.prints.rawValue)),
-                            ])
-                        }) {
-                            Text("View All")
+        List {
+            Section {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 12) {
+                        switch featuredState.results {
+                        case .loading(nil, _), .unloaded:
+                            ForEach(0..<15, id: \.self) { _ in
+                                CardPlaceholderView(name: nil, cornerRadius: 8, withSpinner: true)
+                                    .frame(width: featuredWidth, height: featuredWidth / Card.aspectRatio)
+                            }
+                        case .loading(let results?, _), .loaded(let results, _), .errored(let results?, _):
+                            ForEach(Array(results.cards.enumerated()), id: \.element.id) { index, card in
+                                Button {
+                                    selectedCardIndex = index
+                                } label: {
+                                    CardView(
+                                        card: card,
+                                        quality: .small,
+                                        isFlipped: Binding(
+                                            get: { cardFlipStates[card.id] ?? false },
+                                            set: { cardFlipStates[card.id] = $0 }
+                                        ),
+                                        cornerRadius: 8,
+                                    )
+                                    .frame(width: featuredWidth)
+                                }
+                                .buttonStyle(.plain)
+                                .onAppear {
+                                    if index == results.cards.count - 3 {
+                                        featuredState.loadNextPageIfNeeded()
+                                    }
+                                }
+                            }
+                            
+                            if case .loading = featuredState.results, results.nextPageUrl != nil {
+                                ProgressView()
+                                    .frame(width: featuredWidth, height: featuredWidth / Card.aspectRatio)
+                            }
+                        case .errored(nil, _):
+                            EmptyView()
                         }
                     }
                     .padding(.horizontal)
-
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 12) {
-                            switch featuredState.results {
-                            case .loading(nil, _), .unloaded:
-                                ForEach(0..<15, id: \.self) { _ in
-                                    CardPlaceholderView(name: nil, cornerRadius: 8, withSpinner: true)
-                                        .frame(width: featuredWidth, height: featuredWidth / Card.aspectRatio)
-                                }
-                            case .loading(let results?, _), .loaded(let results, _), .errored(let results?, _):
-                                ForEach(Array(results.cards.enumerated()), id: \.element.id) { index, card in
-                                    Button {
-                                        selectedCardIndex = index
-                                    } label: {
-                                        CardView(
-                                            card: card,
-                                            quality: .small,
-                                            isFlipped: Binding(
-                                                get: { cardFlipStates[card.id] ?? false },
-                                                set: { cardFlipStates[card.id] = $0 }
-                                            ),
-                                            cornerRadius: 8,
-                                        )
-                                        .frame(width: featuredWidth)
-                                    }
-                                    .buttonStyle(.plain)
-                                    .onAppear {
-                                        if index == results.cards.count - 3 {
-                                            featuredState.loadNextPageIfNeeded()
-                                        }
-                                    }
-                                }
-                                
-                                if case .loading = featuredState.results, results.nextPageUrl != nil {
-                                    ProgressView()
-                                        .frame(width: featuredWidth, height: featuredWidth / Card.aspectRatio)
-                                }
-                            case .errored(nil, _):
-                                EmptyView()
-                            }
-                        }
-                        .padding(.horizontal)
-                    }
                 }
-                
-                if !searchHistoryTracker.completeSearchEntries.isEmpty {
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("Recent Searches")
-                            .font(.title2)
-                            .bold()
-                            .padding(.horizontal)
-                        
-                        VStack(spacing: 0) {
-                            ForEach(Array(searchHistoryTracker.completeSearchEntries.prefix(10).enumerated()), id: \.element.lastUsedDate) { index, entry in
-                                Button {
-                                    onSearchSelected(entry.filters)
-                                } label: {
-                                    HStack {
-                                        Text(entry.filters.map { $0.queryStringWithEditingRange.0 }.joined(separator: " "))
-                                            .font(.body)
-                                            .foregroundStyle(.primary)
-                                            .lineLimit(2)
-                                        Spacer()
-                                    }
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .padding(.vertical, 12)
-                                    .padding(.horizontal)
-                                    .contentShape(Rectangle())
-                                }
-                                .buttonStyle(.plain)
-                                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                                    Button(role: .destructive) {
-                                        searchHistoryTracker.delete(filters: entry.filters)
-                                    } label: {
-                                        Label("Delete", systemImage: "trash")
-                                    }
-                                }
-                                
-                                if index < min(searchHistoryTracker.completeSearchEntries.count, 10) {
-                                    Divider()
-                                        .padding(.leading)
-                                }
-                            }
-                        }
-                        .background(Color(uiColor: .systemBackground))
-                    }
-                }
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Need Inspiration?")
-                        .font(.title2)
-                        .bold()
-                        .padding(.horizontal)
+            } header: {
+                HStack {
+                    Text("Recent Spoilers")
                     
-                    VStack(spacing: 0) {
-                        ForEach(Array(ExampleSearch.dailyExamples.enumerated()), id: \.element.title) { index, example in
-                            Button {
-                                onSearchSelected(example.filters)
-                            } label: {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(example.title)
-                                        .font(.body.weight(.semibold))
-                                        .foregroundStyle(.primary)
-                                    Text(example.filters.map { $0.queryStringWithEditingRange.0 }.joined(separator: " "))
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .padding(.vertical, 12)
-                                .padding(.horizontal)
+                    Spacer()
+                    
+                    Button(action: {
+                        onSearchSelected([
+                            .basic(.keyValue("date", .greaterThanOrEqual, "today")),
+                            .basic(.keyValue("order", .including, SortMode.spoiled.rawValue)),
+                            .basic(.keyValue("dir", .including, SortDirection.desc.rawValue)),
+                            .basic(.keyValue("unique", .including, UniqueMode.prints.rawValue)),
+                        ])
+                    }) {
+                        Text("View All")
+                    }
+                }
+                .padding(.horizontal)
+            }
+            .listRowInsets(.horizontal, 0)
+            .listSectionMargins(.horizontal, 0)
+            
+            if !searchHistoryTracker.completeSearchEntries.isEmpty {
+                Section {
+                    ForEach(Array(searchHistoryTracker.completeSearchEntries.prefix(10).enumerated()), id: \.element.lastUsedDate) { _, entry in
+                        Button {
+                            onSearchSelected(entry.filters)
+                        } label: {
+                            HStack {
+                                Text(entry.filters.map { $0.queryStringWithEditingRange.0 }.joined(separator: " "))
+                                    .font(.body)
+                                    .foregroundStyle(.primary)
+                                    .lineLimit(2)
+                                Spacer()
                             }
-                            .buttonStyle(.plain)
-                            
-                            if index < ExampleSearch.dailyExamples.count - 1 {
-                                Divider()
-                                    .padding(.leading)
+                            .padding(.horizontal)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                            Button(role: .destructive) {
+                                searchHistoryTracker.delete(filters: entry.filters)
+                            } label: {
+                                Label("Delete", systemImage: "trash")
                             }
                         }
                     }
-                    .background(Color(uiColor: .systemBackground))
+                } header: {
+                    Text("Recent Searches")
+                        .padding(.horizontal)
                 }
+                .listRowInsets(.horizontal, 0)
+                .listSectionMargins(.horizontal, 0)
             }
-            .padding(.vertical)
+            
+            Section {
+                ForEach(Array(ExampleSearch.dailyExamples.enumerated()), id: \.element.title) { _, example in
+                    Button {
+                        onSearchSelected(example.filters)
+                    } label: {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(example.title)
+                                .font(.body.weight(.semibold))
+                                .foregroundStyle(.primary)
+                            Text(example.filters.map { $0.queryStringWithEditingRange.0 }.joined(separator: " "))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(.horizontal)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                }
+            } header: {
+                Text("Need Inspiration?")
+                    .padding(.horizontal)
+            }
+            .listRowInsets(.horizontal, 0)
+            .listSectionMargins(.horizontal, 0)
         }
         .task {
             await loadFeaturedCards()
