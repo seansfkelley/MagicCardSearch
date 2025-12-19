@@ -82,8 +82,8 @@ struct CardView: View {
                 CardFaceView(
                     face: card,
                     quality: quality,
+                    cornerRadius: cornerRadius,
                 )
-                .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
             }
         }
         .aspectRatio(Card.aspectRatio, contentMode: .fit)
@@ -94,6 +94,7 @@ struct CardView: View {
 private struct CardFaceView: View {
     let face: CardFaceDisplayable
     let quality: CardImageQuality
+    let cornerRadius: CGFloat
     
     var body: some View {
         if let imageUrlString = quality.uri(from: face.imageUris),
@@ -117,45 +118,60 @@ private struct CardFaceView: View {
                                 Label("Copy", systemImage: "doc.on.doc")
                             }
                         }
+                        .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
                 } else if state.error != nil {
-                    CardPlaceholderView(name: face.name)
+                    CardPlaceholderView(name: face.name, cornerRadius: cornerRadius)
                 } else {
-                    ZStack {
-                        CardPlaceholderView(name: face.name)
-                        ProgressView()
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            .aspectRatio(Card.aspectRatio, contentMode: .fit)
-                            .background(Color(.systemGray6).opacity(0.4))
-                    }
+                    CardPlaceholderView(name: face.name, cornerRadius: cornerRadius, withSpinner: true)
                 }
             }
         } else {
-            CardPlaceholderView(name: face.name)
+            CardPlaceholderView(name: face.name, cornerRadius: cornerRadius)
         }
     }
 }
 
-private struct CardPlaceholderView: View {
-    let name: String
+struct CardPlaceholderView: View {
+    let name: String?
+    let cornerRadius: CGFloat
+    let withSpinner: Bool
+    
+    init(name: String?, cornerRadius: CGFloat, withSpinner: Bool = false) {
+        self.name = name
+        self.cornerRadius = cornerRadius
+        self.withSpinner = withSpinner
+    }
     
     var body: some View {
-        RoundedRectangle(cornerRadius: 12)
-            .fill(Color.gray.opacity(0.2))
-            .aspectRatio(0.7, contentMode: .fit)
-            .overlay(
-                VStack(spacing: 16) {
-                    Image(systemName: "photo")
-                        .font(.system(size: 60))
-                        .foregroundStyle(.secondary)
-                    
-                    Text(name)
-                        .font(.title3)
-                        .foregroundStyle(.primary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal)
-                }
-                .padding()
-            )
+        ZStack {
+            RoundedRectangle(cornerRadius: cornerRadius)
+                .fill(Color.gray.opacity(0.2))
+                .aspectRatio(Card.aspectRatio, contentMode: .fit)
+                .overlay(
+                    VStack(spacing: 16) {
+                        Image(systemName: "photo")
+                            .font(.system(size: 60))
+                            .foregroundStyle(.secondary)
+                        
+                        if let name {
+                            Text(name)
+                                .font(.title3)
+                                .foregroundStyle(.primary)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal)
+                        }
+                    }
+                    .padding()
+                )
+            
+            if withSpinner {
+                ProgressView()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .aspectRatio(Card.aspectRatio, contentMode: .fit)
+                    .background(Color(.systemGray6).opacity(0.4))
+                    .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+            }
+        }
     }
 }
 
@@ -182,8 +198,8 @@ private struct FlippableCardFaceView: View {
                 CardFaceView(
                     face: frontFace,
                     quality: quality,
+                    cornerRadius: cornerRadius,
                 )
-                .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
                 .opacity(isShowingBackFace ? 0 : 1)
                 .rotation3DEffect(
                     .degrees(isShowingBackFace ? 180 : 0),
@@ -193,8 +209,8 @@ private struct FlippableCardFaceView: View {
                 CardFaceView(
                     face: backFace,
                     quality: quality,
+                    cornerRadius: cornerRadius,
                 )
-                .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
                 .opacity(isShowingBackFace ? 1 : 0)
                 .rotation3DEffect(
                     .degrees(isShowingBackFace ? 0 : -180),

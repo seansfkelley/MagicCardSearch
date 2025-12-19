@@ -29,17 +29,15 @@ struct HomeView: View {
                         
                         Spacer()
                         
-                        Button {
+                        Button(action: {
                             onSearchSelected([
                                 .basic(.keyValue("date", .greaterThanOrEqual, "today")),
                                 .basic(.keyValue("order", .including, SortMode.spoiled.rawValue)),
                                 .basic(.keyValue("dir", .including, SortDirection.desc.rawValue)),
                                 .basic(.keyValue("unique", .including, UniqueMode.prints.rawValue)),
                             ])
-                        } label: {
+                        }) {
                             Text("View All")
-                                .font(.subheadline)
-                                .foregroundColor(.accentColor)
                         }
                     }
                     .padding(.horizontal)
@@ -49,9 +47,8 @@ struct HomeView: View {
                             switch featuredState.results {
                             case .loading(nil, _), .unloaded:
                                 ForEach(0..<15, id: \.self) { _ in
-                                    ProgressView()
-                                        .aspectRatio(Card.aspectRatio, contentMode: .fit)
-                                        .frame(width: featuredWidth)
+                                    CardPlaceholderView(name: nil, cornerRadius: 8, withSpinner: true)
+                                        .frame(width: featuredWidth, height: featuredWidth / Card.aspectRatio)
                                 }
                             case .loading(let results?, _), .loaded(let results, _), .errored(let results?, _):
                                 ForEach(Array(results.cards.enumerated()), id: \.element.id) { index, card in
@@ -79,8 +76,7 @@ struct HomeView: View {
                                 
                                 if case .loading = featuredState.results, results.nextPageUrl != nil {
                                     ProgressView()
-                                        .aspectRatio(Card.aspectRatio, contentMode: .fit)
-                                        .frame(width: featuredWidth)
+                                        .frame(width: featuredWidth, height: featuredWidth / Card.aspectRatio)
                                 }
                             case .errored(nil, _):
                                 EmptyView()
