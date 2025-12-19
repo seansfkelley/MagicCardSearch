@@ -91,8 +91,8 @@ struct HomeView: View {
                             .bold()
                             .padding(.horizontal)
                         
-                        List {
-                            ForEach(Array(searchHistoryTracker.completeSearchEntries.prefix(10).enumerated()), id: \.element.lastUsedDate) { _, entry in
+                        VStack(spacing: 0) {
+                            ForEach(Array(searchHistoryTracker.completeSearchEntries.prefix(10).enumerated()), id: \.element.lastUsedDate) { index, entry in
                                 Button {
                                     onSearchSelected(entry.filters)
                                 } label: {
@@ -103,7 +103,12 @@ struct HomeView: View {
                                             .lineLimit(2)
                                         Spacer()
                                     }
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .padding(.vertical, 12)
+                                    .padding(.horizontal)
+                                    .contentShape(Rectangle())
                                 }
+                                .buttonStyle(.plain)
                                 .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                                     Button(role: .destructive) {
                                         searchHistoryTracker.delete(filters: entry.filters)
@@ -111,12 +116,14 @@ struct HomeView: View {
                                         Label("Delete", systemImage: "trash")
                                     }
                                 }
-                                .listRowSeparator(.visible)
+                                
+                                if index < min(searchHistoryTracker.completeSearchEntries.count, 10) {
+                                    Divider()
+                                        .padding(.leading)
+                                }
                             }
                         }
-                        .listStyle(.plain)
-                        .frame(height: CGFloat(min(10, searchHistoryTracker.completeSearchEntries.count)) * 70)
-                        .scrollDisabled(true)
+                        .background(Color(uiColor: .systemBackground))
                     }
                 } else {
                     VStack(alignment: .leading, spacing: 12) {
@@ -151,7 +158,6 @@ struct HomeView: View {
                             }
                         }
                         .background(Color(uiColor: .systemBackground))
-                        .clipShape(RoundedRectangle(cornerRadius: 10))
                     }
                 }
             }

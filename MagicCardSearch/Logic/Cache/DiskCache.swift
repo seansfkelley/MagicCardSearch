@@ -162,11 +162,24 @@ final class DiskCache<Key: Hashable & Sendable, Value: Codable & Sendable>: Cach
     
     private func read(from fileURL: URL) -> (value: Value, expirationDate: Date?, nonce: String?)? {
         return queue.sync {
-            guard let data = try? Data(contentsOf: fileURL),
-                  let wrapper = try? JSONDecoder().decode(CacheEntryWrapper<Value>.self, from: data) else {
+            guard let data = try? Data(contentsOf: fileURL) else {
+                logger.debug("Failed to read data from file", metadata: ["fileURL": "\(fileURL.path)"])
                 return nil
             }
-            return (wrapper.value, wrapper.expirationDate, wrapper.nonce)
+            
+            do {
+                let wrapper = try JSONDecoder().decode(CacheEntryWrapper<Value>.self, from: data)
+                return (wrapper.value, wrapper.expirationDate, wrapper.nonce)
+            } catch {
+                logger.warning("Failed to decode cache entry, removing corrupted file", metadata: [
+                    "fileURL": "\(fileURL.path)",
+                    "dataSize": "\(data.count)",
+                    "error": "\(type(of: error))",  // Use type(of:) to avoid logging potentially corrupt data
+                ])
+                // Remove the corrupted file
+                try? self.fileManager.removeItem(at: fileURL)
+                return nil
+            }
         }
     }
     

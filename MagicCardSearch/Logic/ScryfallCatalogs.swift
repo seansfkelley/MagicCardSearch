@@ -186,6 +186,7 @@ final class ScryfallCatalogs {
 
     // MARK: - Private Methods
 
+    // swiftlint:disable:next function_body_length
     private func prefetchSymbolSvgs(from symbols: [SymbolCode: Card.Symbol]) async {
         logger.info("Prefetching \(symbols.count) symbol SVGs...")
 
@@ -210,7 +211,30 @@ final class ScryfallCatalogs {
                                         "symbolCode": "\(symbolCode)",
                                         "svgUri": "\(svgUri)",
                                     ])
-                                    let (data, _) = try await URLSession.shared.data(from: url)
+                                    let (data, response) = try await URLSession.shared.data(from: url)
+                                    
+                                    // Validate the response and data
+                                    guard let httpResponse = response as? HTTPURLResponse,
+                                          (200...299).contains(httpResponse.statusCode),
+                                          !data.isEmpty else {
+                                        logger.error("Invalid SVG response", metadata: [
+                                            "symbolCode": "\(symbolCode)",
+                                            "svgUri": "\(svgUri)",
+                                            "dataSize": "\(data.count)",
+                                        ])
+                                        throw ScryfallMetadataError.errorLoadingData(nil)
+                                    }
+                                    
+                                    // Verify it's actually valid UTF-8 (SVG files should be)
+                                    if String(data: data, encoding: .utf8) == nil {
+                                        logger.error("SVG data is not valid UTF-8", metadata: [
+                                            "symbolCode": "\(symbolCode)",
+                                            "svgUri": "\(svgUri)",
+                                            "dataSize": "\(data.count)",
+                                        ])
+                                        throw ScryfallMetadataError.errorLoadingData(nil)
+                                    }
+                                    
                                     return data
                                 } else {
                                     throw ScryfallMetadataError.errorLoadingData(nil)
