@@ -4,6 +4,7 @@
 //
 //  Created by Sean Kelley on 2025-12-11.
 //
+import Foundation
 import ScryfallKit
 import Logging
 
@@ -129,33 +130,36 @@ struct EnumerationSuggestionProvider {
             ]
             .reduce([], (+))
             .map { $0.lowercased() }
-            .sorted()
+            .sorted(using: enumerationValueSortComparators)
             
         case .set:
             return catalogs
                 .sets
                 .values
                 .flatMap { [$0.code, $0.name] }
-                .map { $0.lowercased().replacing(/[^a-z0-9]/, with: "") }
-                .sorted()
+                .map { $0.lowercased().replacing(/[^a-z0-9 ]/, with: "") }
+                .sorted(using: enumerationValueSortComparators)
             
         case .block:
             return catalogs
                 .sets
                 .values
-                .compactMap { $0.block?.lowercased().replacing(/[^a-z0-9]/, with: "") }
-                .sorted()
+                .compactMap { $0.block?.lowercased().replacing(/[^a-z0-9 ]/, with: "") }
+                .sorted(using: enumerationValueSortComparators)
             
         case .keyword:
             return Self.getCatalogData(.keywordAbilities)
+                .map { $0.lowercased() }
+                .sorted(using: enumerationValueSortComparators)
             
         case .watermark:
             return Self.getCatalogData(.watermarks)
+                .map { $0.lowercased() }
+                .sorted(using: enumerationValueSortComparators)
         }
     }
     
     private static func getCatalogData(_ catalogType: Catalog.`Type`) -> [String] {
-        // TODO: A bit gross here.
-        return (ScryfallCatalogs.shared.catalog(catalogType) ?? []).map { $0.lowercased() }.sorted()
+        Array(ScryfallCatalogs.shared.catalog(catalogType) ?? [])
     }
 }

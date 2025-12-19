@@ -9,6 +9,11 @@ import Foundation
 
 // MARK: - Scryfall Filter Type
 
+let enumerationValueSortComparators: [KeyPathComparator<String>] = [
+    .init(\.count),
+    .init(\.self),
+]
+
 struct ScryfallFilterType {
     enum ComparisonKinds {
         case all, equality
@@ -27,7 +32,7 @@ struct ScryfallFilterType {
     ) {
         self.canonicalName = name
         self.aliases = aliases
-        self.enumerationValues = enumerationValues?.sorted()
+        self.enumerationValues = enumerationValues?.sorted(using: enumerationValueSortComparators)
         self.comparisonKinds = comparisonKinds
     }
     
