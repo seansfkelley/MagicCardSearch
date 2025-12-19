@@ -58,6 +58,9 @@ struct HomeView: View {
                                     Button {
                                         onSearchSelected([
                                             .basic(.keyValue("date", .greaterThanOrEqual, "today")),
+                                            .basic(.keyValue("order", .including, SortMode.spoiled.rawValue)),
+                                            .basic(.keyValue("dir", .including, SortDirection.desc.rawValue)),
+                                            .basic(.keyValue("unique", .including, UniqueMode.prints.rawValue)),
                                         ])
                                     } label: {
                                         RoundedRectangle(cornerRadius: 12)
@@ -125,40 +128,39 @@ struct HomeView: View {
                         }
                         .background(Color(uiColor: .systemBackground))
                     }
-                } else {
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("Example Searches")
-                            .font(.title2)
-                            .bold()
-                            .padding(.horizontal)
-                        
-                        VStack(spacing: 0) {
-                            ForEach(Array(ExampleSearch.examples.enumerated()), id: \.element.title) { index, example in
-                                Button {
-                                    onSearchSelected(example.filters)
-                                } label: {
-                                    VStack(alignment: .leading, spacing: 4) {
-                                        Text(example.title)
-                                            .font(.body.weight(.semibold))
-                                            .foregroundStyle(.primary)
-                                        Text(example.filters.map { $0.queryStringWithEditingRange.0 }.joined(separator: " "))
-                                            .font(.caption)
-                                            .foregroundStyle(.secondary)
-                                    }
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .padding(.vertical, 12)
-                                    .padding(.horizontal)
+                }
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Need Inspiration?")
+                        .font(.title2)
+                        .bold()
+                        .padding(.horizontal)
+                    
+                    VStack(spacing: 0) {
+                        ForEach(Array(ExampleSearch.dailyExamples.enumerated()), id: \.element.title) { index, example in
+                            Button {
+                                onSearchSelected(example.filters)
+                            } label: {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(example.title)
+                                        .font(.body.weight(.semibold))
+                                        .foregroundStyle(.primary)
+                                    Text(example.filters.map { $0.queryStringWithEditingRange.0 }.joined(separator: " "))
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
                                 }
-                                .buttonStyle(.plain)
-                                
-                                if index < ExampleSearch.examples.count - 1 {
-                                    Divider()
-                                        .padding(.leading)
-                                }
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.vertical, 12)
+                                .padding(.horizontal)
+                            }
+                            .buttonStyle(.plain)
+                            
+                            if index < ExampleSearch.dailyExamples.count - 1 {
+                                Divider()
+                                    .padding(.leading)
                             }
                         }
-                        .background(Color(uiColor: .systemBackground))
                     }
+                    .background(Color(uiColor: .systemBackground))
                 }
             }
             .padding(.vertical)
@@ -227,19 +229,25 @@ struct ExampleSearch {
     let title: String
     let filters: [SearchFilter]
     
-    static let examples: [ExampleSearch] = [
-        ExampleSearch(title: "All Modern-Legal U/R Pingers", filters: [
+    private static let small: [ExampleSearch] = [
+        .init(title: "All Modern-Legal U/R Pingers", filters: [
             .basic(.keyValue("color", .lessThanOrEqual, "ur")),
             .basic(.keyValue("function", .including, "pinger")),
             .basic(.keyValue("format", .including, "modern")),
         ]),
-        ExampleSearch(title: "Most Expensive 1-Drops in Standard", filters: [
+    ]
+    
+    private static let medium: [ExampleSearch] = [
+        .init(title: "Most Expensive 1-Drops in Standard", filters: [
             .basic(.keyValue("manavalue", .equal, "1")),
             .basic(.keyValue("format", .including, "standard")),
             .basic(.keyValue("order", .including, "usd")),
             .basic(.keyValue("dir", .including, "desc")),
         ]),
-        ExampleSearch(title: "Best Orzhov Commanders", filters: [
+    ]
+    
+    private static let large: [ExampleSearch] = [
+        .init(title: "Best Orzhov Commanders", filters: [
             .basic(.keyValue("id", .equal, "orzhov")),
             .basic(.keyValue("type", .including, "legendary")),
             .basic(.keyValue("type", .including, "creature")),
@@ -248,4 +256,20 @@ struct ExampleSearch {
             .basic(.keyValue("dir", .including, "desc")),
         ]),
     ]
+    
+    private static func dailySeed() -> Int {
+        let components = Calendar.current.dateComponents([.year, .month, .day], from: Date())
+        return (components.year ?? 0) * 10000 + (components.month ?? 0) * 100 + (components.day ?? 0)
+    }
+    
+    static var dailyExamples: [ExampleSearch] {
+        let seed = dailySeed()
+        // Swift doesn't have seedable RNGs in the standard library, so just bang together a one-off
+        // calculation for our purposes.
+        return [
+            small[seed.hashValue % small.count],
+            medium[(seed * 31).hashValue % medium.count],
+            large[(seed * 97).hashValue % large.count],
+        ]
+    }
 }
