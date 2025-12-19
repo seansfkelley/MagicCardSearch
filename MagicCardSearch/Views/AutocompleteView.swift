@@ -96,7 +96,7 @@ struct AutocompleteView: View {
                         .listRowInsets(.vertical, 0)
 
                 case .enumeration(let suggestion):
-                    enumerationRows(suggestion)
+                    enumerationRow(suggestion)
                         .listRowInsets(.vertical, 0)
                 
                 case .name(let suggestion):
@@ -181,7 +181,7 @@ struct AutocompleteView: View {
         }
     }
     
-    private func enumerationRows(_ suggestion: EnumerationSuggestion) -> some View {
+    private func enumerationRow(_ suggestion: EnumerationSuggestion) -> some View {
         Button {
             onSuggestionTap(.filter(suggestion.filter))
         } label: {
@@ -316,7 +316,7 @@ extension Comparison: PillSelectorOption {
 
 // MARK: - Highlighted Text View
 
-struct HighlightedText: View {
+private struct HighlightedText: View {
     let text: String
     let highlightRange: Range<String.Index>?
 
@@ -324,9 +324,13 @@ struct HighlightedText: View {
         if let range = highlightRange {
             Text(buildAttributedString(text: text, highlightRange: range))
                 .foregroundStyle(.primary)
+                .lineLimit(1)
+                .truncationMode(.tail)
         } else {
             Text(text)
                 .foregroundStyle(.primary)
+                .lineLimit(1)
+                .truncationMode(.tail)
         }
     }
 

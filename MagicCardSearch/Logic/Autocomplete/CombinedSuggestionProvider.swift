@@ -71,7 +71,7 @@ class CombinedSuggestionProvider {
             let enumerationSuggestions = self.enumerationProvider.getSuggestions(
                 for: searchTerm,
                 excluding: excludedFilters,
-                limit: 20
+                limit: 40
             )
             allSuggestions.append(contentsOf: enumerationSuggestions.map { Suggestion.enumeration($0) })
             

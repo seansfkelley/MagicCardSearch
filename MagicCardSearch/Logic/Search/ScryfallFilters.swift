@@ -16,7 +16,7 @@ struct ScryfallFilterType {
     
     let canonicalName: String
     let aliases: Set<String>
-    let enumerationValues: Set<String>?
+    let enumerationValues: [String]?
     let comparisonKinds: ComparisonKinds
     
     init(
@@ -27,7 +27,7 @@ struct ScryfallFilterType {
     ) {
         self.canonicalName = name
         self.aliases = aliases
-        self.enumerationValues = enumerationValues.map(Set.init)
+        self.enumerationValues = enumerationValues?.sorted()
         self.comparisonKinds = comparisonKinds
     }
     

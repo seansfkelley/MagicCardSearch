@@ -24,7 +24,7 @@ private let logger = Logger(label: "EnumerationSuggestionProvider")
 
 @MainActor
 struct EnumerationSuggestionProvider {
-    private static let shared = MemoryCache<CacheKey, Set<String>>(expiration: .never)
+    private static let shared = MemoryCache<CacheKey, [String]>(expiration: .never)
     
     func getSuggestions(for searchTerm: String, excluding excludedFilters: Set<SearchFilter>, limit: Int) -> [EnumerationSuggestion] {
         guard limit > 0 else {
@@ -43,7 +43,7 @@ struct EnumerationSuggestionProvider {
             return []
         }
         
-        let options: Set<String>
+        let options: [String]
         if let cacheKey = Self.cacheKey(for: filterType.canonicalName) {
             options = Self.getOptionsFromCache(for: cacheKey)
         } else if let staticOptions = filterType.enumerationValues {
@@ -102,7 +102,7 @@ struct EnumerationSuggestionProvider {
         }
     }
     
-    private static func getOptionsFromCache(for key: CacheKey) -> Set<String> {
+    private static func getOptionsFromCache(for key: CacheKey) -> [String] {
         if let options = shared[key] {
             return options
         } else {
@@ -111,7 +111,7 @@ struct EnumerationSuggestionProvider {
         }
     }
     
-    private static func fetchOptions(for key: CacheKey) -> Set<String> {
+    private static func fetchOptions(for key: CacheKey) -> [String] {
         let catalogs = ScryfallCatalogs.shared
         
         switch key {
@@ -126,13 +126,25 @@ struct EnumerationSuggestionProvider {
                 Self.getCatalogData(.landTypes),
                 Self.getCatalogData(.planeswalkerTypes),
                 Self.getCatalogData(.spellTypes),
-            ].reduce(into: Set<String>()) { $0.formUnion($1) }
+            ]
+            .reduce([], (+))
+            .map { $0.lowercased() }
+            .sorted()
             
         case .set:
-            return Set(catalogs.sets.values.flatMap { [$0.code, $0.name] }.map { $0.lowercased() }.sorted())
+            return catalogs
+                .sets
+                .values
+                .flatMap { [$0.code, $0.name] }
+                .map { $0.lowercased().replacing(/[^a-z0-9]/, with: "") }
+                .sorted()
             
         case .block:
-            return Set(catalogs.sets.values.compactMap { $0.block?.lowercased() }.sorted())
+            return catalogs
+                .sets
+                .values
+                .compactMap { $0.block?.lowercased().replacing(/[^a-z0-9]/, with: "") }
+                .sorted()
             
         case .keyword:
             return Self.getCatalogData(.keywordAbilities)
@@ -142,10 +154,8 @@ struct EnumerationSuggestionProvider {
         }
     }
     
-    private static func getCatalogData(_ catalogType: Catalog.`Type`) -> Set<String> {
+    private static func getCatalogData(_ catalogType: Catalog.`Type`) -> [String] {
         // TODO: A bit gross here.
-        return Set(
-            (ScryfallCatalogs.shared.catalog(catalogType) ?? []).map { $0.lowercased() }.sorted(),
-        )
+        return (ScryfallCatalogs.shared.catalog(catalogType) ?? []).map { $0.lowercased() }.sorted()
     }
 }
