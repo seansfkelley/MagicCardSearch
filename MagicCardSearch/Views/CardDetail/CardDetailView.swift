@@ -39,7 +39,23 @@ struct CardDetailView: View {
                         .filter { !$0.isEmpty }
                         .uniqued()
                     
-                    ForEach(Array(uniqueFaces.enumerated()), id: \.element.name) { index, face in
+                    // illustrationId is a weird choice, but this was breaking with very mysterious
+                    // logging on art cards that are the same card on both sides but with different
+                    // art. This should work more or less in the general case too, since WotC doesn't
+                    // generally use the same art on both sides -- but maybe that could happen in
+                    // the case that just the frame is different?
+                    //
+                    // The error itself seemed to be SwiftUI warning about non-uniqueness, but
+                    // something was causing it to be a horribly mangled failed string decode error
+                    // instead:
+                    //
+                    // <decode: bad range for [%{public}s] got [offs:382 len:1304 within:0]>
+                    //
+                    // I saw the real error once, when I deleted enough subviews that it didn't hit
+                    // whatever error condition caused the above, which is how I discovered this.
+                    //
+                    // FIXME: Come up with an actually unique ID.
+                    ForEach(Array(uniqueFaces.enumerated()), id: \.element.illustrationId) { index, face in
                         cardFaceDetailsView(face: face, showArtist: false)
                         
                         if index < uniqueFaces.count - 1 {
