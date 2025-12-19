@@ -40,6 +40,7 @@ class CombinedSuggestionProvider {
         self.nameProvider = name
     }
 
+    // swiftlint:disable:next function_body_length
     func getSuggestions(for searchTerm: String, existingFilters: Set<SearchFilter>) -> AsyncStream<[Suggestion]> {
         let currentTaskId = loadingState.start()
         
@@ -83,10 +84,14 @@ class CombinedSuggestionProvider {
             }
                 
             Task {
+                let looksLikeAFilter = try /^-?[a-zA-Z]+(:|=|!=|>=|>|<=|<)/.prefixMatch(
+                    in: searchTerm.trimmingCharacters(in: .whitespaces)
+                ) != nil
+                
                 let nameSuggestions = await self.nameProvider.getSuggestions(
                     for: searchTerm,
                     limit: 10,
-                    permitBareSearchTerm: allSuggestions.isEmpty,
+                    permitBareSearchTerm: !looksLikeAFilter,
                 )
                 
                 guard loadingState.isStillCurrent(id: currentTaskId), !Task.isCancelled else {
