@@ -77,7 +77,6 @@ struct SearchBarView: View {
                 .popover(isPresented: $showSymbolPicker, arrowEdge: .bottom) {
                     SymbolPickerView { symbol in
                         insertSymbol(symbol)
-                        showSymbolPicker = false
                     }
                     .presentationCompactAdaptation(.popover)
                 }
@@ -146,35 +145,40 @@ struct SymbolPickerView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             SymbolGroupRow(
-                symbols: [SymbolCode("{T}"), SymbolCode("{Q}"), SymbolCode("{S}"), SymbolCode("{E}")],
+                symbols: ["{T}", "{Q}", "{S}", "{E}", "{P}"].map(SymbolCode.init),
                 onSymbolTapped: onSymbolSelected
             )
-
             SymbolGroupRow(
-                symbols: [SymbolCode("{W}"), SymbolCode("{U}"), SymbolCode("{B}"), SymbolCode("{R}"), SymbolCode("{G}"), SymbolCode("{C}")],
+                symbols: ["{W}", "{U}", "{B}", "{R}", "{G}", "{C}"].map(SymbolCode.init),
                 onSymbolTapped: onSymbolSelected
             )
-
             SymbolGroupRow(
-                symbols: [SymbolCode("{X}"), SymbolCode("{1}"), SymbolCode("{2}"), SymbolCode("{3}"), SymbolCode("{4}"), SymbolCode("{5}"), SymbolCode("{6}"), SymbolCode("{7}"), SymbolCode("{8}"), SymbolCode("{9}")],
+                symbols: ["{X}", "{1}", "{2}", "{3}", "{4}", "{5}", "{6}", "{7}", "{8}", "{9}"].map(SymbolCode.init),
                 onSymbolTapped: onSymbolSelected
             )
-
             SymbolGroupRow(
                 symbols: [
-                    SymbolCode("{W/U}"), SymbolCode("{W/B}"), SymbolCode("{U/B}"), SymbolCode("{U/R}"), SymbolCode("{B/R}"),
-                    SymbolCode("{B/G}"), SymbolCode("{R/W}"), SymbolCode("{R/G}"), SymbolCode("{G/W}"), SymbolCode("{G/U}"),
-                ],
+                    "{W/U}", "{W/B}", "{U/B}", "{U/R}", "{B/R}",
+                    "{B/G}", "{R/W}", "{R/G}", "{G/W}", "{G/U}",
+                ].map(SymbolCode.init),
                 onSymbolTapped: onSymbolSelected
             )
-
             SymbolGroupRow(
-                symbols: [SymbolCode("{2/W}"), SymbolCode("{2/U}"), SymbolCode("{2/B}"), SymbolCode("{2/R}"), SymbolCode("{2/G}") ],
+                symbols: [
+                    "{2/W}", "{2/U}", "{2/B}", "{2/R}", "{2/G}",
+                    "{C/W}", "{C/U}", "{C/B}", "{C/R}", "{C/G}",
+                ].map(SymbolCode.init),
                 onSymbolTapped: onSymbolSelected
             )
-
             SymbolGroupRow(
-                symbols: [SymbolCode("{W/P}"), SymbolCode("{U/P}"), SymbolCode("{B/P}"), SymbolCode("{R/P}"), SymbolCode("{G/P}") ],
+                symbols: ["{W/P}", "{U/P}", "{B/P}", "{R/P}", "{G/P}"].map(SymbolCode.init),
+                onSymbolTapped: onSymbolSelected
+            )
+            SymbolGroupRow(
+                symbols: [
+                    "{W/U/P}", "{W/B/P}", "{U/B/P}", "{U/R/P}", "{B/R/P}",
+                    "{B/G/P}", "{R/W/P}", "{R/G/P}", "{G/W/P}", "{G/U/P}",
+                ].map(SymbolCode.init),
                 onSymbolTapped: onSymbolSelected
             )
         }
