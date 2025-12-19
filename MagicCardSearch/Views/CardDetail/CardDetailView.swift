@@ -34,16 +34,13 @@ struct CardDetailView: View {
                 .padding(.bottom, 24)
                 
                 if let faces = card.cardFaces {
-                    // If the faces don't have oracle IDs, this is a two-faced card with the same
-                    // card on both sides, either as a promotional art print or a more serious
-                    // printing with alt-arts on both sides. In either case, the details are
-                    // duplicative, so we only want to pick one of each.
-                    let uniqueFaces = faces.uniqued { $0.oracleId ?? "nonunique" }
+                    // Some double-faced cards are just alternate arts on both sides!i
+                    let uniqueFaces = faces.uniqued(by: \.name)
                     let allArtists = faces.compactMap(\.artist)
                         .filter { !$0.isEmpty }
                         .uniqued()
                     
-                    ForEach(Array(uniqueFaces.enumerated()), id: \.element.oracleId) { index, face in
+                    ForEach(Array(uniqueFaces.enumerated()), id: \.element.name) { index, face in
                         cardFaceDetailsView(face: face, showArtist: false)
                         
                         if index < uniqueFaces.count - 1 {
