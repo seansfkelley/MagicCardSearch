@@ -45,19 +45,22 @@ class CombinedSuggestionProvider {
         
         return AsyncStream<[Suggestion]> { continuation in
             var allSuggestions: [Suggestion] = []
+            var excludedFilters = Set(existingFilters)
             
             let pinnedSuggestions = self.pinnedFilterProvider.getSuggestions(
                 for: searchTerm,
-                excluding: existingFilters,
+                excluding: excludedFilters,
             )
             allSuggestions.append(contentsOf: pinnedSuggestions.map { Suggestion.pinned($0) })
+            excludedFilters.formUnion(pinnedSuggestions.map { $0.filter })
             
             let historySuggestions = self.historyProvider.getSuggestions(
                 for: searchTerm,
-                excluding: Set(pinnedSuggestions.map { $0.filter }).union(existingFilters),
-                limit: 10
+                excluding: excludedFilters,
+                limit: 20
             )
             allSuggestions.append(contentsOf: historySuggestions.map { Suggestion.history($0) })
+            excludedFilters.formUnion(historySuggestions.map { $0.filter })
             
             let filterSuggestions = self.filterTypeProvider.getSuggestions(
                 for: searchTerm,
@@ -67,7 +70,8 @@ class CombinedSuggestionProvider {
             
             let enumerationSuggestions = self.enumerationProvider.getSuggestions(
                 for: searchTerm,
-                limit: 1
+                excluding: excludedFilters,
+                limit: 20
             )
             allSuggestions.append(contentsOf: enumerationSuggestions.map { Suggestion.enumeration($0) })
             

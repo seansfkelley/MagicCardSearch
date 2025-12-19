@@ -149,7 +149,6 @@ struct AutocompleteView: View {
     }
 
     private func historyRow(_ suggestion: HistorySuggestion) -> some View {
-        let filterString = suggestion.filter.queryStringWithEditingRange.0
         return Button {
             onSuggestionTap(.filter(suggestion.filter))
         } label: {
@@ -157,7 +156,7 @@ struct AutocompleteView: View {
                 Image(systemName: "clock.arrow.circlepath")
                     .foregroundStyle(.secondary)
                 HighlightedText(
-                    text: filterString,
+                    text: suggestion.filter.queryStringWithEditingRange.0,
                     highlightRange: suggestion.matchRange
                 )
                 Spacer(minLength: 0)
@@ -183,32 +182,23 @@ struct AutocompleteView: View {
     }
     
     private func enumerationRows(_ suggestion: EnumerationSuggestion) -> some View {
-        ForEach(suggestion.options, id: \.value) { option in
-            let filterContent = SearchFilterContent.keyValue(suggestion.filterType, suggestion.comparison, option.value)
-            let filter: SearchFilter = suggestion.isNegated ? .negated(filterContent) : .basic(filterContent)
-            
-            Button {
-                onSuggestionTap(.filter(filter))
-            } label: {
-                HStack(spacing: 12) {
-                    Image(systemName: "list.bullet.circle")
-                        .foregroundStyle(.secondary)
-                    
-                    let prefix = "\(suggestion.isNegated ? "-" : "")\(suggestion.filterType)\(suggestion.comparison.rawValue)"
-                    let formattedOption = "\(prefix)\(option.value)"
-                    
-                    HighlightedText(
-                        text: formattedOption,
-                        highlightRange: option.range.map { $0.offset(with: formattedOption, by: prefix.count) },
-                    )
-                    Spacer(minLength: 0)
-                }
-                .contentShape(Rectangle())
+        Button {
+            onSuggestionTap(.filter(suggestion.filter))
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "list.bullet.circle")
+                    .foregroundStyle(.secondary)
+                HighlightedText(
+                    text: suggestion.filter.queryStringWithEditingRange.0,
+                    highlightRange: suggestion.matchRange,
+                )
+                Spacer(minLength: 0)
             }
-            .buttonStyle(.plain)
-            .swipeActions(edge: .leading, allowsFullSwipe: true) {
-                pinSwipeAction(for: filter)
-            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .swipeActions(edge: .leading, allowsFullSwipe: true) {
+            pinSwipeAction(for: suggestion.filter)
         }
     }
     
@@ -246,10 +236,6 @@ private protocol PillSelectorOption {
     var value: Value { get }
     var label: String { get }
     var range: Range<String.Index>? { get }
-}
-
-extension EnumerationSuggestion.Option: PillSelectorOption {
-    var label: String { value }
 }
 
 private struct HorizontallyScrollablePillSelector<T: PillSelectorOption>: View {

@@ -5,17 +5,11 @@
 //  Created by Sean Kelley on 2025-12-11.
 //
 import ScryfallKit
+import Logging
 
 struct EnumerationSuggestion: Equatable {
-    struct Option: Equatable {
-        let value: String
-        let range: Range<String.Index>?
-    }
-    
-    let isNegated: Bool
-    let filterType: String
-    let comparison: Comparison
-    let options: [Option]
+    let filter: SearchFilter
+    let matchRange: Range<String.Index>?
 }
 
 private enum CacheKey: Hashable {
@@ -26,11 +20,13 @@ private enum CacheKey: Hashable {
     case watermark
 }
 
+private let logger = Logger(label: "EnumerationSuggestionProvider")
+
 @MainActor
 struct EnumerationSuggestionProvider {
     private static let shared = MemoryCache<CacheKey, Set<String>>(expiration: .never)
     
-    func getSuggestions(for searchTerm: String, limit: Int) -> [EnumerationSuggestion] {
+    func getSuggestions(for searchTerm: String, excluding excludedFilters: Set<SearchFilter>, limit: Int) -> [EnumerationSuggestion] {
         guard limit > 0 else {
             return []
         }
@@ -55,41 +51,42 @@ struct EnumerationSuggestionProvider {
         } else {
             return []
         }
-
-        // TODO: Change this method to return multiple objects instead of one with a list of
-        // options, and then respect the limit. Also, the limit should be higher than it is.
-        var matchingOptions: [EnumerationSuggestion.Option] = []
-
-        if value.isEmpty {
-            // TODO: Should guarantee that options are sorted already for this case.
-            matchingOptions = options.sorted().map { .init(value: $0, range: nil) }
-        } else {
-            var matches: [(option: String, range: Range<String.Index>)] = []
-
-            for option in options {
-                if let range = option.range(of: value, options: .caseInsensitive) {
-                    matches.append((option, range))
-                }
-            }
-
-            matches.sort { $0.option.count < $1.option.count }
-            matchingOptions = matches.map { .init(value: $0.option, range: $0.range) }
-        }
-
-        if !matchingOptions.isEmpty {
-            let comparison = Comparison(rawValue: String(comparisonOperator))
-            assert(comparison != nil) // if it is, programmer error on the regex or enumeration type
-            return [
-                EnumerationSuggestion(
-                    isNegated: negated.isEmpty == false,
-                    filterType: filterTypeName.lowercased(),
-                    comparison: comparison!,
-                    options: matchingOptions,
-                ),
-            ]
-        } else {
+        
+        let comparison = Comparison(rawValue: String(comparisonOperator))
+        guard let comparison else {
+            // If this fires, there's an error in the regex or something, but not a user error.
+            logger.warning("comparison was unexpectedly nil")
             return []
         }
+        
+        let trimmedSearchTerm = searchTerm.trimmingCharacters(in: .whitespaces)
+        
+        return Array(options
+            // TODO: Enumeration options should be sorted elsewhere, once.
+            .sorted()
+            .lazy
+            .map { option in
+                if negated.isEmpty {
+                    SearchFilter.basic(.keyValue(filterTypeName.lowercased(), comparison, option))
+                } else {
+                    SearchFilter.negated(.keyValue(filterTypeName.lowercased(), comparison, option))
+                }
+            }
+            .filter { !excludedFilters.contains($0) }
+            .compactMap { filter in
+                if trimmedSearchTerm.isEmpty {
+                    return EnumerationSuggestion(filter: filter, matchRange: nil)
+                }
+                
+                let filterString = filter.queryStringWithEditingRange.0
+                if let range = filterString.range(of: trimmedSearchTerm, options: .caseInsensitive) {
+                    return EnumerationSuggestion(filter: filter, matchRange: range)
+                }
+                
+                return nil
+            }
+            .prefix(limit)
+        )
     }
     
     // MARK: - Cache Management
