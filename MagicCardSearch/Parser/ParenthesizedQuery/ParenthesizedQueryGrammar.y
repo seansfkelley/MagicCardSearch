@@ -1,32 +1,41 @@
-%class_name SearchFilterParser
+%class_name ParenthesizedQueryParser
 
-%token_type SearchFilterGrammarToken
+%token_type ParenthesizedQueryTokenContent
 
-%nonterminal_type filter SearchFilter
-filter ::= filter_content(f). { .basic(f) }
-filter ::= Minus filter_content(f). { .negated(f) }
+%nonterminal_type query ParenthesizedQuery
+query ::= disjunction(d). { d }
 
-%nonterminal_type filter_content SearchFilterContent
-filter_content ::= Parenthesized(p). { .parenthesized(p) }
-filter_content ::= Alphanumeric(k) comparison(c) QuotedLiteral(v). { .keyValue(k, c, v) }
-filter_content ::= Alphanumeric(k) comparison(c) Regex(v). { .regex(k, c, v) }
-filter_content ::= Alphanumeric(k) comparison(c) bare(v). { .keyValue(k, c, v) }
-filter_content ::= Bang QuotedLiteral(v). { .name(v, true) }
-filter_content ::= QuotedLiteral(v). { .name(v, false) }
-filter_content ::= Bang bare(v). { .name(v, true) }
-filter_content ::= bare(v). { .name(v, false) }
+%nonterminal_type disjunction ParenthesizedQuery
+disjunction ::= conjunction(c). { c }
+disjunction ::= disjunction(d) Whitespace Or Whitespace conjunction(c). {
+    .init(filters: d.filters + c.filters, range: d.range.lowerBound..<c.range.upperBound)
+}
 
-%nonterminal_type bare String
-bare ::= Alphanumeric(a) Minus(m) bare(bs). { "\(a)\(m)\(bs)" }
-bare ::= Alphanumeric(a) Bang(b) bare(bs). { "\(a)\(b)\(bs)" }
-bare ::= Alphanumeric(a) SingleNonPairing(s) bare(bs). { "\(a)\(s)\(bs)" }
-bare ::= Alphanumeric(a) UnclosedPairing(u) bare(bs). { "\(a)\(u)\(bs)" }
-bare ::= Alphanumeric(a) Minus(m). { "\(a)\(m)" }
-bare ::= Alphanumeric(a) Bang(b). { "\(a)\(b)" }
-bare ::= Alphanumeric(a) SingleNonPairing(u). { "\(a)\(u)" }
-bare ::= Alphanumeric(a) UnclosedPairing(u). { "\(a)\(u)" }
-bare ::= SingleNonPairing(u) bare(bs). { "\(u)\(bs)" }
-bare ::= Alphanumeric(a). { a }
+%nonterminal_type conjunction ParenthesizedQuery
+conjunction ::= term(t). { t }
+conjunction ::= conjunction(c) Whitespace term(t). {
+    .init(filters: c.filters + t.filters, range: c.range.lowerBound..<t.range.upperBound)
+}
 
-%nonterminal_type comparison Comparison
-comparison ::= Comparison(c). { Comparison(rawValue: c)! }
+%nonterminal_type term ParenthesizedQuery
+term ::= literal(l). {
+    .init(filters: [l.range], range: l.range)
+}
+term ::= OpenParen(l) disjunction(q) CloseParen(r). {
+    .init(filters: q.filters, range: l.range.lowerBound..<r.range.upperBound)
+}
+term ::= OpenParen(l) Whitespace disjunction(q) CloseParen(r). {
+    .init(filters: q.filters, range: l.range.lowerBound..<r.range.upperBound)
+}
+term ::= OpenParen(l) disjunction(q) Whitespace CloseParen(r). {
+    .init(filters: q.filters, range: l.range.lowerBound..<r.range.upperBound)
+}
+term ::= OpenParen(l) Whitespace disjunction(q) Whitespace CloseParen(r). {
+    .init(filters: q.filters, range: l.range.lowerBound..<r.range.upperBound)
+}
+
+%nonterminal_type literal ParenthesizedQueryTokenContent
+literal ::= Verbatim(v). { v }
+literal ::= Verbatim(v1) Verbatim(v2). {
+    .init(content: "\(v1)\(v2)", range: v1.range.lowerBound..<v1.range.upperBound)
+}
