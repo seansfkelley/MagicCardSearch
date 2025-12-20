@@ -15,22 +15,27 @@ struct EnumerationSuggestionProviderTests {
             "manavalue=",
             [
                 .init(
-                    isNegated: false,
-                    filterType: "manavalue",
-                    comparison: .equal,
-                    options: [.init(value: "even", range: nil), .init(value: "odd", range: nil)],
+                    filter: .basic(.keyValue("manavalue", .equal, "even")),
+                    matchRange: nil
+                ),
+                .init(
+                    filter: .basic(.keyValue("manavalue", .equal, "odd")),
+                    matchRange: nil
                 ),
             ],
         ),
         (
-            // narrows based on substring match, preferring shorter strings
+            // narrows based on substring match, preferring strings earlier in the alphabet when
+            // they are both prefixes
             "is:scry",
             [
                 .init(
-                    isNegated: false,
-                    filterType: "is",
-                    comparison: .including,
-                    options: [.init(value: "scryland", range: stringIndexRange(0, 4)), .init(value: "scryfallpreview", range: stringIndexRange(0, 4))],
+                    filter: .basic(.keyValue("is", .including, "scryfallpreview")),
+                    matchRange: "is:scryfallpreview".range(of: "scry")
+                ),
+                .init(
+                    filter: .basic(.keyValue("is", .including, "scryland")),
+                    matchRange: "is:scryland".range(of: "scry")
                 ),
             ],
         ),
@@ -39,10 +44,8 @@ struct EnumerationSuggestionProviderTests {
             "format>=less",
             [
                 .init(
-                    isNegated: false,
-                    filterType: "format",
-                    comparison: .greaterThanOrEqual,
-                    options: [.init(value: "timeless", range: stringIndexRange(4, 8))],
+                    filter: .basic(.keyValue("format", .greaterThanOrEqual, "timeless")),
+                    matchRange: "format>=timeless".range(of: "less")
                 ),
             ],
         ),
@@ -51,10 +54,12 @@ struct EnumerationSuggestionProviderTests {
             "-is:scry",
             [
                 .init(
-                    isNegated: true,
-                    filterType: "is",
-                    comparison: .including,
-                    options: [.init(value: "scryland", range: stringIndexRange(0, 4)), .init(value: "scryfallpreview", range: stringIndexRange(0, 4))],
+                    filter: .negated(.keyValue("is", .including, "scryfallpreview")),
+                    matchRange: "-is:scryfallpreview".range(of: "scry")
+                ),
+                .init(
+                    filter: .negated(.keyValue("is", .including, "scryland")),
+                    matchRange: "-is:scryland".range(of: "scry")
                 ),
             ],
         ),
@@ -63,10 +68,8 @@ struct EnumerationSuggestionProviderTests {
             "foRMat>=lESs",
             [
                 .init(
-                    isNegated: false,
-                    filterType: "format",
-                    comparison: .greaterThanOrEqual,
-                    options: [.init(value: "timeless", range: stringIndexRange(4, 8))]
+                    filter: .basic(.keyValue("format", .greaterThanOrEqual, "timeless")),
+                    matchRange: "format>=timeless".range(of: "less", options: .caseInsensitive)
                 ),
             ],
         ),
@@ -91,7 +94,8 @@ struct EnumerationSuggestionProviderTests {
             [],
         ),
     ])
+    @MainActor
     func getSuggestions(input: String, expected: [EnumerationSuggestion]) {
-        #expect(EnumerationSuggestionProvider().getSuggestions(for: input, limit: 1) == expected)
+        #expect(EnumerationSuggestionProvider().getSuggestions(for: input, excluding: [], limit: 100) == expected)
     }
 }
