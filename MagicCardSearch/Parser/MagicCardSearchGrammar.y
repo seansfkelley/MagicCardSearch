@@ -7,6 +7,7 @@ filter ::= filter_content(f). { .basic(f) }
 filter ::= Minus filter_content(f). { .negated(f) }
 
 %nonterminal_type filter_content SearchFilterContent
+filter_content ::= Parenthesized(p). { .parenthesized(p) }
 filter_content ::= Alphanumeric(k) comparison(c) QuotedLiteral(v). { .keyValue(k, c, v) }
 filter_content ::= Alphanumeric(k) comparison(c) Regex(v). { .regex(k, c, v) }
 filter_content ::= Alphanumeric(k) comparison(c) bare(v). { .keyValue(k, c, v) }

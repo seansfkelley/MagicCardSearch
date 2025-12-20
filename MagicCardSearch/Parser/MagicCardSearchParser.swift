@@ -7,7 +7,6 @@ func doubleQuoteIfNecessary(_ string: String) -> String {
 enum SearchFilter: Equatable, Hashable, Codable {
     case basic(SearchFilterContent)
     case negated(SearchFilterContent)
-    // TODO: "or"
     
     static func tryParseUnambiguous(_ input: String) -> SearchFilter? {
         return try? parse(input)
@@ -42,6 +41,7 @@ enum SearchFilterContent: Equatable, Hashable, Codable {
     case name(String, Bool)
     case regex(String, Comparison, String)
     case keyValue(String, Comparison, String)
+    case parenthesized(String)
     
     var queryStringWithEditingRange: (String, Range<String.Index>) {
         switch self {
@@ -82,6 +82,11 @@ enum SearchFilterContent: Equatable, Hashable, Codable {
                     prefix.endIndex..<formatted.endIndex
                 )
             }
+        case .parenthesized(let content):
+            return (
+                content,
+                content.index(after: content.startIndex)..<content.index(before: content.endIndex)
+            )
         }
     }
     
@@ -90,6 +95,7 @@ enum SearchFilterContent: Equatable, Hashable, Codable {
         case .name: true
         case .regex(let key, _, _): scryfallFilterByType[key.lowercased()] != nil
         case .keyValue(let key, _, _): scryfallFilterByType[key.lowercased()] != nil
+        case .parenthesized: true // give up
         }
     }
 }
@@ -124,6 +130,10 @@ internal func parseRegex(_ input: String) -> LexedTokenData? {
     return (input, .Regex)
 }
 
+internal func parseParenthesized(_ input: String) -> LexedTokenData? {
+    return (input, .Parenthesized)
+}
+
 internal func parseAlphanumeric(_ input: String) -> LexedTokenData? {
     return (input, .Alphanumeric)
 }
@@ -145,12 +155,13 @@ private func parse(_ input: String) throws -> SearchFilter {
         .regexPattern(#"'[^']*'"#, parseQuoted), // highest priority
         .regexPattern(#""[^"]*""#, parseQuoted), // highest priority
         .regexPattern(#"/[^/]*/"#, parseRegex), // highest priority
+        .regexPattern(#"\([^\)]*\)"#, parseParenthesized), // highest priority
         .regexPattern(#"[a-zA-Z0-9]+"#, parseAlphanumeric),
         .string("-", ("-", .Minus)),
         .regexPattern(#"<=|<|>=|>|!=|=|:"#, parseComparison),
         .string("!", ("!", .Bang)), // must come after operators!
-        .regexPattern(#"[^'"/ \t\n]"#, parseSingleNonPairing), // TODO: Can do a class of whitespace better than this?
-        .regexPattern(#"['"/]"#, parseUnclosedPairing),
+        .regexPattern(#"[^'"/ \t\n\(\)]"#, parseSingleNonPairing), // TODO: Can do a class of whitespace better than this?
+        .regexPattern(#"['"/\(\)]"#, parseUnclosedPairing),
     ])
     
     let parser = MagicCardSearchGrammar()
