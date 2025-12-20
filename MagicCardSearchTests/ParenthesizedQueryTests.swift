@@ -110,7 +110,6 @@ struct ParenthesizedQueryTests {
         let input = "red creature or blue instant"
         let result = try ParenthesizedQuery.tryParse(input)
         
-        // Should parse as: (red AND creature) OR (blue AND instant)
         #expect(result.filters.count == 4)
         #expect(String(input[result.filters[0]]) == "red")
         #expect(String(input[result.filters[1]]) == "creature")
@@ -201,13 +200,12 @@ struct ParenthesizedQueryTests {
     
     // MARK: - Edge Cases
     
-    @Test("Parse empty parentheses throws error")
+    @Test("Parse empty parentheses")
     func emptyParentheses() throws {
         let input = "()"
+        let result = try ParenthesizedQuery.tryParse(input)
         
-        #expect(throws: Error.self) {
-            try ParenthesizedQuery.tryParse(input)
-        }
+        #expect(result.filters.isEmpty)
     }
     
     @Test("Parse unclosed parenthesis")
@@ -221,45 +219,47 @@ struct ParenthesizedQueryTests {
     @Test("Parse unmatched closing parenthesis")
     func unmatchedClosingParenthesis() throws {
         let input = "red or blue)"
+        let result = try ParenthesizedQuery.tryParse(input)
         
-        #expect(throws: Error.self) {
-            try ParenthesizedQuery.tryParse(input)
-        }
+        #expect(result.filters.count == 2)
+        #expect(String(input[result.filters[0]]) == "red")
+        #expect(String(input[result.filters[1]]) == "blue")
     }
     
     @Test("Parse whitespace only")
     func whitespaceOnly() throws {
         let input = "   "
+        let result = try ParenthesizedQuery.tryParse(input)
         
-        #expect(throws: Error.self) {
-            try ParenthesizedQuery.tryParse(input)
-        }
+        #expect(result.filters.isEmpty)
     }
     
     @Test("Parse OR at beginning")
     func orAtBeginning() throws {
         let input = "or red"
+        let result = try ParenthesizedQuery.tryParse(input)
         
-        #expect(throws: Error.self) {
-            try ParenthesizedQuery.tryParse(input)
-        }
+        #expect(result.filters.count == 1)
+        #expect(String(input[result.filters[0]]) == "red")
     }
     
     @Test("Parse OR at end")
     func orAtEnd() throws {
         let input = "red or"
+        let result = try ParenthesizedQuery.tryParse(input)
         
-        #expect(throws: Error.self) {
-            try ParenthesizedQuery.tryParse(input)
-        }
+        #expect(result.filters.count == 1)
+        #expect(String(input[result.filters[0]]) == "red")
     }
     
     @Test("Parse consecutive ORs")
     func consecutiveOrs() throws {
         let input = "red or or blue"
-        #expect(throws: Error.self) {
-            try ParenthesizedQuery.tryParse(input)
-        }
+        let result = try ParenthesizedQuery.tryParse(input)
+        
+        #expect(result.filters.count == 2)
+        #expect(String(input[result.filters[0]]) == "red")
+        #expect(String(input[result.filters[1]]) == "blue")
     }
     
     // MARK: - Range Verification

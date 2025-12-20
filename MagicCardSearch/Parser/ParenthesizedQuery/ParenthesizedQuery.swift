@@ -7,7 +7,6 @@ struct ParenthesizedQuery {
         let errorCapturer = ParenthesizedQueryErrorDelegate()
 
         let parser = ParenthesizedQueryParser()
-        parser.isTracingEnabled = true
         parser.errorCaptureDelegate = errorCapturer
 
         for (token, code) in try lexParenthesizedQuery(input) {

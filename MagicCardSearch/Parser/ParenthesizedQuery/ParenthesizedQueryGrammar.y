@@ -2,8 +2,6 @@
 
 %token_type ParenthesizedQueryTokenContent
 
-%fallback Verbatim Or.
-
 %nonterminal_type query ParenthesizedQuery
 %capture_errors query.
 query ::= disjunction(d). { d }
