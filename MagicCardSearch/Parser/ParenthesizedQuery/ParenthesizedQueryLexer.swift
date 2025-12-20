@@ -29,26 +29,27 @@ internal func parseVerbatim(_ input: String) -> LexedParenthesizedQueryToken? {
     return (input, .Verbatim)
 }
 
-internal func parseWhitespace(_ input: String) -> LexedParenthesizedQueryToken? {
+internal func parseImpliedAnd(_ input: String) -> LexedParenthesizedQueryToken? {
     return (input, .And)
 }
 
 func parseParenthesizedQuery(_ input: String) throws -> ParenthesizedQuery {
-    let trimmedInput = String(input.trimmingPrefix(/\s+/))
+    // TODO: Offset the ranges based on how much was removed here.
+    let trimmedInput = input.trimmingCharacters(in: .whitespaces)
     
     let lexer = CitronLexer<LexedParenthesizedQueryToken>(rules: [
-        .regexPattern(#"\s*-?(\s*"#, parseOpenParen),
-        .regexPattern(#"\s*)\s*"#, parseOpenParen),
-        .regexPattern(#"\s+or\s+"#, parseOr),
+        .regexPattern(#"-?\(\s*"#, parseOpenParen),
+        .regexPattern(#"\s*\)"#, parseCloseParen),
+        .regexPattern(#"(\b|\s+)or(\s+|\b)"#, parseOr),
         // In principle we could have a single regex matching Verbatim things, but it would be
         // horrible and wildly unreadable. Instead, we separate the balanced-characters parts into
         // their own and define a non-whitespace-permitting rule for everything else, then
         // post-process the tokens to coalesce adjacent ones.
-        .regexPattern(#"[^'"/ \n\t]+"#, parseVerbatim),
+        .regexPattern(#"[^'"/ \n\t\)]+"#, parseVerbatim),
         .regexPattern(#"'[^']*('|$)"#, parseVerbatim),
         .regexPattern(#""[^"]*("|$)"#, parseVerbatim),
         .regexPattern(#"/[^/]*(/|$)"#, parseVerbatim),
-        .regexPattern(#"[ \n\t]+"#, parseWhitespace),
+        .regexPattern(#"[ \n\t]+"#, parseImpliedAnd),
     ])
     
     var tokens: [(ParenthesizedQueryTokenContent, ParenthesizedQueryParser.CitronTokenCode)] = []
