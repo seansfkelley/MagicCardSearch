@@ -4,9 +4,8 @@ excluded:
   - DerivedData
   - .swiftpm
   - Package.swift
-  - MagicCardSearch/Parser/CitronLexer.swift
-  - MagicCardSearch/Parser/CitronParser.swift
-  - MagicCardSearch/Parser/MagicCardSearchGrammar.swift
+  - MagicCardSearch/Parser/Citron/
+  - MagicCardSearch/Parser/SearchFilterParser.swift
 
 opt_in_rules:
   - array_init

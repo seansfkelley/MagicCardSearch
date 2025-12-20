@@ -1,6 +1,6 @@
-%class_name MagicCardSearchGrammar
+%class_name SearchFilterParser
 
-%token_type Token
+%token_type SearchFilterTokenContent
 
 %nonterminal_type filter SearchFilter
 filter ::= filter_content(f). { .basic(f) }
