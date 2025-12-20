@@ -352,7 +352,7 @@ struct ArrayUniquedTests {
         ]
         
         // Unique by price (rounded to nearest dollar) and category combination
-        let uniqueProducts = products.uniqued { 
+        let uniqueProducts = products.uniqued {
             "\(Int($0.price.rounded()))-\($0.category)"
         }
         

@@ -3,7 +3,7 @@ import Testing
 
 // Serialized: Citron is not thread-safe.
 @Suite(.serialized)
-struct MagicCardSearchParserTests {
+struct SearchFilterTests {
     @Test<[(String, SearchFilter)]>("parse", arguments: [
         ("set:foo", .basic(.keyValue("set", .including, "foo"))),
         ("s=bar", .basic(.keyValue("s", .equal, "bar"))),
@@ -36,9 +36,7 @@ struct MagicCardSearchParserTests {
     func tryParseUnambiguousNil(input: String) throws {
         #expect(SearchFilter.tryParseUnambiguous(input) == nil)
     }
-}
 
-struct SearchFilterTests {
     @Test<[(SearchFilter, String, Range<Int>)]>("toQueryStringWithEditingRange", arguments: [
         (.basic(.keyValue("foo", .including, "bar")), "foo:bar", 4..<7),
         (.negated(.keyValue("foo", .including, "bar")), "-foo:bar", 5..<8),
