@@ -16,11 +16,11 @@ class ParenthesizedQueryParser: CitronParser {
     typealias CitronRuleNumber = UInt8
 
     enum CitronTokenCode: CitronSymbolNumber {
-      case Whitespace                     =   1
-      case Or                             =   2
-      case OpenParen                      =   3
-      case CloseParen                     =   4
-      case Verbatim                       =   5
+      case Or                             =   1
+      case And                            =   2
+      case Verbatim                       =   3
+      case OpenParen                      =   4
+      case CloseParen                     =   5
     }
 
     enum CitronNonTerminalCode: CitronSymbolNumber {
@@ -28,7 +28,6 @@ class ParenthesizedQueryParser: CitronParser {
       case disjunction                    =   7
       case conjunction                    =   8
       case term                           =   9
-      case literal                        =  10
     }
 
     enum CitronSymbolCode : RawRepresentable, Equatable {
@@ -43,7 +42,7 @@ class ParenthesizedQueryParser: CitronParser {
                 self = .endOfInput
             } else if (rawValue < 6) {
                 self = .token(CitronTokenCode(rawValue: rawValue)!)
-            } else if (rawValue < 11) {
+            } else if (rawValue < 10) {
                 self = .nonterminal(CitronNonTerminalCode(rawValue: rawValue)!)
             } else {
                 fatalError()
@@ -65,13 +64,13 @@ class ParenthesizedQueryParser: CitronParser {
     enum CitronSymbol {
         case yyBaseOfStack
         case yy0(CitronToken)
-        case yy11(ParenthesizedQuery)
+        case yy1(ParenthesizedQuery)
 
         func typeErasedContent() -> Any {
             switch (self) {
             case .yyBaseOfStack: fatalError()
             case .yy0(let value): return value as Any
-            case .yy11(let value): return value as Any
+            case .yy1(let value): return value as Any
             }
         }
     }
@@ -80,41 +79,35 @@ class ParenthesizedQueryParser: CitronParser {
 
     // Counts
 
-    let yyNumberOfSymbols: Int = 11
-    let yyNumberOfStates: Int = 15
+    let yyNumberOfSymbols: Int = 10
+    let yyNumberOfStates: Int = 8
 
     // Action tables
 
     let yyLookaheadAction: [(CitronSymbolNumber, CitronParsingAction)] = [
-/*   0 */  ( 6, .ACCEPT),   ( 7, .SH( 9)), ( 8, .SH(11)), ( 9, .RD( 3)), (10, .RD( 5)),
-/*   5 */  ( 7, .SH( 8)), ( 8, .SH(11)), ( 9, .RD( 3)), (10, .RD( 5)), ( 7, .SH( 6)),
-/*  10 */  ( 8, .SH(11)), ( 9, .RD( 3)), (10, .RD( 5)), ( 1, .SH( 2)), ( 3, .SH( 1)),
-/*  15 */  ( 3, .SH( 1)), ( 5, .SH(10)), ( 5, .SH(10)), ( 8, .SH(12)), ( 9, .RD( 3)),
-/*  20 */  (10, .RD( 5)), ( 1, .SH( 5)), ( 9, .RD( 4)), (10, .RD( 5)), ( 4, .SR( 7)),
-/*  25 */  ( 2, .SH(13)), ( 2, .SH(13)), ( 4, .SR( 9)), ( 4, .SR( 8)), ( 1, .SH( 7)),
-/*  30 */  ( 0, .RD( 0)), ( 1, .SH(14)), ( 4, .SR( 6)), ( 1, .SH( 4)), ( 5, .SR(11)),
-/*  35 */  ( 1, .SH( 3)), (11, .RD( 2)), ( 2, .SH(13)),
+/*   0 */  ( 6, .ACCEPT),   ( 7, .SH( 5)), ( 8, .SH( 6)), ( 9, .RD( 3)), ( 7, .SH( 4)),
+/*   5 */  ( 8, .SH( 6)), ( 9, .RD( 3)), ( 3, .SR( 5)), ( 4, .SH( 1)), ( 8, .SH( 7)),
+/*  10 */  ( 9, .RD( 3)), ( 1, .SH( 2)), ( 0, .RD( 0)), ( 1, .SH( 2)), ( 9, .RD( 4)),
+/*  15 */  ( 5, .SR( 6)), ( 2, .SH( 3)),
     ]
 
-    let yyShiftUseDefault: Int = 38
+    let yyShiftUseDefault: Int = 17
     let yyShiftOffsetMin: Int = 0
-    let yyShiftOffsetMax: Int = 35
+    let yyShiftOffsetMax: Int = 14
     let yyShiftOffset: [Int] = [
-        /*     0 */    11,   12,   11,   11,   11,   23,   20,   24,   28,   30,
-        /*    10 */    29,   32,   32,   34,   35,
+        /*     0 */     4,    4,    4,    4,   10,   12,   14,   14,
     ]
 
     let yyReduceUseDefault: Int = -7
     let yyReduceOffsetMin: Int =   -6
-    let yyReduceOffsetMax: Int =   13
+    let yyReduceOffsetMax: Int =   5
     let yyReduceOffset: [Int] = [
-        /*     0 */    -6,   -2,    2,   10,   13,
+        /*     0 */    -6,   -3,    1,    5,
     ]
 
     let yyDefaultAction: [CitronParsingAction] = [
   /*     0 */  .ERROR , .ERROR , .ERROR , .ERROR , .ERROR ,
-  /*     5 */  .ERROR , .ERROR , .ERROR , .ERROR , .ERROR ,
-  /*    10 */  .RD(10), .RD( 1), .RD( 2), .ERROR , .ERROR ,
+  /*     5 */  .ERROR , .RD( 1), .RD( 2),
     ]
 
     // Fallback
@@ -131,16 +124,11 @@ class ParenthesizedQueryParser: CitronParser {
     let yyRuleInfo: [(lhs: CitronSymbolNumber, nrhs: UInt)] = [
         (lhs: 6, nrhs: 1),
         (lhs: 7, nrhs: 1),
-        (lhs: 7, nrhs: 5),
+        (lhs: 7, nrhs: 3),
         (lhs: 8, nrhs: 1),
         (lhs: 8, nrhs: 3),
         (lhs: 9, nrhs: 1),
         (lhs: 9, nrhs: 3),
-        (lhs: 9, nrhs: 4),
-        (lhs: 9, nrhs: 4),
-        (lhs: 9, nrhs: 5),
-        (lhs: 10, nrhs: 1),
-        (lhs: 10, nrhs: 2),
     ]
 
     // Stack
@@ -158,30 +146,24 @@ class ParenthesizedQueryParser: CitronParser {
     var isTracingPrintsTokenValues: Bool = false
     let yySymbolName: [String] = [
     /*  0 */ "$",
-    /*  1 */ "Whitespace",
-    /*  2 */ "Or",
-    /*  3 */ "OpenParen",
-    /*  4 */ "CloseParen",
-    /*  5 */ "Verbatim",
+    /*  1 */ "Or",
+    /*  2 */ "And",
+    /*  3 */ "Verbatim",
+    /*  4 */ "OpenParen",
+    /*  5 */ "CloseParen",
     /*  6 */ "query",
     /*  7 */ "disjunction",
     /*  8 */ "conjunction",
     /*  9 */ "term",
-    /* 10 */ "literal",
     ]
     let yyRuleText: [String] = [
         /*   0 */ "query ::= disjunction(d)",
         /*   1 */ "disjunction ::= conjunction(c)",
-        /*   2 */ "disjunction ::= disjunction(d) Whitespace Or Whitespace conjunction(c)",
+        /*   2 */ "disjunction ::= disjunction(d) Or conjunction(c)",
         /*   3 */ "conjunction ::= term(t)",
-        /*   4 */ "conjunction ::= conjunction(c) Whitespace term(t)",
-        /*   5 */ "term ::= literal(l)",
+        /*   4 */ "conjunction ::= conjunction(c) And term(t)",
+        /*   5 */ "term ::= Verbatim(v)",
         /*   6 */ "term ::= OpenParen(l) disjunction(q) CloseParen(r)",
-        /*   7 */ "term ::= OpenParen(l) Whitespace disjunction(q) CloseParen(r)",
-        /*   8 */ "term ::= OpenParen(l) disjunction(q) Whitespace CloseParen(r)",
-        /*   9 */ "term ::= OpenParen(l) Whitespace disjunction(q) Whitespace CloseParen(r)",
-        /*  10 */ "literal ::= Verbatim(v)",
-        /*  11 */ "literal ::= Verbatim(v1) Verbatim(v2)",
     ]
 
     // Function definitions
@@ -193,139 +175,79 @@ class ParenthesizedQueryParser: CitronParser {
     func yyInvokeCodeBlockForRule(ruleNumber: CitronRuleNumber) throws -> CitronSymbol {
         switch (ruleNumber) {
         case 0: /* query ::= disjunction(d) */
-            func codeBlockForRule00(d: ParenthesizedQuery) throws -> ParenthesizedQuery {
+            func codeBlockForRule0(d: ParenthesizedQuery) throws -> ParenthesizedQuery {
 #sourceLocation(file: "MagicCardSearch/Parser/ParenthesizedQuery/ParenthesizedQueryGrammar.y", line: 6)
  d 
 #sourceLocation()
 }
-            if case .yy11(let d) = yySymbolOnStack(distanceFromTop: 0) {
-                return .yy11(try codeBlockForRule00(d: d))
+            if case .yy1(let d) = yySymbolOnStack(distanceFromTop: 0) {
+                return .yy1(try codeBlockForRule0(d: d))
             }
         case 1: /* disjunction ::= conjunction(c) */
-            func codeBlockForRule01(c: ParenthesizedQuery) throws -> ParenthesizedQuery {
+            func codeBlockForRule1(c: ParenthesizedQuery) throws -> ParenthesizedQuery {
 #sourceLocation(file: "MagicCardSearch/Parser/ParenthesizedQuery/ParenthesizedQueryGrammar.y", line: 9)
  c 
 #sourceLocation()
 }
-            if case .yy11(let c) = yySymbolOnStack(distanceFromTop: 0) {
-                return .yy11(try codeBlockForRule01(c: c))
+            if case .yy1(let c) = yySymbolOnStack(distanceFromTop: 0) {
+                return .yy1(try codeBlockForRule1(c: c))
             }
-        case 2: /* disjunction ::= disjunction(d) Whitespace Or Whitespace conjunction(c) */
-            func codeBlockForRule02(d: ParenthesizedQuery, c: ParenthesizedQuery) throws -> ParenthesizedQuery {
+        case 2: /* disjunction ::= disjunction(d) Or conjunction(c) */
+            func codeBlockForRule2(d: ParenthesizedQuery, c: ParenthesizedQuery) throws -> ParenthesizedQuery {
 #sourceLocation(file: "MagicCardSearch/Parser/ParenthesizedQuery/ParenthesizedQueryGrammar.y", line: 10)
 
-    .init(filters: d.filters + c.filters, range: d.range.lowerBound..<c.range.upperBound)
+    .init(range: d.range.lowerBound..<c.range.upperBound, filters: d.filters + c.filters)
 
 #sourceLocation()
 }
-            if case .yy11(let d) = yySymbolOnStack(distanceFromTop: 4),
-               case .yy11(let c) = yySymbolOnStack(distanceFromTop: 0) {
-                return .yy11(try codeBlockForRule02(d: d, c: c))
+            if case .yy1(let d) = yySymbolOnStack(distanceFromTop: 2),
+               case .yy1(let c) = yySymbolOnStack(distanceFromTop: 0) {
+                return .yy1(try codeBlockForRule2(d: d, c: c))
             }
         case 3: /* conjunction ::= term(t) */
-            func codeBlockForRule03(t: ParenthesizedQuery) throws -> ParenthesizedQuery {
-#sourceLocation(file: "MagicCardSearch/Parser/ParenthesizedQuery/ParenthesizedQueryGrammar.y", line: 15)
+            func codeBlockForRule3(t: ParenthesizedQuery) throws -> ParenthesizedQuery {
+#sourceLocation(file: "MagicCardSearch/Parser/ParenthesizedQuery/ParenthesizedQueryGrammar.y", line: 19)
  t 
 #sourceLocation()
 }
-            if case .yy11(let t) = yySymbolOnStack(distanceFromTop: 0) {
-                return .yy11(try codeBlockForRule03(t: t))
+            if case .yy1(let t) = yySymbolOnStack(distanceFromTop: 0) {
+                return .yy1(try codeBlockForRule3(t: t))
             }
-        case 4: /* conjunction ::= conjunction(c) Whitespace term(t) */
-            func codeBlockForRule04(c: ParenthesizedQuery, t: ParenthesizedQuery) throws -> ParenthesizedQuery {
-#sourceLocation(file: "MagicCardSearch/Parser/ParenthesizedQuery/ParenthesizedQueryGrammar.y", line: 16)
+        case 4: /* conjunction ::= conjunction(c) And term(t) */
+            func codeBlockForRule4(c: ParenthesizedQuery, t: ParenthesizedQuery) throws -> ParenthesizedQuery {
+#sourceLocation(file: "MagicCardSearch/Parser/ParenthesizedQuery/ParenthesizedQueryGrammar.y", line: 20)
 
-    .init(filters: c.filters + t.filters, range: c.range.lowerBound..<t.range.upperBound)
+    .init(range: c.range.lowerBound..<t.range.upperBound, filters: c.filters + t.filters)
 
 #sourceLocation()
 }
-            if case .yy11(let c) = yySymbolOnStack(distanceFromTop: 2),
-               case .yy11(let t) = yySymbolOnStack(distanceFromTop: 0) {
-                return .yy11(try codeBlockForRule04(c: c, t: t))
+            if case .yy1(let c) = yySymbolOnStack(distanceFromTop: 2),
+               case .yy1(let t) = yySymbolOnStack(distanceFromTop: 0) {
+                return .yy1(try codeBlockForRule4(c: c, t: t))
             }
-        case 5: /* term ::= literal(l) */
-            func codeBlockForRule05(l: ParenthesizedQueryTokenContent) throws -> ParenthesizedQuery {
-#sourceLocation(file: "MagicCardSearch/Parser/ParenthesizedQuery/ParenthesizedQueryGrammar.y", line: 21)
+        case 5: /* term ::= Verbatim(v) */
+            func codeBlockForRule5(v: ParenthesizedQueryTokenContent) throws -> ParenthesizedQuery {
+#sourceLocation(file: "MagicCardSearch/Parser/ParenthesizedQuery/ParenthesizedQueryGrammar.y", line: 29)
 
-    .init(filters: [l.range], range: l.range)
+    .init(range: v.range, filters: [v.range])
 
 #sourceLocation()
 }
-            if case .yy0(let l) = yySymbolOnStack(distanceFromTop: 0) {
-                return .yy11(try codeBlockForRule05(l: l))
+            if case .yy0(let v) = yySymbolOnStack(distanceFromTop: 0) {
+                return .yy1(try codeBlockForRule5(v: v))
             }
         case 6: /* term ::= OpenParen(l) disjunction(q) CloseParen(r) */
-            func codeBlockForRule06(l: ParenthesizedQueryTokenContent, q: ParenthesizedQuery, r: ParenthesizedQueryTokenContent) throws -> ParenthesizedQuery {
-#sourceLocation(file: "MagicCardSearch/Parser/ParenthesizedQuery/ParenthesizedQueryGrammar.y", line: 24)
+            func codeBlockForRule6(l: ParenthesizedQueryTokenContent, q: ParenthesizedQuery, r: ParenthesizedQueryTokenContent) throws -> ParenthesizedQuery {
+#sourceLocation(file: "MagicCardSearch/Parser/ParenthesizedQuery/ParenthesizedQueryGrammar.y", line: 32)
 
-    .init(filters: q.filters, range: l.range.lowerBound..<r.range.upperBound)
+    .init(range: l.range.lowerBound..<r.range.upperBound, filters: q.filters)
 
 #sourceLocation()
 }
             if case .yy0(let l) = yySymbolOnStack(distanceFromTop: 2),
-               case .yy11(let q) = yySymbolOnStack(distanceFromTop: 1),
+               case .yy1(let q) = yySymbolOnStack(distanceFromTop: 1),
                case .yy0(let r) = yySymbolOnStack(distanceFromTop: 0) {
-                return .yy11(try codeBlockForRule06(l: l, q: q, r: r))
-            }
-        case 7: /* term ::= OpenParen(l) Whitespace disjunction(q) CloseParen(r) */
-            func codeBlockForRule07(l: ParenthesizedQueryTokenContent, q: ParenthesizedQuery, r: ParenthesizedQueryTokenContent) throws -> ParenthesizedQuery {
-#sourceLocation(file: "MagicCardSearch/Parser/ParenthesizedQuery/ParenthesizedQueryGrammar.y", line: 27)
-
-    .init(filters: q.filters, range: l.range.lowerBound..<r.range.upperBound)
-
-#sourceLocation()
-}
-            if case .yy0(let l) = yySymbolOnStack(distanceFromTop: 3),
-               case .yy11(let q) = yySymbolOnStack(distanceFromTop: 1),
-               case .yy0(let r) = yySymbolOnStack(distanceFromTop: 0) {
-                return .yy11(try codeBlockForRule07(l: l, q: q, r: r))
-            }
-        case 8: /* term ::= OpenParen(l) disjunction(q) Whitespace CloseParen(r) */
-            func codeBlockForRule08(l: ParenthesizedQueryTokenContent, q: ParenthesizedQuery, r: ParenthesizedQueryTokenContent) throws -> ParenthesizedQuery {
-#sourceLocation(file: "MagicCardSearch/Parser/ParenthesizedQuery/ParenthesizedQueryGrammar.y", line: 30)
-
-    .init(filters: q.filters, range: l.range.lowerBound..<r.range.upperBound)
-
-#sourceLocation()
-}
-            if case .yy0(let l) = yySymbolOnStack(distanceFromTop: 3),
-               case .yy11(let q) = yySymbolOnStack(distanceFromTop: 2),
-               case .yy0(let r) = yySymbolOnStack(distanceFromTop: 0) {
-                return .yy11(try codeBlockForRule08(l: l, q: q, r: r))
-            }
-        case 9: /* term ::= OpenParen(l) Whitespace disjunction(q) Whitespace CloseParen(r) */
-            func codeBlockForRule09(l: ParenthesizedQueryTokenContent, q: ParenthesizedQuery, r: ParenthesizedQueryTokenContent) throws -> ParenthesizedQuery {
-#sourceLocation(file: "MagicCardSearch/Parser/ParenthesizedQuery/ParenthesizedQueryGrammar.y", line: 33)
-
-    .init(filters: q.filters, range: l.range.lowerBound..<r.range.upperBound)
-
-#sourceLocation()
-}
-            if case .yy0(let l) = yySymbolOnStack(distanceFromTop: 4),
-               case .yy11(let q) = yySymbolOnStack(distanceFromTop: 2),
-               case .yy0(let r) = yySymbolOnStack(distanceFromTop: 0) {
-                return .yy11(try codeBlockForRule09(l: l, q: q, r: r))
-            }
-        case 10: /* literal ::= Verbatim(v) */
-            func codeBlockForRule10(v: ParenthesizedQueryTokenContent) throws -> ParenthesizedQueryTokenContent {
-#sourceLocation(file: "MagicCardSearch/Parser/ParenthesizedQuery/ParenthesizedQueryGrammar.y", line: 38)
- v 
-#sourceLocation()
-}
-            if case .yy0(let v) = yySymbolOnStack(distanceFromTop: 0) {
-                return .yy0(try codeBlockForRule10(v: v))
-            }
-        case 11: /* literal ::= Verbatim(v1) Verbatim(v2) */
-            func codeBlockForRule11(v1: ParenthesizedQueryTokenContent, v2: ParenthesizedQueryTokenContent) throws -> ParenthesizedQueryTokenContent {
-#sourceLocation(file: "MagicCardSearch/Parser/ParenthesizedQuery/ParenthesizedQueryGrammar.y", line: 39)
-
-    .init(content: "\(v1)\(v2)", range: v1.range.lowerBound..<v1.range.upperBound)
-
-#sourceLocation()
-}
-            if case .yy0(let v1) = yySymbolOnStack(distanceFromTop: 1),
-               case .yy0(let v2) = yySymbolOnStack(distanceFromTop: 0) {
-                return .yy0(try codeBlockForRule11(v1: v1, v2: v2))
+                return .yy1(try codeBlockForRule6(l: l, q: q, r: r))
             }
         default:
             fatalError("Can't invoke code block for rule number \(ruleNumber) - no such rule")
@@ -339,7 +261,7 @@ class ParenthesizedQueryParser: CitronParser {
     }
 
     func yyUnwrapResultFromSymbol(_ symbol: CitronSymbol) -> CitronResult {
-        if case .yy11(let result) = symbol {
+        if case .yy1(let result) = symbol {
             return result
         } else {
             fatalError("Unexpected mismatch in result type")
@@ -370,7 +292,7 @@ class ParenthesizedQueryParser: CitronParser {
     func yySymbolContent(_ symbol: CitronSymbol) -> Any { return symbol.typeErasedContent() }
 
     let yyStartSymbolNumber: CitronSymbolNumber = 6
-    let yyEndStateNumber: CitronStateNumber = 9
+    let yyEndStateNumber: CitronStateNumber = 5
 
     var yyErrorCaptureSavedError: (error: Error, isLexerError: Bool)? = nil
     var yyErrorCaptureTokensSinceError: [(token: CitronToken, tokenCode: CitronTokenCode)] = []
