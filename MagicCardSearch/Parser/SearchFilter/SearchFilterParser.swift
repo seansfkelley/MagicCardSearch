@@ -225,7 +225,7 @@ class SearchFilterParser: CitronParser {
         switch (ruleNumber) {
         case 0: /* filter ::= filter_content(f) */
             func codeBlockForRule00(f: SearchFilterContent) throws -> SearchFilter {
-#sourceLocation(file: "MagicCardSearch/Parser/SearchFilterGrammar.y", line: 6)
+#sourceLocation(file: "MagicCardSearch/Parser/SearchFilter/SearchFilterGrammar.y", line: 6)
  .basic(f) 
 #sourceLocation()
 }
@@ -234,7 +234,7 @@ class SearchFilterParser: CitronParser {
             }
         case 1: /* filter ::= Minus filter_content(f) */
             func codeBlockForRule01(f: SearchFilterContent) throws -> SearchFilter {
-#sourceLocation(file: "MagicCardSearch/Parser/SearchFilterGrammar.y", line: 7)
+#sourceLocation(file: "MagicCardSearch/Parser/SearchFilter/SearchFilterGrammar.y", line: 7)
  .negated(f) 
 #sourceLocation()
 }
@@ -243,7 +243,7 @@ class SearchFilterParser: CitronParser {
             }
         case 2: /* filter_content ::= Parenthesized(p) */
             func codeBlockForRule02(p: SearchFilterTokenContent) throws -> SearchFilterContent {
-#sourceLocation(file: "MagicCardSearch/Parser/SearchFilterGrammar.y", line: 10)
+#sourceLocation(file: "MagicCardSearch/Parser/SearchFilter/SearchFilterGrammar.y", line: 10)
  .parenthesized(p) 
 #sourceLocation()
 }
@@ -252,7 +252,7 @@ class SearchFilterParser: CitronParser {
             }
         case 3: /* filter_content ::= Alphanumeric(k) comparison(c) QuotedLiteral(v) */
             func codeBlockForRule03(k: SearchFilterTokenContent, c: Comparison, v: SearchFilterTokenContent) throws -> SearchFilterContent {
-#sourceLocation(file: "MagicCardSearch/Parser/SearchFilterGrammar.y", line: 11)
+#sourceLocation(file: "MagicCardSearch/Parser/SearchFilter/SearchFilterGrammar.y", line: 11)
  .keyValue(k, c, v) 
 #sourceLocation()
 }
@@ -263,7 +263,7 @@ class SearchFilterParser: CitronParser {
             }
         case 4: /* filter_content ::= Alphanumeric(k) comparison(c) Regex(v) */
             func codeBlockForRule04(k: SearchFilterTokenContent, c: Comparison, v: SearchFilterTokenContent) throws -> SearchFilterContent {
-#sourceLocation(file: "MagicCardSearch/Parser/SearchFilterGrammar.y", line: 12)
+#sourceLocation(file: "MagicCardSearch/Parser/SearchFilter/SearchFilterGrammar.y", line: 12)
  .regex(k, c, v) 
 #sourceLocation()
 }
@@ -274,7 +274,7 @@ class SearchFilterParser: CitronParser {
             }
         case 5: /* filter_content ::= Alphanumeric(k) comparison(c) bare(v) */
             func codeBlockForRule05(k: SearchFilterTokenContent, c: Comparison, v: String) throws -> SearchFilterContent {
-#sourceLocation(file: "MagicCardSearch/Parser/SearchFilterGrammar.y", line: 13)
+#sourceLocation(file: "MagicCardSearch/Parser/SearchFilter/SearchFilterGrammar.y", line: 13)
  .keyValue(k, c, v) 
 #sourceLocation()
 }
@@ -285,7 +285,7 @@ class SearchFilterParser: CitronParser {
             }
         case 6: /* filter_content ::= Bang QuotedLiteral(v) */
             func codeBlockForRule06(v: SearchFilterTokenContent) throws -> SearchFilterContent {
-#sourceLocation(file: "MagicCardSearch/Parser/SearchFilterGrammar.y", line: 14)
+#sourceLocation(file: "MagicCardSearch/Parser/SearchFilter/SearchFilterGrammar.y", line: 14)
  .name(v, true) 
 #sourceLocation()
 }
@@ -294,7 +294,7 @@ class SearchFilterParser: CitronParser {
             }
         case 7: /* filter_content ::= QuotedLiteral(v) */
             func codeBlockForRule07(v: SearchFilterTokenContent) throws -> SearchFilterContent {
-#sourceLocation(file: "MagicCardSearch/Parser/SearchFilterGrammar.y", line: 15)
+#sourceLocation(file: "MagicCardSearch/Parser/SearchFilter/SearchFilterGrammar.y", line: 15)
  .name(v, false) 
 #sourceLocation()
 }
@@ -303,7 +303,7 @@ class SearchFilterParser: CitronParser {
             }
         case 8: /* filter_content ::= Bang bare(v) */
             func codeBlockForRule08(v: String) throws -> SearchFilterContent {
-#sourceLocation(file: "MagicCardSearch/Parser/SearchFilterGrammar.y", line: 16)
+#sourceLocation(file: "MagicCardSearch/Parser/SearchFilter/SearchFilterGrammar.y", line: 16)
  .name(v, true) 
 #sourceLocation()
 }
@@ -312,7 +312,7 @@ class SearchFilterParser: CitronParser {
             }
         case 9: /* filter_content ::= bare(v) */
             func codeBlockForRule09(v: String) throws -> SearchFilterContent {
-#sourceLocation(file: "MagicCardSearch/Parser/SearchFilterGrammar.y", line: 17)
+#sourceLocation(file: "MagicCardSearch/Parser/SearchFilter/SearchFilterGrammar.y", line: 17)
  .name(v, false) 
 #sourceLocation()
 }
@@ -321,7 +321,7 @@ class SearchFilterParser: CitronParser {
             }
         case 10: /* bare ::= Alphanumeric(a) Minus(m) bare(bs) */
             func codeBlockForRule10(a: SearchFilterTokenContent, m: SearchFilterTokenContent, bs: String) throws -> String {
-#sourceLocation(file: "MagicCardSearch/Parser/SearchFilterGrammar.y", line: 20)
+#sourceLocation(file: "MagicCardSearch/Parser/SearchFilter/SearchFilterGrammar.y", line: 20)
  "\(a)\(m)\(bs)" 
 #sourceLocation()
 }
@@ -332,7 +332,7 @@ class SearchFilterParser: CitronParser {
             }
         case 11: /* bare ::= Alphanumeric(a) Bang(b) bare(bs) */
             func codeBlockForRule11(a: SearchFilterTokenContent, b: SearchFilterTokenContent, bs: String) throws -> String {
-#sourceLocation(file: "MagicCardSearch/Parser/SearchFilterGrammar.y", line: 21)
+#sourceLocation(file: "MagicCardSearch/Parser/SearchFilter/SearchFilterGrammar.y", line: 21)
  "\(a)\(b)\(bs)" 
 #sourceLocation()
 }
@@ -343,7 +343,7 @@ class SearchFilterParser: CitronParser {
             }
         case 12: /* bare ::= Alphanumeric(a) SingleNonPairing(s) bare(bs) */
             func codeBlockForRule12(a: SearchFilterTokenContent, s: SearchFilterTokenContent, bs: String) throws -> String {
-#sourceLocation(file: "MagicCardSearch/Parser/SearchFilterGrammar.y", line: 22)
+#sourceLocation(file: "MagicCardSearch/Parser/SearchFilter/SearchFilterGrammar.y", line: 22)
  "\(a)\(s)\(bs)" 
 #sourceLocation()
 }
@@ -354,7 +354,7 @@ class SearchFilterParser: CitronParser {
             }
         case 13: /* bare ::= Alphanumeric(a) UnclosedPairing(u) bare(bs) */
             func codeBlockForRule13(a: SearchFilterTokenContent, u: SearchFilterTokenContent, bs: String) throws -> String {
-#sourceLocation(file: "MagicCardSearch/Parser/SearchFilterGrammar.y", line: 23)
+#sourceLocation(file: "MagicCardSearch/Parser/SearchFilter/SearchFilterGrammar.y", line: 23)
  "\(a)\(u)\(bs)" 
 #sourceLocation()
 }
@@ -365,7 +365,7 @@ class SearchFilterParser: CitronParser {
             }
         case 14: /* bare ::= Alphanumeric(a) Minus(m) */
             func codeBlockForRule14(a: SearchFilterTokenContent, m: SearchFilterTokenContent) throws -> String {
-#sourceLocation(file: "MagicCardSearch/Parser/SearchFilterGrammar.y", line: 24)
+#sourceLocation(file: "MagicCardSearch/Parser/SearchFilter/SearchFilterGrammar.y", line: 24)
  "\(a)\(m)" 
 #sourceLocation()
 }
@@ -375,7 +375,7 @@ class SearchFilterParser: CitronParser {
             }
         case 15: /* bare ::= Alphanumeric(a) Bang(b) */
             func codeBlockForRule15(a: SearchFilterTokenContent, b: SearchFilterTokenContent) throws -> String {
-#sourceLocation(file: "MagicCardSearch/Parser/SearchFilterGrammar.y", line: 25)
+#sourceLocation(file: "MagicCardSearch/Parser/SearchFilter/SearchFilterGrammar.y", line: 25)
  "\(a)\(b)" 
 #sourceLocation()
 }
@@ -385,7 +385,7 @@ class SearchFilterParser: CitronParser {
             }
         case 16: /* bare ::= Alphanumeric(a) SingleNonPairing(u) */
             func codeBlockForRule16(a: SearchFilterTokenContent, u: SearchFilterTokenContent) throws -> String {
-#sourceLocation(file: "MagicCardSearch/Parser/SearchFilterGrammar.y", line: 26)
+#sourceLocation(file: "MagicCardSearch/Parser/SearchFilter/SearchFilterGrammar.y", line: 26)
  "\(a)\(u)" 
 #sourceLocation()
 }
@@ -395,7 +395,7 @@ class SearchFilterParser: CitronParser {
             }
         case 17: /* bare ::= Alphanumeric(a) UnclosedPairing(u) */
             func codeBlockForRule17(a: SearchFilterTokenContent, u: SearchFilterTokenContent) throws -> String {
-#sourceLocation(file: "MagicCardSearch/Parser/SearchFilterGrammar.y", line: 27)
+#sourceLocation(file: "MagicCardSearch/Parser/SearchFilter/SearchFilterGrammar.y", line: 27)
  "\(a)\(u)" 
 #sourceLocation()
 }
@@ -405,7 +405,7 @@ class SearchFilterParser: CitronParser {
             }
         case 18: /* bare ::= SingleNonPairing(u) bare(bs) */
             func codeBlockForRule18(u: SearchFilterTokenContent, bs: String) throws -> String {
-#sourceLocation(file: "MagicCardSearch/Parser/SearchFilterGrammar.y", line: 28)
+#sourceLocation(file: "MagicCardSearch/Parser/SearchFilter/SearchFilterGrammar.y", line: 28)
  "\(u)\(bs)" 
 #sourceLocation()
 }
@@ -415,7 +415,7 @@ class SearchFilterParser: CitronParser {
             }
         case 19: /* bare ::= Alphanumeric(a) */
             func codeBlockForRule19(a: SearchFilterTokenContent) throws -> String {
-#sourceLocation(file: "MagicCardSearch/Parser/SearchFilterGrammar.y", line: 29)
+#sourceLocation(file: "MagicCardSearch/Parser/SearchFilter/SearchFilterGrammar.y", line: 29)
  a 
 #sourceLocation()
 }
@@ -424,7 +424,7 @@ class SearchFilterParser: CitronParser {
             }
         case 20: /* comparison ::= Comparison(c) */
             func codeBlockForRule20(c: SearchFilterTokenContent) throws -> Comparison {
-#sourceLocation(file: "MagicCardSearch/Parser/SearchFilterGrammar.y", line: 32)
+#sourceLocation(file: "MagicCardSearch/Parser/SearchFilter/SearchFilterGrammar.y", line: 32)
  Comparison(rawValue: c)! 
 #sourceLocation()
 }

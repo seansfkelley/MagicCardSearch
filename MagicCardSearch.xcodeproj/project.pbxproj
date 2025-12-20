@@ -74,7 +74,7 @@
 		21A816102EE2395100282ED3 /* Exceptions for "MagicCardSearch" folder in "MagicCardSearch" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				Parser/SearchFilterGrammar.y,
+				Parser/SearchFilter/SearchFilterGrammar.y,
 			);
 			target = 2137B5AC2EE139C60066BF7E /* MagicCardSearch */;
 		};
@@ -386,16 +386,16 @@
 			);
 			inputPaths = (
 				"$(SRCROOT)/Citron/citron",
-				"$(SRCROOT)/MagicCardSearch/Parser/SearchFilterGrammar.y",
+				"$(SRCROOT)/MagicCardSearch/Parser/SearchFilter/SearchFilterGrammar.y",
 			);
 			outputFileListPaths = (
 			);
 			outputPaths = (
-				"$(SRCROOT)/MagicCardSearch/Parser/SearchFilterParser.swift",
+				"$(SRCROOT)/MagicCardSearch/Parser/SearchFilter/SearchFilterParser.swift",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/zsh;
-			shellScript = "Citron/citron MagicCardSearch/Parser/SearchFilterGrammar.y -o MagicCardSearch/Parser/SearchFilterParser.swift\n";
+			shellScript = "Citron/citron MagicCardSearch/Parser/SearchFilter/SearchFilterGrammar.y -o MagicCardSearch/Parser/SearchFilter/SearchFilterParser.swift\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 

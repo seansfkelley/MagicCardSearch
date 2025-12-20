@@ -5,7 +5,7 @@ excluded:
   - .swiftpm
   - Package.swift
   - MagicCardSearch/Parser/Citron/
-  - MagicCardSearch/Parser/SearchFilterParser.swift
+  - MagicCardSearch/Parser/SearchFilter/SearchFilterParser.swift
 
 opt_in_rules:
   - array_init
