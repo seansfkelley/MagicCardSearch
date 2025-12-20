@@ -18,47 +18,21 @@ internal func parseQuoted(_ input: String) -> LexedSearchFilterToken? {
     )
 }
 
-internal func parseRegex(_ input: String) -> LexedSearchFilterToken? {
-    return (input, .Regex)
-}
-
-internal func parseParenthesized(_ input: String) -> LexedSearchFilterToken? {
-    return (input, .Parenthesized)
-}
-
-internal func parseAlphanumeric(_ input: String) -> LexedSearchFilterToken? {
-    return (input, .Alphanumeric)
-}
-
-internal func parseComparison(_ input: String) -> LexedSearchFilterToken? {
-    return (input, .Comparison)
-}
-
-internal func parseSingleNonPairing(_ input: String) -> LexedSearchFilterToken? {
-    return (input, .SingleNonPairing)
-}
-
-internal func parseUnclosedPairing(_ input: String) -> LexedSearchFilterToken? {
-    return (input, .UnclosedPairing)
-}
-
-func parseSearchFilter(_ input: String) throws -> SearchFilter {
+func lexSearchFilter(_ input: String) throws -> [LexedSearchFilterToken] {
     let lexer = CitronLexer<LexedSearchFilterToken>(rules: [
         .regexPattern(#"'[^']*'"#, parseQuoted), // highest priority
         .regexPattern(#""[^"]*""#, parseQuoted), // highest priority
-        .regexPattern(#"/[^/]*/"#, parseRegex), // highest priority
-        .regexPattern(#"\([^\)]*\)"#, parseParenthesized), // highest priority
-        .regexPattern(#"[a-zA-Z0-9]+"#, parseAlphanumeric),
+        .regexPattern(#"/[^/]*/"#) { ($0, .Regex) }, // highest priority
+        .regexPattern(#"\([^\)]*\)"#) { ($0, .Parenthesized) }, // highest priority
+        .regexPattern(#"[a-zA-Z0-9]+"#) { ($0, .Alphanumeric) },
         .string("-", ("-", .Minus)),
-        .regexPattern(#"<=|<|>=|>|!=|=|:"#, parseComparison),
+        .regexPattern(#"<=|<|>=|>|!=|=|:"#) { ($0, .Comparison) },
         .string("!", ("!", .Bang)), // must come after operators!
-        .regexPattern(#"[^'"/ \t\n\(\)]"#, parseSingleNonPairing), // TODO: Can do a class of whitespace better than this?
-        .regexPattern(#"['"/\(\)]"#, parseUnclosedPairing),
+        .regexPattern(#"[^'"/ \t\n\(\)]"#) { ($0, .SingleNonPairing) }, // TODO: Can do a class of whitespace better than this?
+        .regexPattern(#"['"/\(\)]"#) { ($0, .UnclosedPairing) },
     ])
     
-    let parser = SearchFilterParser()
-    try lexer.tokenize(input) { token, code in
-        try parser.consume(token: token, code: code)
-    }
-    return try parser.endParsing()
+    var tokens: [LexedSearchFilterToken] = []
+    try lexer.tokenize(input) { tokens.append($0) }
+    return tokens
 }
