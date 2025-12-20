@@ -213,15 +213,9 @@ struct ParenthesizedQueryTests {
     @Test("Parse unclosed parenthesis")
     func unclosedParenthesis() throws {
         let input = "(red or blue"
+        let result = try parseParenthesizedQuery(input)
         
-        // The parser may handle this gracefully or throw an error
-        // depending on error recovery implementation
-        let result = try? parseParenthesizedQuery(input)
-        
-        // If it doesn't throw, verify it still captured some filters
-        if let result = result {
-            #expect(result.filters.count >= 2)
-        }
+        #expect(result.filters.count >= 2)
     }
     
     @Test("Parse unmatched closing parenthesis")

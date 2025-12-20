@@ -74,7 +74,7 @@ final class ScryfallCatalogs {
     private var symbolCache: any Cache<String, [SymbolCode: Card.Symbol]>
     private var stringCache: any Cache<Catalog.`Type`, Set<String>>
     private var symbolSvgCache: any Cache<SymbolCode, Data>
-
+    
     private init() {
         setCache =
             HybridCache(
