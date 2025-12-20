@@ -71,6 +71,11 @@ struct CardDetailView: View {
                     releasedAtAsDate: card.releasedAtAsDate,
                 )
 
+                if CardPricesSection.hasPrices(card: card) {
+                    Divider().padding(.horizontal)
+                    CardPricesSection(prices: card.prices, purchaseUris: card.purchaseUris)
+                }
+
                 if let oracleId = card.bestEffortOracleId {
                     Divider().padding(.horizontal)
                     CardOtherPrintsSection(

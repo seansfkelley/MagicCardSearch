@@ -1,0 +1,7 @@
+<svg focusable="false" aria-hidden="true" viewBox="0 0 15 15" xmlns="http://www.w3.org/2000/svg">
+  <g fill="none" fill-rule="evenodd" stroke="#264FD4">
+    <path d="M2.5 4.516l5-4.167 5 4.167v5.968l-5 4.167-5-4.167V4.516z"></path>
+    <path d="M7.5 3v2L9 7v2l-1.5 2L6 9V7"></path>
+    <path d="M7.5 11v1M9 9l1 1M6 9l-1 1M9 7l1-1" stroke-linecap="square"></path>
+  </g>
+</svg>

@@ -289,6 +289,117 @@ struct CardRulingsSection: View {
     }
 }
 
+// MARK: - Card Prices Section
+
+struct CardPricesSection: View {
+    let prices: Card.Prices
+    let purchaseUris: [String: String]?
+    
+    static func hasPrices(card: Card) -> Bool {
+        let usdAvailable = card.prices.usd != nil && !card.prices.usd!.isEmpty
+        let eurAvailable = card.prices.eur != nil && !card.prices.eur!.isEmpty
+        let tixAvailable = card.prices.tix != nil && !card.prices.tix!.isEmpty
+        
+        return usdAvailable || eurAvailable || tixAvailable
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 16) {
+                Text("Buy It")
+                    .font(.headline)
+                    .fontWeight(.semibold)
+
+                if let usd = prices.usd, !usd.isEmpty {
+                    Text("USD $\(usd)")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+
+                if let eur = prices.eur, !eur.isEmpty {
+                    Text("EUR €\(eur)")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+
+                if let tix = prices.tix, !tix.isEmpty {
+                    Text("TIX \(tix)")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer()
+            }
+
+            if let purchaseUris, !purchaseUris.isEmpty {
+                ViewThatFits {
+                    vendorButtons
+                        .frame(maxWidth: .infinity, alignment: .leading)
+
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        vendorButtons
+                    }
+                }
+            }
+        }
+        .padding(.horizontal)
+        .padding(.vertical, 12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    @ViewBuilder private var vendorButtons: some View {
+        HStack(spacing: 8) {
+            if let purchaseUris {
+                ForEach(Vendor.allCases, id: \.rawValue) { vendor in
+                    if let url = purchaseUris[vendor.rawValue] {
+                        VendorButton(vendor: vendor, url: url)
+                    }
+                }
+            }
+        }
+    }
+    
+    private enum Vendor: String, CaseIterable {
+        case tcgplayer, cardmarket, cardhoarder
+        
+        var displayName: String {
+            switch self {
+            case .tcgplayer: "TCGplayer"
+            case .cardmarket: "Cardmarket"
+            case .cardhoarder: "Cardhoarder"
+            }
+        }
+    }
+
+    private struct VendorButton: View {
+        let vendor: Vendor
+        let url: String
+
+        var body: some View {
+            Link(destination: URL(string: url)!) {
+                HStack {
+                    Image(vendor.rawValue)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                    
+                    Text(vendor.displayName)
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundStyle(.blue)
+                        .lineLimit(1)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(Color.blue.opacity(0.1))
+                )
+            }
+        }
+    }
+}
+
 // MARK: - Card Other Prints Section
 
 struct CardOtherPrintsSection: View {
