@@ -20,7 +20,6 @@ struct ParenthesizedQueryTests {
         
         #expect(result.filters.count == 1)
         #expect(String(input[result.filters[0]]) == "lightning")
-        #expect(String(input[result.range]) == "lightning")
     }
     
     @Test("Parse quoted string")
@@ -60,7 +59,6 @@ struct ParenthesizedQueryTests {
         #expect(result.filters.count == 2)
         #expect(String(input[result.filters[0]]) == "lightning")
         #expect(String(input[result.filters[1]]) == "bolt")
-        #expect(String(input[result.range]) == "lightning bolt")
     }
     
     @Test("Parse multiple terms with AND")
@@ -129,7 +127,6 @@ struct ParenthesizedQueryTests {
         
         #expect(result.filters.count == 1)
         #expect(String(input[result.filters[0]]) == "lightning")
-        #expect(String(input[result.range]) == "(lightning)")
     }
     
     @Test("Parse parenthesized OR query")
@@ -273,15 +270,6 @@ struct ParenthesizedQueryTests {
     
     // MARK: - Range Verification
     
-    @Test("Verify range spans entire query")
-    func rangeSpansEntireQuery() throws {
-        let input = "red creature flying"
-        let result = try parseParenthesizedQuery(input)
-        
-        let rangeContent = String(input[result.range])
-        #expect(rangeContent == "red creature flying")
-    }
-    
     @Test("Verify filter ranges are correct")
     func filterRangesAreCorrect() throws {
         let input = "lightning bolt"
@@ -294,13 +282,5 @@ struct ParenthesizedQueryTests {
         
         #expect(firstFilter == "lightning")
         #expect(secondFilter == "bolt")
-    }
-    
-    @Test("Verify parenthesized range includes parentheses")
-    func parenthesizedRangeIncludesParentheses() throws {
-        let input = "(red or blue) creature"
-        let result = try parseParenthesizedQuery(input)
-        
-        #expect(String(input[result.range]) == "(red or blue) creature")
     }
 }

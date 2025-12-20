@@ -4,10 +4,7 @@
 //
 //  Created by Sean Kelley on 2025-12-19.
 //
-struct ParenthesizedQueryTokenContent {
-    let content: String
-    var range: Range<String.Index>
-}
+typealias ParenthesizedQueryTokenContent = Range<String.Index>
 
 internal typealias LexedParenthesizedQueryToken = (
     String, ParenthesizedQueryParser.CitronTokenCode
@@ -56,24 +53,21 @@ func parseParenthesizedQuery(_ input: String) throws -> ParenthesizedQuery {
     try lexer.tokenize(trimmedInput) { token, code in
         if tokens.isEmpty {
             tokens.append((
-                .init(content: token, range: trimmedInput.startIndex..<trimmedInput.index(trimmedInput.startIndex, offsetBy: token.count)),
+                trimmedInput.startIndex..<trimmedInput.index(trimmedInput.startIndex, offsetBy: token.count),
                 code,
             ))
         } else if code == .Verbatim, let previous = tokens.last, previous.1 == .Verbatim {
             tokens.removeLast()
-            let previousStart = previous.0.range.lowerBound
-            let previousEnd = previous.0.range.upperBound
+            let previousStart = previous.0.lowerBound
+            let previousEnd = previous.0.upperBound
             tokens.append((
-                .init(
-                    content: "\(previous.0.content)\(token)",
-                    range: previousStart..<trimmedInput.index(previousEnd, offsetBy: token.count),
-                ),
+                previousStart..<trimmedInput.index(previousEnd, offsetBy: token.count),
                 .Verbatim,
             ))
         } else {
-            let previousEnd = tokens.last!.0.range.upperBound
+            let previousEnd = tokens.last!.0.upperBound
             tokens.append((
-                .init(content: token, range: previousEnd..<trimmedInput.index(previousEnd, offsetBy: token.count)),
+                previousEnd..<trimmedInput.index(previousEnd, offsetBy: token.count),
                 code,
             ))
         }
