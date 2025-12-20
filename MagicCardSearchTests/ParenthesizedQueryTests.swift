@@ -18,7 +18,7 @@ struct ParenthesizedQueryTests {
         let input = "lightning"
         let result = try ParenthesizedQuery.tryParse(input)
         
-        #expect(result.filters.count == 1)
+        try #require(result.filters.count == 1)
         #expect(String(input[result.filters[0]]) == "lightning")
     }
     
@@ -27,7 +27,7 @@ struct ParenthesizedQueryTests {
         let input = "\"lightning bolt\""
         let result = try ParenthesizedQuery.tryParse(input)
         
-        #expect(result.filters.count == 1)
+        try #require(result.filters.count == 1)
         #expect(String(input[result.filters[0]]) == "\"lightning bolt\"")
     }
     
@@ -36,7 +36,7 @@ struct ParenthesizedQueryTests {
         let input = "/^light/"
         let result = try ParenthesizedQuery.tryParse(input)
         
-        #expect(result.filters.count == 1)
+        try #require(result.filters.count == 1)
         #expect(String(input[result.filters[0]]) == "/^light/")
     }
     
@@ -45,7 +45,7 @@ struct ParenthesizedQueryTests {
         let input = "'Serra Angel'"
         let result = try ParenthesizedQuery.tryParse(input)
         
-        #expect(result.filters.count == 1)
+        try #require(result.filters.count == 1)
         #expect(String(input[result.filters[0]]) == "'Serra Angel'")
     }
     
@@ -56,7 +56,7 @@ struct ParenthesizedQueryTests {
         let input = "lightning bolt"
         let result = try ParenthesizedQuery.tryParse(input)
         
-        #expect(result.filters.count == 2)
+        try #require(result.filters.count == 2)
         #expect(String(input[result.filters[0]]) == "lightning")
         #expect(String(input[result.filters[1]]) == "bolt")
     }
@@ -66,7 +66,7 @@ struct ParenthesizedQueryTests {
         let input = "red creature haste"
         let result = try ParenthesizedQuery.tryParse(input)
         
-        #expect(result.filters.count == 3)
+        try #require(result.filters.count == 3)
         #expect(String(input[result.filters[0]]) == "red")
         #expect(String(input[result.filters[1]]) == "creature")
         #expect(String(input[result.filters[2]]) == "haste")
@@ -77,7 +77,9 @@ struct ParenthesizedQueryTests {
         let input = "  lightning   bolt  "
         let result = try ParenthesizedQuery.tryParse(input)
         
-        #expect(result.filters.count == 2)
+        try #require(result.filters.count == 2)
+        #expect(String(input[result.filters[0]]) == "lightning")
+        #expect(String(input[result.filters[1]]) == "bolt")
     }
     
     // MARK: - OR Queries
@@ -87,7 +89,7 @@ struct ParenthesizedQueryTests {
         let input = "lightning or bolt"
         let result = try ParenthesizedQuery.tryParse(input)
         
-        #expect(result.filters.count == 2)
+        try #require(result.filters.count == 2)
         #expect(String(input[result.filters[0]]) == "lightning")
         #expect(String(input[result.filters[1]]) == "bolt")
     }
@@ -97,7 +99,7 @@ struct ParenthesizedQueryTests {
         let input = "red or blue or green"
         let result = try ParenthesizedQuery.tryParse(input)
         
-        #expect(result.filters.count == 3)
+        try #require(result.filters.count == 3)
         #expect(String(input[result.filters[0]]) == "red")
         #expect(String(input[result.filters[1]]) == "blue")
         #expect(String(input[result.filters[2]]) == "green")
@@ -110,7 +112,7 @@ struct ParenthesizedQueryTests {
         let input = "red creature or blue instant"
         let result = try ParenthesizedQuery.tryParse(input)
         
-        #expect(result.filters.count == 4)
+        try #require(result.filters.count == 4)
         #expect(String(input[result.filters[0]]) == "red")
         #expect(String(input[result.filters[1]]) == "creature")
         #expect(String(input[result.filters[2]]) == "blue")
@@ -124,7 +126,7 @@ struct ParenthesizedQueryTests {
         let input = "(lightning)"
         let result = try ParenthesizedQuery.tryParse(input)
         
-        #expect(result.filters.count == 1)
+        try #require(result.filters.count == 1)
         #expect(String(input[result.filters[0]]) == "lightning")
     }
     
@@ -133,7 +135,7 @@ struct ParenthesizedQueryTests {
         let input = "(red or blue)"
         let result = try ParenthesizedQuery.tryParse(input)
         
-        #expect(result.filters.count == 2)
+        try #require(result.filters.count == 2)
         #expect(String(input[result.filters[0]]) == "red")
         #expect(String(input[result.filters[1]]) == "blue")
     }
@@ -143,8 +145,7 @@ struct ParenthesizedQueryTests {
         let input = "(red or blue) instant"
         let result = try ParenthesizedQuery.tryParse(input)
         
-        // Should parse as: (red OR blue) AND instant
-        #expect(result.filters.count == 3)
+        try #require(result.filters.count == 3)
         #expect(String(input[result.filters[0]]) == "red")
         #expect(String(input[result.filters[1]]) == "blue")
         #expect(String(input[result.filters[2]]) == "instant")
@@ -155,7 +156,7 @@ struct ParenthesizedQueryTests {
         let input = "((red or blue) creature)"
         let result = try ParenthesizedQuery.tryParse(input)
         
-        #expect(result.filters.count == 3)
+        try #require(result.filters.count == 3)
         #expect(String(input[result.filters[0]]) == "red")
         #expect(String(input[result.filters[1]]) == "blue")
         #expect(String(input[result.filters[2]]) == "creature")
@@ -166,7 +167,7 @@ struct ParenthesizedQueryTests {
         let input = "(red or blue) or (black or white)"
         let result = try ParenthesizedQuery.tryParse(input)
         
-        #expect(result.filters.count == 4)
+        try #require(result.filters.count == 4)
         #expect(String(input[result.filters[0]]) == "red")
         #expect(String(input[result.filters[1]]) == "blue")
         #expect(String(input[result.filters[2]]) == "black")
@@ -180,7 +181,7 @@ struct ParenthesizedQueryTests {
         let input = "(red or blue) creature (flying or haste)"
         let result = try ParenthesizedQuery.tryParse(input)
         
-        #expect(result.filters.count == 5)
+        try #require(result.filters.count == 5)
         #expect(String(input[result.filters[0]]) == "red")
         #expect(String(input[result.filters[1]]) == "blue")
         #expect(String(input[result.filters[2]]) == "creature")
@@ -193,7 +194,7 @@ struct ParenthesizedQueryTests {
         let input = "(\"lightning bolt\" or \"chain lightning\")"
         let result = try ParenthesizedQuery.tryParse(input)
         
-        #expect(result.filters.count == 2)
+        try #require(result.filters.count == 2)
         #expect(String(input[result.filters[0]]) == "\"lightning bolt\"")
         #expect(String(input[result.filters[1]]) == "\"chain lightning\"")
     }
@@ -213,7 +214,9 @@ struct ParenthesizedQueryTests {
         let input = "(red or blue"
         let result = try ParenthesizedQuery.tryParse(input)
         
-        #expect(result.filters.count >= 2)
+        try #require(result.filters.count == 2)
+        #expect(String(input[result.filters[0]]) == "red")
+        #expect(String(input[result.filters[1]]) == "blue")
     }
     
     @Test("Parse unmatched closing parenthesis")
@@ -221,7 +224,7 @@ struct ParenthesizedQueryTests {
         let input = "red or blue)"
         let result = try ParenthesizedQuery.tryParse(input)
         
-        #expect(result.filters.count == 2)
+        try #require(result.filters.count == 2)
         #expect(String(input[result.filters[0]]) == "red")
         #expect(String(input[result.filters[1]]) == "blue")
     }
@@ -239,7 +242,7 @@ struct ParenthesizedQueryTests {
         let input = "or red"
         let result = try ParenthesizedQuery.tryParse(input)
         
-        #expect(result.filters.count == 1)
+        try #require(result.filters.count == 1)
         #expect(String(input[result.filters[0]]) == "red")
     }
     
@@ -248,7 +251,7 @@ struct ParenthesizedQueryTests {
         let input = "red or"
         let result = try ParenthesizedQuery.tryParse(input)
         
-        #expect(result.filters.count == 1)
+        try #require(result.filters.count == 1)
         #expect(String(input[result.filters[0]]) == "red")
     }
     
@@ -257,7 +260,7 @@ struct ParenthesizedQueryTests {
         let input = "red or or blue"
         let result = try ParenthesizedQuery.tryParse(input)
         
-        #expect(result.filters.count == 2)
+        try #require(result.filters.count == 2)
         #expect(String(input[result.filters[0]]) == "red")
         #expect(String(input[result.filters[1]]) == "blue")
     }
@@ -269,7 +272,7 @@ struct ParenthesizedQueryTests {
         let input = "lightning bolt"
         let result = try ParenthesizedQuery.tryParse(input)
         
-        #expect(result.filters.count == 2)
+        try #require(result.filters.count == 2)
         
         let firstFilter = String(input[result.filters[0]])
         let secondFilter = String(input[result.filters[1]])
