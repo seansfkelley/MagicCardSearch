@@ -15,9 +15,9 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "2137B5AC2EE139C60066BF7E"
-               BuildableName = "MagicCardSearch.app"
-               BlueprintName = "MagicCardSearch"
+               BlueprintIdentifier = "21A815F32EE233CC00282ED3"
+               BuildableName = "Citron"
+               BlueprintName = "Citron"
                ReferencedContainer = "container:MagicCardSearch.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
@@ -29,30 +29,6 @@
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
       shouldUseLaunchSchemeArgsEnv = "YES"
       shouldAutocreateTestPlan = "YES">
-      <Testables>
-         <TestableReference
-            skipped = "NO"
-            parallelizable = "YES">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "2137B5B92EE139C70066BF7E"
-               BuildableName = "MagicCardSearchTests.xctest"
-               BlueprintName = "MagicCardSearchTests"
-               ReferencedContainer = "container:MagicCardSearch.xcodeproj">
-            </BuildableReference>
-         </TestableReference>
-         <TestableReference
-            skipped = "NO"
-            parallelizable = "YES">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "2137B5C32EE139C70066BF7E"
-               BuildableName = "MagicCardSearchUITests.xctest"
-               BlueprintName = "MagicCardSearchUITests"
-               ReferencedContainer = "container:MagicCardSearch.xcodeproj">
-            </BuildableReference>
-         </TestableReference>
-      </Testables>
    </TestAction>
    <LaunchAction
       buildConfiguration = "Debug"
@@ -64,16 +40,6 @@
       debugDocumentVersioning = "YES"
       debugServiceExtension = "internal"
       allowLocationSimulation = "YES">
-      <BuildableProductRunnable
-         runnableDebuggingMode = "0">
-         <BuildableReference
-            BuildableIdentifier = "primary"
-            BlueprintIdentifier = "2137B5AC2EE139C60066BF7E"
-            BuildableName = "MagicCardSearch.app"
-            BlueprintName = "MagicCardSearch"
-            ReferencedContainer = "container:MagicCardSearch.xcodeproj">
-         </BuildableReference>
-      </BuildableProductRunnable>
    </LaunchAction>
    <ProfileAction
       buildConfiguration = "Release"
@@ -81,16 +47,15 @@
       savedToolIdentifier = ""
       useCustomWorkingDirectory = "NO"
       debugDocumentVersioning = "YES">
-      <BuildableProductRunnable
-         runnableDebuggingMode = "0">
+      <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "2137B5AC2EE139C60066BF7E"
-            BuildableName = "MagicCardSearch.app"
-            BlueprintName = "MagicCardSearch"
+            BlueprintIdentifier = "21A815F32EE233CC00282ED3"
+            BuildableName = "Citron"
+            BlueprintName = "Citron"
             ReferencedContainer = "container:MagicCardSearch.xcodeproj">
          </BuildableReference>
-      </BuildableProductRunnable>
+      </MacroExpansion>
    </ProfileAction>
    <AnalyzeAction
       buildConfiguration = "Debug">

@@ -7,16 +7,15 @@ enum SearchFilter: Equatable, Hashable, Codable {
     case negated(SearchFilterContent)
     
     static func tryParseUnambiguous(_ input: String) -> SearchFilter? {
-        guard let tokens = try? lexSearchFilter(input) else {
+        let parser = SearchFilterParser()
+        do {
+            for (token, code) in try lexSearchFilter(input) {
+                try parser.consume(token: token, code: code)
+            }
+            return try parser.endParsing()
+        } catch {
             return nil
         }
-        
-        let parser = SearchFilterParser()
-        parser.isTracingEnabled = true
-        for (token, code) in tokens {
-            try? parser.consume(token: token, code: code)
-        }
-        return try? parser.endParsing()
     }
     
     var queryStringWithEditingRange: (String, Range<String.Index>) {
