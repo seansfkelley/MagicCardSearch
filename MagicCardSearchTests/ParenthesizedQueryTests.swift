@@ -16,7 +16,7 @@ struct ParenthesizedQueryTests {
     @Test("Parse single verbatim term")
     func singleTerm() throws {
         let input = "lightning"
-        let result = try parseParenthesizedQuery(input)
+        let result = try ParenthesizedQuery.tryParse(input)
         
         #expect(result.filters.count == 1)
         #expect(String(input[result.filters[0]]) == "lightning")
@@ -25,7 +25,7 @@ struct ParenthesizedQueryTests {
     @Test("Parse quoted string")
     func quotedString() throws {
         let input = "\"lightning bolt\""
-        let result = try parseParenthesizedQuery(input)
+        let result = try ParenthesizedQuery.tryParse(input)
         
         #expect(result.filters.count == 1)
         #expect(String(input[result.filters[0]]) == "\"lightning bolt\"")
@@ -34,7 +34,7 @@ struct ParenthesizedQueryTests {
     @Test("Parse regex pattern")
     func regexPattern() throws {
         let input = "/^light/"
-        let result = try parseParenthesizedQuery(input)
+        let result = try ParenthesizedQuery.tryParse(input)
         
         #expect(result.filters.count == 1)
         #expect(String(input[result.filters[0]]) == "/^light/")
@@ -43,7 +43,7 @@ struct ParenthesizedQueryTests {
     @Test("Parse single quoted string")
     func singleQuotedString() throws {
         let input = "'Serra Angel'"
-        let result = try parseParenthesizedQuery(input)
+        let result = try ParenthesizedQuery.tryParse(input)
         
         #expect(result.filters.count == 1)
         #expect(String(input[result.filters[0]]) == "'Serra Angel'")
@@ -54,7 +54,7 @@ struct ParenthesizedQueryTests {
     @Test("Parse two terms with AND")
     func twoTermsAnd() throws {
         let input = "lightning bolt"
-        let result = try parseParenthesizedQuery(input)
+        let result = try ParenthesizedQuery.tryParse(input)
         
         #expect(result.filters.count == 2)
         #expect(String(input[result.filters[0]]) == "lightning")
@@ -64,7 +64,7 @@ struct ParenthesizedQueryTests {
     @Test("Parse multiple terms with AND")
     func multipleTermsAnd() throws {
         let input = "red creature haste"
-        let result = try parseParenthesizedQuery(input)
+        let result = try ParenthesizedQuery.tryParse(input)
         
         #expect(result.filters.count == 3)
         #expect(String(input[result.filters[0]]) == "red")
@@ -75,7 +75,7 @@ struct ParenthesizedQueryTests {
     @Test("Parse terms with extra whitespace")
     func termsWithExtraWhitespace() throws {
         let input = "  lightning   bolt  "
-        let result = try parseParenthesizedQuery(input)
+        let result = try ParenthesizedQuery.tryParse(input)
         
         #expect(result.filters.count == 2)
     }
@@ -85,7 +85,7 @@ struct ParenthesizedQueryTests {
     @Test("Parse two terms with OR")
     func twoTermsOr() throws {
         let input = "lightning or bolt"
-        let result = try parseParenthesizedQuery(input)
+        let result = try ParenthesizedQuery.tryParse(input)
         
         #expect(result.filters.count == 2)
         #expect(String(input[result.filters[0]]) == "lightning")
@@ -95,7 +95,7 @@ struct ParenthesizedQueryTests {
     @Test("Parse multiple terms with OR")
     func multipleTermsOr() throws {
         let input = "red or blue or green"
-        let result = try parseParenthesizedQuery(input)
+        let result = try ParenthesizedQuery.tryParse(input)
         
         #expect(result.filters.count == 3)
         #expect(String(input[result.filters[0]]) == "red")
@@ -108,7 +108,7 @@ struct ParenthesizedQueryTests {
     @Test("Parse AND with OR - precedence test")
     func andOrPrecedence() throws {
         let input = "red creature or blue instant"
-        let result = try parseParenthesizedQuery(input)
+        let result = try ParenthesizedQuery.tryParse(input)
         
         // Should parse as: (red AND creature) OR (blue AND instant)
         #expect(result.filters.count == 4)
@@ -123,7 +123,7 @@ struct ParenthesizedQueryTests {
     @Test("Parse simple parenthesized query")
     func simpleParenthesized() throws {
         let input = "(lightning)"
-        let result = try parseParenthesizedQuery(input)
+        let result = try ParenthesizedQuery.tryParse(input)
         
         #expect(result.filters.count == 1)
         #expect(String(input[result.filters[0]]) == "lightning")
@@ -132,7 +132,7 @@ struct ParenthesizedQueryTests {
     @Test("Parse parenthesized OR query")
     func parenthesizedOr() throws {
         let input = "(red or blue)"
-        let result = try parseParenthesizedQuery(input)
+        let result = try ParenthesizedQuery.tryParse(input)
         
         #expect(result.filters.count == 2)
         #expect(String(input[result.filters[0]]) == "red")
@@ -142,7 +142,7 @@ struct ParenthesizedQueryTests {
     @Test("Parse parentheses changing precedence")
     func parenthesesChangePrecedence() throws {
         let input = "(red or blue) instant"
-        let result = try parseParenthesizedQuery(input)
+        let result = try ParenthesizedQuery.tryParse(input)
         
         // Should parse as: (red OR blue) AND instant
         #expect(result.filters.count == 3)
@@ -154,7 +154,7 @@ struct ParenthesizedQueryTests {
     @Test("Parse nested parentheses")
     func nestedParentheses() throws {
         let input = "((red or blue) creature)"
-        let result = try parseParenthesizedQuery(input)
+        let result = try ParenthesizedQuery.tryParse(input)
         
         #expect(result.filters.count == 3)
         #expect(String(input[result.filters[0]]) == "red")
@@ -165,7 +165,7 @@ struct ParenthesizedQueryTests {
     @Test("Parse multiple parenthesized groups")
     func multipleParenthesizedGroups() throws {
         let input = "(red or blue) or (black or white)"
-        let result = try parseParenthesizedQuery(input)
+        let result = try ParenthesizedQuery.tryParse(input)
         
         #expect(result.filters.count == 4)
         #expect(String(input[result.filters[0]]) == "red")
@@ -179,7 +179,7 @@ struct ParenthesizedQueryTests {
     @Test("Parse complex mixed query")
     func complexMixedQuery() throws {
         let input = "(red or blue) creature (flying or haste)"
-        let result = try parseParenthesizedQuery(input)
+        let result = try ParenthesizedQuery.tryParse(input)
         
         #expect(result.filters.count == 5)
         #expect(String(input[result.filters[0]]) == "red")
@@ -192,7 +192,7 @@ struct ParenthesizedQueryTests {
     @Test("Parse query with quoted strings in parentheses")
     func quotedStringsInParentheses() throws {
         let input = "(\"lightning bolt\" or \"chain lightning\")"
-        let result = try parseParenthesizedQuery(input)
+        let result = try ParenthesizedQuery.tryParse(input)
         
         #expect(result.filters.count == 2)
         #expect(String(input[result.filters[0]]) == "\"lightning bolt\"")
@@ -206,14 +206,14 @@ struct ParenthesizedQueryTests {
         let input = "()"
         
         #expect(throws: Error.self) {
-            try parseParenthesizedQuery(input)
+            try ParenthesizedQuery.tryParse(input)
         }
     }
     
     @Test("Parse unclosed parenthesis")
     func unclosedParenthesis() throws {
         let input = "(red or blue"
-        let result = try parseParenthesizedQuery(input)
+        let result = try ParenthesizedQuery.tryParse(input)
         
         #expect(result.filters.count >= 2)
     }
@@ -223,7 +223,7 @@ struct ParenthesizedQueryTests {
         let input = "red or blue)"
         
         #expect(throws: Error.self) {
-            try parseParenthesizedQuery(input)
+            try ParenthesizedQuery.tryParse(input)
         }
     }
     
@@ -232,7 +232,7 @@ struct ParenthesizedQueryTests {
         let input = "   "
         
         #expect(throws: Error.self) {
-            try parseParenthesizedQuery(input)
+            try ParenthesizedQuery.tryParse(input)
         }
     }
     
@@ -241,7 +241,7 @@ struct ParenthesizedQueryTests {
         let input = "or red"
         
         #expect(throws: Error.self) {
-            try parseParenthesizedQuery(input)
+            try ParenthesizedQuery.tryParse(input)
         }
     }
     
@@ -250,7 +250,7 @@ struct ParenthesizedQueryTests {
         let input = "red or"
         
         #expect(throws: Error.self) {
-            try parseParenthesizedQuery(input)
+            try ParenthesizedQuery.tryParse(input)
         }
     }
     
@@ -258,7 +258,7 @@ struct ParenthesizedQueryTests {
     func consecutiveOrs() throws {
         let input = "red or or blue"
         #expect(throws: Error.self) {
-            try parseParenthesizedQuery(input)
+            try ParenthesizedQuery.tryParse(input)
         }
     }
     
@@ -267,7 +267,7 @@ struct ParenthesizedQueryTests {
     @Test("Verify filter ranges are correct")
     func filterRangesAreCorrect() throws {
         let input = "lightning bolt"
-        let result = try parseParenthesizedQuery(input)
+        let result = try ParenthesizedQuery.tryParse(input)
         
         #expect(result.filters.count == 2)
         
