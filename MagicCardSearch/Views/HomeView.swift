@@ -7,6 +7,9 @@
 
 import SwiftUI
 import ScryfallKit
+import Logging
+
+private let logger = Logger(label: "HomeView")
 
 private struct PlainStyling: ViewModifier {
     func body(content: Content) -> some View {
@@ -160,7 +163,11 @@ struct HomeView: View {
             .listSectionMargins(.horizontal, 0)
         }
         .task {
+            #if DEBUG
+            logger.info("Skipping featured card load in test environment")
+            #else
             await loadFeaturedCards()
+            #endif
         }
         .sheet(
             item: Binding(
