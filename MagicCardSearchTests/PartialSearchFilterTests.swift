@@ -620,6 +620,8 @@ struct PartialSearchFilterTests {
     ])
     func parseAndConvert(testCase: TestCase) async throws {
         let actualPartial = PartialSearchFilter.from(testCase.input)
+        #expect(actualPartial.description == testCase.input)
+        
         #expect(
             actualPartial == testCase.expectedPartial,
             "Parsing '\(testCase.input)' failed"

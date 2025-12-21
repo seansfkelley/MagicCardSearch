@@ -8,8 +8,8 @@ import Logging
 
 private let logger = Logger(label: "PartialSearchFilter")
 
-struct PartialSearchFilter: Equatable {
-    enum PartialComparison: String, Equatable {
+struct PartialSearchFilter: Equatable, CustomStringConvertible {
+    enum PartialComparison: String, Equatable, CustomStringConvertible {
         case including = ":"
         case equal = "="
         case notEqual = "!="
@@ -18,6 +18,10 @@ struct PartialSearchFilter: Equatable {
         case greaterThan = ">"
         case greaterThanOrEqual = ">="
         case incompleteNotEqual = "!"
+        
+        var description: String {
+            self.rawValue
+        }
         
         func toComplete() -> Comparison? {
             switch self {
@@ -33,14 +37,28 @@ struct PartialSearchFilter: Equatable {
         }
     }
     
-    enum PartialTerm: Equatable {
-        enum QuotingType: Equatable {
-            case singleQuote, doubleQuote, forwardSlash
+    enum PartialTerm: Equatable, CustomStringConvertible {
+        enum QuotingType: String, Equatable, CustomStringConvertible {
+            case singleQuote = "'"
+            case doubleQuote = "\""
+            case forwardSlash = "/"
+            
+            var description: String {
+                self.rawValue
+            }
         }
         
         case unquoted(String)
         case unterminated(QuotingType, String)
         case balanced(QuotingType, String)
+        
+        var description: String {
+            switch self {
+            case .unquoted(let content): content
+            case .unterminated(let quote, let content): "\(quote)\(content)"
+            case .balanced(let quote, let content): "\(quote)\(content)\(quote)"
+            }
+        }
         
         var quotingType: QuotingType? {
             switch self {
@@ -71,9 +89,16 @@ struct PartialSearchFilter: Equatable {
         }
     }
     
-    enum Content: Equatable {
+    enum Content: Equatable, CustomStringConvertible {
         case name(Bool, PartialTerm)
         case filter(String, PartialComparison, PartialTerm)
+        
+        var description: String {
+            switch self {
+            case .name(let exact, let term): "\(exact ? "!" : "")\(term)"
+            case .filter(let field, let comparison, let term): "\(field)\(comparison)\(term)"
+            }
+        }
         
         func toComplete() -> SearchFilterContent? {
             switch self {
@@ -99,6 +124,10 @@ struct PartialSearchFilter: Equatable {
     
     let negated: Bool
     let content: Content
+    
+    var description: String {
+        "\(negated ? "-" : "")\(content)"
+    }
     
     func toComplete() -> SearchFilter? {
         if let completeContent = content.toComplete() {
