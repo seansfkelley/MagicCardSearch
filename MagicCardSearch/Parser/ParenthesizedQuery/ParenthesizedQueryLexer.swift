@@ -11,8 +11,9 @@ internal typealias LexedParenthesizedQueryToken = (
 )
 
 func lexParenthesizedQuery(_ input: String) throws -> [LexedParenthesizedQueryToken] {
-    // TODO: Offset the ranges based on how much was removed here.
-    let trimmedInput = input.trimmingCharacters(in: .whitespaces)
+    guard !input.isEmpty else {
+        return []
+    }
     
     let lexer = CitronLexer<(String, ParenthesizedQueryParser.CitronTokenCode)>(rules: [
         .regexPattern(#"-?\(\s*"#) { ($0, .OpenParen) },
@@ -30,10 +31,10 @@ func lexParenthesizedQuery(_ input: String) throws -> [LexedParenthesizedQueryTo
     ])
     
     var tokens: [LexedParenthesizedQueryToken] = []
-    try lexer.tokenize(trimmedInput) { token, code in
+    try lexer.tokenize(input) { token, code in
         if tokens.isEmpty {
             tokens.append((
-                trimmedInput.startIndex..<trimmedInput.index(trimmedInput.startIndex, offsetBy: token.count),
+                input.startIndex..<input.index(input.startIndex, offsetBy: token.count),
                 code,
             ))
         } else if code == .Verbatim, let previous = tokens.last, previous.1 == .Verbatim {
@@ -41,13 +42,13 @@ func lexParenthesizedQuery(_ input: String) throws -> [LexedParenthesizedQueryTo
             let previousStart = previous.0.lowerBound
             let previousEnd = previous.0.upperBound
             tokens.append((
-                previousStart..<trimmedInput.index(previousEnd, offsetBy: token.count),
+                previousStart..<input.index(previousEnd, offsetBy: token.count),
                 .Verbatim,
             ))
         } else {
             let previousEnd = tokens.last!.0.upperBound
             tokens.append((
-                previousEnd..<trimmedInput.index(previousEnd, offsetBy: token.count),
+                previousEnd..<input.index(previousEnd, offsetBy: token.count),
                 code,
             ))
         }

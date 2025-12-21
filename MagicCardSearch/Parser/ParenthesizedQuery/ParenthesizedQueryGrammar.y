@@ -7,14 +7,14 @@
 query ::= disjunction(d). { d }
 
 %nonterminal_type disjunction ParenthesizedQuery
-//%capture_errors disjunction.
+%capture_errors disjunction end_after(Or).
 disjunction ::= conjunction(c). { c }
 disjunction ::= disjunction(d) Or conjunction(c). {
     .init(filters: d.filters + c.filters)
 }
 
 %nonterminal_type conjunction ParenthesizedQuery
-//%capture_errors conjunction.
+%capture_errors conjunction end_after(And).
 conjunction ::= Verbatim(range). {
     .init(filters: [range])
 }

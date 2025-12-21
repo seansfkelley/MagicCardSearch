@@ -17,8 +17,8 @@ class ParenthesizedQueryParser: CitronParser {
 
     enum CitronTokenCode: CitronSymbolNumber {
       case Or                             =   1
-      case Verbatim                       =   2
-      case And                            =   3
+      case And                            =   2
+      case Verbatim                       =   3
       case CloseParen                     =   4
       case OpenParen                      =   5
     }
@@ -86,23 +86,24 @@ class ParenthesizedQueryParser: CitronParser {
 
     let yyLookaheadAction: [(CitronSymbolNumber, CitronParsingAction)] = [
 /*   0 */  ( 6, .ACCEPT),   ( 7, .SH( 5)), ( 8, .SH( 6)), ( 9, .RD( 4)), ( 7, .SH( 4)),
-/*   5 */  ( 8, .SH( 6)), ( 9, .RD( 4)), ( 2, .SR( 3)), ( 8, .SH( 7)), ( 9, .RD( 4)),
-/*  10 */  ( 5, .SH( 1)), ( 2, .SR( 5)), ( 1, .SH( 2)), ( 9, .RD( 6)), ( 5, .SH( 1)),
-/*  15 */  ( 4, .SR( 7)), ( 0, .RD( 0)), ( 1, .SH( 2)), ( 3, .SH( 3)),
+/*   5 */  ( 8, .SH( 6)), ( 9, .RD( 4)), ( 3, .SR( 3)), ( 9, .RD( 6)), ( 5, .SH( 1)),
+/*  10 */  ( 8, .SH( 7)), ( 9, .RD( 4)), (10, .RD( 2)), ( 3, .SR( 5)), ( 2, .SH( 3)),
+/*  15 */  ( 5, .SH( 1)), (10, .RD( 2)), ( 1, .SH( 2)), ( 0, .RD( 0)), ( 1, .SH( 2)),
+/*  20 */  ( 4, .SR( 7)),
     ]
 
-    let yyShiftUseDefault: Int = 19
+    let yyShiftUseDefault: Int = 21
     let yyShiftOffsetMin: Int = 0
-    let yyShiftOffsetMax: Int = 16
+    let yyShiftOffsetMax: Int = 18
     let yyShiftOffset: [Int] = [
-        /*     0 */     5,    5,    5,    9,   11,   16,   15,   15,
+        /*     0 */     4,    4,    4,   10,   16,   18,   12,   12,
     ]
 
     let yyReduceUseDefault: Int = -7
     let yyReduceOffsetMin: Int =   -6
-    let yyReduceOffsetMax: Int =   4
+    let yyReduceOffsetMax: Int =   2
     let yyReduceOffset: [Int] = [
-        /*     0 */    -6,   -3,    0,    4,
+        /*     0 */    -6,   -3,    2,   -1,
     ]
 
     let yyDefaultAction: [CitronParsingAction] = [
@@ -148,8 +149,8 @@ class ParenthesizedQueryParser: CitronParser {
     let yySymbolName: [String] = [
     /*  0 */ "$",
     /*  1 */ "Or",
-    /*  2 */ "Verbatim",
-    /*  3 */ "And",
+    /*  2 */ "And",
+    /*  3 */ "Verbatim",
     /*  4 */ "CloseParen",
     /*  5 */ "OpenParen",
     /*  6 */ "query",
@@ -289,13 +290,17 @@ class ParenthesizedQueryParser: CitronParser {
     weak var errorCaptureDelegate: CitronErrorCaptureDelegate? = nil
 
     let yyErrorCaptureSymbolNumbersForState: [CitronStateNumber:[CitronSymbolNumber]] = [
-          0 : [6, 9],
-          1 : [9],
-          2 : [9],
+          0 : [6, 7, 8, 9],
+          1 : [7, 8, 9],
+          2 : [8, 9],
           3 : [9],
     ]
     let yyCanErrorCapture: Bool = true
     let yyErrorCaptureDirectives: [CitronSymbolNumber:(endAfter:[[CitronTokenCode]],endBefore:[CitronTokenCode])] = [
+         7 : (endAfter: [[.Or]],
+              endBefore: []),
+         8 : (endAfter: [[.And]],
+              endBefore: []),
          9 : (endAfter: [],
               endBefore: [.CloseParen, .Verbatim, .Or, .And])
     ]
@@ -303,7 +308,7 @@ class ParenthesizedQueryParser: CitronParser {
         1, 2, 3, 4
     ]
     let yyErrorCaptureEndAfterSequenceEndingTokens: Set<CitronSymbolNumber> = [
-        
+        1, 2
     ]
 
     func yyShouldSaveErrorForCapturing(error: Error) -> Bool {
@@ -329,6 +334,22 @@ class ParenthesizedQueryParser: CitronParser {
             case .dontCapture:
                 return nil
             }
+        case .disjunction:
+            let delegateResponse = delegate.shouldCaptureErrorOnDisjunction(state: state, error: error)
+            switch (delegateResponse) {
+            case .captureAs(let symbol):
+                return .yy1(symbol)
+            case .dontCapture:
+                return nil
+            }
+        case .conjunction:
+            let delegateResponse = delegate.shouldCaptureErrorOnConjunction(state: state, error: error)
+            switch (delegateResponse) {
+            case .captureAs(let symbol):
+                return .yy1(symbol)
+            case .dontCapture:
+                return nil
+            }
         case .parenthesized:
             let delegateResponse = delegate.shouldCaptureErrorOnParenthesized(state: state, error: error)
             switch (delegateResponse) {
@@ -337,8 +358,6 @@ class ParenthesizedQueryParser: CitronParser {
             case .dontCapture:
                 return nil
             }
-        default:
-            fatalError("yyCaptureError: Symbol code \(symbolCode) is not an error capturing symbol code")
         }
     }
 
@@ -360,6 +379,14 @@ protocol _ParenthesizedQueryParserCitronErrorCaptureDelegate : AnyObject {
 
     /* query */
     func shouldCaptureErrorOnQuery(state: ParenthesizedQueryParser.CitronErrorCaptureState,
+        error: Error) -> CitronErrorCaptureResponse<ParenthesizedQuery>
+
+    /* disjunction */
+    func shouldCaptureErrorOnDisjunction(state: ParenthesizedQueryParser.CitronErrorCaptureState,
+        error: Error) -> CitronErrorCaptureResponse<ParenthesizedQuery>
+
+    /* conjunction */
+    func shouldCaptureErrorOnConjunction(state: ParenthesizedQueryParser.CitronErrorCaptureState,
         error: Error) -> CitronErrorCaptureResponse<ParenthesizedQuery>
 
     /* parenthesized */

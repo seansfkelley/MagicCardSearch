@@ -8,18 +8,28 @@ struct ParenthesizedQuery {
 
         let parser = ParenthesizedQueryParser()
         parser.errorCaptureDelegate = errorCapturer
+        
+        let trimmedInput = input.trimmingCharacters(in: .whitespaces)
+        let prefixOffset = input.prefixMatch(of: /\s*/)?.count ?? 0
 
-        for (token, code) in try lexParenthesizedQuery(input) {
+        for (token, code) in try lexParenthesizedQuery(trimmedInput) {
             try parser.consume(token: token, code: code)
         }
-        return try parser.endParsing()
+        let query = try parser.endParsing()
+        return .init(
+            filters: query.filters.map { $0.offset(with: input, by: prefixOffset) }
+        )
     }
 }
 
 private class ParenthesizedQueryErrorDelegate: ParenthesizedQueryParser.CitronErrorCaptureDelegate {
-//    func shouldSaveErrorForCapturing(error: any Error) -> Bool {
-//        <#code#>
-//    }
+    func shouldCaptureErrorOnDisjunction(state: ParenthesizedQueryParser.CitronErrorCaptureState, error: any Error) -> CitronErrorCaptureResponse<ParenthesizedQuery> {
+        collectAllRanges(in: state)
+    }
+
+    func shouldCaptureErrorOnConjunction(state: ParenthesizedQueryParser.CitronErrorCaptureState, error: any Error) -> CitronErrorCaptureResponse<ParenthesizedQuery> {
+        collectAllRanges(in: state)
+    }
 
     func shouldCaptureErrorOnQuery(state: ParenthesizedQueryParser.CitronErrorCaptureState, error: any Error) -> CitronErrorCaptureResponse<ParenthesizedQuery> {
         collectAllRanges(in: state)
