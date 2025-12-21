@@ -49,6 +49,14 @@ struct PartialSearchFilter: Equatable {
             case .balanced(let quote, _): quote
             }
         }
+        
+        var incompleteContent: String {
+            switch self {
+            case .unquoted(let content): content
+            case .unterminated(_, let content): content
+            case .balanced(_, let content): content
+            }
+        }
     
         func toComplete() -> String? {
             switch self {

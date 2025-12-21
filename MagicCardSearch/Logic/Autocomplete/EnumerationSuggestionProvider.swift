@@ -35,34 +35,29 @@ struct EnumerationSuggestionProvider {
             return []
         }
         
-        // Some enumeration types, like rarity, are considered orderable, hence the comparison operators here.
-        guard let match = try? /^(-?)([a-zA-Z]+)(:|=|!=|>=|>|<=|<)/.prefixMatch(in: searchTerm) else {
+        let partial = PartialSearchFilter.from(searchTerm)
+        
+        guard case .filter(let filterTypeName, let partialComparison, let partialValue) = partial.content else {
             return []
         }
         
-        let (_, negated, filterTypeName, comparisonOperator) = match.output
-        let value = searchTerm[match.range.upperBound...]
+        guard let comparison = partialComparison.toComplete() else {
+            return []
+        }
         
         guard let filterType = scryfallFilterByType[filterTypeName.lowercased()] else {
             return []
         }
         
-        let comparison = Comparison(rawValue: String(comparisonOperator))
-        guard let comparison else {
-            // If this fires, there's an error in the regex or something, but not a user error.
-            logger.warning("comparison was unexpectedly nil")
-            return []
-        }
-        
-        let trimmedValue = value.trimmingCharacters(in: .whitespaces)
+        let value = partialValue.incompleteContent
         
         let matchingOpts: any Sequence<String>
         if filterType.canonicalName == "type" {
             let typeOptions = Self.getOptionsFromCache(for: .type)
             let subtypeOptions = Self.getOptionsFromCache(for: .subtype)
             
-            let typeMatches = matchingOptions(from: typeOptions, searchTerm: trimmedValue)
-            let subtypeMatches = matchingOptions(from: subtypeOptions, searchTerm: trimmedValue)
+            let typeMatches = matchingOptions(from: typeOptions, searchTerm: value)
+            let subtypeMatches = matchingOptions(from: subtypeOptions, searchTerm: value)
             
             matchingOpts = chain(AnySequence(typeMatches), AnySequence(subtypeMatches))
         } else {
@@ -75,25 +70,25 @@ struct EnumerationSuggestionProvider {
                 return []
             }
             
-            matchingOpts = matchingOptions(from: options, searchTerm: trimmedValue)
+            matchingOpts = matchingOptions(from: options, searchTerm: value)
         }
         
         return Array(matchingOpts
             .map { option in
-                if negated.isEmpty {
-                    SearchFilter.basic(.keyValue(filterTypeName.lowercased(), comparison, option))
-                } else {
+                if partial.negated {
                     SearchFilter.negated(.keyValue(filterTypeName.lowercased(), comparison, option))
+                } else {
+                    SearchFilter.basic(.keyValue(filterTypeName.lowercased(), comparison, option))
                 }
             }
             .filter { !excludedFilters.contains($0) }
             .map { filter in
-                if trimmedValue.isEmpty {
+                if value.isEmpty {
                     return EnumerationSuggestion(filter: filter, matchRange: nil)
                 }
                 
                 let filterString = filter.queryStringWithEditingRange.0
-                let range = filterString.range(of: trimmedValue, options: .caseInsensitive)
+                let range = filterString.range(of: value, options: .caseInsensitive)
                 return EnumerationSuggestion(filter: filter, matchRange: range)
             }
             .prefix(limit)
