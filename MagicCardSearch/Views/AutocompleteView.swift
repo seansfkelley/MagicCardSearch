@@ -204,20 +204,14 @@ struct AutocompleteView: View {
     
     private func nameRow(_ suggestion: NameSuggestion) -> some View {
         Button {
-            if let filter = SearchFilter.tryParseUnambiguous(suggestion.filterText) {
-                onSuggestionTap(.filter(filter))
-            } else {
-                // TODO: Real logging infrastructure.
-                print("Warning: Failed to parse name suggestion as unambiguous filter: \(suggestion.filterText)")
-                onSuggestionTap(.string(suggestion.filterText))
-            }
+            onSuggestionTap(.filter(suggestion.filter))
         } label: {
             HStack(spacing: 12) {
                 Image(systemName: "textformat.abc")
                     .foregroundStyle(.secondary)
                 
                 HighlightedText(
-                    text: suggestion.filterText,
+                    text: suggestion.filter.queryStringWithEditingRange.0,
                     highlightRange: suggestion.matchRange
                 )
                 Spacer(minLength: 0)
