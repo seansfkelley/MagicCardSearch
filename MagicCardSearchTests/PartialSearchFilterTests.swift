@@ -28,12 +28,49 @@ struct PartialSearchFilterTests {
     @Test("Parse and convert PartialSearchFilter", arguments: [
         // MARK: - Simple name searches
         TestCase(
+            "foo",
+            PartialSearchFilter(
+                negated: false,
+                content: .name(false, .unquoted("foo"))
+            ),
+            .basic(.name("foo", false))
+        ),
+        
+        TestCase(
             "lightning",
             PartialSearchFilter(
                 negated: false,
                 content: .name(false, .unquoted("lightning"))
             ),
             .basic(.name("lightning", false))
+        ),
+        
+        TestCase(
+            "teferi's",
+            PartialSearchFilter(
+                negated: false,
+                content: .name(false, .unquoted("teferi's"))
+            ),
+            .basic(.name("teferi's", false))
+        ),
+        
+        TestCase(
+            "{p}",
+            PartialSearchFilter(
+                negated: false,
+                content: .name(false, .unquoted("{p}"))
+            ),
+            .basic(.name("{p}", false))
+        ),
+        
+        TestCase(
+            // Names ending with comparison-like things parse as filters.
+            "Fire!",
+            PartialSearchFilter(
+                negated: false,
+                content: .filter("Fire", .incompleteNotEqual, .unquoted(""))
+            ),
+            nil,
         ),
         
         TestCase(
@@ -46,6 +83,15 @@ struct PartialSearchFilterTests {
         ),
         
         // MARK: - Exact name searches (!)
+        TestCase(
+            "!Fire",
+            PartialSearchFilter(
+                negated: false,
+                content: .name(true, .unquoted("Fire"))
+            ),
+            .basic(.name("Fire", true))
+        ),
+        
         TestCase(
             "!lightning",
             PartialSearchFilter(
@@ -66,6 +112,15 @@ struct PartialSearchFilterTests {
         
         // MARK: - Quoted name searches
         TestCase(
+            "'foo'",
+            PartialSearchFilter(
+                negated: false,
+                content: .name(false, .balanced(.singleQuote, "foo"))
+            ),
+            .basic(.name("foo", false))
+        ),
+        
+        TestCase(
             "\"lightning bolt\"",
             PartialSearchFilter(
                 negated: false,
@@ -84,6 +139,24 @@ struct PartialSearchFilterTests {
         ),
         
         // MARK: - Unterminated quotes
+        TestCase(
+            "\"foo",
+            PartialSearchFilter(
+                negated: false,
+                content: .name(false, .unterminated(.doubleQuote, "foo"))
+            ),
+            nil
+        ),
+        
+        TestCase(
+            "'foo",
+            PartialSearchFilter(
+                negated: false,
+                content: .name(false, .unterminated(.singleQuote, "foo"))
+            ),
+            nil
+        ),
+        
         TestCase(
             "\"lightning",
             PartialSearchFilter(
@@ -141,6 +214,15 @@ struct PartialSearchFilterTests {
         
         // MARK: - Key-value filters with ":"
         TestCase(
+            "set:foo",
+            PartialSearchFilter(
+                negated: false,
+                content: .filter("set", .including, .unquoted("foo"))
+            ),
+            .basic(.keyValue("set", .including, "foo"))
+        ),
+        
+        TestCase(
             "type:creature",
             PartialSearchFilter(
                 negated: false,
@@ -165,6 +247,15 @@ struct PartialSearchFilterTests {
                 content: .filter("oracle", .including, .balanced(.doubleQuote, "draw a card"))
             ),
             .basic(.keyValue("oracle", .including, "draw a card"))
+        ),
+        
+        TestCase(
+            "foo:\"bar",
+            PartialSearchFilter(
+                negated: false,
+                content: .filter("foo", .including, .unterminated(.doubleQuote, "bar"))
+            ),
+            nil,
         ),
         
         TestCase(
@@ -196,6 +287,33 @@ struct PartialSearchFilterTests {
         ),
         
         // MARK: - Comparison operators
+        TestCase(
+            "s=bar",
+            PartialSearchFilter(
+                negated: false,
+                content: .filter("s", .equal, .unquoted("bar"))
+            ),
+            .basic(.keyValue("s", .equal, "bar"))
+        ),
+        
+        TestCase(
+            "mv>=bar",
+            PartialSearchFilter(
+                negated: false,
+                content: .filter("mv", .greaterThanOrEqual, .unquoted("bar"))
+            ),
+            .basic(.keyValue("mv", .greaterThanOrEqual, "bar"))
+        ),
+        
+        TestCase(
+            "m>{p/r}{g}",
+            PartialSearchFilter(
+                negated: false,
+                content: .filter("m", .greaterThan, .unquoted("{p/r}{g}"))
+            ),
+            .basic(.keyValue("m", .greaterThan, "{p/r}{g}"))
+        ),
+        
         TestCase(
             "power>3",
             PartialSearchFilter(
@@ -252,6 +370,15 @@ struct PartialSearchFilterTests {
         
         // MARK: - Incomplete comparisons
         TestCase(
+            "foo:",
+            PartialSearchFilter(
+                negated: false,
+                content: .filter("foo", .including, .unquoted(""))
+            ),
+            nil
+        ),
+        
+        TestCase(
             "power!",
             PartialSearchFilter(
                 negated: false,
@@ -289,6 +416,15 @@ struct PartialSearchFilterTests {
         
         // MARK: - Regex filters (forward slashes)
         TestCase(
+            "filtered:/regex with whitespace/",
+            PartialSearchFilter(
+                negated: false,
+                content: .filter("filtered", .including, .balanced(.forwardSlash, "regex with whitespace"))
+            ),
+            .basic(.regex("filtered", .including, "/regex with whitespace/"))
+        ),
+        
+        TestCase(
             "name:/^lightning/",
             PartialSearchFilter(
                 negated: false,
@@ -317,6 +453,15 @@ struct PartialSearchFilterTests {
         
         // MARK: - Unterminated regex
         TestCase(
+            "foo:/incomplete regex",
+            PartialSearchFilter(
+                negated: false,
+                content: .filter("foo", .including, .unterminated(.forwardSlash, "incomplete regex"))
+            ),
+            nil
+        ),
+        
+        TestCase(
             "name:/^lightning",
             PartialSearchFilter(
                 negated: false,
@@ -335,6 +480,15 @@ struct PartialSearchFilterTests {
         ),
         
         // MARK: - Unterminated quoted filters
+        TestCase(
+            "foo:\"",
+            PartialSearchFilter(
+                negated: false,
+                content: .filter("foo", .including, .unterminated(.doubleQuote, ""))
+            ),
+            nil
+        ),
+        
         TestCase(
             "oracle:\"draw",
             PartialSearchFilter(
@@ -616,6 +770,33 @@ struct PartialSearchFilterTests {
                 content: .filter("name", .including, .balanced(.forwardSlash, ""))
             ),
             .basic(.regex("name", .including, "//"))
+        ),
+        
+        TestCase(
+            "/regexwithoutfilter/",
+            PartialSearchFilter(
+                negated: false,
+                content: .name(false, .balanced(.forwardSlash, "regexwithoutfilter")),
+            ),
+            .basic(.name("/regexwithoutfilter/", false)),
+        ),
+        
+        TestCase(
+            "/^test$/",
+            PartialSearchFilter(
+                negated: false,
+                content: .name(false, .balanced(.forwardSlash, "^test$")),
+            ),
+            .basic(.name("/^test$/", false)),
+        ),
+        
+        TestCase(
+            "type: creature",
+            PartialSearchFilter(
+                negated: false,
+                content: .filter("foo", .including, .unquoted(" bar")),
+            ),
+            .basic(.keyValue("foo", .including, " bar")),
         ),
     ])
     func parseAndConvert(testCase: TestCase) async throws {
