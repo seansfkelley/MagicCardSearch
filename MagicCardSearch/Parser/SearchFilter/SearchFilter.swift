@@ -6,18 +6,6 @@ enum SearchFilter: Equatable, Hashable, Codable {
     case basic(SearchFilterContent)
     case negated(SearchFilterContent)
     
-    static func tryParseUnambiguous(_ input: String) -> SearchFilter? {
-        let parser = SearchFilterParser()
-        do {
-            for (token, code) in try lexSearchFilter(input) {
-                try parser.consume(token: token, code: code)
-            }
-            return try parser.endParsing()
-        } catch {
-            return nil
-        }
-    }
-    
     var queryStringWithEditingRange: (String, Range<String.Index>) {
         switch self {
         case .basic(let content):

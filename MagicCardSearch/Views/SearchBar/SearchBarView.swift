@@ -102,8 +102,8 @@ struct SearchBarView: View {
         let trimmed = inputText.trimmingCharacters(in: .whitespaces)
         
         guard !trimmed.isEmpty else { return }
-
-        if let filter = SearchFilter.tryParseUnambiguous(trimmed) {
+        
+        if let filter = PartialSearchFilter.from(trimmed).toComplete() {
             filters.append(filter)
             searchHistoryTracker.recordUsage(of: filter)
             inputText = ""
