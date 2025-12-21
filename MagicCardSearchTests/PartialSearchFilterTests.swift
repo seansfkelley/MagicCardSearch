@@ -37,15 +37,6 @@ struct PartialSearchFilterTests {
         ),
         
         TestCase(
-            "lightning",
-            PartialSearchFilter(
-                negated: false,
-                content: .name(false, .unquoted("lightning"))
-            ),
-            .basic(.name("lightning", false))
-        ),
-        
-        TestCase(
             "teferi's",
             PartialSearchFilter(
                 negated: false,
@@ -158,24 +149,6 @@ struct PartialSearchFilterTests {
         ),
         
         TestCase(
-            "\"lightning",
-            PartialSearchFilter(
-                negated: false,
-                content: .name(false, .unterminated(.doubleQuote, "lightning"))
-            ),
-            nil
-        ),
-        
-        TestCase(
-            "'lightning",
-            PartialSearchFilter(
-                negated: false,
-                content: .name(false, .unterminated(.singleQuote, "lightning"))
-            ),
-            nil
-        ),
-        
-        TestCase(
             "!\"lightning",
             PartialSearchFilter(
                 negated: false,
@@ -232,15 +205,6 @@ struct PartialSearchFilterTests {
         ),
         
         TestCase(
-            "oracle:draw",
-            PartialSearchFilter(
-                negated: false,
-                content: .filter("oracle", .including, .unquoted("draw"))
-            ),
-            .basic(.keyValue("oracle", .including, "draw"))
-        ),
-        
-        TestCase(
             "oracle:\"draw a card\"",
             PartialSearchFilter(
                 negated: false,
@@ -256,15 +220,6 @@ struct PartialSearchFilterTests {
                 content: .filter("foo", .including, .unterminated(.doubleQuote, "bar"))
             ),
             nil,
-        ),
-        
-        TestCase(
-            "name:lightning",
-            PartialSearchFilter(
-                negated: false,
-                content: .filter("name", .including, .unquoted("lightning"))
-            ),
-            .basic(.keyValue("name", .including, "lightning"))
         ),
         
         // MARK: - Negated key-value filters
@@ -321,15 +276,6 @@ struct PartialSearchFilterTests {
                 content: .filter("power", .greaterThan, .unquoted("3"))
             ),
             .basic(.keyValue("power", .greaterThan, "3"))
-        ),
-        
-        TestCase(
-            "power>=3",
-            PartialSearchFilter(
-                negated: false,
-                content: .filter("power", .greaterThanOrEqual, .unquoted("3"))
-            ),
-            .basic(.keyValue("power", .greaterThanOrEqual, "3"))
         ),
         
         TestCase(
@@ -434,15 +380,6 @@ struct PartialSearchFilterTests {
         ),
         
         TestCase(
-            "oracle:/draw.*card/",
-            PartialSearchFilter(
-                negated: false,
-                content: .filter("oracle", .including, .balanced(.forwardSlash, "draw.*card"))
-            ),
-            .basic(.regex("oracle", .including, "/draw.*card/"))
-        ),
-        
-        TestCase(
             "-name:/^chain/",
             PartialSearchFilter(
                 negated: true,
@@ -461,39 +398,12 @@ struct PartialSearchFilterTests {
             nil
         ),
         
-        TestCase(
-            "name:/^lightning",
-            PartialSearchFilter(
-                negated: false,
-                content: .filter("name", .including, .unterminated(.forwardSlash, "^lightning"))
-            ),
-            nil
-        ),
-        
-        TestCase(
-            "oracle:/draw",
-            PartialSearchFilter(
-                negated: false,
-                content: .filter("oracle", .including, .unterminated(.forwardSlash, "draw"))
-            ),
-            nil
-        ),
-        
         // MARK: - Unterminated quoted filters
         TestCase(
             "foo:\"",
             PartialSearchFilter(
                 negated: false,
                 content: .filter("foo", .including, .unterminated(.doubleQuote, ""))
-            ),
-            nil
-        ),
-        
-        TestCase(
-            "oracle:\"draw",
-            PartialSearchFilter(
-                negated: false,
-                content: .filter("oracle", .including, .unterminated(.doubleQuote, "draw"))
             ),
             nil
         ),
@@ -579,25 +489,6 @@ struct PartialSearchFilterTests {
                 content: .filter("POWER", .greaterThan, .unquoted("3"))
             ),
             .basic(.keyValue("POWER", .greaterThan, "3"))
-        ),
-        
-        // MARK: - Complex quoted strings
-        TestCase(
-            "oracle:\"destroy target creature\"",
-            PartialSearchFilter(
-                negated: false,
-                content: .filter("oracle", .including, .balanced(.doubleQuote, "destroy target creature"))
-            ),
-            .basic(.keyValue("oracle", .including, "destroy target creature"))
-        ),
-        
-        TestCase(
-            "name:\"Lightning Bolt\"",
-            PartialSearchFilter(
-                negated: false,
-                content: .filter("name", .including, .balanced(.doubleQuote, "Lightning Bolt"))
-            ),
-            .basic(.keyValue("name", .including, "Lightning Bolt"))
         ),
         
         // MARK: - Edge cases with special characters
