@@ -8,8 +8,8 @@ import Logging
 
 private let logger = Logger(label: "PartialSearchFilter")
 
-struct PartialSearchFilter {
-    enum PartialComparison: String {
+struct PartialSearchFilter: Equatable {
+    enum PartialComparison: String, Equatable {
         case including = ":"
         case equal = "="
         case notEqual = "!="
@@ -33,11 +33,11 @@ struct PartialSearchFilter {
         }
     }
     
-    enum QuotingType {
-        case singleQuote, doubleQuote, forwardSlash
-    }
-    
-    enum PartialTerm {
+    enum PartialTerm: Equatable {
+        enum QuotingType: Equatable {
+            case singleQuote, doubleQuote, forwardSlash
+        }
+        
         case unquoted(String)
         case unterminated(QuotingType, String)
         case balanced(QuotingType, String)
@@ -63,33 +63,37 @@ struct PartialSearchFilter {
         }
     }
     
-    enum Content {
+    enum Content: Equatable {
         case name(Bool, PartialTerm)
         case filter(String, PartialComparison, PartialTerm)
+        
+        func toComplete() -> SearchFilterContent? {
+            switch self {
+            case .name(let exact, let term):
+                if let completeTerm = term.toComplete() {
+                    return .name(completeTerm, exact)
+                } else {
+                    return nil
+                }
+            case .filter(let field, let comparison, let term):
+                if let completeTerm = term.toComplete(), let completeComparison = comparison.toComplete() {
+                    return switch term.quotingType {
+                    case .singleQuote, .doubleQuote: .keyValue(field, completeComparison, completeTerm)
+                    case .forwardSlash: .regex(field, completeComparison, completeTerm)
+                    case nil: completeTerm.isEmpty ? nil : .keyValue(field, completeComparison, completeTerm)
+                    }
+                } else {
+                    return nil
+                }
+            }
+        }
     }
     
     let negated: Bool
     let content: Content
     
     func toComplete() -> SearchFilter? {
-        let completeContent: SearchFilterContent? = switch content {
-        case .name(let exact, let term):
-            if let completeTerm = term.toComplete() {
-                .name(completeTerm, exact)
-            } else {
-                nil
-            }
-        case .filter(let field, let comparison, let term):
-            if let completeTerm = term.toComplete(), let completeComparison = comparison.toComplete() {
-                term.quotingType == .forwardSlash
-                ? .regex(field, completeComparison, completeTerm)
-                : .keyValue(field, completeComparison, completeTerm)
-            } else {
-                nil
-            }
-        }
-        
-        if let completeContent {
+        if let completeContent = content.toComplete() {
             return negated ? .negated(completeContent) : .basic(completeContent)
         } else {
             return nil
@@ -127,7 +131,6 @@ struct PartialSearchFilter {
                     content: .filter(filter, comparison, value),
                 )
             }
-
         } catch {
             logger.error("unexpected error; this code should not ever throw", metadata: [
                 "error": "\(error)",
