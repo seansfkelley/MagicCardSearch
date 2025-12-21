@@ -25,15 +25,15 @@ struct MockCardNameFetcher: CardNameFetcher {
 // MARK: - Tests
 
 struct NameSuggestionProviderTests {
-    struct TestCase {
+    struct TestCase: CustomStringConvertible {
         let description: String
-        let input: String
+        let partial: PartialSearchFilter
         let mockResults: [String]
         let expected: [NameSuggestion]
         
-        init(_ description: String, _ input: String, _ mockResults: [String], _ expected: [NameSuggestion]) {
+        init(_ description: String, _ partial: PartialSearchFilter, _ mockResults: [String], _ expected: [NameSuggestion]) {
             self.description = description
-            self.input = input
+            self.partial = partial
             self.mockResults = mockResults
             self.expected = expected
         }
@@ -42,19 +42,19 @@ struct NameSuggestionProviderTests {
     @Test("getSuggestions", arguments: [
         TestCase(
             "early-abort and return nothing if it looks like a non-name filter",
-            "foo:",
+            PartialSearchFilter(negated: false, content: .filter("foo", .including, .unquoted(""))),
             ["foobar"], // non-empty!
             []
         ),
         TestCase(
             "early-abort and return nothing if it's a name-type filter with less than 2 characters",
-            "name:f",
+            PartialSearchFilter(negated: false, content: .filter("name", .including, .unquoted("f"))),
             ["foobar"], // non-empty!
             []
         ),
         TestCase(
             "return results with matching ranges if it's a name-type filter, adding quotes where necessary",
-            "name:bolt",
+            PartialSearchFilter(negated: false, content: .filter("name", .including, .unquoted("bolt"))),
             ["Firebolt", "Lightning Bolt", "Someone's Bolt"],
             [
                 NameSuggestion(
@@ -73,7 +73,7 @@ struct NameSuggestionProviderTests {
         ),
         TestCase(
             "is case-insensitive",
-            "nAmE:boLT",
+            PartialSearchFilter(negated: false, content: .filter("nAmE", .including, .unquoted("boLT"))),
             ["Firebolt"],
             [
                 NameSuggestion(
@@ -84,7 +84,7 @@ struct NameSuggestionProviderTests {
         ),
         TestCase(
             "return results with matching ranges if it's a name-type filter, respecting the operator used",
-            "name=bolt",
+            PartialSearchFilter(negated: false, content: .filter("name", .equal, .unquoted("bolt"))),
             ["Firebolt"],
             [
                 NameSuggestion(
@@ -95,7 +95,7 @@ struct NameSuggestionProviderTests {
         ),
         TestCase(
             "supports incomplete terms, and does not respect choice of quote",
-            "name='bolt",
+            PartialSearchFilter(negated: false, content: .filter("name", .equal, .unterminated(.singleQuote, "bolt"))),
             ["Firebolt", "Lightning Bolt"],
             [
                 NameSuggestion(
@@ -110,7 +110,7 @@ struct NameSuggestionProviderTests {
         ),
         TestCase(
             "return results with matching ranges if it's quoted but without a filter, including quotes where appropriate",
-            "\"bolt",
+            PartialSearchFilter(negated: false, content: .name(false, .unterminated(.doubleQuote, "bolt"))),
             ["Firebolt", "Lightning Bolt"],
             [
                 NameSuggestion(
@@ -125,7 +125,7 @@ struct NameSuggestionProviderTests {
         ),
         TestCase(
             "return results with matching ranges if it's a literal name match, including quotes where appropriate",
-            "!bolt",
+            PartialSearchFilter(negated: false, content: .name(true, .unquoted("bolt"))),
             ["Firebolt", "Lightning Bolt"],
             [
                 NameSuggestion(
@@ -140,7 +140,7 @@ struct NameSuggestionProviderTests {
         ),
         TestCase(
             "return results with matching ranges if it's a literal name match, including quotes where appropriate",
-            "-!\"bolt",
+            PartialSearchFilter(negated: true, content: .name(true, .unterminated(.doubleQuote, "bolt"))),
             ["Firebolt", "Lightning Bolt"],
             [
                 NameSuggestion(
@@ -155,7 +155,7 @@ struct NameSuggestionProviderTests {
         ),
         TestCase(
             "pass through all results from the matcher, even if we can't find the matching portion",
-            "name:foo",
+            PartialSearchFilter(negated: false, content: .filter("name", .including, .unquoted("foo"))),
             ["Wooded Foothills", "Shivan Reef"],
             [
                 NameSuggestion(
@@ -170,7 +170,7 @@ struct NameSuggestionProviderTests {
         ),
         TestCase(
             "return matches even if it doesn't look like a filter, including ! and quotes where necessary",
-            "bolt",
+            PartialSearchFilter(negated: false, content: .name(false, .unquoted("bolt"))),
             ["Firebolt", "Lightning Bolt"],
             [
                 NameSuggestion(
@@ -186,14 +186,15 @@ struct NameSuggestionProviderTests {
     ])
     func getSuggestions(testCase: TestCase) async {
         let fetcher = MockCardNameFetcher(results: testCase.mockResults)
-        let actual = await NameSuggestionProvider(fetcher: fetcher).getSuggestions(for: testCase.input, limit: Int.max)
+        let actual = await NameSuggestionProvider(fetcher: fetcher).getSuggestions(for: testCase.partial, limit: Int.max)
         #expect(actual == testCase.expected, "\(testCase.description)")
     }
     
     @Test("properly assigns match ranges when the search term overlaps with the 'name' filter")
     func getSuggestions() async {
         let fetcher = MockCardNameFetcher(results: ["Nameless Race"])
-        let actual = await NameSuggestionProvider(fetcher: fetcher).getSuggestions(for: "name:name", limit: Int.max)
+        let partial = PartialSearchFilter(negated: false, content: .filter("name", .including, .unquoted("name")))
+        let actual = await NameSuggestionProvider(fetcher: fetcher).getSuggestions(for: partial, limit: Int.max)
         withKnownIssue {
             #expect(actual == [
                 NameSuggestion(

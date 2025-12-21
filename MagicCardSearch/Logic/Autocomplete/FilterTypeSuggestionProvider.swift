@@ -13,12 +13,10 @@ struct FilterTypeSuggestion: Equatable {
 // TODO: Make this even lazier for performance.
 struct FilterTypeSuggestionProvider {
     // swiftlint:disable:next cyclomatic_complexity function_body_length
-    func getSuggestions(for searchTerm: String, limit: Int) -> [FilterTypeSuggestion] {
+    func getSuggestions(for partial: PartialSearchFilter, limit: Int) -> [FilterTypeSuggestion] {
         guard limit > 0 else {
             return []
         }
-        
-        let partial = PartialSearchFilter.from(searchTerm)
         
         guard case .name(let exact, let partialTerm) = partial.content else {
             return []

@@ -37,14 +37,12 @@ struct NameSuggestionProvider {
         }, for: debounce)
     }
     
-    func getSuggestions(for searchTerm: String, limit: Int) async -> [NameSuggestion] {
+    func getSuggestions(for partial: PartialSearchFilter, limit: Int) async -> [NameSuggestion] {
         await debouncedFetch.cancel()
         
         guard limit > 0 else {
             return []
         }
-        
-        let partial = PartialSearchFilter.from(searchTerm)
         
         let name: String
         let comparison: Comparison?

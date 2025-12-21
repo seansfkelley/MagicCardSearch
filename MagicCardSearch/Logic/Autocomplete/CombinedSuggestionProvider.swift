@@ -42,13 +42,14 @@ class CombinedSuggestionProvider {
 
     func getSuggestions(for searchTerm: String, existingFilters: Set<SearchFilter>) -> AsyncStream<[Suggestion]> {
         let currentTaskId = loadingState.start()
+        let partial = PartialSearchFilter.from(searchTerm)
         
         return AsyncStream<[Suggestion]> { continuation in
             var allSuggestions: [Suggestion] = []
             var excludedFilters = Set(existingFilters)
             
             let pinnedSuggestions = self.pinnedFilterProvider.getSuggestions(
-                for: searchTerm,
+                for: partial,
                 excluding: excludedFilters,
             )
             allSuggestions.append(contentsOf: pinnedSuggestions.map { Suggestion.pinned($0) })
@@ -63,13 +64,13 @@ class CombinedSuggestionProvider {
             excludedFilters.formUnion(historySuggestions.map { $0.filter })
             
             let filterSuggestions = self.filterTypeProvider.getSuggestions(
-                for: searchTerm,
+                for: partial,
                 limit: 4
             )
             allSuggestions.append(contentsOf: filterSuggestions.map { Suggestion.filter($0) })
             
             let enumerationSuggestions = self.enumerationProvider.getSuggestions(
-                for: searchTerm,
+                for: partial,
                 excluding: excludedFilters,
                 limit: 40
             )
@@ -84,7 +85,7 @@ class CombinedSuggestionProvider {
                 
             Task {
                 let nameSuggestions = await self.nameProvider.getSuggestions(
-                    for: searchTerm,
+                    for: partial,
                     limit: 10,
                 )
                 

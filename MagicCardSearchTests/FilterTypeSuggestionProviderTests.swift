@@ -14,38 +14,38 @@ struct FilterTypeSuggestionProviderTests {
         arguments: [
             // prefix of a filter returns that filter
             (
-                "forma",
+                PartialSearchFilter(negated: false, content: .name(false, .unquoted("forma"))),
                 [("format", 0..<5)],
             ),
             // substrings matching multiple filters return them all, shortest first
             (
-                "print",
+                PartialSearchFilter(negated: false, content: .name(false, .unquoted("print"))),
                 [("prints", 0..<5), ("paperprints", 5..<10)],
             ),
             // exact match of an alias returns the alias before other matching filters, and does not return the canonical name
             (
-                "fo",
+                PartialSearchFilter(negated: false, content: .name(false, .unquoted("fo"))),
                 [("fo", 0..<2), ("format", 0..<2)],
             ),
             // unmatching string returns nothing
             (
-                "foobar",
+                PartialSearchFilter(negated: false, content: .name(false, .unquoted("foobar"))),
                 [],
             ),
             // negation does not affect the behavior, but is included in the result
             // n.b. the index does not include the negation operator because it may not be contiguous
             (
-                "-print",
+                PartialSearchFilter(negated: true, content: .name(false, .unquoted("print"))),
                 [("-prints", 1..<6), ("-paperprints", 6..<11)],
             ),
             // case-insensitive
             (
-                "ForMa",
+                PartialSearchFilter(negated: false, content: .name(false, .unquoted("ForMa"))),
                 [("format", 0..<5)],
             ),
             // prefixes are scored higher than other matches, even if they're longer, then by length
             (
-                "or",
+                PartialSearchFilter(negated: false, content: .name(false, .unquoted("or"))),
                 [
                     ("order", 0..<2),
                     ("oracle", 0..<2),
@@ -60,33 +60,33 @@ struct FilterTypeSuggestionProviderTests {
             ),
             // should prefer the shortest alias, skipping the canonical name, if neither is an exact match
             (
-                "ow",
+                PartialSearchFilter(negated: false, content: .name(false, .unquoted("ow"))),
                 [("pow", 1..<3), ("powtou", 1..<3)],
             ),
             // unquoted exact-match is not eligible even if it would match
             (
-                "!form",
+                PartialSearchFilter(negated: false, content: .name(true, .unquoted("form"))),
                 [],
             ),
             // quoted exact-match is not eligible even if it would match
             (
-                "!\"form\"",
+                PartialSearchFilter(negated: false, content: .name(true, .balanced(.doubleQuote, "form"))),
                 [],
             ),
             // quoted is not eligible because it implies a name search
             (
-                "\"form",
+                PartialSearchFilter(negated: false, content: .name(false, .unterminated(.doubleQuote, "form"))),
                 [],
             ),
             // if operators are present we're past the point where we can suggest, even if we could
             (
-                "form:",
+                PartialSearchFilter(negated: false, content: .filter("form", .including, .unquoted(""))),
                 [],
             ),
         ]
     )
-    func getSuggestions(input: String, expected: [(String, Range<Int>)]) {
-        let results = FilterTypeSuggestionProvider().getSuggestions(for: input, limit: Int.max)
+    func getSuggestions(partial: PartialSearchFilter, expected: [(String, Range<Int>)]) {
+        let results = FilterTypeSuggestionProvider().getSuggestions(for: partial, limit: Int.max)
         let actualTuples = Array(results.map { ($0.filterType, $0.matchRange) })
         // FIXME: Why can't the compiler figure out that this array of tuples should be equatable?
         #expect(actualTuples.elementsEqual(expected.map { ($0, stringIndexRange($1)) }) { lhs, rhs in

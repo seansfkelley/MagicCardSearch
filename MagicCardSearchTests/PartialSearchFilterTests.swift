@@ -9,10 +9,12 @@ import Testing
 
 @Suite("PartialSearchFilter Parsing Tests")
 struct PartialSearchFilterTests {
-    struct TestCase {
+    struct TestCase: CustomStringConvertible {
         let input: String
         let expectedPartial: PartialSearchFilter
         let expectedComplete: SearchFilter?
+        
+        var description: String { input }
         
         init(
             _ input: String,
@@ -685,9 +687,9 @@ struct PartialSearchFilterTests {
             "type: creature",
             PartialSearchFilter(
                 negated: false,
-                content: .filter("foo", .including, .unquoted(" bar")),
+                content: .filter("type", .including, .unquoted(" creature")),
             ),
-            .basic(.keyValue("foo", .including, " bar")),
+            .basic(.keyValue("type", .including, " creature")),
         ),
     ])
     func parseAndConvert(testCase: TestCase) async throws {

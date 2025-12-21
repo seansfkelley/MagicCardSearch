@@ -37,8 +37,8 @@ class PinnedFilterSuggestionProvider {
     
     // MARK: - Public Methods
     
-    func getSuggestions(for searchTerm: String, excluding excludedFilters: Set<SearchFilter>) -> [PinnedFilterSuggestion] {
-        let trimmedSearchTerm = searchTerm.trimmingCharacters(in: .whitespaces)
+    func getSuggestions(for partial: PartialSearchFilter, excluding excludedFilters: Set<SearchFilter>) -> [PinnedFilterSuggestion] {
+        let searchTerm = partial.description.trimmingCharacters(in: .whitespaces)
         
         return pinnedFiltersByFilter
             .values
@@ -49,12 +49,12 @@ class PinnedFilterSuggestionProvider {
             ])
             .filter { !excludedFilters.contains($0.filter) }
             .compactMap { entry in
-                if trimmedSearchTerm.isEmpty {
+                if searchTerm.isEmpty {
                     return PinnedFilterSuggestion(filter: entry.filter, matchRange: nil)
                 }
                 
                 let filterString = entry.filter.queryStringWithEditingRange.0
-                if let range = filterString.range(of: trimmedSearchTerm, options: .caseInsensitive) {
+                if let range = filterString.range(of: searchTerm, options: .caseInsensitive) {
                     return PinnedFilterSuggestion(filter: entry.filter, matchRange: range)
                 }
                 
