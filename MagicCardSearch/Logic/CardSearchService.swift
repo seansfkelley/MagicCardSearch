@@ -20,7 +20,7 @@ class CardSearchService {
     }
     
     func search(filters: [SearchFilter], config: SearchConfiguration) async throws -> SearchResult {
-        let queryString = filters.map { $0.queryStringWithEditingRange.0 }.joined(separator: " ")
+        let queryString = filters.map { $0.description }.joined(separator: " ")
         
         guard !queryString.isEmpty else {
             return SearchResult(cards: [], totalCount: 0, nextPageURL: nil, warnings: [])
@@ -154,7 +154,7 @@ class CardSearchService {
     }
     
     static func buildSearchURL(filters: [SearchFilter], config: SearchConfiguration, forAPI: Bool) -> URL? {
-        let queryString = filters.map { $0.queryStringWithEditingRange.0 }.joined(separator: " ")
+        let queryString = filters.map { $0.description }.joined(separator: " ")
         
         guard !queryString.isEmpty else {
             return nil

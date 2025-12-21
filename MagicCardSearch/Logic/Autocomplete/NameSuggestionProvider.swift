@@ -80,9 +80,9 @@ struct NameSuggestionProvider {
                     content = .name(cardName, true)
                 }
                 
-                let filter: SearchFilter = partial.negated ? .negated(content) : .basic(content)
-                let filterString = filter.queryStringWithEditingRange.0
-                let range = filterString.range(of: name, options: .caseInsensitive)
+                let filter = SearchFilter(partial.negated, content)
+                // TODO: We can do better than this; we know where it should be!
+                let range = filter.description.range(of: name, options: .caseInsensitive)
                 return NameSuggestion(filter: filter, matchRange: range)
             }
          )

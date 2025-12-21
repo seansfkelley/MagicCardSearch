@@ -90,10 +90,10 @@ struct HomeView: View {
                     
                     Button(action: {
                         onSearchSelected([
-                            .basic(.keyValue("date", .greaterThanOrEqual, "today")),
-                            .basic(.keyValue("order", .including, SortMode.spoiled.rawValue)),
-                            .basic(.keyValue("dir", .including, SortDirection.desc.rawValue)),
-                            .basic(.keyValue("unique", .including, UniqueMode.prints.rawValue)),
+                            .init(.keyValue("date", .greaterThanOrEqual, "today")),
+                            .init(.keyValue("order", .including, SortMode.spoiled.rawValue)),
+                            .init(.keyValue("dir", .including, SortDirection.desc.rawValue)),
+                            .init(.keyValue("unique", .including, UniqueMode.prints.rawValue)),
                         ])
                     }) {
                         Text("View All")
@@ -111,7 +111,7 @@ struct HomeView: View {
                             onSearchSelected(entry.filters)
                         } label: {
                             HStack {
-                                Text(entry.filters.map { $0.queryStringWithEditingRange.0 }.joined(separator: " "))
+                                Text(entry.filters.map { $0.description }.joined(separator: " "))
                                     .font(.body)
                                     .foregroundStyle(.primary)
                                     .lineLimit(2)
@@ -146,7 +146,7 @@ struct HomeView: View {
                             Text(example.title)
                                 .font(.body.weight(.semibold))
                                 .foregroundStyle(.primary)
-                            Text(example.filters.map { $0.queryStringWithEditingRange.0 }.joined(separator: " "))
+                            Text(example.filters.map { $0.description }.joined(separator: " "))
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
@@ -195,7 +195,7 @@ struct HomeView: View {
         do {
             let searchResult = try await searchService.search(
                 filters: [
-                    .basic(.keyValue("date", .greaterThanOrEqual, "today")),
+                    .init(.keyValue("date", .greaterThanOrEqual, "today")),
                 ],
                 config: SearchConfiguration(
                     uniqueMode: .prints,
@@ -232,29 +232,29 @@ struct ExampleSearch {
     
     private static let small: [ExampleSearch] = [
         .init(title: "All Modern-Legal U/R Pingers", filters: [
-            .basic(.keyValue("color", .lessThanOrEqual, "ur")),
-            .basic(.keyValue("function", .including, "pinger")),
-            .basic(.keyValue("format", .including, "modern")),
+            .init(.keyValue("color", .lessThanOrEqual, "ur")),
+            .init(.keyValue("function", .including, "pinger")),
+            .init(.keyValue("format", .including, "modern")),
         ]),
     ]
     
     private static let medium: [ExampleSearch] = [
         .init(title: "Most Expensive 1-Drops in Standard", filters: [
-            .basic(.keyValue("manavalue", .equal, "1")),
-            .basic(.keyValue("format", .including, "standard")),
-            .basic(.keyValue("order", .including, "usd")),
-            .basic(.keyValue("dir", .including, "desc")),
+            .init(.keyValue("manavalue", .equal, "1")),
+            .init(.keyValue("format", .including, "standard")),
+            .init(.keyValue("order", .including, "usd")),
+            .init(.keyValue("dir", .including, "desc")),
         ]),
     ]
     
     private static let large: [ExampleSearch] = [
         .init(title: "Best Orzhov Commanders", filters: [
-            .basic(.keyValue("id", .equal, "orzhov")),
-            .basic(.keyValue("type", .including, "legendary")),
-            .basic(.keyValue("type", .including, "creature")),
-            .basic(.keyValue("format", .including, "commander")),
-            .basic(.keyValue("order", .including, "edhrec")),
-            .basic(.keyValue("dir", .including, "desc")),
+            .init(.keyValue("id", .equal, "orzhov")),
+            .init(.keyValue("type", .including, "legendary")),
+            .init(.keyValue("type", .including, "creature")),
+            .init(.keyValue("format", .including, "commander")),
+            .init(.keyValue("order", .including, "edhrec")),
+            .init(.keyValue("dir", .including, "desc")),
         ]),
     ]
     

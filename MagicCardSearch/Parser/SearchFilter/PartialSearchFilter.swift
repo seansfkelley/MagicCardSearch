@@ -130,10 +130,10 @@ struct PartialSearchFilter: Equatable, CustomStringConvertible {
     }
     
     func toComplete() -> SearchFilter? {
-        if let completeContent = content.toComplete() {
-            return negated ? .negated(completeContent) : .basic(completeContent)
+        return if let completeContent = content.toComplete() {
+            .init(negated, completeContent)
         } else {
-            return nil
+            nil
         }
     }
     

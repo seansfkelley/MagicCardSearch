@@ -49,7 +49,7 @@ class SearchHistoryTracker {
 
         let sorted = filterEntries.values.sorted(using: [
             KeyPathComparator(\.lastUsedDate, order: .reverse),
-            KeyPathComparator(\.filter.queryStringWithEditingRange.0, comparator: .localizedStandard),
+            KeyPathComparator(\.filter.description, comparator: .localizedStandard),
         ])
 
         sortedCache = sorted

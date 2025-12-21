@@ -49,8 +49,7 @@ class HistorySuggestionProvider {
                         )
                     }
                     
-                    let filterString = entry.filter.queryStringWithEditingRange.0
-                    if let range = filterString.range(of: trimmedSearchTerm, options: .caseInsensitive) {
+                    if let range = entry.filter.description.range(of: trimmedSearchTerm, options: .caseInsensitive) {
                         return HistorySuggestion(
                             filter: entry.filter,
                             matchRange: range

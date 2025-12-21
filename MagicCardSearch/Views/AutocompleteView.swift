@@ -130,7 +130,6 @@ struct AutocompleteView: View {
     }
     
     private func pinnedRow(_ suggestion: PinnedFilterSuggestion) -> some View {
-        let filterString = suggestion.filter.queryStringWithEditingRange.0
         return Button {
             onSuggestionTap(.filter(suggestion.filter))
         } label: {
@@ -138,7 +137,7 @@ struct AutocompleteView: View {
                 Image(systemName: "pin.fill")
                     .foregroundStyle(.secondary)
                 HighlightedText(
-                    text: filterString,
+                    text: suggestion.filter.description,
                     highlightRange: suggestion.matchRange
                 )
                 Spacer(minLength: 0)
@@ -156,7 +155,7 @@ struct AutocompleteView: View {
                 Image(systemName: "clock.arrow.circlepath")
                     .foregroundStyle(.secondary)
                 HighlightedText(
-                    text: suggestion.filter.queryStringWithEditingRange.0,
+                    text: suggestion.filter.description,
                     highlightRange: suggestion.matchRange
                 )
                 Spacer(minLength: 0)
@@ -189,7 +188,7 @@ struct AutocompleteView: View {
                 Image(systemName: "list.bullet.circle")
                     .foregroundStyle(.secondary)
                 HighlightedText(
-                    text: suggestion.filter.queryStringWithEditingRange.0,
+                    text: suggestion.filter.description,
                     highlightRange: suggestion.matchRange,
                 )
                 Spacer(minLength: 0)
@@ -211,7 +210,7 @@ struct AutocompleteView: View {
                     .foregroundStyle(.secondary)
                 
                 HighlightedText(
-                    text: suggestion.filter.queryStringWithEditingRange.0,
+                    text: suggestion.filter.description,
                     highlightRange: suggestion.matchRange
                 )
                 Spacer(minLength: 0)

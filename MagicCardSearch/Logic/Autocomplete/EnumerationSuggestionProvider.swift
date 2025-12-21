@@ -71,21 +71,14 @@ struct EnumerationSuggestionProvider {
         }
         
         return Array(matchingOpts
-            .map { option in
-                if partial.negated {
-                    SearchFilter.negated(.keyValue(filterTypeName.lowercased(), comparison, option))
-                } else {
-                    SearchFilter.basic(.keyValue(filterTypeName.lowercased(), comparison, option))
-                }
-            }
+            .map { SearchFilter(partial.negated, .keyValue(filterTypeName.lowercased(), comparison, $0)) }
             .filter { !excludedFilters.contains($0) }
             .map { filter in
                 if value.isEmpty {
                     return EnumerationSuggestion(filter: filter, matchRange: nil)
                 }
                 
-                let filterString = filter.queryStringWithEditingRange.0
-                let range = filterString.range(of: value, options: .caseInsensitive)
+                let range = filter.description.range(of: value, options: .caseInsensitive)
                 return EnumerationSuggestion(filter: filter, matchRange: range)
             }
             .prefix(limit)

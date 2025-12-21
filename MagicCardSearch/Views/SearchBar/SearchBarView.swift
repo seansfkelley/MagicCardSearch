@@ -108,7 +108,7 @@ struct SearchBarView: View {
             searchHistoryTracker.recordUsage(of: filter)
             inputText = ""
         } else if fallbackToNameFilter {
-            let filter = SearchFilter.basic(.name(trimmed, false))
+            let filter = SearchFilter(.name(trimmed, false))
             filters.append(filter)
             searchHistoryTracker.recordUsage(of: filter)
             inputText = ""

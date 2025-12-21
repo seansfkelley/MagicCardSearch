@@ -265,9 +265,8 @@ struct ContentView: View {
     }
     
     private func handleFilterEdit(_ filter: SearchFilter) {
-        let (filterString, range) = filter.queryStringWithEditingRange
-        inputText = filterString
-        let selection = TextSelection(range: range)
+        inputText = filter.description
+        let selection = TextSelection(range: filter.suggestedEditingRange)
         
         // Unfortunate, but seems to be the only way that we can reliably focus the
         // text whether or not the text field is currently focused.

@@ -45,7 +45,7 @@ class PinnedFilterSuggestionProvider {
             .sorted(using: [
                 KeyPathComparator(\.pinnedDate, order: .reverse),
                 KeyPathComparator(\.lastUsedDate, order: .reverse),
-                KeyPathComparator(\.filter.queryStringWithEditingRange.0, comparator: .localizedStandard),
+                KeyPathComparator(\.filter.description, comparator: .localizedStandard),
             ])
             .filter { !excludedFilters.contains($0.filter) }
             .compactMap { entry in
@@ -53,8 +53,7 @@ class PinnedFilterSuggestionProvider {
                     return PinnedFilterSuggestion(filter: entry.filter, matchRange: nil)
                 }
                 
-                let filterString = entry.filter.queryStringWithEditingRange.0
-                if let range = filterString.range(of: searchTerm, options: .caseInsensitive) {
+                if let range = entry.filter.description.range(of: searchTerm, options: .caseInsensitive) {
                     return PinnedFilterSuggestion(filter: entry.filter, matchRange: range)
                 }
                 

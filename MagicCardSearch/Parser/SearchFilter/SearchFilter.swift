@@ -6,6 +6,16 @@ struct SearchFilter: Equatable, Hashable, Codable, CustomStringConvertible {
     let negated: Bool
     let content: SearchFilterContent
     
+    init(_ content: SearchFilterContent) {
+        self.negated = false
+        self.content = content
+    }
+    
+    init(_ negated: Bool, _ content: SearchFilterContent) {
+        self.negated = negated
+        self.content = content
+    }
+    
     var description: String {
         "\(negated ? "-" : "")\(content)"
     }
