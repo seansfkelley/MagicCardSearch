@@ -63,6 +63,26 @@ struct FilterTypeSuggestionProviderTests {
                 "ow",
                 [("pow", 1..<3), ("powtou", 1..<3)],
             ),
+            // unquoted exact-match is not eligible even if it would match
+            (
+                "!form",
+                [],
+            ),
+            // quoted exact-match is not eligible even if it would match
+            (
+                "!\"form\"",
+                [],
+            ),
+            // quoted is not eligible because it implies a name search
+            (
+                "\"form",
+                [],
+            ),
+            // if operators are present we're past the point where we can suggest, even if we could
+            (
+                "form:",
+                [],
+            ),
         ]
     )
     func getSuggestions(input: String, expected: [(String, Range<Int>)]) {

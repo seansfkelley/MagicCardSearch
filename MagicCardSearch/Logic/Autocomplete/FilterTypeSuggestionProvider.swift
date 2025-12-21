@@ -14,15 +14,25 @@ struct FilterTypeSuggestion: Equatable {
 struct FilterTypeSuggestionProvider {
     // swiftlint:disable:next cyclomatic_complexity function_body_length
     func getSuggestions(for searchTerm: String, limit: Int) -> [FilterTypeSuggestion] {
-        guard let match = try? /^(-?)([a-zA-Z]+)$/.wholeMatch(in: searchTerm) else {
-            return []
-        }
-        
         guard limit > 0 else {
             return []
         }
         
-        let (_, negated, filterName) = match.output
+        let partial = PartialSearchFilter.from(searchTerm)
+        
+        guard case .name(let exact, let partialTerm) = partial.content else {
+            return []
+        }
+        
+        guard !exact else {
+            return []
+        }
+        
+        guard partialTerm.quotingType == nil else {
+            return []
+        }
+            
+        let filterName = partialTerm.incompleteContent
         let exactMatch = scryfallFilterByType[filterName.lowercased()]
         
         var suggestions: [FilterTypeSuggestion] = []
@@ -69,24 +79,23 @@ struct FilterTypeSuggestionProvider {
         }
         
         if let exactMatch {
-            let filterType = String(filterName) // make it not a substring so the indices are sane
             suggestions
                 .insert(
                     FilterTypeSuggestion(
-                        filterType: filterType,
-                        matchRange: filterType.startIndex..<filterType.endIndex,
+                        filterType: filterName,
+                        matchRange: filterName.startIndex..<filterName.endIndex,
                         comparisonKinds: exactMatch.comparisonKinds,
                     ),
                     at: 0
                 )
         }
         
-        if !negated.isEmpty {
+        if partial.negated {
             suggestions = suggestions.map {
-                let prefixed = "\(negated)\($0.filterType)"
+                let prefixed = "-\($0.filterType)"
                 return FilterTypeSuggestion(
                     filterType: prefixed,
-                    matchRange: prefixed.index(after: $0.matchRange.lowerBound)..<prefixed.index(after: $0.matchRange.upperBound),
+                    matchRange: $0.matchRange.offset(with: prefixed, by: 1),
                     comparisonKinds: $0.comparisonKinds,
                 )
             }
