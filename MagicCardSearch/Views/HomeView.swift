@@ -193,7 +193,7 @@ struct HomeView: View {
         let searchService = CardSearchService()
         
         do {
-            let searchResult = try await searchService.search(
+            let searchResults = try await searchService.search(
                 filters: [
                     .init(.keyValue("date", .greaterThanOrEqual, "today")),
                 ],
@@ -203,13 +203,6 @@ struct HomeView: View {
                     sortOrder: .descending
                 ),
             )
-            let searchResults = SearchResults(
-                totalCount: searchResult.totalCount,
-                cards: searchResult.cards,
-                warnings: searchResult.warnings,
-                nextPageUrl: searchResult.nextPageURL,
-            )
-
             featuredState.current = .loaded(searchResults, nil)
         } catch {
             print("Search error: \(error)")

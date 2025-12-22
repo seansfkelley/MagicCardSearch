@@ -8,8 +8,18 @@
 import Foundation
 import Observation
 import Logging
+import ScryfallKit
 
 private let logger = Logger(label: "SearchResultsState")
+
+// This is very similar to the type from ScryfallKit but changes nilability/is generally slightly
+// more convenient to use.
+struct SearchResults {
+    let cards: [Card]
+    let totalCount: Int
+    let nextPageUrl: String?
+    let warnings: [String]
+}
 
 @MainActor
 @Observable
@@ -42,10 +52,10 @@ class ScryfallSearchResultsList {
             do {
                 let searchResult = try await searchService.fetchNextPage(from: nextUrl)
                 let updatedResults = SearchResults(
-                    totalCount: searchResults.totalCount,
                     cards: searchResults.cards + searchResult.cards,
+                    totalCount: searchResults.totalCount,
+                    nextPageUrl: searchResult.nextPageUrl,
                     warnings: searchResults.warnings,
-                    nextPageUrl: searchResult.nextPageURL
                 )
                 current = .loaded(updatedResults, nil)
             } catch {

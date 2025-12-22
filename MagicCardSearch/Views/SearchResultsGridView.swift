@@ -20,37 +20,33 @@ struct SearchResultsGridView: View {
         GridItem(.flexible(), spacing: 0),
         GridItem(.flexible(), spacing: 0),
     ]
-    
-    private var results: LoadableResult<SearchResults, SearchErrorState> {
-        state.current
-    }
 
     var body: some View {
         ZStack {
             // TODO: Clean this up.
-            if case .unloaded = results {
+            if case .unloaded = state.current {
                 ContentUnavailableView(
                     "No Results",
                     systemImage: "circle.slash",
                 )
-            } else if case .errored(let searchResults, let error) = results, searchResults?.cards.isEmpty ?? true {
+            } else if case .errored(let searchResults, let error) = state.current, searchResults?.cards.isEmpty ?? true {
                 ContentUnavailableView {
                     Label(error.title, systemImage: error.iconName)
                 } description: {
                     Text(error.description)
                 }
-            } else if case .errored(nil, let error) = results {
+            } else if case .errored(nil, let error) = state.current {
                 ContentUnavailableView {
                     Label(error.title, systemImage: error.iconName)
                 } description: {
                     Text(error.description)
                 }
-            } else if case .loaded(let searchResults, _) = results, searchResults.cards.isEmpty {
+            } else if case .loaded(let searchResults, _) = state.current, searchResults.cards.isEmpty {
                 ContentUnavailableView(
                     "No Results",
                     systemImage: "circle.slash",
                 )
-            } else if let searchResults = results.latestValue, !searchResults.cards.isEmpty {
+            } else if let searchResults = state.current.latestValue, !searchResults.cards.isEmpty {
                 ScrollView {
                     VStack(spacing: 0) {
                         Text("\(searchResults.totalCount) \(searchResults.totalCount == 1 ? "result" : "results")")
@@ -81,7 +77,7 @@ struct SearchResultsGridView: View {
                             }
                         }
 
-                        if searchResults.nextPageUrl != nil || results.isLoadingNextPage || results.nextPageError != nil {
+                        if searchResults.nextPageUrl != nil || state.current.isLoadingNextPage || state.current.nextPageError != nil {
                             paginationStatusView
                                 .padding(.horizontal)
                                 .padding(.vertical, 20)
@@ -91,7 +87,7 @@ struct SearchResultsGridView: View {
                 }
             }
 
-            if results.isInitiallyLoading {
+            if state.current.isInitiallyLoading {
                 Color.black.opacity(0.3)
                     .ignoresSafeArea()
                     .transition(.opacity)
@@ -102,7 +98,7 @@ struct SearchResultsGridView: View {
                     .tint(.white)
             }
         }
-        .animation(.easeInOut(duration: 0.2), value: results.isInitiallyLoading)
+        .animation(.easeInOut(duration: 0.2), value: state.current.isInitiallyLoading)
         .sheet(
             item: Binding(
                 get: { selectedCardIndex.map { IdentifiableIndex(index: $0) } },
@@ -119,7 +115,7 @@ struct SearchResultsGridView: View {
 
     @ViewBuilder private var paginationStatusView: some View {
         VStack(spacing: 16) {
-            if results.isLoadingNextPage {
+            if state.current.isLoadingNextPage {
                 VStack(spacing: 12) {
                     ProgressView()
                         .scaleEffect(1.2)
@@ -129,7 +125,7 @@ struct SearchResultsGridView: View {
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 30)
-            } else if let error = results.nextPageError {
+            } else if let error = state.current.nextPageError {
                 VStack(spacing: 16) {
                     Image(systemName: error.iconName)
                         .font(.system(size: 40))

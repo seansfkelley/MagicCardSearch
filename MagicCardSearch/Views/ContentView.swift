@@ -161,10 +161,10 @@ struct ContentView: View {
             // Clear warnings when filters change by resetting to unloaded or keeping existing results
             if case .loaded(let searchResults, _) = searchResultsState.current {
                 searchResultsState.current = .loaded(SearchResults(
-                    totalCount: searchResults.totalCount,
                     cards: searchResults.cards,
+                    totalCount: searchResults.totalCount,
+                    nextPageUrl: searchResults.nextPageUrl,
                     warnings: [],
-                    nextPageUrl: searchResults.nextPageUrl
                 ), nil)
             }
         }
@@ -240,15 +240,9 @@ struct ContentView: View {
 
         searchTask = Task {
             do {
-                let searchResult = try await searchService.search(
+                let searchResults = try await searchService.search(
                     filters: searchFilters,
                     config: searchConfig
-                )
-                let searchResults = SearchResults(
-                    totalCount: searchResult.totalCount,
-                    cards: searchResult.cards,
-                    warnings: searchResult.warnings,
-                    nextPageUrl: searchResult.nextPageURL,
                 )
                 searchResultsState.current = .loaded(searchResults, nil)
             } catch {

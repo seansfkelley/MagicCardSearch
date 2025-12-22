@@ -7,13 +7,6 @@
 
 import ScryfallKit
 
-struct SearchResults {
-    let totalCount: Int
-    let cards: [Card]
-    let warnings: [String]
-    let nextPageUrl: String?
-}
-
 extension LoadableResult<SearchResults, SearchErrorState> {
     var isInitiallyLoading: Bool {
         if case .loading(let value, _) = self, value == nil {

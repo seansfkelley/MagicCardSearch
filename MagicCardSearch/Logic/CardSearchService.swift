@@ -19,11 +19,11 @@ class CardSearchService {
         self.client = ScryfallClient(networkLogLevel: .minimal)
     }
     
-    func search(filters: [SearchFilter], config: SearchConfiguration) async throws -> SearchResult {
+    func search(filters: [SearchFilter], config: SearchConfiguration) async throws -> SearchResults {
         let queryString = filters.map { $0.description }.joined(separator: " ")
         
         guard !queryString.isEmpty else {
-            return SearchResult(cards: [], totalCount: 0, nextPageURL: nil, warnings: [])
+            return SearchResults(cards: [], totalCount: 0, nextPageUrl: nil, warnings: [])
         }
         
         do {
@@ -34,23 +34,23 @@ class CardSearchService {
                 sortDirection: config.sortOrder.toScryfallKitSortDirection()
             )
             
-            return SearchResult(
+            return SearchResults(
                 cards: result.data,
                 totalCount: result.totalCards ?? result.data.count,
-                nextPageURL: result.nextPage,
+                nextPageUrl: result.nextPage,
                 warnings: result.warnings ?? []
             )
         } catch let scryfallError as ScryfallKitError {
             // When searching for cards, a 404 means "no results found", not an actual error
             if case .scryfallError(let error) = scryfallError, error.status == 404 {
-                return SearchResult(cards: [], totalCount: 0, nextPageURL: nil, warnings: [])
+                return SearchResults(cards: [], totalCount: 0, nextPageUrl: nil, warnings: [])
             }
             // Re-throw other Scryfall errors
             throw scryfallError
         }
     }
     
-    nonisolated func fetchNextPage(from urlString: String) async throws -> SearchResult {
+    nonisolated func fetchNextPage(from urlString: String) async throws -> SearchResults {
         // ScryfallKit doesn't expose a direct "fetch from URL" method,
         // so we need to parse the URL and extract parameters
         guard let url = URL(string: urlString),
@@ -82,16 +82,16 @@ class CardSearchService {
                 page: page
             )
             
-            return SearchResult(
+            return SearchResults(
                 cards: result.data,
                 totalCount: result.totalCards ?? result.data.count,
-                nextPageURL: result.nextPage,
+                nextPageUrl: result.nextPage,
                 warnings: result.warnings ?? []
             )
         } catch let scryfallError as ScryfallKitError {
             // When paginating search results, a 404 means "no more results", not an actual error
             if case .scryfallError(let error) = scryfallError, error.status == 404 {
-                return SearchResult(cards: [], totalCount: 0, nextPageURL: nil, warnings: [])
+                return SearchResults(cards: [], totalCount: 0, nextPageUrl: nil, warnings: [])
             }
             // Re-throw other Scryfall errors
             throw scryfallError
@@ -105,18 +105,18 @@ class CardSearchService {
     // TODO: This is actually searching for all prints, not as generic as it sounds.
     func searchCardsByOracleId(_ oracleId: String) async throws -> [Card] {
         var allCards: [Card] = []
-        var nextPageURL: String?
+        var nextPageUrl: String?
         
         // Fetch first page
         let firstResult = try await client.searchCards(query: "oracleID:\(oracleId)", unique: .prints, order: .released, includeExtras: true)
         allCards.append(contentsOf: firstResult.data)
-        nextPageURL = firstResult.nextPage
+        nextPageUrl = firstResult.nextPage
         
         // Fetch remaining pages if they exist
-        while let pageURL = nextPageURL {
+        while let pageURL = nextPageUrl {
             let pageResult = try await fetchNextPage(from: pageURL)
             allCards.append(contentsOf: pageResult.cards)
-            nextPageURL = pageResult.nextPageURL
+            nextPageUrl = pageResult.nextPageUrl
         }
         
         return allCards
@@ -127,19 +127,19 @@ class CardSearchService {
     /// - Returns: All matching cards across all pages
     func searchByRawQuery(_ query: String) async throws -> [Card] {
         var allCards: [Card] = []
-        var nextPageURL: String?
+        var nextPageUrl: String?
         
         do {
             // Fetch first page
             let firstResult = try await client.searchCards(query: query, unique: .prints, order: .released, includeExtras: true)
             allCards.append(contentsOf: firstResult.data)
-            nextPageURL = firstResult.nextPage
+            nextPageUrl = firstResult.nextPage
             
             // Fetch remaining pages if they exist
-            while let pageURL = nextPageURL {
+            while let pageURL = nextPageUrl {
                 let pageResult = try await fetchNextPage(from: pageURL)
                 allCards.append(contentsOf: pageResult.cards)
-                nextPageURL = pageResult.nextPageURL
+                nextPageUrl = pageResult.nextPageUrl
             }
         } catch let scryfallError as ScryfallKitError {
             // When searching for cards, a 404 means "no results found", not an actual error
@@ -191,13 +191,4 @@ enum SearchError: LocalizedError {
             return "Server error: \(statusCode)"
         }
     }
-}
-
-// MARK: - Search Result
-
-struct SearchResult {
-    let cards: [Card]
-    let totalCount: Int
-    let nextPageURL: String?
-    let warnings: [String]
 }
