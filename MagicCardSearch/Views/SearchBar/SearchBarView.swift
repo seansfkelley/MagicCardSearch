@@ -91,8 +91,30 @@ struct SearchBarView: View {
         .onTapGesture {
             isSearchFocused = true
         }
-        .onChange(of: inputText) { (previous: String, current: String) in
-            if previous.count < current.count && current.hasSuffix(" ") {
+        .onChange(of: inputText) { previous, current in
+            guard current.count > previous.count else {
+                return
+            }
+            
+            // TODO: consider closing quotes or parens also triggering a creation?
+            guard current.hasSuffix(" ") else {
+                return
+            }
+            
+            // Aggressively default to true because it seems like safer default behavior.
+            let isAddingAtEnd = if let selection = inputSelection {
+                switch selection.indices {
+                case .selection(let range): range.upperBound == current.endIndex
+                case .multiSelection: true
+                @unknown default: true
+                }
+            } else {
+                // A cursor at a single point without a selection is still represented as a non-nil
+                // zero-length range, so I guess this branch is only hit if you're not focused on it?
+                true
+            }
+            
+            if isAddingAtEnd {
                 createNewFilterFromSearch()
             }
         }
