@@ -129,7 +129,7 @@ struct ParenthesizedQueryTests {
             "()",
             [],
         ),
-
+        
         // Unclosed parentheses
         (
             "(red or blue",
@@ -439,35 +439,22 @@ struct ParenthesizedQueryTests {
             "name:'bolt type:creature",
             ["name:'bolt type:creature"],
         ),
-    ])
-    func parseAllQueryTypes(input: String, expected: [String]) throws {
-        let result = try PlausibleFilterRanges.from(input)
-        let actual = result.ranges.map { String(input[$0]) }
-        #expect(actual == expected)
-    }
-    
-    @Test("not-yet-handled cases", arguments: [
-        // Whitespace-only input throws instead of returning empty
         (
             "   ",
             [],
         ),
-        // OR at beginning - should be ignored but currently returns empty
         (
             "or red",
             ["red"],
         ),
-        // Consecutive ORs - should ignore extra OR but only returns first term
         (
             "red or or blue",
             ["red", "blue"],
         ),
     ])
-    func unhandledCases(input: String, expected: [String]) throws {
-        withKnownIssue {
-            let result = try PlausibleFilterRanges.from(input)
-            let actual = result.ranges.map { String(input[$0]) }
-            #expect(actual == expected)
-        }
+    func parseAllQueryTypes(input: String, expected: [String]) throws {
+        let result = try PlausibleFilterRanges.from(input)
+        let actual = result.ranges.map { String(input[$0]) }
+        #expect(actual == expected)
     }
 }
