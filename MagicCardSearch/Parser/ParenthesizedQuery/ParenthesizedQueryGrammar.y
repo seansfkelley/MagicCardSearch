@@ -15,12 +15,12 @@ disjunction ::= disjunction(d) Or conjunction(c). {
 
 %nonterminal_type conjunction ParenthesizedQuery
 %capture_errors conjunction end_after(And).
-conjunction ::= Verbatim(range). {
-    .init(filters: [range])
+conjunction ::= Verbatim(v). {
+    .init(filters: [v.range])
 }
 conjunction ::= parenthesized(p). { p }
-conjunction ::= conjunction(c) And Verbatim(range). {
-    .init(filters: c.filters + [range])
+conjunction ::= conjunction(c) And Verbatim(v). {
+    .init(filters: c.filters + [v.range])
 }
 conjunction ::= conjunction(c) And parenthesized(p). {
     .init(filters: c.filters + p.filters)
@@ -28,6 +28,6 @@ conjunction ::= conjunction(c) And parenthesized(p). {
 
 %nonterminal_type parenthesized ParenthesizedQuery
 %capture_errors parenthesized end_before(CloseParen | Verbatim | Or | And).
-parenthesized ::= OpenParen(l) disjunction(q) CloseParen(r). {
-    .init(filters: q.filters)
+parenthesized ::= OpenParen(l) disjunction(d) CloseParen(r). {
+    .init(filters: d.filters)
 }
