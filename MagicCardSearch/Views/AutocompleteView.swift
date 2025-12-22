@@ -13,7 +13,7 @@ struct AutocompleteView: View {
         case string(String)
     }
 
-    let inputText: String
+    let filterText: String
     let provider: CombinedSuggestionProvider
     let searchHistoryTracker: SearchHistoryTracker
     let filters: [SearchFilter]
@@ -24,7 +24,7 @@ struct AutocompleteView: View {
     @State private var nonce: Int = 0
     
     private var searchSuggestionKey: SearchSuggestionKey {
-        SearchSuggestionKey(inputText: inputText, filterCount: filters.count, nonce: nonce)
+        SearchSuggestionKey(inputText: filterText, filterCount: filters.count, nonce: nonce)
     }
     
     private struct SearchSuggestionKey: Equatable {
@@ -107,7 +107,7 @@ struct AutocompleteView: View {
         }
         .listStyle(.plain)
         .task(id: searchSuggestionKey) {
-            for await newSuggestions in provider.getSuggestions(for: inputText, existingFilters: Set(filters)) {
+            for await newSuggestions in provider.getSuggestions(for: filterText, existingFilters: Set(filters)) {
                 suggestions = newSuggestions
             }
         }

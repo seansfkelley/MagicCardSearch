@@ -34,6 +34,10 @@ struct ContentView: View {
     
     private let searchService = CardSearchService()
     
+    private var filterFacade: CurrentlyHighlightedFilterFacade {
+        CurrentlyHighlightedFilterFacade(inputText: $inputText, inputSelection: $inputSelection)
+    }
+    
     init() {
         _autocompleteProvider = State(initialValue: CombinedSuggestionProvider(
             pinnedFilter: PinnedFilterSuggestionProvider(),
@@ -62,15 +66,13 @@ struct ContentView: View {
                 case .results:
                     if isSearchFocused {
                         AutocompleteView(
-                            inputText: inputText,
+                            filterText: filterFacade.currentFilter,
                             provider: autocompleteProvider,
                             searchHistoryTracker: searchHistoryTracker,
                             filters: searchFilters,
                             isSearchFocused: isSearchFocused,
-                        ) { suggestion in
-                            handleSuggestionTap(suggestion)
-                            inputSelection = TextSelection(insertionPoint: inputText.endIndex)
-                        }
+                            onSuggestionTap: handleSuggestionTap,
+                        )
                     } else {
                         SearchResultsGridView(state: searchResultsState)
                     }
@@ -275,8 +277,9 @@ struct ContentView: View {
             inputText = ""
             
         case .string(let string):
-            inputText = string
+            inputText.replaceSubrange(filterFacade.currentFilterRange, with: string)
         }
+        inputSelection = TextSelection(insertionPoint: inputText.endIndex)
     }
 }
 
