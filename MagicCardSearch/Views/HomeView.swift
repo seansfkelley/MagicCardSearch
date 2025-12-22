@@ -163,11 +163,11 @@ struct HomeView: View {
             .listSectionMargins(.horizontal, 0)
         }
         .task {
-            #if DEBUG
-            logger.info("Skipping featured card load in test environment")
-            #else
-            await loadFeaturedCards()
-            #endif
+            if isRunningTests() {
+                logger.info("Skipping featured card load in test environment")
+            } else {
+                await loadFeaturedCards()
+            }
         }
         .sheet(
             item: Binding(

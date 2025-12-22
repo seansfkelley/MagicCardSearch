@@ -107,10 +107,10 @@ final class ScryfallCatalogs {
     /// - Returns: Result indicating success or failure of the prefetch operation
     @discardableResult
     public func prefetchSymbology() async -> Result<Void, ScryfallMetadataError> {
-        #if DEBUG
-        logger.info("Skipping symbology prefetch in test environment")
-        return .success(())
-        #endif
+        guard !isRunningTests() else {
+            logger.info("Skipping symbology prefetch in test environment")
+            return .success(())
+        }
         
         do {
             symbols = try await symbolCache.get(forKey: "symbology") {
@@ -135,10 +135,10 @@ final class ScryfallCatalogs {
     /// - Returns: Result indicating success or failure of the prefetch operation
     @discardableResult
     public func prefetchSets() async -> Result<Void, ScryfallMetadataError> {
-        #if DEBUG
-        logger.info("Skipping sets prefetch in test environment")
-        return .success(())
-        #endif
+        guard !isRunningTests() else {
+            logger.info("Skipping sets prefetch in test environment")
+            return .success(())
+        }
         
         do {
             sets = try await setCache.get(forKey: "sets") {
@@ -158,10 +158,10 @@ final class ScryfallCatalogs {
     /// - Returns: Result indicating success or failure of the prefetch operation
     @discardableResult
     public func prefetchCatalogs() async -> Result<Void, ScryfallMetadataError> {
-        #if DEBUG
-        logger.info("Skipping catalogs prefetch in test environment")
-        return .success(())
-        #endif
+        guard !isRunningTests() else {
+            logger.info("Skipping catalogs prefetch in test environment")
+            return .success(())
+        }
         
         do {
             logger.info("Fetching catalogs...")
