@@ -215,7 +215,7 @@ class ParenthesizedQueryParser: CitronParser {
             func codeBlockForRule3(v: ParenthesizedQueryTokenContent) throws -> ParenthesizedConjunction {
 #sourceLocation(file: "MagicCardSearch/Parser/ParenthesizedQuery/ParenthesizedQueryGrammar.y", line: 20)
 
-    .init([.filter(v.range)])
+    .init([.filter(v.content)])
 
 #sourceLocation()
 }
@@ -237,7 +237,7 @@ class ParenthesizedQueryParser: CitronParser {
             func codeBlockForRule5(c: ParenthesizedConjunction, v: ParenthesizedQueryTokenContent) throws -> ParenthesizedConjunction {
 #sourceLocation(file: "MagicCardSearch/Parser/ParenthesizedQuery/ParenthesizedQueryGrammar.y", line: 26)
 
-    .init(c.clauses + [.filter(v.range)])
+    .init(c.clauses + [.filter(v.content)])
 
 #sourceLocation()
 }

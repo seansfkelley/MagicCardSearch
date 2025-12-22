@@ -18,12 +18,13 @@ internal typealias LexedParenthesizedQueryToken = (
     ParenthesizedQueryParser.CitronToken, ParenthesizedQueryParser.CitronTokenCode
 )
 
-func lexParenthesizedQuery(_ input: String) throws -> [LexedParenthesizedQueryToken] {
+// swiftlint:disable:next function_body_length
+func lexParenthesizedQuery(_ input: String, allowingUnterminatedLiterals: Bool = false) throws -> [LexedParenthesizedQueryToken] {
     guard !input.isEmpty else {
         return []
     }
     
-    let lexer = CitronLexer<(String, ParenthesizedQueryParser.CitronTokenCode)>(rules: [
+    var rules: [CitronLexer<(String, ParenthesizedQueryParser.CitronTokenCode)>.LexingRule] = [
         .regexPattern(#"-?\(\s*"#) { ($0, .OpenParen) },
         .regexPattern(#"\s*\)"#) { ($0, .CloseParen) },
         .regexPattern(#"(\b|\s+)or(\s+|\b)"#) { ($0, .Or) },
@@ -32,11 +33,25 @@ func lexParenthesizedQuery(_ input: String) throws -> [LexedParenthesizedQueryTo
         // their own and define a non-whitespace-permitting rule for everything else, then
         // post-process the tokens to coalesce adjacent ones.
         .regexPattern(#"[^'"/ \n\t\)]+"#) { ($0, .Verbatim) },
-        .regexPattern(#"'[^']*('|$)"#) { ($0, .Verbatim) },
-        .regexPattern(#""[^"]*("|$)"#) { ($0, .Verbatim) },
-        .regexPattern(#"/[^/]*(/|$)"#) { ($0, .Verbatim) },
-        .regexPattern(#"[ \n\t]+"#) { ($0, .And) },
-    ])
+    ]
+    
+    if allowingUnterminatedLiterals {
+        rules.append(contentsOf: [
+            .regexPattern(#"'[^']*('|$)"#) { ($0, .Verbatim) },
+            .regexPattern(#""[^"]*("|$)"#) { ($0, .Verbatim) },
+            .regexPattern(#"/[^/]*(/|$)"#) { ($0, .Verbatim) },
+        ])
+    } else {
+        rules.append(contentsOf: [
+            .regexPattern(#"'[^']*'"#) { ($0, .Verbatim) },
+            .regexPattern(#""[^"]*""#) { ($0, .Verbatim) },
+            .regexPattern(#"/[^/]*/"#) { ($0, .Verbatim) },
+        ])
+    }
+    
+    rules.append(.regexPattern(#"[ \n\t]+"#) { ($0, .And) })
+    
+    let lexer = CitronLexer<(String, ParenthesizedQueryParser.CitronTokenCode)>(rules: rules)
     
     var tokens: [LexedParenthesizedQueryToken] = []
     try lexer.tokenize(input) { token, code in
@@ -54,7 +69,7 @@ func lexParenthesizedQuery(_ input: String) throws -> [LexedParenthesizedQueryTo
             let previousEnd = previous.0.range.upperBound
             tokens.append((
                 ParenthesizedQueryTokenContent(
-                    token,
+                    "\(previous.0.content)\(token)",
                     previousStart..<input.index(previousEnd, offsetBy: token.count),
                 ),
                 .Verbatim,

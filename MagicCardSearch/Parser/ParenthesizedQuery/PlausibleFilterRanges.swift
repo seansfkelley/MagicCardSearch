@@ -15,7 +15,7 @@ struct PlausibleFilterRanges {
             // The grammar is simple enough that we can rely on the lexer directly without having to
             // have the proper parser resolve things for us. Nice.
             return .init(
-                ranges: (try lexParenthesizedQuery(trimmedInput))
+                ranges: (try lexParenthesizedQuery(trimmedInput, allowingUnterminatedLiterals: true))
                     .filter { $0.1 == .Verbatim }
                     .map { $0.0.range.offset(with: input, by: prefixOffset) }
             )

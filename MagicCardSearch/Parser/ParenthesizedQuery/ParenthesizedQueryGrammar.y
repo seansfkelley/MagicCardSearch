@@ -18,13 +18,13 @@ disjunction ::= disjunction(d) Or conjunction(c). {
 %nonterminal_type conjunction ParenthesizedConjunction
 %capture_errors conjunction end_after(And).
 conjunction ::= Verbatim(v). {
-    .init([.filter(v.range)])
+    .init([.filter(v.content)])
 }
 conjunction ::= parenthesized(d). {
     .init([.disjunction(d)])
 }
 conjunction ::= conjunction(c) And Verbatim(v). {
-    .init(c.clauses + [.filter(v.range)])
+    .init(c.clauses + [.filter(v.content)])
 }
 conjunction ::= conjunction(c) And parenthesized(d). {
     .init(c.clauses + [.disjunction(d)])
