@@ -58,15 +58,15 @@ struct NameSuggestionProviderTests {
             ["Firebolt", "Lightning Bolt", "Someone's Bolt"],
             [
                 NameSuggestion(
-                    filter: SearchFilter.basic(SearchFilterContent.keyValue("name", Comparison.including, "Firebolt")),
+                    filter: .init(SearchFilterContent.keyValue("name", Comparison.including, "Firebolt")),
                     matchRange: makeStringRange("name:Firebolt", 9..<13)
                 ),
                 NameSuggestion(
-                    filter: SearchFilter.basic(SearchFilterContent.keyValue("name", Comparison.including, "Lightning Bolt")),
+                    filter: .init(SearchFilterContent.keyValue("name", Comparison.including, "Lightning Bolt")),
                     matchRange: makeStringRange("name:\"Lightning Bolt\"", 16..<20)
                 ),
                 NameSuggestion(
-                    filter: SearchFilter.basic(SearchFilterContent.keyValue("name", Comparison.including, "Someone's Bolt")),
+                    filter: .init(SearchFilterContent.keyValue("name", Comparison.including, "Someone's Bolt")),
                     matchRange: makeStringRange("name:\"Someone's Bolt\"", 16..<20)
                 ),
             ]
@@ -77,7 +77,7 @@ struct NameSuggestionProviderTests {
             ["Firebolt"],
             [
                 NameSuggestion(
-                    filter: SearchFilter.basic(SearchFilterContent.keyValue("name", Comparison.including, "Firebolt")),
+                    filter: .init(SearchFilterContent.keyValue("name", Comparison.including, "Firebolt")),
                     matchRange: makeStringRange("name:Firebolt", 9..<13)
                 ),
             ]
@@ -88,7 +88,7 @@ struct NameSuggestionProviderTests {
             ["Firebolt"],
             [
                 NameSuggestion(
-                    filter: SearchFilter.basic(SearchFilterContent.keyValue("name", Comparison.equal, "Firebolt")),
+                    filter: .init(SearchFilterContent.keyValue("name", Comparison.equal, "Firebolt")),
                     matchRange: makeStringRange("name=Firebolt", 9..<13)
                 ),
             ]
@@ -99,11 +99,11 @@ struct NameSuggestionProviderTests {
             ["Firebolt", "Lightning Bolt"],
             [
                 NameSuggestion(
-                    filter: SearchFilter.basic(SearchFilterContent.keyValue("name", Comparison.equal, "Firebolt")),
+                    filter: .init(SearchFilterContent.keyValue("name", Comparison.equal, "Firebolt")),
                     matchRange: makeStringRange("name=Firebolt", 9..<13)
                 ),
                 NameSuggestion(
-                    filter: SearchFilter.basic(SearchFilterContent.keyValue("name", Comparison.equal, "Lightning Bolt")),
+                    filter: .init(SearchFilterContent.keyValue("name", Comparison.equal, "Lightning Bolt")),
                     matchRange: makeStringRange("name=\"Lightning Bolt\"", 16..<20)
                 ),
             ]
@@ -114,11 +114,11 @@ struct NameSuggestionProviderTests {
             ["Firebolt", "Lightning Bolt"],
             [
                 NameSuggestion(
-                    filter: SearchFilter.basic(SearchFilterContent.name("Firebolt", true)),
+                    filter: .init(SearchFilterContent.name("Firebolt", true)),
                     matchRange: makeStringRange("!Firebolt", 5..<9)
                 ),
                 NameSuggestion(
-                    filter: SearchFilter.basic(SearchFilterContent.name("Lightning Bolt", true)),
+                    filter: .init(SearchFilterContent.name("Lightning Bolt", true)),
                     matchRange: makeStringRange("!\"Lightning Bolt\"", 12..<16)
                 ),
             ]
@@ -129,11 +129,11 @@ struct NameSuggestionProviderTests {
             ["Firebolt", "Lightning Bolt"],
             [
                 NameSuggestion(
-                    filter: SearchFilter.basic(SearchFilterContent.name("Firebolt", true)),
+                    filter: .init(SearchFilterContent.name("Firebolt", true)),
                     matchRange: makeStringRange("!Firebolt", 5..<9)
                 ),
                 NameSuggestion(
-                    filter: SearchFilter.basic(SearchFilterContent.name("Lightning Bolt", true)),
+                    filter: .init(SearchFilterContent.name("Lightning Bolt", true)),
                     matchRange: makeStringRange("!\"Lightning Bolt\"", 12..<16)
                 ),
             ]
@@ -144,11 +144,11 @@ struct NameSuggestionProviderTests {
             ["Firebolt", "Lightning Bolt"],
             [
                 NameSuggestion(
-                    filter: SearchFilter.negated(SearchFilterContent.name("Firebolt", true)),
+                    filter: .init(true, SearchFilterContent.name("Firebolt", true)),
                     matchRange: makeStringRange("-!Firebolt", 6..<10)
                 ),
                 NameSuggestion(
-                    filter: SearchFilter.negated(SearchFilterContent.name("Lightning Bolt", true)),
+                    filter: .init(true, SearchFilterContent.name("Lightning Bolt", true)),
                     matchRange: makeStringRange("-!\"Lightning Bolt\"", 13..<17)
                 ),
             ]
@@ -159,11 +159,11 @@ struct NameSuggestionProviderTests {
             ["Wooded Foothills", "Shivan Reef"],
             [
                 NameSuggestion(
-                    filter: SearchFilter.basic(SearchFilterContent.keyValue("name", Comparison.including, "Wooded Foothills")),
+                    filter: .init(SearchFilterContent.keyValue("name", Comparison.including, "Wooded Foothills")),
                     matchRange: makeStringRange("name:\"Wooded Foothills\"", 13..<16)
                 ),
                 NameSuggestion(
-                    filter: SearchFilter.basic(SearchFilterContent.keyValue("name", Comparison.including, "Shivan Reef")),
+                    filter: .init(SearchFilterContent.keyValue("name", Comparison.including, "Shivan Reef")),
                     matchRange: nil
                 ),
             ]
@@ -174,11 +174,11 @@ struct NameSuggestionProviderTests {
             ["Firebolt", "Lightning Bolt"],
             [
                 NameSuggestion(
-                    filter: SearchFilter.basic(SearchFilterContent.name("Firebolt", true)),
+                    filter: .init(SearchFilterContent.name("Firebolt", true)),
                     matchRange: makeStringRange("!Firebolt", 5..<9)
                 ),
                 NameSuggestion(
-                    filter: SearchFilter.basic(SearchFilterContent.name("Lightning Bolt", true)),
+                    filter: .init(SearchFilterContent.name("Lightning Bolt", true)),
                     matchRange: makeStringRange("!\"Lightning Bolt\"", 12..<16)
                 ),
             ]
@@ -198,7 +198,7 @@ struct NameSuggestionProviderTests {
         withKnownIssue {
             #expect(actual == [
                 NameSuggestion(
-                    filter: .basic(.keyValue("name", .including, "Nameless Race")),
+                    filter: .init(.keyValue("name", .including, "Nameless Race")),
                     matchRange: makeStringRange("name:\"Nameless Race\"", 7..<11),
                 ),
             ])

@@ -35,8 +35,8 @@ class HistorySuggestionProviderTests {
     
     @Test("returns all filters below the limit if no search term is provided")
     func emptySearchText() {
-        let colorFilter = SearchFilter.basic(.keyValue("color", .equal, "red"))
-        let oracleFilter = SearchFilter.basic(.keyValue("oracle", .including, "flying"))
+        let colorFilter = SearchFilter(.keyValue("color", .equal, "red"))
+        let oracleFilter = SearchFilter(.keyValue("oracle", .including, "flying"))
         recordUsages(of: [colorFilter, oracleFilter])
         
         let suggestions = provider.getSuggestions(for: "", excluding: Set(), limit: 1)
@@ -53,8 +53,8 @@ class HistorySuggestionProviderTests {
         )
         provider = HistorySuggestionProvider(with: tracker)
         
-        let colorFilter = SearchFilter.basic(.keyValue("color", .equal, "red"))
-        let oracleFilter = SearchFilter.basic(.keyValue("oracle", .including, "flying"))
+        let colorFilter = SearchFilter(.keyValue("color", .equal, "red"))
+        let oracleFilter = SearchFilter(.keyValue("oracle", .including, "flying"))
         recordUsages(of: [colorFilter, oracleFilter])
         
         let suggestions = provider.getSuggestions(for: "", excluding: Set(), limit: 10)
@@ -73,9 +73,9 @@ class HistorySuggestionProviderTests {
         )
         provider = HistorySuggestionProvider(with: tracker)
         
-        let colorFilter = SearchFilter.basic(.keyValue("color", .equal, "red"))
-        let oracleFilter = SearchFilter.basic(.keyValue("oracle", .including, "flying"))
-        let setFilter = SearchFilter.basic(.keyValue("set", .equal, "ody"))
+        let colorFilter = SearchFilter(.keyValue("color", .equal, "red"))
+        let oracleFilter = SearchFilter(.keyValue("oracle", .including, "flying"))
+        let setFilter = SearchFilter(.keyValue("set", .equal, "ody"))
         recordUsages(of: [colorFilter, oracleFilter, setFilter])
         
         let suggestions = provider.getSuggestions(for: "", excluding: Set(), limit: 10)
@@ -86,9 +86,9 @@ class HistorySuggestionProviderTests {
     
     @Test("returns any filters whose string representation has any substring match")
     func substringMatch() {
-        let colorFilter = SearchFilter.basic(.keyValue("color", .equal, "red"))
-        let oracleFilter = SearchFilter.basic(.keyValue("oracle", .including, "flying"))
-        let setFilter = SearchFilter.basic(.keyValue("set", .equal, "odyssey"))
+        let colorFilter = SearchFilter(.keyValue("color", .equal, "red"))
+        let oracleFilter = SearchFilter(.keyValue("oracle", .including, "flying"))
+        let setFilter = SearchFilter(.keyValue("set", .equal, "odyssey"))
         recordUsages(of: [colorFilter, oracleFilter, setFilter])
         
         let suggestions = provider.getSuggestions(for: "y", excluding: Set(), limit: 10)
@@ -100,9 +100,9 @@ class HistorySuggestionProviderTests {
     
     @Test("returns exclude matching filters present in the exclusion list")
     func excludeMatchingFilters() {
-        let colorFilter = SearchFilter.basic(.keyValue("color", .equal, "red"))
-        let oracleFilter = SearchFilter.basic(.keyValue("oracle", .including, "flying"))
-        let setFilter = SearchFilter.basic(.keyValue("set", .equal, "ody"))
+        let colorFilter = SearchFilter(.keyValue("color", .equal, "red"))
+        let oracleFilter = SearchFilter(.keyValue("oracle", .including, "flying"))
+        let setFilter = SearchFilter(.keyValue("set", .equal, "ody"))
         recordUsages(of: [colorFilter, oracleFilter, setFilter])
         
         let suggestions = provider.getSuggestions(for: "y", excluding: Set([oracleFilter]), limit: 10)
@@ -113,8 +113,8 @@ class HistorySuggestionProviderTests {
     
     @Test("returns the empty list if there is no simple substring match in the stringified filters")
     func noSubstringMatch() {
-        let colorFilter = SearchFilter.basic(.keyValue("color", .equal, "red"))
-        let oracleFilter = SearchFilter.basic(.keyValue("oracle", .including, "flying"))
+        let colorFilter = SearchFilter(.keyValue("color", .equal, "red"))
+        let oracleFilter = SearchFilter(.keyValue("oracle", .including, "flying"))
         recordUsages(of: [colorFilter, oracleFilter])
         
         let suggestions = provider.getSuggestions(for: "xyz", excluding: Set(), limit: 10)
@@ -123,8 +123,8 @@ class HistorySuggestionProviderTests {
     
     @Test("does nothing if deleting a filter that does not exist")
     func deleteNonexistent() {
-        let colorFilter = SearchFilter.basic(.keyValue("color", .equal, "red"))
-        let oracleFilter = SearchFilter.basic(.keyValue("oracle", .including, "flying"))
+        let colorFilter = SearchFilter(.keyValue("color", .equal, "red"))
+        let oracleFilter = SearchFilter(.keyValue("oracle", .including, "flying"))
         recordUsages(of: [colorFilter])
         
         tracker.delete(filter: oracleFilter)

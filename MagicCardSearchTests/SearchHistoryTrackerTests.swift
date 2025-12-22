@@ -16,7 +16,7 @@ class SearchHistoryTrackerTests {
     @Test("records usage of a single filter")
     func recordFilterUsage() {
         let tracker = SearchHistoryTracker(persistenceKey: UUID().uuidString)
-        let colorFilter = SearchFilter.basic(.keyValue("color", .equal, "red"))
+        let colorFilter = SearchFilter(.keyValue("color", .equal, "red"))
         
         tracker.recordUsage(of: colorFilter)
         
@@ -27,7 +27,7 @@ class SearchHistoryTrackerTests {
     @Test("updates last used date when recording usage of an existing filter")
     func updateExistingFilter() {
         let tracker = SearchHistoryTracker(persistenceKey: UUID().uuidString)
-        let colorFilter = SearchFilter.basic(.keyValue("color", .equal, "red"))
+        let colorFilter = SearchFilter(.keyValue("color", .equal, "red"))
         
         tracker.recordUsage(of: colorFilter)
         let firstDate = tracker.filterEntries[colorFilter]?.lastUsedDate
@@ -46,8 +46,8 @@ class SearchHistoryTrackerTests {
     @Test("deletes a filter from history")
     func deleteFilter() {
         let tracker = SearchHistoryTracker(persistenceKey: UUID().uuidString)
-        let colorFilter = SearchFilter.basic(.keyValue("color", .equal, "red"))
-        let oracleFilter = SearchFilter.basic(.keyValue("oracle", .including, "flying"))
+        let colorFilter = SearchFilter(.keyValue("color", .equal, "red"))
+        let oracleFilter = SearchFilter(.keyValue("oracle", .including, "flying"))
         
         tracker.recordUsage(of: colorFilter)
         tracker.recordUsage(of: oracleFilter)
@@ -64,8 +64,8 @@ class SearchHistoryTrackerTests {
     @Test("does nothing when deleting a nonexistent filter")
     func deleteNonexistentFilter() {
         let tracker = SearchHistoryTracker(persistenceKey: UUID().uuidString)
-        let colorFilter = SearchFilter.basic(.keyValue("color", .equal, "red"))
-        let oracleFilter = SearchFilter.basic(.keyValue("oracle", .including, "flying"))
+        let colorFilter = SearchFilter(.keyValue("color", .equal, "red"))
+        let oracleFilter = SearchFilter(.keyValue("oracle", .including, "flying"))
         
         tracker.recordUsage(of: colorFilter)
         
@@ -78,9 +78,9 @@ class SearchHistoryTrackerTests {
     @Test("sorted filter history returns entries in reverse chronological order")
     func sortedFilterHistory() {
         let tracker = SearchHistoryTracker(persistenceKey: UUID().uuidString)
-        let colorFilter = SearchFilter.basic(.keyValue("color", .equal, "red"))
-        let oracleFilter = SearchFilter.basic(.keyValue("oracle", .including, "flying"))
-        let setFilter = SearchFilter.basic(.keyValue("set", .equal, "ody"))
+        let colorFilter = SearchFilter(.keyValue("color", .equal, "red"))
+        let oracleFilter = SearchFilter(.keyValue("oracle", .including, "flying"))
+        let setFilter = SearchFilter(.keyValue("set", .equal, "ody"))
         
         tracker.recordUsage(of: colorFilter)
         Thread.sleep(forTimeInterval: 0.01)
@@ -102,8 +102,8 @@ class SearchHistoryTrackerTests {
     func recordCompleteSearch() {
         let tracker = SearchHistoryTracker(persistenceKey: UUID().uuidString)
         let filters = [
-            SearchFilter.basic(.keyValue("color", .equal, "red")),
-            SearchFilter.basic(.keyValue("oracle", .including, "flying")),
+            SearchFilter(.keyValue("color", .equal, "red")),
+            SearchFilter(.keyValue("oracle", .including, "flying")),
         ]
         
         tracker.recordUsage(of: filters)
@@ -115,8 +115,8 @@ class SearchHistoryTrackerTests {
     @Test("moves existing complete search to front when recorded again")
     func recordExistingCompleteSearch() {
         let tracker = SearchHistoryTracker(persistenceKey: UUID().uuidString)
-        let firstSearch = [SearchFilter.basic(.keyValue("color", .equal, "red"))]
-        let secondSearch = [SearchFilter.basic(.keyValue("oracle", .including, "flying"))]
+        let firstSearch = [SearchFilter(.keyValue("color", .equal, "red"))]
+        let secondSearch = [SearchFilter(.keyValue("oracle", .including, "flying"))]
         
         tracker.recordUsage(of: firstSearch)
         tracker.recordUsage(of: secondSearch)
@@ -134,8 +134,8 @@ class SearchHistoryTrackerTests {
     @Test("deletes a complete search from history")
     func deleteCompleteSearch() {
         let tracker = SearchHistoryTracker(persistenceKey: UUID().uuidString)
-        let firstSearch = [SearchFilter.basic(.keyValue("color", .equal, "red"))]
-        let secondSearch = [SearchFilter.basic(.keyValue("oracle", .including, "flying"))]
+        let firstSearch = [SearchFilter(.keyValue("color", .equal, "red"))]
+        let secondSearch = [SearchFilter(.keyValue("oracle", .including, "flying"))]
         
         tracker.recordUsage(of: firstSearch)
         tracker.recordUsage(of: secondSearch)
@@ -151,8 +151,8 @@ class SearchHistoryTrackerTests {
     @Test("does nothing when deleting a nonexistent complete search")
     func deleteNonexistentCompleteSearch() {
         let tracker = SearchHistoryTracker(persistenceKey: UUID().uuidString)
-        let firstSearch = [SearchFilter.basic(.keyValue("color", .equal, "red"))]
-        let secondSearch = [SearchFilter.basic(.keyValue("oracle", .including, "flying"))]
+        let firstSearch = [SearchFilter(.keyValue("color", .equal, "red"))]
+        let secondSearch = [SearchFilter(.keyValue("oracle", .including, "flying"))]
         
         tracker.recordUsage(of: firstSearch)
         
@@ -172,9 +172,9 @@ class SearchHistoryTrackerTests {
             persistenceKey: UUID().uuidString
         )
         
-        let colorFilter = SearchFilter.basic(.keyValue("color", .equal, "red"))
-        let oracleFilter = SearchFilter.basic(.keyValue("oracle", .including, "flying"))
-        let setFilter = SearchFilter.basic(.keyValue("set", .equal, "ody"))
+        let colorFilter = SearchFilter(.keyValue("color", .equal, "red"))
+        let oracleFilter = SearchFilter(.keyValue("oracle", .including, "flying"))
+        let setFilter = SearchFilter(.keyValue("set", .equal, "ody"))
         
         tracker.recordUsage(of: colorFilter)
         Thread.sleep(forTimeInterval: 0.01)
@@ -200,8 +200,8 @@ class SearchHistoryTrackerTests {
             persistenceKey: UUID().uuidString
         )
         
-        let colorFilter = SearchFilter.basic(.keyValue("color", .equal, "red"))
-        let oracleFilter = SearchFilter.basic(.keyValue("oracle", .including, "flying"))
+        let colorFilter = SearchFilter(.keyValue("color", .equal, "red"))
+        let oracleFilter = SearchFilter(.keyValue("oracle", .including, "flying"))
         
         tracker.recordUsage(of: colorFilter)
         tracker.recordUsage(of: oracleFilter)
@@ -221,9 +221,9 @@ class SearchHistoryTrackerTests {
             persistenceKey: UUID().uuidString
         )
         
-        let firstSearch = [SearchFilter.basic(.keyValue("color", .equal, "red"))]
-        let secondSearch = [SearchFilter.basic(.keyValue("oracle", .including, "flying"))]
-        let thirdSearch = [SearchFilter.basic(.keyValue("set", .equal, "ody"))]
+        let firstSearch = [SearchFilter(.keyValue("color", .equal, "red"))]
+        let secondSearch = [SearchFilter(.keyValue("oracle", .including, "flying"))]
+        let thirdSearch = [SearchFilter(.keyValue("set", .equal, "ody"))]
         
         tracker.recordUsage(of: firstSearch)
         Thread.sleep(forTimeInterval: 0.01)
