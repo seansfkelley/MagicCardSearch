@@ -1,17 +1,8 @@
-struct ParenthesizedConjunction {
-    enum Clause {
-        case filter(Range<String.Index>)
-        case disjunction(ParenthesizedDisjunction)
-    }
-    
-    let clauses: [Clause]
-    
-    init(_ clauses: [Clause]) {
-        self.clauses = clauses
-    }
-}
+import Logging
 
-struct ParenthesizedDisjunction {
+private let logger = Logger(label: "ParenthesizedDisjunction")
+
+struct ParenthesizedDisjunction: Equatable {
     let negated: Bool
     let clauses: [ParenthesizedConjunction]
     
@@ -20,15 +11,34 @@ struct ParenthesizedDisjunction {
         self.clauses = clauses
     }
     
-    static func tryParse(_ input: String) throws -> ParenthesizedDisjunction {
+    static func tryParse(_ input: String) -> ParenthesizedDisjunction? {
         let parser = ParenthesizedQueryParser()
         
         let trimmedInput = input.trimmingCharacters(in: .whitespaces)
-        let prefixOffset = input.prefixMatch(of: /\s*/)?.count ?? 0
 
-        for (token, code) in try lexParenthesizedQuery(trimmedInput) {
-            try parser.consume(token: token, code: code)
+        do {
+            for (token, code) in try lexParenthesizedQuery(trimmedInput) {
+                try parser.consume(token: token, code: code)
+            }
+            return try parser.endParsing()
+        } catch {
+            logger.debug("failed to parse disjunction", metadata: [
+                "error": "\(error)",
+            ])
+            return nil
         }
-        return try parser.endParsing()
+    }
+}
+
+struct ParenthesizedConjunction: Equatable {
+    enum Clause: Equatable {
+        case filter(Range<String.Index>)
+        case disjunction(ParenthesizedDisjunction)
+    }
+    
+    let clauses: [Clause]
+    
+    init(_ clauses: [Clause]) {
+        self.clauses = clauses
     }
 }

@@ -13,13 +13,14 @@ import Testing
 struct ParenthesizedQueryTests {
     // MARK: - Comprehensive Query Parsing Tests
     
-    @Test("Parse all query types", arguments: [
+    @Test<(String, [String], ParenthesizedDisjunction?)>("Parse all query types", arguments: [
         // MARK: Simple Queries
         
         // Single terms
         (
             "lightning",
             ["lightning"],
+            ParenthesizedDisjunction(false, [ParenthesizedConjunction([.filter("lightning".range(of: "lightning"))])]),
         ),
         
         // Quoted strings
@@ -452,9 +453,14 @@ struct ParenthesizedQueryTests {
             ["red", "blue"],
         ),
     ])
-    func parseAllQueryTypes(input: String, expected: [String]) throws {
-        let result = try PlausibleFilterRanges.from(input)
-        let actual = result.ranges.map { String(input[$0]) }
-        #expect(actual == expected)
+    func parseAllQueryTypes(input: String, filters: [String], parsed: ParenthesizedDisjunction?) throws {
+        let materializedRanges = PlausibleFilterRanges.from(input).ranges.map { String(input[$0]) }
+        #expect(materializedRanges == filters)
+        
+        if let parsed {
+            #expect(ParenthesizedDisjunction.tryParse(input) == parsed)
+        } else {
+            #expect(ParenthesizedDisjunction.tryParse(input) == nil)
+        }
     }
 }
