@@ -128,7 +128,7 @@ struct SearchBarView: View {
         // FIXME: This is kind of gross; shouldn't we be able to unconditionally pass it through to
         // the parser and then it can tell us if it's valid or not?
         if (try? /^-?\(/.prefixMatch(in: trimmed)) != nil {
-            if let parenthesized = try? ParenthesizedQuery.tryParse(trimmed) {
+            if let parenthesized = try? ParenthesizedDisjunction.tryParse(trimmed) {
                 print("TODO add parenthetical")
                 inputText = ""
             } else {

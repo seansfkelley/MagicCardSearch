@@ -25,10 +25,7 @@ struct CurrentlyHighlightedFilterFacade {
         let allFilterRanges: [Range<String.Index>]
         
         do {
-            allFilterRanges = try ParenthesizedQuery.tryParse(
-                inputText.wrappedValue,
-                allowingPartialParse: true,
-            ).filters
+            allFilterRanges = try PlausibleFilterRanges.from(inputText.wrappedValue).ranges
         } catch {
             // TODO: Does this make sense?
             return entireRange

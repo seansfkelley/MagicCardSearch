@@ -64,18 +64,20 @@ class ParenthesizedQueryParser: CitronParser {
     enum CitronSymbol {
         case yyBaseOfStack
         case yy0(CitronToken)
-        case yy1(ParenthesizedQuery)
+        case yy5(ParenthesizedConjunction)
+        case yy13(ParenthesizedDisjunction)
 
         func typeErasedContent() -> Any {
             switch (self) {
             case .yyBaseOfStack: fatalError()
             case .yy0(let value): return value as Any
-            case .yy1(let value): return value as Any
+            case .yy5(let value): return value as Any
+            case .yy13(let value): return value as Any
             }
         }
     }
 
-    typealias CitronResult = ParenthesizedQuery
+    typealias CitronResult = ParenthesizedDisjunction
 
     // Counts
 
@@ -163,9 +165,9 @@ class ParenthesizedQueryParser: CitronParser {
         /*   1 */ "disjunction ::= conjunction(c)",
         /*   2 */ "disjunction ::= disjunction(d) Or conjunction(c)",
         /*   3 */ "conjunction ::= Verbatim(v)",
-        /*   4 */ "conjunction ::= parenthesized(p)",
+        /*   4 */ "conjunction ::= parenthesized(d)",
         /*   5 */ "conjunction ::= conjunction(c) And Verbatim(v)",
-        /*   6 */ "conjunction ::= conjunction(c) And parenthesized(p)",
+        /*   6 */ "conjunction ::= conjunction(c) And parenthesized(d)",
         /*   7 */ "parenthesized ::= OpenParen(l) disjunction(d) CloseParen(r)",
     ]
 
@@ -178,91 +180,95 @@ class ParenthesizedQueryParser: CitronParser {
     func yyInvokeCodeBlockForRule(ruleNumber: CitronRuleNumber) throws -> CitronSymbol {
         switch (ruleNumber) {
         case 0: /* query ::= disjunction(d) */
-            func codeBlockForRule0(d: ParenthesizedQuery) throws -> ParenthesizedQuery {
+            func codeBlockForRule0(d: ParenthesizedDisjunction) throws -> ParenthesizedDisjunction {
 #sourceLocation(file: "MagicCardSearch/Parser/ParenthesizedQuery/ParenthesizedQueryGrammar.y", line: 7)
  d 
 #sourceLocation()
 }
-            if case .yy1(let d) = yySymbolOnStack(distanceFromTop: 0) {
-                return .yy1(try codeBlockForRule0(d: d))
+            if case .yy13(let d) = yySymbolOnStack(distanceFromTop: 0) {
+                return .yy13(try codeBlockForRule0(d: d))
             }
         case 1: /* disjunction ::= conjunction(c) */
-            func codeBlockForRule1(c: ParenthesizedQuery) throws -> ParenthesizedQuery {
+            func codeBlockForRule1(c: ParenthesizedConjunction) throws -> ParenthesizedDisjunction {
 #sourceLocation(file: "MagicCardSearch/Parser/ParenthesizedQuery/ParenthesizedQueryGrammar.y", line: 11)
- c 
+
+    .init(false, [c])
+
 #sourceLocation()
 }
-            if case .yy1(let c) = yySymbolOnStack(distanceFromTop: 0) {
-                return .yy1(try codeBlockForRule1(c: c))
+            if case .yy5(let c) = yySymbolOnStack(distanceFromTop: 0) {
+                return .yy13(try codeBlockForRule1(c: c))
             }
         case 2: /* disjunction ::= disjunction(d) Or conjunction(c) */
-            func codeBlockForRule2(d: ParenthesizedQuery, c: ParenthesizedQuery) throws -> ParenthesizedQuery {
-#sourceLocation(file: "MagicCardSearch/Parser/ParenthesizedQuery/ParenthesizedQueryGrammar.y", line: 12)
+            func codeBlockForRule2(d: ParenthesizedDisjunction, c: ParenthesizedConjunction) throws -> ParenthesizedDisjunction {
+#sourceLocation(file: "MagicCardSearch/Parser/ParenthesizedQuery/ParenthesizedQueryGrammar.y", line: 14)
 
-    .init(filters: d.filters + c.filters)
+    .init(false, d.clauses + [c])
 
 #sourceLocation()
 }
-            if case .yy1(let d) = yySymbolOnStack(distanceFromTop: 2),
-               case .yy1(let c) = yySymbolOnStack(distanceFromTop: 0) {
-                return .yy1(try codeBlockForRule2(d: d, c: c))
+            if case .yy13(let d) = yySymbolOnStack(distanceFromTop: 2),
+               case .yy5(let c) = yySymbolOnStack(distanceFromTop: 0) {
+                return .yy13(try codeBlockForRule2(d: d, c: c))
             }
         case 3: /* conjunction ::= Verbatim(v) */
-            func codeBlockForRule3(v: ParenthesizedQueryTokenContent) throws -> ParenthesizedQuery {
-#sourceLocation(file: "MagicCardSearch/Parser/ParenthesizedQuery/ParenthesizedQueryGrammar.y", line: 18)
+            func codeBlockForRule3(v: ParenthesizedQueryTokenContent) throws -> ParenthesizedConjunction {
+#sourceLocation(file: "MagicCardSearch/Parser/ParenthesizedQuery/ParenthesizedQueryGrammar.y", line: 20)
 
-    .init(filters: [v.range])
+    .init([.filter(v.range)])
 
 #sourceLocation()
 }
             if case .yy0(let v) = yySymbolOnStack(distanceFromTop: 0) {
-                return .yy1(try codeBlockForRule3(v: v))
+                return .yy5(try codeBlockForRule3(v: v))
             }
-        case 4: /* conjunction ::= parenthesized(p) */
-            func codeBlockForRule4(p: ParenthesizedQuery) throws -> ParenthesizedQuery {
-#sourceLocation(file: "MagicCardSearch/Parser/ParenthesizedQuery/ParenthesizedQueryGrammar.y", line: 21)
- p 
+        case 4: /* conjunction ::= parenthesized(d) */
+            func codeBlockForRule4(d: ParenthesizedDisjunction) throws -> ParenthesizedConjunction {
+#sourceLocation(file: "MagicCardSearch/Parser/ParenthesizedQuery/ParenthesizedQueryGrammar.y", line: 23)
+
+    .init([.disjunction(d)])
+
 #sourceLocation()
 }
-            if case .yy1(let p) = yySymbolOnStack(distanceFromTop: 0) {
-                return .yy1(try codeBlockForRule4(p: p))
+            if case .yy13(let d) = yySymbolOnStack(distanceFromTop: 0) {
+                return .yy5(try codeBlockForRule4(d: d))
             }
         case 5: /* conjunction ::= conjunction(c) And Verbatim(v) */
-            func codeBlockForRule5(c: ParenthesizedQuery, v: ParenthesizedQueryTokenContent) throws -> ParenthesizedQuery {
-#sourceLocation(file: "MagicCardSearch/Parser/ParenthesizedQuery/ParenthesizedQueryGrammar.y", line: 22)
+            func codeBlockForRule5(c: ParenthesizedConjunction, v: ParenthesizedQueryTokenContent) throws -> ParenthesizedConjunction {
+#sourceLocation(file: "MagicCardSearch/Parser/ParenthesizedQuery/ParenthesizedQueryGrammar.y", line: 26)
 
-    .init(filters: c.filters + [v.range])
+    .init(c.clauses + [.filter(v.range)])
 
 #sourceLocation()
 }
-            if case .yy1(let c) = yySymbolOnStack(distanceFromTop: 2),
+            if case .yy5(let c) = yySymbolOnStack(distanceFromTop: 2),
                case .yy0(let v) = yySymbolOnStack(distanceFromTop: 0) {
-                return .yy1(try codeBlockForRule5(c: c, v: v))
+                return .yy5(try codeBlockForRule5(c: c, v: v))
             }
-        case 6: /* conjunction ::= conjunction(c) And parenthesized(p) */
-            func codeBlockForRule6(c: ParenthesizedQuery, p: ParenthesizedQuery) throws -> ParenthesizedQuery {
-#sourceLocation(file: "MagicCardSearch/Parser/ParenthesizedQuery/ParenthesizedQueryGrammar.y", line: 25)
+        case 6: /* conjunction ::= conjunction(c) And parenthesized(d) */
+            func codeBlockForRule6(c: ParenthesizedConjunction, d: ParenthesizedDisjunction) throws -> ParenthesizedConjunction {
+#sourceLocation(file: "MagicCardSearch/Parser/ParenthesizedQuery/ParenthesizedQueryGrammar.y", line: 29)
 
-    .init(filters: c.filters + p.filters)
+    .init(c.clauses + [.disjunction(d)])
 
 #sourceLocation()
 }
-            if case .yy1(let c) = yySymbolOnStack(distanceFromTop: 2),
-               case .yy1(let p) = yySymbolOnStack(distanceFromTop: 0) {
-                return .yy1(try codeBlockForRule6(c: c, p: p))
+            if case .yy5(let c) = yySymbolOnStack(distanceFromTop: 2),
+               case .yy13(let d) = yySymbolOnStack(distanceFromTop: 0) {
+                return .yy5(try codeBlockForRule6(c: c, d: d))
             }
         case 7: /* parenthesized ::= OpenParen(l) disjunction(d) CloseParen(r) */
-            func codeBlockForRule7(l: ParenthesizedQueryTokenContent, d: ParenthesizedQuery, r: ParenthesizedQueryTokenContent) throws -> ParenthesizedQuery {
-#sourceLocation(file: "MagicCardSearch/Parser/ParenthesizedQuery/ParenthesizedQueryGrammar.y", line: 31)
+            func codeBlockForRule7(l: ParenthesizedQueryTokenContent, d: ParenthesizedDisjunction, r: ParenthesizedQueryTokenContent) throws -> ParenthesizedDisjunction {
+#sourceLocation(file: "MagicCardSearch/Parser/ParenthesizedQuery/ParenthesizedQueryGrammar.y", line: 35)
 
-    .init(filters: d.filters)
+    .init(l.content.first == "-", d.clauses)
 
 #sourceLocation()
 }
             if case .yy0(let l) = yySymbolOnStack(distanceFromTop: 2),
-               case .yy1(let d) = yySymbolOnStack(distanceFromTop: 1),
+               case .yy13(let d) = yySymbolOnStack(distanceFromTop: 1),
                case .yy0(let r) = yySymbolOnStack(distanceFromTop: 0) {
-                return .yy1(try codeBlockForRule7(l: l, d: d, r: r))
+                return .yy13(try codeBlockForRule7(l: l, d: d, r: r))
             }
         default:
             fatalError("Can't invoke code block for rule number \(ruleNumber) - no such rule")
@@ -276,7 +282,7 @@ class ParenthesizedQueryParser: CitronParser {
     }
 
     func yyUnwrapResultFromSymbol(_ symbol: CitronSymbol) -> CitronResult {
-        if case .yy1(let result) = symbol {
+        if case .yy13(let result) = symbol {
             return result
         } else {
             fatalError("Unexpected mismatch in result type")
@@ -330,7 +336,7 @@ class ParenthesizedQueryParser: CitronParser {
             let delegateResponse = delegate.shouldCaptureErrorOnQuery(state: state, error: error)
             switch (delegateResponse) {
             case .captureAs(let symbol):
-                return .yy1(symbol)
+                return .yy13(symbol)
             case .dontCapture:
                 return nil
             }
@@ -338,7 +344,7 @@ class ParenthesizedQueryParser: CitronParser {
             let delegateResponse = delegate.shouldCaptureErrorOnDisjunction(state: state, error: error)
             switch (delegateResponse) {
             case .captureAs(let symbol):
-                return .yy1(symbol)
+                return .yy13(symbol)
             case .dontCapture:
                 return nil
             }
@@ -346,7 +352,7 @@ class ParenthesizedQueryParser: CitronParser {
             let delegateResponse = delegate.shouldCaptureErrorOnConjunction(state: state, error: error)
             switch (delegateResponse) {
             case .captureAs(let symbol):
-                return .yy1(symbol)
+                return .yy5(symbol)
             case .dontCapture:
                 return nil
             }
@@ -354,7 +360,7 @@ class ParenthesizedQueryParser: CitronParser {
             let delegateResponse = delegate.shouldCaptureErrorOnParenthesized(state: state, error: error)
             switch (delegateResponse) {
             case .captureAs(let symbol):
-                return .yy1(symbol)
+                return .yy13(symbol)
             case .dontCapture:
                 return nil
             }
@@ -379,19 +385,19 @@ protocol _ParenthesizedQueryParserCitronErrorCaptureDelegate : AnyObject {
 
     /* query */
     func shouldCaptureErrorOnQuery(state: ParenthesizedQueryParser.CitronErrorCaptureState,
-        error: Error) -> CitronErrorCaptureResponse<ParenthesizedQuery>
+        error: Error) -> CitronErrorCaptureResponse<ParenthesizedDisjunction>
 
     /* disjunction */
     func shouldCaptureErrorOnDisjunction(state: ParenthesizedQueryParser.CitronErrorCaptureState,
-        error: Error) -> CitronErrorCaptureResponse<ParenthesizedQuery>
+        error: Error) -> CitronErrorCaptureResponse<ParenthesizedDisjunction>
 
     /* conjunction */
     func shouldCaptureErrorOnConjunction(state: ParenthesizedQueryParser.CitronErrorCaptureState,
-        error: Error) -> CitronErrorCaptureResponse<ParenthesizedQuery>
+        error: Error) -> CitronErrorCaptureResponse<ParenthesizedConjunction>
 
     /* parenthesized */
     func shouldCaptureErrorOnParenthesized(state: ParenthesizedQueryParser.CitronErrorCaptureState,
-        error: Error) -> CitronErrorCaptureResponse<ParenthesizedQuery>
+        error: Error) -> CitronErrorCaptureResponse<ParenthesizedDisjunction>
 }
 
 extension _ParenthesizedQueryParserCitronErrorCaptureDelegate {
