@@ -14,38 +14,38 @@ struct FilterTypeSuggestionProviderTests {
         arguments: [
             // prefix of a filter returns that filter
             (
-                PartialSearchFilter(negated: false, content: .name(false, .unquoted("forma"))),
+                PartialSearchFilter(negated: false, content: .name(false, .bare("forma"))),
                 [("format", 0..<5)],
             ),
             // substrings matching multiple filters return them all, shortest first
             (
-                PartialSearchFilter(negated: false, content: .name(false, .unquoted("print"))),
+                PartialSearchFilter(negated: false, content: .name(false, .bare("print"))),
                 [("prints", 0..<5), ("paperprints", 5..<10)],
             ),
             // exact match of an alias returns the alias before other matching filters, and does not return the canonical name
             (
-                PartialSearchFilter(negated: false, content: .name(false, .unquoted("fo"))),
+                PartialSearchFilter(negated: false, content: .name(false, .bare("fo"))),
                 [("fo", 0..<2), ("format", 0..<2)],
             ),
             // unmatching string returns nothing
             (
-                PartialSearchFilter(negated: false, content: .name(false, .unquoted("foobar"))),
+                PartialSearchFilter(negated: false, content: .name(false, .bare("foobar"))),
                 [],
             ),
             // negation does not affect the behavior, but is included in the result
             // n.b. the index does not include the negation operator because it may not be contiguous
             (
-                PartialSearchFilter(negated: true, content: .name(false, .unquoted("print"))),
+                PartialSearchFilter(negated: true, content: .name(false, .bare("print"))),
                 [("-prints", 1..<6), ("-paperprints", 6..<11)],
             ),
             // case-insensitive
             (
-                PartialSearchFilter(negated: false, content: .name(false, .unquoted("ForMa"))),
+                PartialSearchFilter(negated: false, content: .name(false, .bare("ForMa"))),
                 [("format", 0..<5)],
             ),
             // prefixes are scored higher than other matches, even if they're longer, then by length
             (
-                PartialSearchFilter(negated: false, content: .name(false, .unquoted("or"))),
+                PartialSearchFilter(negated: false, content: .name(false, .bare("or"))),
                 [
                     ("order", 0..<2),
                     ("oracle", 0..<2),
@@ -60,12 +60,12 @@ struct FilterTypeSuggestionProviderTests {
             ),
             // should prefer the shortest alias, skipping the canonical name, if neither is an exact match
             (
-                PartialSearchFilter(negated: false, content: .name(false, .unquoted("ow"))),
+                PartialSearchFilter(negated: false, content: .name(false, .bare("ow"))),
                 [("pow", 1..<3), ("powtou", 1..<3)],
             ),
             // unquoted exact-match is not eligible even if it would match
             (
-                PartialSearchFilter(negated: false, content: .name(true, .unquoted("form"))),
+                PartialSearchFilter(negated: false, content: .name(true, .bare("form"))),
                 [],
             ),
             // quoted exact-match is not eligible even if it would match
@@ -80,7 +80,7 @@ struct FilterTypeSuggestionProviderTests {
             ),
             // if operators are present we're past the point where we can suggest, even if we could
             (
-                PartialSearchFilter(negated: false, content: .filter("form", .including, .unquoted(""))),
+                PartialSearchFilter(negated: false, content: .filter("form", .including, .bare(""))),
                 [],
             ),
         ]

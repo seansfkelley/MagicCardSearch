@@ -1,7 +1,3 @@
-func doubleQuoteIfNecessary(_ string: String) -> String {
-    return string.contains(" ") ? "\"\(string)\"" : string
-}
-
 struct SearchFilter: Equatable, Hashable, Codable, CustomStringConvertible {
     let negated: Bool
     let content: SearchFilterContent
@@ -52,7 +48,7 @@ enum SearchFilterContent: Equatable, Hashable, Codable, CustomStringConvertible 
             }
             return "\(prefix)\(name)\(suffix)"
         case .regex(let key, let comparison, let regex):
-            return "\(key)\(comparison)\(regex)"
+            return "\(key)\(comparison)/\(regex)/"
         case .keyValue(let key, let comparison, let value):
             return if value.contains(" ") {
                 "\(key)\(comparison)\"\(value)\""

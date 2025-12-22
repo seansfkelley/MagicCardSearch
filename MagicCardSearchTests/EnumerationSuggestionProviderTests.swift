@@ -12,7 +12,7 @@ struct EnumerationSuggestionProviderTests {
     @Test<[(PartialSearchFilter, [EnumerationSuggestion])]>("getSuggestions", arguments: [
         (
             // gives all values, in alphabetical order, if no value part is given
-            PartialSearchFilter(negated: false, content: .filter("manavalue", .equal, .unquoted(""))),
+            PartialSearchFilter(negated: false, content: .filter("manavalue", .equal, .bare(""))),
             [
                 .init(
                     filter: .init(.keyValue("manavalue", .equal, "even")),
@@ -27,7 +27,7 @@ struct EnumerationSuggestionProviderTests {
         (
             // narrows based on substring match, preferring strings earlier in the alphabet when
             // they are both prefixes
-            PartialSearchFilter(negated: false, content: .filter("is", .including, .unquoted("scry"))),
+            PartialSearchFilter(negated: false, content: .filter("is", .including, .bare("scry"))),
             [
                 .init(
                     filter: .init(.keyValue("is", .including, "scryfallpreview")),
@@ -41,7 +41,7 @@ struct EnumerationSuggestionProviderTests {
         ),
         (
             // narrows with any substring, not just prefix, also, doesn't care about operator
-            PartialSearchFilter(negated: false, content: .filter("format", .greaterThanOrEqual, .unquoted("less"))),
+            PartialSearchFilter(negated: false, content: .filter("format", .greaterThanOrEqual, .bare("less"))),
             [
                 .init(
                     filter: .init(.keyValue("format", .greaterThanOrEqual, "timeless")),
@@ -51,7 +51,7 @@ struct EnumerationSuggestionProviderTests {
         ),
         (
             // the negation operator is preserved and does not affect behavior, but is included in the result
-            PartialSearchFilter(negated: true, content: .filter("is", .including, .unquoted("scry"))),
+            PartialSearchFilter(negated: true, content: .filter("is", .including, .bare("scry"))),
             [
                 .init(
                     filter: .init(true, .keyValue("is", .including, "scryfallpreview")),
@@ -65,7 +65,7 @@ struct EnumerationSuggestionProviderTests {
         ),
         (
             // case-insensitive
-            PartialSearchFilter(negated: false, content: .filter("foRMat", .greaterThanOrEqual, .unquoted("lESs"))),
+            PartialSearchFilter(negated: false, content: .filter("foRMat", .greaterThanOrEqual, .bare("lESs"))),
             [
                 .init(
                     filter: .init(.keyValue("format", .greaterThanOrEqual, "timeless")),
@@ -75,22 +75,22 @@ struct EnumerationSuggestionProviderTests {
         ),
         (
             // non-enumerable filter type yields no options
-            PartialSearchFilter(negated: false, content: .filter("oracle", .equal, .unquoted(""))),
+            PartialSearchFilter(negated: false, content: .filter("oracle", .equal, .bare(""))),
             [],
         ),
         (
             // incomplete filter types yield no suggestions
-            PartialSearchFilter(negated: false, content: .name(false, .unquoted("form"))),
+            PartialSearchFilter(negated: false, content: .name(false, .bare("form"))),
             [],
         ),
         (
             // unknown filter types yield no suggestions
-            PartialSearchFilter(negated: false, content: .filter("foobar", .including, .unquoted(""))),
+            PartialSearchFilter(negated: false, content: .filter("foobar", .including, .bare(""))),
             [],
         ),
         (
             // incomplete operator is not completeable
-            PartialSearchFilter(negated: false, content: .filter("format", .incompleteNotEqual, .unquoted(""))),
+            PartialSearchFilter(negated: false, content: .filter("format", .incompleteNotEqual, .bare(""))),
             [],
         ),
     ])

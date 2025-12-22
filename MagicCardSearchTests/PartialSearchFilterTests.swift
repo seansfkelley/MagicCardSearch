@@ -33,7 +33,7 @@ struct PartialSearchFilterTests {
             "foo",
             PartialSearchFilter(
                 negated: false,
-                content: .name(false, .unquoted("foo"))
+                content: .name(false, .bare("foo"))
             ),
             .init(.name("foo", false))
         ),
@@ -42,7 +42,7 @@ struct PartialSearchFilterTests {
             "teferi's",
             PartialSearchFilter(
                 negated: false,
-                content: .name(false, .unquoted("teferi's"))
+                content: .name(false, .bare("teferi's"))
             ),
             .init(.name("teferi's", false))
         ),
@@ -51,7 +51,7 @@ struct PartialSearchFilterTests {
             "{p}",
             PartialSearchFilter(
                 negated: false,
-                content: .name(false, .unquoted("{p}"))
+                content: .name(false, .bare("{p}"))
             ),
             .init(.name("{p}", false))
         ),
@@ -61,7 +61,7 @@ struct PartialSearchFilterTests {
             "Fire!",
             PartialSearchFilter(
                 negated: false,
-                content: .filter("Fire", .incompleteNotEqual, .unquoted(""))
+                content: .filter("Fire", .incompleteNotEqual, .bare(""))
             ),
             nil,
         ),
@@ -70,7 +70,7 @@ struct PartialSearchFilterTests {
             "lightning bolt",
             PartialSearchFilter(
                 negated: false,
-                content: .name(false, .unquoted("lightning bolt"))
+                content: .name(false, .bare("lightning bolt"))
             ),
             .init(.name("lightning bolt", false))
         ),
@@ -80,7 +80,7 @@ struct PartialSearchFilterTests {
             "!Fire",
             PartialSearchFilter(
                 negated: false,
-                content: .name(true, .unquoted("Fire"))
+                content: .name(true, .bare("Fire"))
             ),
             .init(.name("Fire", true))
         ),
@@ -89,7 +89,7 @@ struct PartialSearchFilterTests {
             "!lightning",
             PartialSearchFilter(
                 negated: false,
-                content: .name(true, .unquoted("lightning"))
+                content: .name(true, .bare("lightning"))
             ),
             .init(.name("lightning", true))
         ),
@@ -164,7 +164,7 @@ struct PartialSearchFilterTests {
             "-lightning",
             PartialSearchFilter(
                 negated: true,
-                content: .name(false, .unquoted("lightning"))
+                content: .name(false, .bare("lightning"))
             ),
             .init(true, .name("lightning", false))
         ),
@@ -173,7 +173,7 @@ struct PartialSearchFilterTests {
             "-!lightning",
             PartialSearchFilter(
                 negated: true,
-                content: .name(true, .unquoted("lightning"))
+                content: .name(true, .bare("lightning"))
             ),
             .init(true, .name("lightning", true))
         ),
@@ -192,7 +192,7 @@ struct PartialSearchFilterTests {
             "set:foo",
             PartialSearchFilter(
                 negated: false,
-                content: .filter("set", .including, .unquoted("foo"))
+                content: .filter("set", .including, .bare("foo"))
             ),
             .init(.keyValue("set", .including, "foo"))
         ),
@@ -201,7 +201,7 @@ struct PartialSearchFilterTests {
             "type:creature",
             PartialSearchFilter(
                 negated: false,
-                content: .filter("type", .including, .unquoted("creature"))
+                content: .filter("type", .including, .bare("creature"))
             ),
             .init(.keyValue("type", .including, "creature"))
         ),
@@ -229,7 +229,7 @@ struct PartialSearchFilterTests {
             "-type:creature",
             PartialSearchFilter(
                 negated: true,
-                content: .filter("type", .including, .unquoted("creature"))
+                content: .filter("type", .including, .bare("creature"))
             ),
             .init(true, .keyValue("type", .including, "creature"))
         ),
@@ -248,7 +248,7 @@ struct PartialSearchFilterTests {
             "s=bar",
             PartialSearchFilter(
                 negated: false,
-                content: .filter("s", .equal, .unquoted("bar"))
+                content: .filter("s", .equal, .bare("bar"))
             ),
             .init(.keyValue("s", .equal, "bar"))
         ),
@@ -257,7 +257,7 @@ struct PartialSearchFilterTests {
             "mv>=bar",
             PartialSearchFilter(
                 negated: false,
-                content: .filter("mv", .greaterThanOrEqual, .unquoted("bar"))
+                content: .filter("mv", .greaterThanOrEqual, .bare("bar"))
             ),
             .init(.keyValue("mv", .greaterThanOrEqual, "bar"))
         ),
@@ -266,7 +266,7 @@ struct PartialSearchFilterTests {
             "m>{p/r}{g}",
             PartialSearchFilter(
                 negated: false,
-                content: .filter("m", .greaterThan, .unquoted("{p/r}{g}"))
+                content: .filter("m", .greaterThan, .bare("{p/r}{g}"))
             ),
             .init(.keyValue("m", .greaterThan, "{p/r}{g}"))
         ),
@@ -275,7 +275,7 @@ struct PartialSearchFilterTests {
             "power>3",
             PartialSearchFilter(
                 negated: false,
-                content: .filter("power", .greaterThan, .unquoted("3"))
+                content: .filter("power", .greaterThan, .bare("3"))
             ),
             .init(.keyValue("power", .greaterThan, "3"))
         ),
@@ -284,7 +284,7 @@ struct PartialSearchFilterTests {
             "cmc<3",
             PartialSearchFilter(
                 negated: false,
-                content: .filter("cmc", .lessThan, .unquoted("3"))
+                content: .filter("cmc", .lessThan, .bare("3"))
             ),
             .init(.keyValue("cmc", .lessThan, "3"))
         ),
@@ -293,7 +293,7 @@ struct PartialSearchFilterTests {
             "cmc<=3",
             PartialSearchFilter(
                 negated: false,
-                content: .filter("cmc", .lessThanOrEqual, .unquoted("3"))
+                content: .filter("cmc", .lessThanOrEqual, .bare("3"))
             ),
             .init(.keyValue("cmc", .lessThanOrEqual, "3"))
         ),
@@ -302,7 +302,7 @@ struct PartialSearchFilterTests {
             "color=red",
             PartialSearchFilter(
                 negated: false,
-                content: .filter("color", .equal, .unquoted("red"))
+                content: .filter("color", .equal, .bare("red"))
             ),
             .init(.keyValue("color", .equal, "red"))
         ),
@@ -311,7 +311,7 @@ struct PartialSearchFilterTests {
             "color!=red",
             PartialSearchFilter(
                 negated: false,
-                content: .filter("color", .notEqual, .unquoted("red"))
+                content: .filter("color", .notEqual, .bare("red"))
             ),
             .init(.keyValue("color", .notEqual, "red"))
         ),
@@ -321,7 +321,7 @@ struct PartialSearchFilterTests {
             "foo:",
             PartialSearchFilter(
                 negated: false,
-                content: .filter("foo", .including, .unquoted(""))
+                content: .filter("foo", .including, .bare(""))
             ),
             nil
         ),
@@ -330,7 +330,7 @@ struct PartialSearchFilterTests {
             "power!",
             PartialSearchFilter(
                 negated: false,
-                content: .filter("power", .incompleteNotEqual, .unquoted(""))
+                content: .filter("power", .incompleteNotEqual, .bare(""))
             ),
             nil
         ),
@@ -339,7 +339,7 @@ struct PartialSearchFilterTests {
             "power!value",
             PartialSearchFilter(
                 negated: false,
-                content: .filter("power", .incompleteNotEqual, .unquoted("value"))
+                content: .filter("power", .incompleteNotEqual, .bare("value"))
             ),
             nil
         ),
@@ -348,7 +348,7 @@ struct PartialSearchFilterTests {
             "cmc<",
             PartialSearchFilter(
                 negated: false,
-                content: .filter("cmc", .lessThan, .unquoted(""))
+                content: .filter("cmc", .lessThan, .bare(""))
             ),
             nil,
         ),
@@ -357,7 +357,7 @@ struct PartialSearchFilterTests {
             "power>",
             PartialSearchFilter(
                 negated: false,
-                content: .filter("power", .greaterThan, .unquoted(""))
+                content: .filter("power", .greaterThan, .bare(""))
             ),
             nil,
         ),
@@ -369,7 +369,7 @@ struct PartialSearchFilterTests {
                 negated: false,
                 content: .filter("filtered", .including, .balanced(.forwardSlash, "regex with whitespace"))
             ),
-            .init(.regex("filtered", .including, "/regex with whitespace/"))
+            .init(.regex("filtered", .including, "regex with whitespace"))
         ),
         
         TestCase(
@@ -378,7 +378,7 @@ struct PartialSearchFilterTests {
                 negated: false,
                 content: .filter("name", .including, .balanced(.forwardSlash, "^lightning"))
             ),
-            .init(.regex("name", .including, "/^lightning/"))
+            .init(.regex("name", .including, "^lightning"))
         ),
         
         TestCase(
@@ -387,7 +387,7 @@ struct PartialSearchFilterTests {
                 negated: true,
                 content: .filter("name", .including, .balanced(.forwardSlash, "^chain"))
             ),
-            .init(true, .regex("name", .including, "/^chain/"))
+            .init(true, .regex("name", .including, "^chain"))
         ),
         
         // MARK: - Unterminated regex
@@ -442,7 +442,7 @@ struct PartialSearchFilterTests {
             "",
             PartialSearchFilter(
                 negated: false,
-                content: .name(false, .unquoted(""))
+                content: .name(false, .bare(""))
             ),
             .init(.name("", false))
         ),
@@ -451,7 +451,7 @@ struct PartialSearchFilterTests {
             "-",
             PartialSearchFilter(
                 negated: true,
-                content: .name(false, .unquoted(""))
+                content: .name(false, .bare(""))
             ),
             .init(true, .name("", false))
         ),
@@ -460,7 +460,7 @@ struct PartialSearchFilterTests {
             "!",
             PartialSearchFilter(
                 negated: false,
-                content: .name(true, .unquoted(""))
+                content: .name(true, .bare(""))
             ),
             .init(.name("", true))
         ),
@@ -469,7 +469,7 @@ struct PartialSearchFilterTests {
             "type:",
             PartialSearchFilter(
                 negated: false,
-                content: .filter("type", .including, .unquoted(""))
+                content: .filter("type", .including, .bare(""))
             ),
             nil,
         ),
@@ -479,7 +479,7 @@ struct PartialSearchFilterTests {
             "Type:creature",
             PartialSearchFilter(
                 negated: false,
-                content: .filter("Type", .including, .unquoted("creature"))
+                content: .filter("Type", .including, .bare("creature"))
             ),
             .init(.keyValue("Type", .including, "creature"))
         ),
@@ -488,7 +488,7 @@ struct PartialSearchFilterTests {
             "POWER>3",
             PartialSearchFilter(
                 negated: false,
-                content: .filter("POWER", .greaterThan, .unquoted("3"))
+                content: .filter("POWER", .greaterThan, .bare("3"))
             ),
             .init(.keyValue("POWER", .greaterThan, "3"))
         ),
@@ -519,7 +519,7 @@ struct PartialSearchFilterTests {
                 negated: false,
                 content: .filter("name", .equal, .balanced(.forwardSlash, "^L"))
             ),
-            .init(.regex("name", .equal, "/^L/"))
+            .init(.regex("name", .equal, "^L"))
         ),
         
         TestCase(
@@ -528,7 +528,7 @@ struct PartialSearchFilterTests {
                 negated: false,
                 content: .filter("power", .greaterThan, .balanced(.forwardSlash, "3"))
             ),
-            .init(.regex("power", .greaterThan, "/3/"))
+            .init(.regex("power", .greaterThan, "3"))
         ),
         
         // MARK: - Single character inputs
@@ -536,7 +536,7 @@ struct PartialSearchFilterTests {
             "a",
             PartialSearchFilter(
                 negated: false,
-                content: .name(false, .unquoted("a"))
+                content: .name(false, .bare("a"))
             ),
             .init(.name("a", false))
         ),
@@ -545,7 +545,7 @@ struct PartialSearchFilterTests {
             "-a",
             PartialSearchFilter(
                 negated: true,
-                content: .name(false, .unquoted("a"))
+                content: .name(false, .bare("a"))
             ),
             .init(true, .name("a", false))
         ),
@@ -555,7 +555,7 @@ struct PartialSearchFilterTests {
             "cmc:3",
             PartialSearchFilter(
                 negated: false,
-                content: .filter("cmc", .including, .unquoted("3"))
+                content: .filter("cmc", .including, .bare("3"))
             ),
             .init(.keyValue("cmc", .including, "3"))
         ),
@@ -574,7 +574,7 @@ struct PartialSearchFilterTests {
             "field:=value",
             PartialSearchFilter(
                 negated: false,
-                content: .filter("field", .including, .unquoted("=value"))
+                content: .filter("field", .including, .bare("=value"))
             ),
             .init(.keyValue("field", .including, "=value"))
         ),
@@ -584,7 +584,7 @@ struct PartialSearchFilterTests {
             "oracle:draw a card",
             PartialSearchFilter(
                 negated: false,
-                content: .filter("oracle", .including, .unquoted("draw a card"))
+                content: .filter("oracle", .including, .bare("draw a card"))
             ),
             .init(.keyValue("oracle", .including, "draw a card"))
         ),
@@ -594,7 +594,7 @@ struct PartialSearchFilterTests {
             "-power>=5",
             PartialSearchFilter(
                 negated: true,
-                content: .filter("power", .greaterThanOrEqual, .unquoted("5"))
+                content: .filter("power", .greaterThanOrEqual, .bare("5"))
             ),
             .init(true, .keyValue("power", .greaterThanOrEqual, "5"))
         ),
@@ -603,7 +603,7 @@ struct PartialSearchFilterTests {
             "-cmc<=2",
             PartialSearchFilter(
                 negated: true,
-                content: .filter("cmc", .lessThanOrEqual, .unquoted("2"))
+                content: .filter("cmc", .lessThanOrEqual, .bare("2"))
             ),
             .init(true, .keyValue("cmc", .lessThanOrEqual, "2"))
         ),
@@ -612,7 +612,7 @@ struct PartialSearchFilterTests {
             "-color=blue",
             PartialSearchFilter(
                 negated: true,
-                content: .filter("color", .equal, .unquoted("blue"))
+                content: .filter("color", .equal, .bare("blue"))
             ),
             .init(true, .keyValue("color", .equal, "blue"))
         ),
@@ -621,7 +621,7 @@ struct PartialSearchFilterTests {
             "-type!=land",
             PartialSearchFilter(
                 negated: true,
-                content: .filter("type", .notEqual, .unquoted("land"))
+                content: .filter("type", .notEqual, .bare("land"))
             ),
             .init(true, .keyValue("type", .notEqual, "land"))
         ),
@@ -662,14 +662,14 @@ struct PartialSearchFilterTests {
                 negated: false,
                 content: .filter("name", .including, .balanced(.forwardSlash, ""))
             ),
-            .init(.regex("name", .including, "//"))
+            .init(.regex("name", .including, ""))
         ),
         
         TestCase(
             "/regexwithoutfilter/",
             PartialSearchFilter(
                 negated: false,
-                content: .name(false, .balanced(.forwardSlash, "regexwithoutfilter")),
+                content: .name(false, .bare("/regexwithoutfilter/")),
             ),
             .init(.name("/regexwithoutfilter/", false)),
         ),
@@ -678,7 +678,7 @@ struct PartialSearchFilterTests {
             "/^test$/",
             PartialSearchFilter(
                 negated: false,
-                content: .name(false, .balanced(.forwardSlash, "^test$")),
+                content: .name(false, .bare("/^test$/")),
             ),
             .init(.name("/^test$/", false)),
         ),
@@ -687,7 +687,7 @@ struct PartialSearchFilterTests {
             "type: creature",
             PartialSearchFilter(
                 negated: false,
-                content: .filter("type", .including, .unquoted(" creature")),
+                content: .filter("type", .including, .bare(" creature")),
             ),
             .init(.keyValue("type", .including, " creature")),
         ),

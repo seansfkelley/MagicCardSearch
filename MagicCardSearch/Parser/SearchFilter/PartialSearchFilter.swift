@@ -48,13 +48,13 @@ struct PartialSearchFilter: Equatable, CustomStringConvertible {
             }
         }
         
-        case unquoted(String)
+        case bare(String)
         case unterminated(QuotingType, String)
         case balanced(QuotingType, String)
         
         var description: String {
             switch self {
-            case .unquoted(let content): content
+            case .bare(let content): content
             case .unterminated(let quote, let content): "\(quote)\(content)"
             case .balanced(let quote, let content): "\(quote)\(content)\(quote)"
             }
@@ -62,7 +62,7 @@ struct PartialSearchFilter: Equatable, CustomStringConvertible {
         
         var quotingType: QuotingType? {
             switch self {
-            case .unquoted: nil
+            case .bare: nil
             case .unterminated(let quote, _): quote
             case .balanced(let quote, _): quote
             }
@@ -70,7 +70,7 @@ struct PartialSearchFilter: Equatable, CustomStringConvertible {
         
         var incompleteContent: String {
             switch self {
-            case .unquoted(let content): content
+            case .bare(let content): content
             case .unterminated(_, let content): content
             case .balanced(_, let content): content
             }
@@ -78,13 +78,9 @@ struct PartialSearchFilter: Equatable, CustomStringConvertible {
     
         func toComplete() -> String? {
             switch self {
-            case .unquoted(let content): content
+            case .bare(let content): content
             case .unterminated: nil
-            case .balanced(let quote, let content):
-                switch quote {
-                case .forwardSlash: "/\(content)/"
-                case .singleQuote, .doubleQuote: content
-                }
+            case .balanced(_, let content): content
             }
         }
     }
@@ -153,7 +149,10 @@ struct PartialSearchFilter: Equatable, CustomStringConvertible {
                 negated: negated,
                 content: .name(
                     true,
-                    parseBalancedString(String(remaining.suffix(from: remaining.index(after: remaining.startIndex)))),
+                    matchPartialTerm(
+                        String(remaining.suffix(from: remaining.index(after: remaining.startIndex))),
+                        treatingRegexesAsLiterals: true,
+                    ),
                 )
             )
         }
@@ -162,7 +161,7 @@ struct PartialSearchFilter: Equatable, CustomStringConvertible {
             if let match = try /^([a-zA-Z]+)(<=|<|>=|>|!=|=|!|:)/.prefixMatch(in: remaining) {
                 let filter = String(match.output.1)
                 let comparison = PartialSearchFilter.PartialComparison(rawValue: String(match.output.2))!
-                let value = parseBalancedString(String(remaining[match.range.upperBound...]))
+                let value = matchPartialTerm(String(remaining[match.range.upperBound...]))
                 return .init(
                     negated: negated,
                     content: .filter(filter, comparison, value),
@@ -178,13 +177,13 @@ struct PartialSearchFilter: Equatable, CustomStringConvertible {
             negated: negated,
             content: .name(
                 false,
-                parseBalancedString(String(remaining)),
+                matchPartialTerm(String(remaining), treatingRegexesAsLiterals: true),
             ),
         )
     }
 }
 
-internal func parseBalancedString(_ input: String) -> PartialSearchFilter.PartialTerm {
+internal func matchPartialTerm(_ input: String, treatingRegexesAsLiterals: Bool = false) -> PartialSearchFilter.PartialTerm {
     if let match = input.wholeMatch(of: /^'([^']*)('?)$/) {
         let (_, content, close) = match.output
         return close.isEmpty
@@ -195,12 +194,12 @@ internal func parseBalancedString(_ input: String) -> PartialSearchFilter.Partia
         return close.isEmpty
         ? .unterminated(.doubleQuote, String(content))
         : .balanced(.doubleQuote, String(content))
-    } else if let match = input.wholeMatch(of: /^\/([^\/]*)(\/?)$/) {
+    } else if !treatingRegexesAsLiterals, let match = input.wholeMatch(of: /^\/([^\/]*)(\/?)$/) {
         let (_, content, close) = match.output
         return close.isEmpty
         ? .unterminated(.forwardSlash, String(content))
         : .balanced(.forwardSlash, String(content))
     } else {
-        return .unquoted(input)
+        return .bare(input)
     }
 }
