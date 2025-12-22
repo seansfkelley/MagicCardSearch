@@ -8,14 +8,14 @@ import SwiftUI
 import ScryfallKit
 
 struct SearchResultsDetailNavigator: View {
-    let state: SearchResultsState
+    let state: ScryfallSearchResultsList
     let initialIndex: Int
     @Binding var cardFlipStates: [UUID: Bool]
     
     @ObservedObject private var listManager = BookmarkedCardListManager.shared
     
     init(
-        state: SearchResultsState,
+        state: ScryfallSearchResultsList,
         initialIndex: Int,
         cardFlipStates: Binding<[UUID: Bool]>
     ) {
@@ -25,7 +25,7 @@ struct SearchResultsDetailNavigator: View {
     }
     
     private var results: LoadableResult<SearchResults, SearchErrorState> {
-        state.results
+        state.current
     }
     
     private var cards: [Card] {

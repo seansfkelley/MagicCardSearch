@@ -9,7 +9,7 @@ import SwiftUI
 import ScryfallKit
 
 struct SearchResultsGridView: View {
-    let state: SearchResultsState
+    let state: ScryfallSearchResultsList
     
     @State private var selectedCardIndex: Int?
     @State private var cardFlipStates: [UUID: Bool] = [:]
@@ -22,7 +22,7 @@ struct SearchResultsGridView: View {
     ]
     
     private var results: LoadableResult<SearchResults, SearchErrorState> {
-        state.results
+        state.current
     }
 
     var body: some View {
@@ -160,7 +160,7 @@ struct SearchResultsGridView: View {
 
 #Preview {
     struct PreviewWrapper: View {
-        let state = SearchResultsState()
+        let state = ScryfallSearchResultsList()
 
         var body: some View {
             SearchResultsGridView(state: state)

@@ -42,7 +42,7 @@ struct HomeView: View {
             Section {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 12) {
-                        switch featuredState.results {
+                        switch featuredState.current {
                         case .loading(nil, _), .unloaded:
                             ForEach(0..<15, id: \.self) { _ in
                                 CardPlaceholderView(name: nil, cornerRadius: 8, withSpinner: true)
@@ -72,7 +72,7 @@ struct HomeView: View {
                                 }
                             }
                             
-                            if case .loading = featuredState.results, results.nextPageUrl != nil {
+                            if case .loading = featuredState.current, results.nextPageUrl != nil {
                                 ProgressView()
                                     .frame(width: featuredWidth, height: featuredWidth / Card.aspectRatio)
                             }
@@ -184,11 +184,11 @@ struct HomeView: View {
     }
     
     private func loadFeaturedCards() async {
-        guard case .unloaded = featuredState.results else {
+        guard case .unloaded = featuredState.current else {
             return
         }
         
-        featuredState.results = .loading(nil, nil)
+        featuredState.current = .loading(nil, nil)
         
         let searchService = CardSearchService()
         
@@ -210,10 +210,10 @@ struct HomeView: View {
                 nextPageUrl: searchResult.nextPageURL,
             )
 
-            featuredState.results = .loaded(searchResults, nil)
+            featuredState.current = .loaded(searchResults, nil)
         } catch {
             print("Search error: \(error)")
-            featuredState.results = .errored(featuredState.results.latestValue, SearchErrorState(from: error))
+            featuredState.current = .errored(featuredState.current.latestValue, SearchErrorState(from: error))
         }
     }
 }
@@ -221,7 +221,7 @@ struct HomeView: View {
 
 @MainActor
 @Observable
-private class FeaturedCardsState: SearchResultsState {
+private class FeaturedCardsState: ScryfallSearchResultsList {
     static let shared = FeaturedCardsState()
 }
 // MARK: - Example Search

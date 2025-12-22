@@ -26,17 +26,13 @@ struct ContentView: View {
     @State private var autocompleteProvider: CombinedSuggestionProvider
     @State private var inputSelection: TextSelection?
     @State private var pendingSelection: TextSelection?
-    @State private var searchResultsState = SearchResultsState()
+    @State private var searchResultsState = ScryfallSearchResultsList()
     @State private var showWarningsPopover = false
     @State private var searchTask: Task<Void, Never>?
     @State private var mainContentType: MainContentType = .home
     @FocusState private var isSearchFocused: Bool
     
     private let searchService = CardSearchService()
-    
-    private var results: LoadableResult<SearchResults, SearchErrorState> {
-        searchResultsState.results
-    }
     
     init() {
         _autocompleteProvider = State(initialValue: CombinedSuggestionProvider(
@@ -88,7 +84,7 @@ struct ContentView: View {
                     inputSelection: $inputSelection,
                     pendingSelection: $pendingSelection,
                     isSearchFocused: _isSearchFocused,
-                    warnings: results.latestValue?.warnings ?? [],
+                    warnings: searchResultsState.current.latestValue?.warnings ?? [],
                     showWarningsPopover: $showWarningsPopover,
                     onFilterEdit: handleFilterEdit,
                     searchHistoryTracker: searchHistoryTracker,
@@ -163,8 +159,8 @@ struct ContentView: View {
         }
         .onChange(of: searchFilters) {
             // Clear warnings when filters change by resetting to unloaded or keeping existing results
-            if case .loaded(let searchResults, _) = results {
-                searchResultsState.results = .loaded(SearchResults(
+            if case .loaded(let searchResults, _) = searchResultsState.current {
+                searchResultsState.current = .loaded(SearchResults(
                     totalCount: searchResults.totalCount,
                     cards: searchResults.cards,
                     warnings: [],
@@ -224,12 +220,12 @@ struct ContentView: View {
         
         guard !searchFilters.isEmpty else {
             logger.info("No search filters; skipping to empty result")
-            searchResultsState.results = .unloaded
+            searchResultsState.current = .unloaded
             searchTask = nil
             return
         }
 
-        searchResultsState.results = .loading(
+        searchResultsState.current = .loading(
             // TODO: The following. The main search grid view does not blank out interaction because
             // it's being too clever.
             // keepingCurrentResults ? searchResultsState.results.latestValue : nil,
@@ -254,11 +250,11 @@ struct ContentView: View {
                     warnings: searchResult.warnings,
                     nextPageUrl: searchResult.nextPageURL,
                 )
-                searchResultsState.results = .loaded(searchResults, nil)
+                searchResultsState.current = .loaded(searchResults, nil)
             } catch {
                 if !Task.isCancelled {
                     print("Search error: \(error)")
-                    searchResultsState.results = .errored(nil, SearchErrorState(from: error))
+                    searchResultsState.current = .errored(nil, SearchErrorState(from: error))
                 }
             }
         }

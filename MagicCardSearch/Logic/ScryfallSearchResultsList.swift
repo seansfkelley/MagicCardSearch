@@ -13,16 +13,16 @@ private let logger = Logger(label: "SearchResultsState")
 
 @MainActor
 @Observable
-class SearchResultsState {
-    var results: LoadableResult<SearchResults, SearchErrorState>
+class ScryfallSearchResultsList {
+    var current: LoadableResult<SearchResults, SearchErrorState>
     private let searchService = CardSearchService()
     
     init(results: LoadableResult<SearchResults, SearchErrorState> = .unloaded) {
-        self.results = results
+        self.current = results
     }
     
     func loadNextPageIfNeeded() {
-        guard case .loaded(let searchResults, _) = results else {
+        guard case .loaded(let searchResults, _) = current else {
             logger.debug("Declining to load next page: not currently in loaded state")
             return
         }
@@ -36,7 +36,7 @@ class SearchResultsState {
             "nextPageUrl": "\(nextUrl)",
         ])
         
-        results = .loading(searchResults, nil)
+        current = .loading(searchResults, nil)
         
         Task {
             do {
@@ -47,18 +47,18 @@ class SearchResultsState {
                     warnings: searchResults.warnings,
                     nextPageUrl: searchResult.nextPageURL
                 )
-                results = .loaded(updatedResults, nil)
+                current = .loaded(updatedResults, nil)
             } catch {
                 logger.error("Error loading next page", metadata: [
                     "error": "\(error)",
                 ])
-                results = .errored(searchResults, SearchErrorState(from: error))
+                current = .errored(searchResults, SearchErrorState(from: error))
             }
         }
     }
     
     func retryNextPage() {
-        guard case .errored(let searchResults, _) = results else {
+        guard case .errored(let searchResults, _) = current else {
             logger.debug("Declining to retry next page: not in errored state")
             return
         }
@@ -68,7 +68,7 @@ class SearchResultsState {
             return
         }
         
-        results = .loaded(searchResults, nil)
+        current = .loaded(searchResults, nil)
         loadNextPageIfNeeded()
     }
 }
