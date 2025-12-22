@@ -273,13 +273,30 @@ struct ContentView: View {
     private func handleSuggestionTap(_ suggestion: AutocompleteView.AcceptedSuggestion) {
         switch suggestion {
         case .filter(let filter):
-            searchFilters.append(filter)
-            inputText = ""
-            
+            if let range = filterFacade.currentFilterRange {
+                if range == inputText.startIndex..<inputText.endIndex {
+                    searchFilters.append(filter)
+                    inputText = ""
+                    inputSelection = TextSelection(insertionPoint: inputText.endIndex)
+                } else {
+                    let filterString = filter.description
+                    inputText.replaceSubrange(range, with: filterString)
+                    inputSelection = TextSelection(insertionPoint: inputText.index(range.lowerBound, offsetBy: filterString.count))
+                }
+            } else {
+                searchFilters.append(filter)
+                inputText = ""
+                inputSelection = TextSelection(insertionPoint: inputText.endIndex)
+            }
         case .string(let string):
-            inputText.replaceSubrange(filterFacade.currentFilterRange, with: string)
+            if let range = filterFacade.currentFilterRange {
+                inputText.replaceSubrange(range, with: string)
+                inputSelection = TextSelection(insertionPoint: inputText.index(range.lowerBound, offsetBy: string.count))
+            } else {
+                inputText = string
+                inputSelection = TextSelection(insertionPoint: inputText.endIndex)
+            }
         }
-        inputSelection = TextSelection(insertionPoint: inputText.endIndex)
     }
 }
 

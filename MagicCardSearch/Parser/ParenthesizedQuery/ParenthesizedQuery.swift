@@ -3,11 +3,13 @@ struct ParenthesizedQuery {
     // return only those that we have definitely identified so far.
     let filters: [Range<String.Index>]
     
-    static func tryParse(_ input: String) throws -> ParenthesizedQuery {
+    static func tryParse(_ input: String, allowingPartialParse: Bool = false) throws -> ParenthesizedQuery {
         let errorCapturer = ParenthesizedQueryErrorDelegate()
 
         let parser = ParenthesizedQueryParser()
-        parser.errorCaptureDelegate = errorCapturer
+        if allowingPartialParse {
+            parser.errorCaptureDelegate = errorCapturer
+        }
         
         let trimmedInput = input.trimmingCharacters(in: .whitespaces)
         let prefixOffset = input.prefixMatch(of: /\s*/)?.count ?? 0

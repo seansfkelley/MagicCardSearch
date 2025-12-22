@@ -125,11 +125,22 @@ struct SearchBarView: View {
         
         guard !trimmed.isEmpty else { return }
         
-        if let filter = PartialSearchFilter.from(trimmed).toComplete() {
+        // FIXME: This is kind of gross; shouldn't we be able to unconditionally pass it through to
+        // the parser and then it can tell us if it's valid or not?
+        if (try? /^-?\(/.prefixMatch(in: trimmed)) != nil {
+            if let parenthesized = try? ParenthesizedQuery.tryParse(trimmed) {
+                print("TODO add parenthetical")
+                inputText = ""
+            } else {
+                // Fall through to potential catch-all.
+            }
+        } else if let filter = PartialSearchFilter.from(trimmed).toComplete() {
             filters.append(filter)
             searchHistoryTracker.recordUsage(of: filter)
             inputText = ""
-        } else if fallbackToNameFilter {
+        }
+        
+        if fallbackToNameFilter {
             let filter = SearchFilter(.name(trimmed, false))
             filters.append(filter)
             searchHistoryTracker.recordUsage(of: filter)

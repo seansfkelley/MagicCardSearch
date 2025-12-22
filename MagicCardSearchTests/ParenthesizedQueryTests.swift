@@ -441,7 +441,7 @@ struct ParenthesizedQueryTests {
         ),
     ])
     func parseAllQueryTypes(input: String, expected: [String]) throws {
-        let result = try ParenthesizedQuery.tryParse(input)
+        let result = try ParenthesizedQuery.tryParse(input, allowingPartialParse: true)
         let actual = result.filters.map { String(input[$0]) }
         #expect(actual == expected)
     }
@@ -465,7 +465,7 @@ struct ParenthesizedQueryTests {
     ])
     func unhandledCases(input: String, expected: [String]) throws {
         withKnownIssue {
-            let result = try ParenthesizedQuery.tryParse(input)
+            let result = try ParenthesizedQuery.tryParse(input, allowingPartialParse: true)
             let actual = result.filters.map { String(input[$0]) }
             #expect(actual == expected)
         }
