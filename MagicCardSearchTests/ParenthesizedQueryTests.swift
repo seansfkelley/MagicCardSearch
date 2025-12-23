@@ -945,6 +945,24 @@ struct ParenthesizedQueryTests {
         
         // Incomplete terms with negation
         TestCase(
+            "-",
+            ["-"],
+            disj(
+                conj(
+                    .filter("-"),
+                ),
+            ),
+            "-",
+        ),
+        TestCase(
+            "-(",
+            [""],
+        ),
+        TestCase(
+            "-(-",
+            ["-"],
+        ),
+        TestCase(
             "-power>",
             ["-power>"],
             disj(
