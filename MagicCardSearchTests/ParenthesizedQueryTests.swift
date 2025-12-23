@@ -591,14 +591,14 @@ struct ParenthesizedQueryTests {
         
         // Unclosed double quotes - these consume everything after including whitespace
         TestCase(
-            "name:\"lightning",
-            ["name:\"lightning"],
+            "name:\"lightning  ",
+            ["name:\"lightning  "],
         ),
 
         // Unclosed single quotes
         TestCase(
-            "name:'lightning",
-            ["name:'lightning"],
+            "name:'lightning  ",
+            ["name:'lightning  "],
         ),
 
         // Unclosed quotes in parentheses - closing paren becomes part of the string

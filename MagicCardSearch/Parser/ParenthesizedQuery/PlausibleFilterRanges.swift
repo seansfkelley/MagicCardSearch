@@ -8,7 +8,9 @@ struct PlausibleFilterRanges {
     let ranges: [Range<String.Index>]
     
     static func from(_ input: String) -> PlausibleFilterRanges {
-        let trimmedInput = input.trimmingCharacters(in: .whitespaces)
+        // Trim only the prefix; trailing whitespace might be part of an unterminated literal and
+        // it should be assigned as such. Leading whitespace never can be.
+        let trimmedInput = String(input.trimmingPrefix(/\s*/))
         let prefixOffset = input.prefixMatch(of: /\s*/)?.count ?? 0
         
         do {
@@ -56,7 +58,7 @@ struct PlausibleFilterRanges {
             // appropriate direction if there is more than one there.
 
             let coalescedRanges = ranges.reduce(into: [Range<String.Index>]()) { result, range in
-                if let last = result.last, last.upperBound == range.lowerBound {
+                if let last = result.last, last.upperBound == range.lowerBound || last.overlaps(range) {
                     result.removeLast()
                     result.append(last.lowerBound..<range.upperBound)
                 } else {
