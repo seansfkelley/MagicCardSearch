@@ -59,65 +59,86 @@ struct AutocompleteView: View {
     ]
 
     var body: some View {
-        List {
-            ForEach(Array(suggestions.enumerated()), id: \.offset) { _, suggestion in
-                switch suggestion {
-                case .pinned(let suggestion):
-                    pinnedRow(suggestion)
-                        .swipeActions(edge: .leading, allowsFullSwipe: true) {
-                            Button {
-                                provider.pinnedFilterProvider.unpin(filter: suggestion.filter)
-                                // If unpinning, keep the filter around in case you want to re-pin it.
-                                searchHistoryTracker.recordUsage(of: suggestion.filter)
-                                nonce += 1
-                            } label: {
-                                Label("Unpin", systemImage: "pin.slash")
-                            }
-                            .tint(.orange)
-                        }
-                        .listRowInsets(.vertical, 0)
-                case .history(let suggestion):
-                    historyRow(suggestion)
-                        .swipeActions(edge: .leading, allowsFullSwipe: true) {
-                            pinSwipeAction(for: suggestion.filter)
-                        }
-                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                            Button(role: .destructive) {
-                                searchHistoryTracker.delete(filter: suggestion.filter)
-                                nonce += 1
-                            } label: {
-                                Label("Delete", systemImage: "trash")
-                            }
-                        }
-                        .listRowInsets(.vertical, 0)
+        ScrollViewReader { proxy in
+            List {
+                ForEach(Array(suggestions.enumerated()), id: \.offset) { index, suggestion in
+                    Group {
+                        switch suggestion {
+                        case .pinned(let suggestion):
+                            pinnedRow(suggestion)
+                                .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                                    Button {
+                                        provider.pinnedFilterProvider.unpin(filter: suggestion.filter)
+                                        // If unpinning, keep the filter around in case you want to re-pin it.
+                                        searchHistoryTracker.recordUsage(of: suggestion.filter)
+                                        nonce += 1
+                                    } label: {
+                                        Label("Unpin", systemImage: "pin.slash")
+                                    }
+                                    .tint(.orange)
+                                }
+                                .listRowInsets(.vertical, 0)
+                        case .history(let suggestion):
+                            historyRow(suggestion)
+                                .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                                    Button {
+                                        provider.pinnedFilterProvider.pin(filter: suggestion.filter)
+                                        nonce += 1
+                                    } label: {
+                                        Label("Pin", systemImage: "pin")
+                                    }
+                                    .tint(.orange)
+                                }
+                                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                    Button(role: .destructive) {
+                                        searchHistoryTracker.delete(filter: suggestion.filter)
+                                        nonce += 1
+                                    } label: {
+                                        Label("Delete", systemImage: "trash")
+                                    }
+                                }
+                                .listRowInsets(.vertical, 0)
 
-                case .filter(let suggestion):
-                    filterTypeRow(suggestion)
-                        .listRowInsets(.vertical, 0)
+                        case .filter(let suggestion):
+                            filterTypeRow(suggestion)
+                                .listRowInsets(.vertical, 0)
 
-                case .enumeration(let suggestion):
-                    enumerationRow(suggestion)
-                        .listRowInsets(.vertical, 0)
-                
-                case .name(let suggestion):
-                    nameRow(suggestion)
-                        .listRowInsets(.vertical, 0)
+                        case .enumeration(let suggestion):
+                            enumerationRow(suggestion)
+                                .listRowInsets(.vertical, 0)
+
+                        case .name(let suggestion):
+                            nameRow(suggestion)
+                                .listRowInsets(.vertical, 0)
+                        }
+                    }
+                    .rotationEffect(.degrees(180))
+                    .scaleEffect(x: -1, y: 1)
+                    .id(index)
+                }
+            }
+            .listStyle(.plain)
+            .rotationEffect(.degrees(180))
+            .scaleEffect(x: -1, y: 1)
+            .task(id: searchSuggestionKey) {
+                for await newSuggestions in provider.getSuggestions(for: filterText, existingFilters: Set(filters)) {
+                    suggestions = newSuggestions
+                }
+            }
+            .onChange(of: suggestions) { _, newSuggestions in
+                if !newSuggestions.isEmpty {
+                    // Scroll to first item (which appears at bottom due to rotation)
+                    proxy.scrollTo(0, anchor: .top)
+                }
+            }
+            .onChange(of: isSearchFocused) { wasFocused, isFocused in
+                if !wasFocused && isFocused {
+                    nonce += 1
                 }
             }
         }
-        .listStyle(.plain)
-        .task(id: searchSuggestionKey) {
-            for await newSuggestions in provider.getSuggestions(for: filterText, existingFilters: Set(filters)) {
-                suggestions = newSuggestions
-            }
-        }
-        .onChange(of: isSearchFocused) { wasFocused, isFocused in
-            if !wasFocused && isFocused {
-                nonce += 1
-            }
-        }
     }
-    
+
     @ViewBuilder
     private func pinSwipeAction(for filter: SearchFilter) -> some View {
         Button {
