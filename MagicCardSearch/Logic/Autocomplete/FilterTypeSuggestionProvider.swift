@@ -4,10 +4,12 @@
 //
 //  Created by Sean Kelley on 2025-12-11.
 //
-struct FilterTypeSuggestion: Equatable, Sendable {
+struct FilterTypeSuggestion: Equatable, Sendable, ScorableSuggestion {
     let filterType: String
     let matchRange: Range<String.Index>
     let comparisonKinds: ScryfallFilterType.ComparisonKinds
+    let isPrefix: Bool
+    let suggestionLength: Int
 }
 
 // TODO: Make this even lazier for performance.
@@ -48,6 +50,8 @@ struct FilterTypeSuggestionProvider {
                         filterType: candidate,
                         matchRange: range,
                         comparisonKinds: filterType.comparisonKinds,
+                        isPrefix: range.lowerBound == candidate.startIndex,
+                        suggestionLength: candidate.count,
                     )
                     if let existing = bestMatch {
                         if range.lowerBound == candidate.startIndex && existing.matchRange.lowerBound != existing.filterType.startIndex {
@@ -81,8 +85,10 @@ struct FilterTypeSuggestionProvider {
                 .insert(
                     FilterTypeSuggestion(
                         filterType: filterName,
-                        matchRange: filterName.startIndex..<filterName.endIndex,
+                        matchRange: filterName.range,
                         comparisonKinds: exactMatch.comparisonKinds,
+                        isPrefix: true,
+                        suggestionLength: filterName.count,
                     ),
                     at: 0
                 )
@@ -95,6 +101,9 @@ struct FilterTypeSuggestionProvider {
                     filterType: prefixed,
                     matchRange: $0.matchRange.shift(with: prefixed, by: 1),
                     comparisonKinds: $0.comparisonKinds,
+                    // No filter names have literal -, so preserve the scoring from the un-negated form.
+                    isPrefix: $0.isPrefix,
+                    suggestionLength: $0.suggestionLength,
                 )
             }
         }

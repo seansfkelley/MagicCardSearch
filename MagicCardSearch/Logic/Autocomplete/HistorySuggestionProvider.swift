@@ -8,9 +8,11 @@
 import Foundation
 import Observation
 
-struct HistorySuggestion: Equatable, Sendable {
+struct HistorySuggestion: Equatable, Sendable, ScorableSuggestion {
     let filter: SearchFilter
     let matchRange: Range<String.Index>?
+    let isPrefix: Bool
+    let suggestionLength: Int
 }
 
 @Observable
@@ -42,17 +44,24 @@ class HistorySuggestionProvider {
                 .lazy
                 .filter { !excludedFilters.contains($0.filter) }
                 .compactMap { entry in
+                    let filterText = entry.filter.description
+
                     if trimmedSearchTerm.isEmpty {
                         return HistorySuggestion(
                             filter: entry.filter,
-                            matchRange: nil
+                            matchRange: nil,
+                            // TODO: Would true produce better results?
+                            isPrefix: false,
+                            suggestionLength: filterText.count,
                         )
                     }
                     
-                    if let range = entry.filter.description.range(of: trimmedSearchTerm, options: .caseInsensitive) {
+                    if let range = filterText.range(of: trimmedSearchTerm, options: .caseInsensitive) {
                         return HistorySuggestion(
                             filter: entry.filter,
-                            matchRange: range
+                            matchRange: range,
+                            isPrefix: range.lowerBound == filterText.startIndex,
+                            suggestionLength: filterText.count,
                         )
                     }
                     

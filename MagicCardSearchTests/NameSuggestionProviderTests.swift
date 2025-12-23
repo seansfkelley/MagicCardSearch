@@ -57,17 +57,23 @@ struct NameSuggestionProviderTests {
             PartialSearchFilter(negated: false, content: .filter("name", .including, .bare("bolt"))),
             ["Firebolt", "Lightning Bolt", "Someone's Bolt"],
             [
-                NameSuggestion(
+                .init(
                     filter: SearchFilter.basic(false, "name", Comparison.including, "Firebolt"),
-                    matchRange: makeStringRange("name:Firebolt", 9..<13)
+                    matchRange: makeStringRange("name:Firebolt", 9..<13),
+                    isPrefix: false,
+                    suggestionLength: 8
                 ),
-                NameSuggestion(
+                .init(
                     filter: SearchFilter.basic(false, "name", Comparison.including, "Lightning Bolt"),
-                    matchRange: makeStringRange("name:\"Lightning Bolt\"", 16..<20)
+                    matchRange: makeStringRange("name:\"Lightning Bolt\"", 16..<20),
+                    isPrefix: false,
+                    suggestionLength: 14
                 ),
-                NameSuggestion(
+                .init(
                     filter: SearchFilter.basic(false, "name", Comparison.including, "Someone's Bolt"),
-                    matchRange: makeStringRange("name:\"Someone's Bolt\"", 16..<20)
+                    matchRange: makeStringRange("name:\"Someone's Bolt\"", 16..<20),
+                    isPrefix: false,
+                    suggestionLength: 14
                 ),
             ]
         ),
@@ -76,9 +82,11 @@ struct NameSuggestionProviderTests {
             PartialSearchFilter(negated: false, content: .filter("nAmE", .including, .bare("boLT"))),
             ["Firebolt"],
             [
-                NameSuggestion(
+                .init(
                     filter: SearchFilter.basic(false, "name", Comparison.including, "Firebolt"),
-                    matchRange: makeStringRange("name:Firebolt", 9..<13)
+                    matchRange: makeStringRange("name:Firebolt", 9..<13),
+                    isPrefix: false,
+                    suggestionLength: 8
                 ),
             ]
         ),
@@ -87,9 +95,11 @@ struct NameSuggestionProviderTests {
             PartialSearchFilter(negated: false, content: .filter("name", .equal, .bare("bolt"))),
             ["Firebolt"],
             [
-                NameSuggestion(
+                .init(
                     filter: SearchFilter.basic(false, "name", Comparison.equal, "Firebolt"),
-                    matchRange: makeStringRange("name=Firebolt", 9..<13)
+                    matchRange: makeStringRange("name=Firebolt", 9..<13),
+                    isPrefix: false,
+                    suggestionLength: 8
                 ),
             ]
         ),
@@ -98,13 +108,17 @@ struct NameSuggestionProviderTests {
             PartialSearchFilter(negated: false, content: .filter("name", .equal, .unterminated(.singleQuote, "bolt"))),
             ["Firebolt", "Lightning Bolt"],
             [
-                NameSuggestion(
+                .init(
                     filter: SearchFilter.basic(false, "name", Comparison.equal, "Firebolt"),
-                    matchRange: makeStringRange("name=Firebolt", 9..<13)
+                    matchRange: makeStringRange("name=Firebolt", 9..<13),
+                    isPrefix: false,
+                    suggestionLength: 8
                 ),
-                NameSuggestion(
+                .init(
                     filter: SearchFilter.basic(false, "name", Comparison.equal, "Lightning Bolt"),
-                    matchRange: makeStringRange("name=\"Lightning Bolt\"", 16..<20)
+                    matchRange: makeStringRange("name=\"Lightning Bolt\"", 16..<20),
+                    isPrefix: false,
+                    suggestionLength: 14
                 ),
             ]
         ),
@@ -113,13 +127,17 @@ struct NameSuggestionProviderTests {
             PartialSearchFilter(negated: false, content: .name(false, .unterminated(.doubleQuote, "bolt"))),
             ["Firebolt", "Lightning Bolt"],
             [
-                NameSuggestion(
+                .init(
                     filter: SearchFilter.name(false, true, "Firebolt"),
-                    matchRange: makeStringRange("!Firebolt", 5..<9)
+                    matchRange: makeStringRange("!Firebolt", 5..<9),
+                    isPrefix: false,
+                    suggestionLength: 8
                 ),
-                NameSuggestion(
+                .init(
                     filter: SearchFilter.name(false, true, "Lightning Bolt"),
-                    matchRange: makeStringRange("!\"Lightning Bolt\"", 12..<16)
+                    matchRange: makeStringRange("!\"Lightning Bolt\"", 12..<16),
+                    isPrefix: false,
+                    suggestionLength: 14
                 ),
             ]
         ),
@@ -128,13 +146,17 @@ struct NameSuggestionProviderTests {
             PartialSearchFilter(negated: false, content: .name(true, .bare("bolt"))),
             ["Firebolt", "Lightning Bolt"],
             [
-                NameSuggestion(
+                .init(
                     filter: SearchFilter.name(false, true, "Firebolt"),
-                    matchRange: makeStringRange("!Firebolt", 5..<9)
+                    matchRange: makeStringRange("!Firebolt", 5..<9),
+                    isPrefix: false,
+                    suggestionLength: 8
                 ),
-                NameSuggestion(
+                .init(
                     filter: SearchFilter.name(false, true, "Lightning Bolt"),
-                    matchRange: makeStringRange("!\"Lightning Bolt\"", 12..<16)
+                    matchRange: makeStringRange("!\"Lightning Bolt\"", 12..<16),
+                    isPrefix: false,
+                    suggestionLength: 14
                 ),
             ]
         ),
@@ -143,13 +165,17 @@ struct NameSuggestionProviderTests {
             PartialSearchFilter(negated: true, content: .name(true, .unterminated(.doubleQuote, "bolt"))),
             ["Firebolt", "Lightning Bolt"],
             [
-                NameSuggestion(
+                .init(
                     filter: SearchFilter.name(true, true, "Firebolt"),
-                    matchRange: makeStringRange("-!Firebolt", 6..<10)
+                    matchRange: makeStringRange("-!Firebolt", 6..<10),
+                    isPrefix: false,
+                    suggestionLength: 8
                 ),
-                NameSuggestion(
+                .init(
                     filter: SearchFilter.name(true, true, "Lightning Bolt"),
-                    matchRange: makeStringRange("-!\"Lightning Bolt\"", 13..<17)
+                    matchRange: makeStringRange("-!\"Lightning Bolt\"", 13..<17),
+                    isPrefix: false,
+                    suggestionLength: 14
                 ),
             ]
         ),
@@ -158,13 +184,17 @@ struct NameSuggestionProviderTests {
             PartialSearchFilter(negated: false, content: .filter("name", .including, .bare("foo"))),
             ["Wooded Foothills", "Shivan Reef"],
             [
-                NameSuggestion(
+                .init(
                     filter: SearchFilter.basic(false, "name", Comparison.including, "Wooded Foothills"),
-                    matchRange: makeStringRange("name:\"Wooded Foothills\"", 13..<16)
+                    matchRange: makeStringRange("name:\"Wooded Foothills\"", 13..<16),
+                    isPrefix: false,
+                    suggestionLength: 16
                 ),
-                NameSuggestion(
+                .init(
                     filter: SearchFilter.basic(false, "name", Comparison.including, "Shivan Reef"),
-                    matchRange: nil
+                    matchRange: nil,
+                    isPrefix: false,
+                    suggestionLength: 11
                 ),
             ]
         ),
@@ -173,13 +203,17 @@ struct NameSuggestionProviderTests {
             PartialSearchFilter(negated: false, content: .name(false, .bare("bolt"))),
             ["Firebolt", "Lightning Bolt"],
             [
-                NameSuggestion(
+                .init(
                     filter: SearchFilter.name(false, true, "Firebolt"),
-                    matchRange: makeStringRange("!Firebolt", 5..<9)
+                    matchRange: makeStringRange("!Firebolt", 5..<9),
+                    isPrefix: false,
+                    suggestionLength: 8
                 ),
-                NameSuggestion(
+                .init(
                     filter: SearchFilter.name(false, true, "Lightning Bolt"),
-                    matchRange: makeStringRange("!\"Lightning Bolt\"", 12..<16)
+                    matchRange: makeStringRange("!\"Lightning Bolt\"", 12..<16),
+                    isPrefix: false,
+                    suggestionLength: 14
                 ),
             ]
         ),
@@ -197,9 +231,11 @@ struct NameSuggestionProviderTests {
         let actual = await NameSuggestionProvider(fetcher: fetcher).getSuggestions(for: partial, limit: Int.max)
         withKnownIssue {
             #expect(actual == [
-                NameSuggestion(
+                .init(
                     filter: SearchFilter.basic(false, "name", .including, "Nameless Race"),
                     matchRange: makeStringRange("name:\"Nameless Race\"", 7..<11),
+                    isPrefix: true,
+                    suggestionLength: 13
                 ),
             ])
         }

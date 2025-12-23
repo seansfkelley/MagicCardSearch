@@ -16,11 +16,15 @@ struct EnumerationSuggestionProviderTests {
             [
                 .init(
                     filter: SearchFilter.basic(false, "manavalue", .equal, "even"),
-                    matchRange: nil
+                    matchRange: nil,
+                    isPrefix: false,
+                    suggestionLength: 4
                 ),
                 .init(
                     filter: SearchFilter.basic(false, "manavalue", .equal, "odd"),
-                    matchRange: nil
+                    matchRange: nil,
+                    isPrefix: false,
+                    suggestionLength: 3
                 ),
             ],
         ),
@@ -31,11 +35,15 @@ struct EnumerationSuggestionProviderTests {
             [
                 .init(
                     filter: SearchFilter.basic(false, "is", .including, "scryfallpreview"),
-                    matchRange: "is:scryfallpreview".range(of: "scry")
+                    matchRange: "is:scryfallpreview".range(of: "scry"),
+                    isPrefix: true,
+                    suggestionLength: 15
                 ),
                 .init(
                     filter: SearchFilter.basic(false, "is", .including, "scryland"),
-                    matchRange: "is:scryland".range(of: "scry")
+                    matchRange: "is:scryland".range(of: "scry"),
+                    isPrefix: true,
+                    suggestionLength: 8
                 ),
             ],
         ),
@@ -45,7 +53,9 @@ struct EnumerationSuggestionProviderTests {
             [
                 .init(
                     filter: SearchFilter.basic(false, "format", .greaterThanOrEqual, "timeless"),
-                    matchRange: "format>=timeless".range(of: "less")
+                    matchRange: "format>=timeless".range(of: "less"),
+                    isPrefix: false,
+                    suggestionLength: 8
                 ),
             ],
         ),
@@ -55,11 +65,15 @@ struct EnumerationSuggestionProviderTests {
             [
                 .init(
                     filter: SearchFilter.basic(true, "is", .including, "scryfallpreview"),
-                    matchRange: "-is:scryfallpreview".range(of: "scry")
+                    matchRange: "-is:scryfallpreview".range(of: "scry"),
+                    isPrefix: true,
+                    suggestionLength: 15
                 ),
                 .init(
                     filter: SearchFilter.basic(true, "is", .including, "scryland"),
-                    matchRange: "-is:scryland".range(of: "scry")
+                    matchRange: "-is:scryland".range(of: "scry"),
+                    isPrefix: true,
+                    suggestionLength: 8
                 ),
             ],
         ),
@@ -69,7 +83,9 @@ struct EnumerationSuggestionProviderTests {
             [
                 .init(
                     filter: SearchFilter.basic(false, "format", .greaterThanOrEqual, "timeless"),
-                    matchRange: "format>=timeless".range(of: "less", options: .caseInsensitive)
+                    matchRange: "format>=timeless".range(of: "less", options: .caseInsensitive),
+                    isPrefix: false,
+                    suggestionLength: 8
                 ),
             ],
         ),
@@ -96,6 +112,7 @@ struct EnumerationSuggestionProviderTests {
     ])
     @MainActor
     func getSuggestions(partial: PartialSearchFilter, expected: [EnumerationSuggestion]) {
-        #expect(EnumerationSuggestionProvider().getSuggestions(for: partial, excluding: [], limit: 100) == expected)
+        let actual = EnumerationSuggestionProvider().getSuggestions(for: partial, excluding: [], limit: 100)
+        #expect(actual == expected)
     }
 }

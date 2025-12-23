@@ -9,9 +9,11 @@ import ScryfallKit
 import Logging
 import Algorithms
 
-struct EnumerationSuggestion: Equatable, Sendable {
+struct EnumerationSuggestion: Equatable, Sendable, ScorableSuggestion {
     let filter: SearchFilter
     let matchRange: Range<String.Index>?
+    let isPrefix: Bool
+    let suggestionLength: Int
 }
 
 private enum CacheKey: Hashable {
@@ -28,7 +30,7 @@ private let logger = Logger(label: "EnumerationSuggestionProvider")
 @MainActor
 struct EnumerationSuggestionProvider {
     private static let shared = MemoryCache<CacheKey, IndexedEnumerationValues>(expiration: .never)
-    
+
     func getSuggestions(for partial: PartialSearchFilter, excluding excludedFilters: Set<SearchFilter>, limit: Int) -> [EnumerationSuggestion] {
         guard limit > 0 else {
             return []
@@ -48,7 +50,7 @@ struct EnumerationSuggestionProvider {
         
         let value = partialValue.incompleteContent
         
-        let matchingOpts: any Sequence<String>
+        let matchingOpts: any Sequence<(String, Bool)>
         if filterType.canonicalName == "type" {
             let typeOptions = Self.getOptionsFromCache(for: .type)
             let subtypeOptions = Self.getOptionsFromCache(for: .subtype)
@@ -71,23 +73,32 @@ struct EnumerationSuggestionProvider {
         }
         
         return Array(matchingOpts
-            .map { SearchFilter.basic(partial.negated, filterTypeName.lowercased(), comparison, $0) }
-            .filter { !excludedFilters.contains($0) }
-            .map { filter in
-                if value.isEmpty {
-                    return EnumerationSuggestion(filter: filter, matchRange: nil)
-                }
-                
-                let range = filter.description.range(of: value, options: .caseInsensitive)
-                return EnumerationSuggestion(filter: filter, matchRange: range)
+            .map {
+                (
+                    SearchFilter.Basic(partial.negated, filterTypeName.lowercased(), comparison, $0.0),
+                    $0.1,
+                )
+            }
+            .filter { !excludedFilters.contains(.basic($0.0)) }
+            .map { args in
+                let (filter, isPrefix) = args
+                let range = value.isEmpty ? nil : filter.description.range(of: value, options: .caseInsensitive)
+
+                return EnumerationSuggestion(
+                    filter: .basic(filter),
+                    matchRange: range,
+                    isPrefix: isPrefix,
+                    suggestionLength: filter.query.count,
+                )
             }
             .prefix(limit)
         )
     }
     
-    private func matchingOptions(from options: IndexedEnumerationValues, searchTerm: String) -> any Sequence<String> {
+    private func matchingOptions(from options: IndexedEnumerationValues, searchTerm: String) -> any Sequence<(String, Bool)> {
         if searchTerm.isEmpty {
-            return options.sortedAlphabetically
+            // TODO: Would true produce better results?
+            return options.sortedAlphabetically.lazy.map { ($0, false) }
         }
         
         let lowerBound = options.sortedAlphabetically.partitioningIndex { element in
@@ -108,7 +119,7 @@ struct EnumerationSuggestionProvider {
             return !prefixSet!.contains(option) && option.range(of: searchTerm, options: .caseInsensitive) != nil
         }
         
-        return chain(prefixMatches.lazy, substringMatches)
+        return chain(prefixMatches.lazy.map { ($0, true) }, substringMatches.map { ($0, false) })
     }
     
     // MARK: - Cache Management

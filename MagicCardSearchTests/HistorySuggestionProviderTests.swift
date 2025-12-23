@@ -41,7 +41,7 @@ class HistorySuggestionProviderTests {
 
         let suggestions = provider.getSuggestions(for: "", excluding: Set(), limit: 1)
         // Prefers the latter, because it was recorded later.
-        #expect(suggestions == [.init(filter: oracleFilter, matchRange: nil)])
+        #expect(suggestions == [.init(filter: oracleFilter, matchRange: nil, isPrefix: false, suggestionLength: 13)])
     }
 
     @Test("should not delete any filters if the soft limit but not the hard limit is reached")
@@ -59,8 +59,8 @@ class HistorySuggestionProviderTests {
 
         let suggestions = provider.getSuggestions(for: "", excluding: Set(), limit: 10)
         #expect(suggestions == [
-            .init(filter: oracleFilter, matchRange: nil),
-            .init(filter: colorFilter, matchRange: nil),
+            .init(filter: oracleFilter, matchRange: nil, isPrefix: false, suggestionLength: 13),
+            .init(filter: colorFilter, matchRange: nil, isPrefix: false, suggestionLength: 9),
         ])
     }
 
@@ -80,7 +80,7 @@ class HistorySuggestionProviderTests {
 
         let suggestions = provider.getSuggestions(for: "", excluding: Set(), limit: 10)
         #expect(suggestions == [
-            .init(filter: setFilter, matchRange: nil),
+            .init(filter: setFilter, matchRange: nil, isPrefix: false, suggestionLength: 7),
         ])
     }
 
@@ -93,8 +93,8 @@ class HistorySuggestionProviderTests {
 
         let suggestions = provider.getSuggestions(for: "y", excluding: Set(), limit: 10)
         #expect(suggestions == [
-            .init(filter: setFilter, matchRange: "set:odyssey".range(of: "y")),
-            .init(filter: oracleFilter, matchRange: "oracle:flying".range(of: "y")),
+            .init(filter: setFilter, matchRange: "set:odyssey".range(of: "y"), isPrefix: false, suggestionLength: 11),
+            .init(filter: oracleFilter, matchRange: "oracle:flying".range(of: "y"), isPrefix: false, suggestionLength: 13),
         ])
     }
 
@@ -107,7 +107,7 @@ class HistorySuggestionProviderTests {
 
         let suggestions = provider.getSuggestions(for: "y", excluding: Set([oracleFilter]), limit: 10)
         #expect(suggestions == [
-            .init(filter: setFilter, matchRange: "set:ody".range(of: "y")),
+            .init(filter: setFilter, matchRange: "set:ody".range(of: "y"), isPrefix: false, suggestionLength: 7),
         ])
     }
 
@@ -130,6 +130,6 @@ class HistorySuggestionProviderTests {
         tracker.delete(filter: oracleFilter)
 
         let suggestions = provider.getSuggestions(for: "", excluding: Set(), limit: 10)
-        #expect(suggestions == [.init(filter: colorFilter, matchRange: nil)])
+        #expect(suggestions == [.init(filter: colorFilter, matchRange: nil, isPrefix: false, suggestionLength: 9)])
     }
 }

@@ -7,12 +7,39 @@
 
 import Foundation
 
-enum Suggestion: Equatable, Sendable {
+protocol ScorableSuggestion {
+    var isPrefix: Bool { get }
+    var suggestionLength: Int { get }
+}
+
+enum Suggestion: Equatable, Sendable, ScorableSuggestion {
     case pinned(PinnedFilterSuggestion)
     case history(HistorySuggestion)
     case filter(FilterTypeSuggestion)
     case enumeration(EnumerationSuggestion)
     case name(NameSuggestion)
+    
+    private var scorable: any ScorableSuggestion {
+        switch self {
+        case .pinned(let suggestion): suggestion
+        case .history(let suggestion): suggestion
+        case .filter(let suggestion): suggestion
+        case .enumeration(let suggestion): suggestion
+        case .name(let suggestion): suggestion
+        }
+    }
+    
+    var isPrefix: Bool { scorable.isPrefix }
+    var suggestionLength: Int { scorable.suggestionLength }
+    var priority: Int {
+        switch self {
+        case .pinned: return 0
+        case .history: return 1
+        case .filter: return 2
+        case .enumeration: return 3
+        case .name: return 4
+        }
+    }
 }
 
 @MainActor
@@ -76,7 +103,8 @@ class CombinedSuggestionProvider {
             )
             allSuggestions.append(contentsOf: enumerationSuggestions.map { Suggestion.enumeration($0) })
             
-            continuation.yield(allSuggestions)
+            let scoredSuggestions = self.scoreSuggestions(allSuggestions)
+            continuation.yield(scoredSuggestions)
             
             guard loadingState.isStillCurrent(id: currentTaskId) else {
                 continuation.finish()
@@ -96,12 +124,37 @@ class CombinedSuggestionProvider {
                 
                 allSuggestions.append(contentsOf: nameSuggestions.map { Suggestion.name($0) })
                 
-                continuation.yield(allSuggestions)
+                let finalScoredSuggestions = self.scoreSuggestions(allSuggestions)
+                continuation.yield(finalScoredSuggestions)
                 
                 loadingState.stop(for: currentTaskId)
                 
                 continuation.finish()
             }
+        }
+    }
+    
+    private func scoreSuggestions(_ suggestions: [Suggestion]) -> [Suggestion] {
+        suggestions.sorted(using: [
+            KeyPathComparator(\.isPrefix, comparator: BooleanComparator(order: .reverse)),
+            KeyPathComparator(\.suggestionLength),
+            KeyPathComparator(\.priority),
+        ])
+    }
+}
+
+private struct BooleanComparator: SortComparator {
+    typealias Compared = Bool
+
+    var order: SortOrder = .forward
+
+    func compare(_ lhs: Bool, _ rhs: Bool) -> ComparisonResult {
+        if lhs == rhs {
+            .orderedSame
+        } else if lhs {
+            order == .forward ? .orderedDescending : .orderedAscending
+        } else {
+            order == .forward ? .orderedAscending : .orderedDescending
         }
     }
 }

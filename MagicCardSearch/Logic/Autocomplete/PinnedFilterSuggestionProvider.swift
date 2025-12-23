@@ -8,9 +8,11 @@
 import Foundation
 import Observation
 
-struct PinnedFilterSuggestion: Equatable, Sendable {
+struct PinnedFilterSuggestion: Equatable, Sendable, ScorableSuggestion {
     let filter: SearchFilter
     let matchRange: Range<String.Index>?
+    let isPrefix: Bool
+    let suggestionLength: Int
 }
 
 struct PinnedFilterEntry: Codable {
@@ -49,12 +51,25 @@ class PinnedFilterSuggestionProvider {
             ])
             .filter { !excludedFilters.contains($0.filter) }
             .compactMap { entry in
+                let filterText = entry.filter.description
+
                 if searchTerm.isEmpty {
-                    return PinnedFilterSuggestion(filter: entry.filter, matchRange: nil)
+                    return PinnedFilterSuggestion(
+                        filter: entry.filter,
+                        matchRange: nil,
+                        // TODO: Would true produce better results?
+                        isPrefix: false,
+                        suggestionLength: filterText.count,
+                    )
                 }
                 
-                if let range = entry.filter.description.range(of: searchTerm, options: .caseInsensitive) {
-                    return PinnedFilterSuggestion(filter: entry.filter, matchRange: range)
+                if let range = filterText.range(of: searchTerm, options: .caseInsensitive) {
+                    return PinnedFilterSuggestion(
+                        filter: entry.filter,
+                        matchRange: range,
+                        isPrefix: range.lowerBound == filterText.startIndex,
+                        suggestionLength: filterText.count,
+                    )
                 }
                 
                 return nil

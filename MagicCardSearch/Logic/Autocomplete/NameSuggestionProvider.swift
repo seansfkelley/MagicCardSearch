@@ -6,9 +6,11 @@
 //
 import ScryfallKit
 
-struct NameSuggestion: Equatable, Sendable {
+struct NameSuggestion: Equatable, Sendable, ScorableSuggestion {
     let filter: SearchFilter
     let matchRange: Range<String.Index>?
+    let isPrefix: Bool
+    let suggestionLength: Int
 }
 
 protocol CardNameFetcher: Sendable {
@@ -79,10 +81,15 @@ struct NameSuggestionProvider {
                 } else {
                     filter = SearchFilter.name(partial.negated, true, cardName)
                 }
-                
+
                 // TODO: We can do better than this; we know where it should be!
                 let range = filter.description.range(of: name, options: .caseInsensitive)
-                return NameSuggestion(filter: filter, matchRange: range)
+                return NameSuggestion(
+                    filter: filter,
+                    matchRange: range,
+                    isPrefix: cardName.range(of: name, options: [.caseInsensitive, .anchored]) != nil,
+                    suggestionLength: cardName.count,
+                )
             }
          )
     }
