@@ -33,10 +33,9 @@ struct FilterTypeSuggestionProviderTests {
                 [],
             ),
             // negation does not affect the behavior, but is included in the result
-            // n.b. the index does not include the negation operator because it may not be contiguous
             (
                 PartialSearchFilter(negated: true, content: .name(false, .bare("print"))),
-                [("-prints", 1..<6), ("-paperprints", 6..<11)],
+                [("-prints", 0..<6), ("-paperprints", 6..<11)],
             ),
             // case-insensitive
             (
@@ -91,6 +90,6 @@ struct FilterTypeSuggestionProviderTests {
         // FIXME: Why can't the compiler figure out that this array of tuples should be equatable?
         #expect(actualTuples.elementsEqual(expected.map { ($0, stringIndexRange($1)) }) { lhs, rhs in
             lhs.0 == rhs.0 && lhs.1 == rhs.1
-        })
+        }, "\(actualTuples) != \(expected)")
     }
 }

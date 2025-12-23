@@ -17,13 +17,13 @@ struct EnumerationSuggestionProviderTests {
                 .init(
                     filter: SearchFilter.basic(false, "manavalue", .equal, "even"),
                     matchRange: nil,
-                    isPrefix: false,
+                    prefixKind: .none,
                     suggestionLength: 4
                 ),
                 .init(
                     filter: SearchFilter.basic(false, "manavalue", .equal, "odd"),
                     matchRange: nil,
-                    isPrefix: false,
+                    prefixKind: .none,
                     suggestionLength: 3
                 ),
             ],
@@ -36,13 +36,13 @@ struct EnumerationSuggestionProviderTests {
                 .init(
                     filter: SearchFilter.basic(false, "is", .including, "scryfallpreview"),
                     matchRange: "is:scryfallpreview".range(of: "scry"),
-                    isPrefix: true,
+                    prefixKind: .actual,
                     suggestionLength: 15
                 ),
                 .init(
                     filter: SearchFilter.basic(false, "is", .including, "scryland"),
                     matchRange: "is:scryland".range(of: "scry"),
-                    isPrefix: true,
+                    prefixKind: .actual,
                     suggestionLength: 8
                 ),
             ],
@@ -54,7 +54,7 @@ struct EnumerationSuggestionProviderTests {
                 .init(
                     filter: SearchFilter.basic(false, "format", .greaterThanOrEqual, "timeless"),
                     matchRange: "format>=timeless".range(of: "less"),
-                    isPrefix: false,
+                    prefixKind: .none,
                     suggestionLength: 8
                 ),
             ],
@@ -66,13 +66,13 @@ struct EnumerationSuggestionProviderTests {
                 .init(
                     filter: SearchFilter.basic(true, "is", .including, "scryfallpreview"),
                     matchRange: "-is:scryfallpreview".range(of: "scry"),
-                    isPrefix: true,
+                    prefixKind: .effective,
                     suggestionLength: 15
                 ),
                 .init(
                     filter: SearchFilter.basic(true, "is", .including, "scryland"),
                     matchRange: "-is:scryland".range(of: "scry"),
-                    isPrefix: true,
+                    prefixKind: .effective,
                     suggestionLength: 8
                 ),
             ],
@@ -84,7 +84,7 @@ struct EnumerationSuggestionProviderTests {
                 .init(
                     filter: SearchFilter.basic(false, "format", .greaterThanOrEqual, "timeless"),
                     matchRange: "format>=timeless".range(of: "less", options: .caseInsensitive),
-                    isPrefix: false,
+                    prefixKind: .none,
                     suggestionLength: 8
                 ),
             ],

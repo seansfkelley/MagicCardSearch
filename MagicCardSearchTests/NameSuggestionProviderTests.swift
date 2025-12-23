@@ -60,19 +60,19 @@ struct NameSuggestionProviderTests {
                 .init(
                     filter: SearchFilter.basic(false, "name", Comparison.including, "Firebolt"),
                     matchRange: makeStringRange("name:Firebolt", 9..<13),
-                    isPrefix: false,
+                    prefixKind: .none,
                     suggestionLength: 8
                 ),
                 .init(
                     filter: SearchFilter.basic(false, "name", Comparison.including, "Lightning Bolt"),
                     matchRange: makeStringRange("name:\"Lightning Bolt\"", 16..<20),
-                    isPrefix: false,
+                    prefixKind: .none,
                     suggestionLength: 14
                 ),
                 .init(
                     filter: SearchFilter.basic(false, "name", Comparison.including, "Someone's Bolt"),
                     matchRange: makeStringRange("name:\"Someone's Bolt\"", 16..<20),
-                    isPrefix: false,
+                    prefixKind: .none,
                     suggestionLength: 14
                 ),
             ]
@@ -85,7 +85,7 @@ struct NameSuggestionProviderTests {
                 .init(
                     filter: SearchFilter.basic(false, "name", Comparison.including, "Firebolt"),
                     matchRange: makeStringRange("name:Firebolt", 9..<13),
-                    isPrefix: false,
+                    prefixKind: .none,
                     suggestionLength: 8
                 ),
             ]
@@ -98,7 +98,7 @@ struct NameSuggestionProviderTests {
                 .init(
                     filter: SearchFilter.basic(false, "name", Comparison.equal, "Firebolt"),
                     matchRange: makeStringRange("name=Firebolt", 9..<13),
-                    isPrefix: false,
+                    prefixKind: .none,
                     suggestionLength: 8
                 ),
             ]
@@ -111,13 +111,13 @@ struct NameSuggestionProviderTests {
                 .init(
                     filter: SearchFilter.basic(false, "name", Comparison.equal, "Firebolt"),
                     matchRange: makeStringRange("name=Firebolt", 9..<13),
-                    isPrefix: false,
+                    prefixKind: .none,
                     suggestionLength: 8
                 ),
                 .init(
                     filter: SearchFilter.basic(false, "name", Comparison.equal, "Lightning Bolt"),
                     matchRange: makeStringRange("name=\"Lightning Bolt\"", 16..<20),
-                    isPrefix: false,
+                    prefixKind: .none,
                     suggestionLength: 14
                 ),
             ]
@@ -130,13 +130,13 @@ struct NameSuggestionProviderTests {
                 .init(
                     filter: SearchFilter.name(false, true, "Firebolt"),
                     matchRange: makeStringRange("!Firebolt", 5..<9),
-                    isPrefix: false,
+                    prefixKind: .none,
                     suggestionLength: 8
                 ),
                 .init(
                     filter: SearchFilter.name(false, true, "Lightning Bolt"),
                     matchRange: makeStringRange("!\"Lightning Bolt\"", 12..<16),
-                    isPrefix: false,
+                    prefixKind: .none,
                     suggestionLength: 14
                 ),
             ]
@@ -149,13 +149,13 @@ struct NameSuggestionProviderTests {
                 .init(
                     filter: SearchFilter.name(false, true, "Firebolt"),
                     matchRange: makeStringRange("!Firebolt", 5..<9),
-                    isPrefix: false,
+                    prefixKind: .none,
                     suggestionLength: 8
                 ),
                 .init(
                     filter: SearchFilter.name(false, true, "Lightning Bolt"),
                     matchRange: makeStringRange("!\"Lightning Bolt\"", 12..<16),
-                    isPrefix: false,
+                    prefixKind: .none,
                     suggestionLength: 14
                 ),
             ]
@@ -168,13 +168,13 @@ struct NameSuggestionProviderTests {
                 .init(
                     filter: SearchFilter.name(true, true, "Firebolt"),
                     matchRange: makeStringRange("-!Firebolt", 6..<10),
-                    isPrefix: false,
+                    prefixKind: .none,
                     suggestionLength: 8
                 ),
                 .init(
                     filter: SearchFilter.name(true, true, "Lightning Bolt"),
                     matchRange: makeStringRange("-!\"Lightning Bolt\"", 13..<17),
-                    isPrefix: false,
+                    prefixKind: .none,
                     suggestionLength: 14
                 ),
             ]
@@ -187,13 +187,13 @@ struct NameSuggestionProviderTests {
                 .init(
                     filter: SearchFilter.basic(false, "name", Comparison.including, "Wooded Foothills"),
                     matchRange: makeStringRange("name:\"Wooded Foothills\"", 13..<16),
-                    isPrefix: false,
+                    prefixKind: .none,
                     suggestionLength: 16
                 ),
                 .init(
                     filter: SearchFilter.basic(false, "name", Comparison.including, "Shivan Reef"),
                     matchRange: nil,
-                    isPrefix: false,
+                    prefixKind: .none,
                     suggestionLength: 11
                 ),
             ]
@@ -206,13 +206,13 @@ struct NameSuggestionProviderTests {
                 .init(
                     filter: SearchFilter.name(false, true, "Firebolt"),
                     matchRange: makeStringRange("!Firebolt", 5..<9),
-                    isPrefix: false,
+                    prefixKind: .none,
                     suggestionLength: 8
                 ),
                 .init(
                     filter: SearchFilter.name(false, true, "Lightning Bolt"),
                     matchRange: makeStringRange("!\"Lightning Bolt\"", 12..<16),
-                    isPrefix: false,
+                    prefixKind: .none,
                     suggestionLength: 14
                 ),
             ]
@@ -234,7 +234,7 @@ struct NameSuggestionProviderTests {
                 .init(
                     filter: SearchFilter.basic(false, "name", .including, "Nameless Race"),
                     matchRange: makeStringRange("name:\"Nameless Race\"", 7..<11),
-                    isPrefix: true,
+                    prefixKind: .effective,
                     suggestionLength: 13
                 ),
             ])

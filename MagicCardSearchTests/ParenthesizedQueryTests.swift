@@ -138,9 +138,7 @@ struct ParenthesizedQueryTests {
             ),
             "lightning or bolt",
         ),
-        
 
-        
         // AND with OR - precedence test
         TestCase(
             "red creature or blue instant",
@@ -347,7 +345,6 @@ struct ParenthesizedQueryTests {
             "-lightning",
         ),
 
-        
         // Negation with OR and AND
         TestCase(
             "-red or blue",
@@ -414,7 +411,6 @@ struct ParenthesizedQueryTests {
             "name:lightning",
         ),
 
-        
         // Comparison operators (representative samples)
         TestCase(
             "power>3",
@@ -509,7 +505,6 @@ struct ParenthesizedQueryTests {
             "name:\"lightning bolt\"",
         ),
 
-        
         // Single quotes
         TestCase(
             "name:'lightning bolt'",
@@ -600,21 +595,18 @@ struct ParenthesizedQueryTests {
             ["name:\"lightning"],
         ),
 
-        
         // Unclosed single quotes
         TestCase(
             "name:'lightning",
             ["name:'lightning"],
         ),
 
-        
         // Unclosed quotes in parentheses - closing paren becomes part of the string
         TestCase(
             "(name:\"lightning)",
             ["name:\"lightning)"],
         ),
 
-        
         // MARK: Incomplete Regex Patterns
         
         // Unclosed regex - these consume everything including whitespace
@@ -623,7 +615,6 @@ struct ParenthesizedQueryTests {
             ["/^light"],
         ),
 
-        
         // Multiple unclosed regex
         TestCase(
             "/^light /end$",
@@ -635,10 +626,6 @@ struct ParenthesizedQueryTests {
             ),
             "/^light /end$",
         ),
-        
-        // Unclosed regex in parentheses
-
-        
         
         // MARK: Nested and Incomplete Parentheses
         
@@ -699,7 +686,6 @@ struct ParenthesizedQueryTests {
             "-power>3",
         ),
 
-        
         // Negation with quoted values (various quote types)
         TestCase(
             "-name:\"lightning bolt\"",
@@ -712,7 +698,6 @@ struct ParenthesizedQueryTests {
             "-name:\"lightning bolt\"",
         ),
 
-        
         // Incomplete terms with negation
         TestCase(
             "-",
@@ -725,7 +710,6 @@ struct ParenthesizedQueryTests {
             "-",
         ),
 
-
         TestCase(
             "-power>",
             ["-power>"],
@@ -737,7 +721,6 @@ struct ParenthesizedQueryTests {
             "-power>",
         ),
 
-        
         // Nested parentheses with multiple features
         TestCase(
             "((name:lightning or -name:bolt) power>3)",
