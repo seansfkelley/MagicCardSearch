@@ -32,8 +32,42 @@ enum SearchFilterContent: Equatable, Hashable, Codable, CustomStringConvertible 
     case name(String, Bool)
     case regex(String, Comparison, String)
     case keyValue(String, Comparison, String)
-    case parenthesized(String) // TODO: Recursive case!
-    
+    case disjunction(Disjunction)
+
+    struct Disjunction: Equatable, Hashable, Codable, CustomStringConvertible {
+        let clauses: [Conjunction]
+
+        var description: String {}
+
+        var isKnownFilterType: Bool {
+            clauses.allSatisfy { $0.isKnownFilterType }
+        }
+    }
+
+    struct Conjunction: Equatable, Hashable, Codable, CustomStringConvertible {
+        enum Clause: Equatable, Hashable, Codable, CustomStringConvertible {
+            case filter(SearchFilter)
+            case disjunction(Disjunction)
+
+            var description: String {}
+
+            var isKnownFilterType: Bool {
+                switch self {
+                case .filter(let filter): filter.content.isKnownFilterType
+                case .disjunction(let disjunction): disjunction.isKnownFilterType
+                }
+            }
+        }
+
+        let clauses: [Clause]
+
+        var description: String {}
+
+        var isKnownFilterType: Bool {
+            clauses.allSatisfy { $0.isKnownFilterType }
+        }
+    }
+
     var description: String {
         switch self {
         case .name(let name, let isExact):
@@ -55,8 +89,6 @@ enum SearchFilterContent: Equatable, Hashable, Codable, CustomStringConvertible 
             } else {
                 "\(key)\(comparison)\(value)"
             }
-        case .parenthesized(let content):
-            return "(\(content))"
         }
     }
     
@@ -78,9 +110,6 @@ enum SearchFilterContent: Equatable, Hashable, Codable, CustomStringConvertible 
         case .regex(let filter, let comparison, _):
             left = string.index(string.startIndex, offsetBy: filter.count + comparison.description.count + 1)
             right = string.index(string.endIndex, offsetBy: -1)
-        case .parenthesized:
-            left = string.index(after: string.startIndex)
-            right = string.index(before: string.endIndex)
         }
         
         return left..<right
@@ -91,7 +120,7 @@ enum SearchFilterContent: Equatable, Hashable, Codable, CustomStringConvertible 
         case .name: true
         case .regex(let key, _, _): scryfallFilterByType[key.lowercased()] != nil
         case .keyValue(let key, _, _): scryfallFilterByType[key.lowercased()] != nil
-        case .parenthesized: true // give up
+        case .disjunction(let disjunction): disjunction.isKnownFilterType
         }
     }
 }
