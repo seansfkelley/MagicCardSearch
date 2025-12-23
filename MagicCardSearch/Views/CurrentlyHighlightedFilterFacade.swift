@@ -22,18 +22,11 @@ struct CurrentlyHighlightedFilterFacade {
     }
     
     var currentFilterRange: Range<String.Index>? {
-        let allFilterRanges: [Range<String.Index>]
-        
-        do {
-            allFilterRanges = try PlausibleFilterRanges.from(inputText.wrappedValue).ranges
-        } catch {
-            // TODO: Does this make sense?
-            return entireRange
-        }
-        
+        let allFilterRanges = PlausibleFilterRanges.from(inputText.wrappedValue).ranges
+
         guard !allFilterRanges.isEmpty else {
-            // TODO: Does this make sense?
-            return entireRange
+            // This or nil?
+            return inputText.wrappedValue.range
         }
         
         guard let selection = inputSelection.wrappedValue, case .selection(let selectionRange) = selection.indices else {
@@ -52,9 +45,5 @@ struct CurrentlyHighlightedFilterFacade {
                 !selectionRange.isEmpty || range.contains(selectionRange.lowerBound) || range.upperBound == selectionRange.lowerBound
             )
         }
-    }
-    
-    private var entireRange: Range<String.Index> {
-        inputText.wrappedValue.startIndex..<inputText.wrappedValue.endIndex
     }
 }
