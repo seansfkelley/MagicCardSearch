@@ -59,12 +59,12 @@ enum SearchFilter: SearchFilterContent {
             if negated {
                 prefix = "-"
             }
-            if name.contains(" ") {
-                prefix = "\"\(prefix)"
-                suffix = "\""
-            }
             if isExact {
-                prefix = "!\(prefix)"
+                prefix = "\(prefix)!"
+            }
+            if name.contains(" ") {
+                prefix = "\(prefix)\""
+                suffix = "\""
             }
             return "\(prefix)\(name)\(suffix)"
         }
@@ -126,9 +126,9 @@ enum SearchFilter: SearchFilterContent {
 
         var description: String {
             return if query.contains(" ") {
-                "\(filter)\(comparison)\"\(query)\""
+                "\(negated ? "-" : "")\(filter)\(comparison)\"\(query)\""
             } else {
-                "\(filter)\(comparison)\(query)"
+                "\(negated ? "-" : "")\(filter)\(comparison)\(query)"
             }
         }
 
@@ -150,25 +150,26 @@ enum SearchFilter: SearchFilterContent {
         let clauses: [Conjunction]
 
         var description: String {
-            descriptionWithContext(needsParentheses: false)
+            descriptionWithContext(needsParentheses: true)
         }
 
         fileprivate func descriptionWithContext(needsParentheses: Bool) -> String {
             if clauses.count == 1 {
-                return clauses[0].descriptionWithContext(needsParentheses: false)
+                let content = clauses[0].descriptionWithContext(needsParentheses: false)
+                return needsParentheses || negated ? "\(negated ? "-" : "")(\(content))" : content
             }
             
             let joined = clauses.map { $0.descriptionWithContext(needsParentheses: false) }.joined(separator: " or ")
-
-            return needsParentheses ? "(\(joined))" : joined
+            
+            return needsParentheses || negated ? "\(negated ? "-" : "")(\(joined))" : joined
         }
 
         var suggestedEditingRange: Range<String.Index> {
             let string = description
             return string.range.inset(
                 with: string,
-                left: (negated ? 1 : 0) + (string.firstMatch(of: /^-?\(/) != nil ? 1 : 0),
-                right: string.firstMatch(of: /\)$/) != nil ? 1 : 0,
+                left: (negated ? 1 : 0) + 1,
+                right: 1,
             )
         }
 
