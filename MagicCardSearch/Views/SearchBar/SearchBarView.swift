@@ -92,31 +92,35 @@ struct SearchBarView: View {
             isSearchFocused = true
         }
         .onChange(of: inputText) { previous, current in
-            guard current.count > previous.count else {
-                return
-            }
-            
-            // TODO: consider closing quotes or parens also triggering a creation?
-            guard current.hasSuffix(" ") else {
-                return
-            }
-            
-            // Aggressively default to true because it seems like safer default behavior.
-            let isAddingAtEnd = if let selection = inputSelection {
-                switch selection.indices {
-                case .selection(let range): range.upperBound == current.endIndex
-                case .multiSelection: true
-                @unknown default: true
-                }
-            } else {
-                // A cursor at a single point without a selection is still represented as a non-nil
-                // zero-length range, so I guess this branch is only hit if you're not focused on it?
-                true
-            }
-            
-            if isAddingAtEnd {
+            if Self.didAppendSpace(previous, current, inputSelection) {
                 createNewFilterFromSearch()
+            } else if let corrected = removeAutoinsertedWhitespace(current), corrected != current {
+                inputText = corrected
             }
+        }
+    }
+
+    private static func didAppendSpace(_ previous: String, _ current: String, _ selection: TextSelection?) -> Bool {
+        guard current.count > previous.count else {
+            return false
+        }
+
+        // TODO: consider closing quotes or parens also triggering a creation?
+        guard current.hasSuffix(" ") else {
+            return false
+        }
+
+        // Aggressively default to true because it seems like safer default behavior.
+        return if let selection = selection {
+            switch selection.indices {
+            case .selection(let range): range.upperBound == current.endIndex
+            case .multiSelection: true
+            @unknown default: true
+            }
+        } else {
+            // A cursor at a single point without a selection is still represented as a non-nil
+            // zero-length range, so I guess this branch is only hit if you're not focused on it?
+            true
         }
     }
 
