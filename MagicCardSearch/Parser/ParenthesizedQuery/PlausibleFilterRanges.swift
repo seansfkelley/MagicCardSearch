@@ -19,14 +19,14 @@ struct PlausibleFilterRanges {
                     if code == .Verbatim || code == .Or {
                         // `Or` can be the beginning of a well-formed filter, like `oracle`, or a
                         // bare word, so include it.
-                        return token.range.offset(with: input, by: prefixOffset)
+                        return token.range.shift(with: input, by: prefixOffset)
                     } else if code == .OpenParen {
                         let nextIndex = input.index(token.range.upperBound, offsetBy: prefixOffset)
                         if nextIndex == input.endIndex || input[nextIndex] == " " {
                             // You can add a filter after an open paren, only only _right_ after and
                             // only if there's whitespace after it, rather than another paren or an
                             // existing filter range.
-                            return (token.range.upperBound..<token.range.upperBound).offset(with: input, by: prefixOffset)
+                            return (token.range.upperBound..<token.range.upperBound).shift(with: input, by: prefixOffset)
                         }
                     }
 

@@ -1,40 +1,117 @@
-struct SearchFilter: Equatable, Hashable, Codable, CustomStringConvertible, Sendable {
-    let negated: Bool
-    let content: SearchFilterContent
-    
-    init(_ content: SearchFilterContent) {
-        self.negated = false
-        self.content = content
-    }
-    
-    init(_ negated: Bool, _ content: SearchFilterContent) {
-        self.negated = negated
-        self.content = content
-    }
-    
-    var description: String {
-        "\(negated ? "-" : "")\(content)"
-    }
-    
-    var suggestedEditingRange: Range<String.Index> {
-        let string = description
-        let contentRange = content.suggestedEditingRange
-        if negated {
-            return contentRange.offset(with: string, by: 1)
-        } else {
-            return contentRange
-        }
-    }
+protocol SearchFilterContent: Equatable, Hashable, Codable, CustomStringConvertible, Sendable {
+    var suggestedEditingRange: Range<String.Index> { get }
+    var isKnownFilterType: Bool { get }
+}
+
+private func isScryfallFilter(_ filter: String) -> Bool {
+    scryfallFilterByType[filter.lowercased()] != nil
 }
 
 /// Quoting to preserve whitespace not required; any quotes present will be assumed to be part of the term to search for.
-enum SearchFilterContent: Equatable, Hashable, Codable, CustomStringConvertible, Sendable {
-    case name(String, Bool)
-    case regex(String, Comparison, String)
-    case keyValue(String, Comparison, String)
+enum SearchFilter: SearchFilterContent {
+    case name(Name)
+    case basic(Basic)
+    case regex(Regex)
     case disjunction(Disjunction)
 
-    struct Disjunction: Equatable, Hashable, Codable, CustomStringConvertible, Sendable {
+    var content: any SearchFilterContent {
+        switch self {
+        case .name(let name): name
+        case .basic(let basic): basic
+        case .regex(let regex): regex
+        case .disjunction(let disjunction): disjunction
+        }
+    }
+
+    var description: String { content.description }
+    var suggestedEditingRange: Range<String.Index> { content.suggestedEditingRange }
+    var isKnownFilterType: Bool { content.isKnownFilterType }
+
+    struct Name: SearchFilterContent {
+        let negated: Bool
+        let isExact: Bool
+        let name: String
+
+        var description: String {
+            var prefix = ""
+            var suffix = ""
+            if negated {
+                prefix = "-"
+            }
+            if name.contains(" ") {
+                prefix = "\"\(prefix)"
+                suffix = "\""
+            }
+            if isExact {
+                prefix = "!\(prefix)"
+            }
+            return "\(prefix)\(name)\(suffix)"
+        }
+
+        var suggestedEditingRange: Range<String.Index> {
+            let string = description
+            let needsQuotes = name.contains(" ")
+            return string.range.inset(
+                with: string,
+                left: (negated ? 1 : 0) + (isExact ? 1 : 0) + (needsQuotes ? 1 : 0),
+                right: needsQuotes ? 1 : 0,
+            )
+        }
+
+        var isKnownFilterType: Bool { true }
+    }
+
+    struct Regex: SearchFilterContent {
+        let negated: Bool
+        let filter: String
+        let comparison: Comparison
+        let regex: String
+
+        var description: String {
+            "\(negated ? "-" : "")\(filter)\(comparison)/\(regex)/"
+        }
+
+        var suggestedEditingRange: Range<String.Index> {
+            let string = description
+            return string.range.inset(
+                with: string,
+                left: (negated ? 1 : 0) + filter.count + comparison.description.count + 1,
+                right: 1,
+            )
+        }
+
+        var isKnownFilterType: Bool { isScryfallFilter(filter) }
+    }
+
+    struct Basic: SearchFilterContent {
+        let negated: Bool
+        let filter: String
+        let comparison: Comparison
+        let query: String
+
+        var description: String {
+            return if query.contains(" ") {
+                "\(filter)\(comparison)\"\(query)\""
+            } else {
+                "\(filter)\(comparison)\(query)"
+            }
+        }
+
+        var suggestedEditingRange: Range<String.Index> {
+            let string = description
+            let needsQuotes = query.contains(" ")
+            return string.range.inset(
+                with: string,
+                left: (negated ? 1 : 0) + (needsQuotes ? 1 : 0) + filter.count + comparison.description.count,
+                right: needsQuotes ? 1 : 0,
+            )
+        }
+
+        var isKnownFilterType: Bool { isScryfallFilter(filter) }
+    }
+
+    struct Disjunction: SearchFilterContent {
+        let negated: Bool
         let clauses: [Conjunction]
 
         var description: String {
@@ -51,11 +128,21 @@ enum SearchFilterContent: Equatable, Hashable, Codable, CustomStringConvertible,
             return needsParentheses ? "(\(joined))" : joined
         }
 
+        var suggestedEditingRange: Range<String.Index> {
+            let string = description
+            return string.range.inset(
+                with: string,
+                left: (negated ? 1 : 0) + (string.firstMatch(of: /^-?\(/) != nil ? 1 : 0),
+                right: string.firstMatch(of: /\)$/) != nil ? 1 : 0,
+            )
+        }
+
         var isKnownFilterType: Bool {
             clauses.allSatisfy { $0.isKnownFilterType }
         }
 
-        init(_ clauses: [Conjunction]) {
+        init(_ negated: Bool, _ clauses: [Conjunction]) {
+            self.negated = negated
             self.clauses = clauses
         }
     }
@@ -80,7 +167,7 @@ enum SearchFilterContent: Equatable, Hashable, Codable, CustomStringConvertible,
 
             var isKnownFilterType: Bool {
                 switch self {
-                case .filter(let filter): filter.content.isKnownFilterType
+                case .filter(let filter): filter.isKnownFilterType
                 case .disjunction(let disjunction): disjunction.isKnownFilterType
                 }
             }
@@ -102,67 +189,6 @@ enum SearchFilterContent: Equatable, Hashable, Codable, CustomStringConvertible,
 
         init(_ clauses: [Clause]) {
             self.clauses = clauses
-        }
-    }
-
-    var description: String {
-        switch self {
-        case .name(let name, let isExact):
-            var prefix = ""
-            var suffix = ""
-            if name.contains(" ") {
-                prefix = "\""
-                suffix = "\""
-            }
-            if isExact {
-                prefix = "!\(prefix)"
-            }
-            return "\(prefix)\(name)\(suffix)"
-        case .regex(let key, let comparison, let regex):
-            return "\(key)\(comparison)/\(regex)/"
-        case .keyValue(let key, let comparison, let value):
-            return if value.contains(" ") {
-                "\(key)\(comparison)\"\(value)\""
-            } else {
-                "\(key)\(comparison)\(value)"
-            }
-        case .disjunction(let disjunction):
-            return disjunction.descriptionWithContext(needsParentheses: true)
-        }
-    }
-    
-    var suggestedEditingRange: Range<String.Index> {
-        let string = description
-        
-        let left: String.Index
-        let right: String.Index
-        
-        switch self {
-        case .name(let name, let isExact):
-            let needsQuotes = name.contains(" ")
-            left = string.index(string.startIndex, offsetBy: (isExact ? 1 : 0) + (needsQuotes ? 1 : 0))
-            right = string.index(string.endIndex, offsetBy: needsQuotes ? -1 : 0)
-        case .keyValue(let filter, let comparison, let value):
-            let needsQuotes = value.contains(" ")
-            left = string.index(string.startIndex, offsetBy: filter.count + comparison.description.count + (needsQuotes ? 1 : 0))
-            right = string.index(string.endIndex, offsetBy: needsQuotes ? -1 : 0)
-        case .regex(let filter, let comparison, _):
-            left = string.index(string.startIndex, offsetBy: filter.count + comparison.description.count + 1)
-            right = string.index(string.endIndex, offsetBy: -1)
-        case .disjunction:
-            left = string.index(string.startIndex, offsetBy: 1)
-            right = string.index(string.endIndex, offsetBy: -1)
-        }
-        
-        return left..<right
-    }
-    
-    var isKnownFilterType: Bool {
-        return switch self {
-        case .name: true
-        case .regex(let key, _, _): scryfallFilterByType[key.lowercased()] != nil
-        case .keyValue(let key, _, _): scryfallFilterByType[key.lowercased()] != nil
-        case .disjunction(let disjunction): disjunction.isKnownFilterType
         }
     }
 }

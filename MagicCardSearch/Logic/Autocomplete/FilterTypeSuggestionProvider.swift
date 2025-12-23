@@ -93,7 +93,7 @@ struct FilterTypeSuggestionProvider {
                 let prefixed = "-\($0.filterType)"
                 return FilterTypeSuggestion(
                     filterType: prefixed,
-                    matchRange: $0.matchRange.offset(with: prefixed, by: 1),
+                    matchRange: $0.matchRange.shift(with: prefixed, by: 1),
                     comparisonKinds: $0.comparisonKinds,
                 )
             }
