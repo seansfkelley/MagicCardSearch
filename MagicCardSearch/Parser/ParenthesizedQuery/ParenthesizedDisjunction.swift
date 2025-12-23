@@ -9,7 +9,7 @@ struct ParenthesizedDisjunction: Equatable, CustomStringConvertible, Sendable {
     var description: String {
         descriptionWithContext(needsParentheses: false)
     }
-    
+
     fileprivate func descriptionWithContext(needsParentheses: Bool) -> String {
         if clauses.count == 1 {
             let inner = clauses[0].descriptionWithContext(needsParentheses: false)

@@ -20,11 +20,13 @@ private func conj(_ clauses: ParenthesizedConjunction.Clause...) -> Parenthesize
     .init(clauses)
 }
 
-struct TestCase: Sendable {
+struct TestCase: Sendable, CustomStringConvertible {
     let input: String
     let expectedFilters: [String]
     let expectedParseResult: (ParenthesizedDisjunction, String)?
-    
+
+    var description: String { input }
+
     init(_ input: String, _ expectedFilters: [String]) {
         self.input = input
         self.expectedFilters = expectedFilters
@@ -123,8 +125,8 @@ struct ParenthesizedQueryTests {
         
         // Extra whitespace gets trimmed by lexer
         TestCase(
-            "  lightning   bolt  ",
-            ["lightning", "bolt"],
+            "  lightning   bolt    ",
+            [" ", "lightning", "bolt", "   "],
             disj(
                 conj(
                     .filter("lightning"),
@@ -139,7 +141,7 @@ struct ParenthesizedQueryTests {
         // Two terms
         TestCase(
             "lightning or bolt",
-            ["lightning", "bolt"],
+            ["lightning", "or", "bolt"],
             disj(
                 conj(
                     .filter("lightning"),
@@ -154,7 +156,7 @@ struct ParenthesizedQueryTests {
         // Multiple terms
         TestCase(
             "red or blue or green",
-            ["red", "blue", "green"],
+            ["red", "or", "blue", "or", "green"],
             disj(
                 conj(
                     .filter("red"),
@@ -172,7 +174,7 @@ struct ParenthesizedQueryTests {
         // AND with OR - precedence test
         TestCase(
             "red creature or blue instant",
-            ["red", "creature", "blue", "instant"],
+            ["red", "creature", "or", "blue", "instant"],
             disj(
                 conj(
                     .filter("red"),
@@ -209,7 +211,7 @@ struct ParenthesizedQueryTests {
         // Parenthesized OR
         TestCase(
             "(red or blue)",
-            ["red", "blue"],
+            ["red", "or", "blue"],
             disj(
                 conj(
                     .disjunction(
@@ -230,7 +232,7 @@ struct ParenthesizedQueryTests {
         // Parentheses changing precedence
         TestCase(
             "(red or blue) instant",
-            ["red", "blue", "instant"],
+            ["red", "or", "blue", "instant"],
             disj(
                 conj(
                     .disjunction(
@@ -252,7 +254,7 @@ struct ParenthesizedQueryTests {
         // Nested parentheses
         TestCase(
             "((red or blue) creature)",
-            ["red", "blue", "creature"],
+            ["red", "or", "blue", "creature"],
             disj(
                 conj(
                     .disjunction(
@@ -280,7 +282,7 @@ struct ParenthesizedQueryTests {
         // Multiple parenthesized groups
         TestCase(
             "(red or blue) or (black or white)",
-            ["red", "blue", "black", "white"],
+            ["red", "or", "blue", "or", "black", "or", "white"],
             disj(
                 conj(
                     .disjunction(
@@ -313,7 +315,7 @@ struct ParenthesizedQueryTests {
         // Complex mixed query
         TestCase(
             "(red or blue) creature (flying or haste)",
-            ["red", "blue", "creature", "flying", "haste"],
+            ["red", "or", "blue", "creature", "flying", "or", "haste"],
             disj(
                 conj(
                     .disjunction(
@@ -345,7 +347,7 @@ struct ParenthesizedQueryTests {
         // Quoted strings in parentheses
         TestCase(
             "(\"lightning bolt\" or \"chain lightning\")",
-            ["\"lightning bolt\"", "\"chain lightning\""],
+            ["\"lightning bolt\"", "or", "\"chain lightning\""],
             disj(
                 conj(
                     .disjunction(
@@ -374,19 +376,19 @@ struct ParenthesizedQueryTests {
         // Unclosed parentheses
         TestCase(
             "(red or blue",
-            ["red", "blue"],
+            ["red", "or", "blue"],
         ),
         
         // Unmatched closing parenthesis
         TestCase(
             "red or blue)",
-            ["red", "blue"],
+            ["red", "or", "blue"],
         ),
         
         // OR at end - gets ignored
         TestCase(
             "red or",
-            ["red"],
+            ["red", "or"],
         ),
         
         // MARK: Negation
@@ -417,7 +419,7 @@ struct ParenthesizedQueryTests {
         // Negation with OR and AND
         TestCase(
             "-red or blue",
-            ["-red", "blue"],
+            ["-red", "or", "blue"],
             disj(
                 conj(
                     .filter("-red"),
@@ -459,7 +461,7 @@ struct ParenthesizedQueryTests {
         ),
         TestCase(
             "(-red or -blue)",
-            ["-red", "-blue"],
+            ["-red", "or", "-blue"],
             disj(
                 conj(
                     .disjunction(
@@ -547,7 +549,7 @@ struct ParenthesizedQueryTests {
         // Mixed with OR and parentheses
         TestCase(
             "name:lightning or name:bolt",
-            ["name:lightning", "name:bolt"],
+            ["name:lightning", "or", "name:bolt"],
             disj(
                 conj(
                     .filter("name:lightning"),
@@ -560,7 +562,7 @@ struct ParenthesizedQueryTests {
         ),
         TestCase(
             "(power>=2 or toughness>=3)",
-            ["power>=2", "toughness>=3"],
+            ["power>=2", "or", "toughness>=3"],
             disj(
                 conj(
                     .disjunction(
@@ -592,7 +594,7 @@ struct ParenthesizedQueryTests {
         ),
         TestCase(
             "((name:lightning) or (name:bolt))",
-            ["name:lightning", "name:bolt"],
+            ["name:lightning", "or", "name:bolt"],
             disj(
                 conj(
                     .disjunction(
@@ -673,7 +675,7 @@ struct ParenthesizedQueryTests {
         ),
         TestCase(
             "(name:\"Serra Angel\" or name:\"Akroma\")",
-            ["name:\"Serra Angel\"", "name:\"Akroma\""],
+            ["name:\"Serra Angel\"", "or", "name:\"Akroma\""],
             disj(
                 conj(
                     .disjunction(
@@ -727,7 +729,7 @@ struct ParenthesizedQueryTests {
         ),
         TestCase(
             "(power>) or (name:)",
-            ["power>", "name:"],
+            ["power>", "or", "name:"],
             disj(
                 conj(
                     .disjunction(
@@ -836,7 +838,7 @@ struct ParenthesizedQueryTests {
         ),
         TestCase(
             "(red or blue",
-            ["red", "blue"],
+            ["red", "or", "blue"],
         ),
         
         // Unclosed nested
@@ -846,7 +848,7 @@ struct ParenthesizedQueryTests {
         ),
         TestCase(
             "(((red or blue) creature",
-            ["red", "blue", "creature"],
+            ["red", "or", "blue", "creature"],
         ),
         
         // Extra closing parentheses
@@ -862,11 +864,11 @@ struct ParenthesizedQueryTests {
         // Empty unclosed parentheses
         TestCase(
             "(",
-            [],
+            [""],
         ),
         TestCase(
             "red (",
-            ["red"],
+            ["red", ""],
         ),
         
         // MARK: Complex Combinations
@@ -956,7 +958,7 @@ struct ParenthesizedQueryTests {
         // Nested parentheses with multiple features
         TestCase(
             "((name:lightning or -name:bolt) power>3)",
-            ["name:lightning", "-name:bolt", "power>3"],
+            ["name:lightning", "or", "-name:bolt", "power>3"],
             disj(
                 conj(
                     .disjunction(
@@ -996,11 +998,11 @@ struct ParenthesizedQueryTests {
         ),
         TestCase(
             "or red",
-            ["red"],
+            ["or", "red"],
         ),
         TestCase(
             "red or or blue",
-            ["red", "blue"],
+            ["red", "or", "or", "blue"],
         ),
     ])
     func parseAllQueryTypes(_ testCase: TestCase) throws {

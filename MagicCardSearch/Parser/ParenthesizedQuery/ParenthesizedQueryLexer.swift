@@ -57,7 +57,7 @@ func lexParenthesizedQuery(_ input: String, allowingUnterminatedLiterals: Bool =
     try lexer.tokenize(input) { token, code in
         if tokens.isEmpty {
             tokens.append((
-                ParenthesizedQueryTokenContent(
+                .init(
                     token,
                     input.startIndex..<input.index(input.startIndex, offsetBy: token.count),
                 ),
@@ -68,7 +68,7 @@ func lexParenthesizedQuery(_ input: String, allowingUnterminatedLiterals: Bool =
             let previousStart = previous.0.range.lowerBound
             let previousEnd = previous.0.range.upperBound
             tokens.append((
-                ParenthesizedQueryTokenContent(
+                .init(
                     "\(previous.0.content)\(token)",
                     previousStart..<input.index(previousEnd, offsetBy: token.count),
                 ),
@@ -77,7 +77,7 @@ func lexParenthesizedQuery(_ input: String, allowingUnterminatedLiterals: Bool =
         } else {
             let previousEnd = tokens.last!.0.range.upperBound
             tokens.append((
-                ParenthesizedQueryTokenContent(
+                .init(
                     token,
                     previousEnd..<input.index(previousEnd, offsetBy: token.count),
                 ),
@@ -85,5 +85,30 @@ func lexParenthesizedQuery(_ input: String, allowingUnterminatedLiterals: Bool =
             ))
         }
     }
-    return tokens
+
+    // Removing whitespace here _kind of_ redefines the language to be whitespace-insensitive, even
+    // though we consider some whitespace to be a token (namely, And). It's a bit weird. In any case
+    // this is useful because some downstream processes like PlausibleFilterRanges do simultaneously
+    // care about things that are not filters, but also positions in the input text.
+    return tokens.map { untrimmedToken in
+        var token = untrimmedToken
+
+        if token.1 == .Or || token.1 == .OpenParen || token.1 == .CloseParen {
+            if let match = token.0.content.firstMatch(of: /^\s+/) {
+                token.0 = .init(
+                    String(token.0.content.dropFirst(match.count)),
+                    input.index(token.0.range.lowerBound, offsetBy: match.count)..<token.0.range.upperBound,
+                )
+            }
+
+            if let match = token.0.content.firstMatch(of: /\s+$/) {
+                token.0 = .init(
+                    String(token.0.content.dropLast(match.count)),
+                    token.0.range.lowerBound..<input.index(token.0.range.upperBound, offsetBy: -match.count),
+                )
+            }
+        }
+
+        return token
+    }
 }
