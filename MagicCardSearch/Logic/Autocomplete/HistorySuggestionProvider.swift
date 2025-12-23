@@ -8,7 +8,7 @@
 import Foundation
 import Observation
 
-struct HistorySuggestion: Equatable {
+struct HistorySuggestion: Equatable, Sendable {
     let filter: SearchFilter
     let matchRange: Range<String.Index>?
 }

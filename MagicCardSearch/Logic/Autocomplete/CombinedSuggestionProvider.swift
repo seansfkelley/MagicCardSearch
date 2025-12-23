@@ -7,7 +7,7 @@
 
 import Foundation
 
-enum Suggestion: Equatable {
+enum Suggestion: Equatable, Sendable {
     case pinned(PinnedFilterSuggestion)
     case history(HistorySuggestion)
     case filter(FilterTypeSuggestion)

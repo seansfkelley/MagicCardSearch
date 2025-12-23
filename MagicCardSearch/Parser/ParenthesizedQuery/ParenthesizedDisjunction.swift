@@ -32,7 +32,11 @@ struct ParenthesizedDisjunction: Equatable, CustomStringConvertible, Sendable {
             joined
         }
     }
-    
+
+    func toSearchFilter() -> SearchFilter {
+        .init(negated, .disjunction(.init(clauses.map { $0.toSearchFilterContent() })))
+    }
+
     init(_ negated: Bool, _ clauses: [ParenthesizedConjunction]) {
         self.negated = negated
         self.clauses = clauses
@@ -74,6 +78,13 @@ struct ParenthesizedConjunction: Equatable, CustomStringConvertible, Sendable {
                 disjunction.descriptionWithContext(needsParentheses: inConjunction && disjunction.clauses.count > 1)
             }
         }
+
+        func toSearchFilterContent() -> SearchFilterContent.Conjunction.Clause? {
+            switch self {
+            case .filter(let string): PartialSearchFilter.from(string).toComplete().map { .filter($0) }
+            case .disjunction(let disjunction): .disjunction(disjunction.toSearchFilter())
+            }
+        }
     }
     
     let clauses: [Clause]
@@ -85,7 +96,11 @@ struct ParenthesizedConjunction: Equatable, CustomStringConvertible, Sendable {
     fileprivate func descriptionWithContext(needsParentheses: Bool) -> String {
         clauses.map { $0.descriptionWithContext(inConjunction: clauses.count > 1) }.joined(separator: " ")
     }
-    
+
+    func toSearchFilterContent() -> SearchFilterContent.Conjunction {
+        .init(clauses.map { $0.toSearchFilterContent() })
+    }
+
     init(_ clauses: [Clause]) {
         self.clauses = clauses
     }

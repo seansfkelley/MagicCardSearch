@@ -24,8 +24,8 @@ struct IndexedEnumerationValues {
     }
 }
 
-struct ScryfallFilterType {
-    enum ComparisonKinds {
+struct ScryfallFilterType: Sendable {
+    enum ComparisonKinds: Sendable {
         case all, equality
     }
     

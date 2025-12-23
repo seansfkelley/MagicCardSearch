@@ -1,4 +1,4 @@
-struct SearchFilter: Equatable, Hashable, Codable, CustomStringConvertible {
+struct SearchFilter: Equatable, Hashable, Codable, CustomStringConvertible, Sendable {
     let negated: Bool
     let content: SearchFilterContent
     
@@ -28,28 +28,55 @@ struct SearchFilter: Equatable, Hashable, Codable, CustomStringConvertible {
 }
 
 /// Quoting to preserve whitespace not required; any quotes present will be assumed to be part of the term to search for.
-enum SearchFilterContent: Equatable, Hashable, Codable, CustomStringConvertible {
+enum SearchFilterContent: Equatable, Hashable, Codable, CustomStringConvertible, Sendable {
     case name(String, Bool)
     case regex(String, Comparison, String)
     case keyValue(String, Comparison, String)
     case disjunction(Disjunction)
 
-    struct Disjunction: Equatable, Hashable, Codable, CustomStringConvertible {
+    struct Disjunction: Equatable, Hashable, Codable, CustomStringConvertible, Sendable {
         let clauses: [Conjunction]
 
-        var description: String {}
+        var description: String {
+            descriptionWithContext(needsParentheses: false)
+        }
+
+        fileprivate func descriptionWithContext(needsParentheses: Bool) -> String {
+            if clauses.count == 1 {
+                return clauses[0].descriptionWithContext(needsParentheses: false)
+            }
+            
+            let joined = clauses.map { $0.descriptionWithContext(needsParentheses: false) }.joined(separator: " or ")
+
+            return needsParentheses ? "(\(joined))" : joined
+        }
 
         var isKnownFilterType: Bool {
             clauses.allSatisfy { $0.isKnownFilterType }
         }
+
+        init(_ clauses: [Conjunction]) {
+            self.clauses = clauses
+        }
     }
 
-    struct Conjunction: Equatable, Hashable, Codable, CustomStringConvertible {
-        enum Clause: Equatable, Hashable, Codable, CustomStringConvertible {
+    struct Conjunction: Equatable, Hashable, Codable, CustomStringConvertible, Sendable {
+        enum Clause: Equatable, Hashable, Codable, CustomStringConvertible, Sendable {
             case filter(SearchFilter)
             case disjunction(Disjunction)
 
-            var description: String {}
+            var description: String {
+                descriptionWithContext(inConjunction: false)
+            }
+
+            fileprivate func descriptionWithContext(inConjunction: Bool) -> String {
+                switch self {
+                case .filter(let filter):
+                    filter.description
+                case .disjunction(let disjunction):
+                    disjunction.descriptionWithContext(needsParentheses: inConjunction && disjunction.clauses.count > 1)
+                }
+            }
 
             var isKnownFilterType: Bool {
                 switch self {
@@ -61,10 +88,20 @@ enum SearchFilterContent: Equatable, Hashable, Codable, CustomStringConvertible 
 
         let clauses: [Clause]
 
-        var description: String {}
+        var description: String {
+            descriptionWithContext(needsParentheses: false)
+        }
+
+        fileprivate func descriptionWithContext(needsParentheses: Bool) -> String {
+            clauses.map { $0.descriptionWithContext(inConjunction: clauses.count > 1) }.joined(separator: " ")
+        }
 
         var isKnownFilterType: Bool {
             clauses.allSatisfy { $0.isKnownFilterType }
+        }
+
+        init(_ clauses: [Clause]) {
+            self.clauses = clauses
         }
     }
 
@@ -89,6 +126,8 @@ enum SearchFilterContent: Equatable, Hashable, Codable, CustomStringConvertible 
             } else {
                 "\(key)\(comparison)\(value)"
             }
+        case .disjunction(let disjunction):
+            return disjunction.descriptionWithContext(needsParentheses: true)
         }
     }
     
@@ -110,6 +149,9 @@ enum SearchFilterContent: Equatable, Hashable, Codable, CustomStringConvertible 
         case .regex(let filter, let comparison, _):
             left = string.index(string.startIndex, offsetBy: filter.count + comparison.description.count + 1)
             right = string.index(string.endIndex, offsetBy: -1)
+        case .disjunction:
+            left = string.index(string.startIndex, offsetBy: 1)
+            right = string.index(string.endIndex, offsetBy: -1)
         }
         
         return left..<right
@@ -125,7 +167,7 @@ enum SearchFilterContent: Equatable, Hashable, Codable, CustomStringConvertible 
     }
 }
 
-enum Comparison: String, Codable, Hashable, Equatable, CustomStringConvertible {
+enum Comparison: String, Codable, Hashable, Equatable, CustomStringConvertible, Sendable {
     case including = ":"
     case equal = "="
     case notEqual = "!="

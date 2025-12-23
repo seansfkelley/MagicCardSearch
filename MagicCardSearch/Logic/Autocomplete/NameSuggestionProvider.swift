@@ -6,7 +6,7 @@
 //
 import ScryfallKit
 
-struct NameSuggestion: Equatable {
+struct NameSuggestion: Equatable, Sendable {
     let filter: SearchFilter
     let matchRange: Range<String.Index>?
 }

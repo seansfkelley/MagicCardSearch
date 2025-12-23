@@ -9,7 +9,7 @@ import ScryfallKit
 import Logging
 import Algorithms
 
-struct EnumerationSuggestion: Equatable {
+struct EnumerationSuggestion: Equatable, Sendable {
     let filter: SearchFilter
     let matchRange: Range<String.Index>?
 }

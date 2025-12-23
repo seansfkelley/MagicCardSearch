@@ -3,105 +3,123 @@ import Testing
 
 @Suite("SearchFilter Tests")
 struct SearchFilterTests {
-    @Test(
+    @Test<[(SearchFilter, String, String)]>(
         "description and suggestedEditingRange",
         arguments: [
             // Simple name without spaces
             (
-                SearchFilter(.name("lightning", false)),
+                .init(.name("lightning", false)),
                 "lightning",
                 "lightning",
             ),
             // Name with spaces (quoted)
             (
-                SearchFilter(.name("lightning bolt", false)),
+                .init(.name("lightning bolt", false)),
                 "\"lightning bolt\"",
                 "lightning bolt",
             ),
             // Exact name without spaces
             (
-                SearchFilter(.name("lightning", true)),
+                .init(.name("lightning", true)),
                 "!lightning",
                 "lightning",
             ),
             // Exact name with spaces (quoted)
             (
-                SearchFilter(.name("lightning bolt", true)),
+                .init(.name("lightning bolt", true)),
                 "!\"lightning bolt\"",
                 "lightning bolt",
             ),
             // Negated simple name
             (
-                SearchFilter(true, .name("lightning", false)),
+                .init(true, .name("lightning", false)),
                 "-lightning",
                 "lightning",
             ),
             // Negated name with spaces
             (
-                SearchFilter(true, .name("lightning bolt", false)),
+                .init(true, .name("lightning bolt", false)),
                 "-\"lightning bolt\"",
                 "lightning bolt",
             ),
             // Negated exact name
             (
-                SearchFilter(true, .name("lightning", true)),
+                .init(true, .name("lightning", true)),
                 "-!lightning",
                 "lightning",
             ),
             // Key-value without spaces
             (
-                SearchFilter(.keyValue("color", .equal, "red")),
+                .init(.keyValue("color", .equal, "red")),
                 "color=red",
                 "red",
             ),
             // Key-value with spaces (quoted)
             (
-                SearchFilter(.keyValue("type", .including, "legendary creature")),
+                .init(.keyValue("type", .including, "legendary creature")),
                 "type:\"legendary creature\"",
                 "legendary creature",
             ),
             // Key-value with different comparison
             (
-                SearchFilter(.keyValue("power", .greaterThan, "5")),
+                .init(.keyValue("power", .greaterThan, "5")),
                 "power>5",
                 "5",
             ),
             // Negated key-value
             (
-                SearchFilter(true, .keyValue("color", .equal, "red")),
+                .init(true, .keyValue("color", .equal, "red")),
                 "-color=red",
                 "red",
             ),
             (
-                SearchFilter(true, .keyValue("type", .including, "legendary creature")),
+                .init(true, .keyValue("type", .including, "legendary creature")),
                 "-type:\"legendary creature\"",
                 "legendary creature",
             ),
             // Regex filters
             (
-                SearchFilter(.regex("oracle", .including, "flying")),
+                .init(.regex("oracle", .including, "flying")),
                 "oracle:/flying/",
                 "flying",
             ),
             (
-                SearchFilter(.regex("name", .equal, "^lightning")),
+                .init(.regex("name", .equal, "^lightning")),
                 "name=/^lightning/",
                 "^lightning",
             ),
             // Negated regex
             (
-                SearchFilter(true, .regex("oracle", .including, "flying")),
+                .init(true, .regex("oracle", .including, "flying")),
                 "-oracle:/flying/",
                 "flying",
             ),
             // Parenthesized content
             (
-                SearchFilter(.parenthesized("color=red or color=blue")),
+                .init(.disjunction(
+                    .init([
+                        .init([
+                            .filter(SearchFilter(.keyValue("color", .equal, "red"))),
+                        ]),
+                        .init([
+                            .filter(SearchFilter(.keyValue("color", .equal, "blue"))),
+                        ]),
+                    ])
+                )),
                 "(color=red or color=blue)",
                 "color=red or color=blue",
             ),
             (
-                SearchFilter(true, .parenthesized("color=red or color=blue")),
+                .init(true, .disjunction(
+                    .init([
+                        .init([
+                            .filter(.init(.keyValue("color", .equal, "red"))),
+                        ]),
+                        .init([
+                            .filter(.init(.keyValue("color", .equal, "blue"))),
+                        ]),
+                    ])
+                )),
                 "-(color=red or color=blue)",
                 "color=red or color=blue",
             ),
@@ -112,10 +130,8 @@ struct SearchFilterTests {
         expectedDescription: String,
         expectedEditingContent: String
     ) {
-        // Test description
         #expect(filter.description == expectedDescription)
         
-        // Test suggestedEditingRange
         let description = filter.description
         let editingRange = filter.suggestedEditingRange
         let extractedContent = String(description[editingRange])

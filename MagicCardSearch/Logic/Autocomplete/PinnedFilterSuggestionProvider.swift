@@ -8,7 +8,7 @@
 import Foundation
 import Observation
 
-struct PinnedFilterSuggestion: Equatable {
+struct PinnedFilterSuggestion: Equatable, Sendable {
     let filter: SearchFilter
     let matchRange: Range<String.Index>?
 }
