@@ -51,7 +51,7 @@ struct RemoveAutoinsertedWhitespaceTests {
         ("color <= izzet", "color <= izzet"),
         ("color <=izzet", "color <=izzet"),
     ])
-    func testRemoveAutoinsertedWhitespace(input: String, expected: String?) {
+    func testRemoveAutoinsertedWhitespace(input: String, expected: String) {
         let result = removeAutoinsertedWhitespace(input)
         #expect(result == expected)
     }

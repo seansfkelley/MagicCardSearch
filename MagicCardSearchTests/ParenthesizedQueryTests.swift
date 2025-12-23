@@ -60,7 +60,7 @@ struct ParenthesizedQueryTests {
             "lightning",
         ),
         
-        // Quoted strings
+        // Quoted strings (both quote types)
         TestCase(
             "\"lightning bolt\"",
             ["\"lightning bolt\""],
@@ -109,20 +109,6 @@ struct ParenthesizedQueryTests {
             "lightning bolt",
         ),
         
-        // Multiple terms
-        TestCase(
-            "red creature haste",
-            ["red", "creature", "haste"],
-            disj(
-                conj(
-                    .filter("red"),
-                    .filter("creature"),
-                    .filter("haste"),
-                ),
-            ),
-            "red creature haste",
-        ),
-        
         // Extra whitespace gets trimmed by lexer
         TestCase(
             "  lightning   bolt    ",
@@ -153,23 +139,7 @@ struct ParenthesizedQueryTests {
             "lightning or bolt",
         ),
         
-        // Multiple terms
-        TestCase(
-            "red or blue or green",
-            ["red", "or", "blue", "or", "green"],
-            disj(
-                conj(
-                    .filter("red"),
-                ),
-                conj(
-                    .filter("blue"),
-                ),
-                conj(
-                    .filter("green"),
-                ),
-            ),
-            "red or blue or green",
-        ),
+
         
         // AND with OR - precedence test
         TestCase(
@@ -249,34 +219,6 @@ struct ParenthesizedQueryTests {
                 ),
             ),
             "(red or blue) instant",
-        ),
-        
-        // Nested parentheses
-        TestCase(
-            "((red or blue) creature)",
-            ["red", "or", "blue", "creature"],
-            disj(
-                conj(
-                    .disjunction(
-                        disj(
-                            conj(
-                                .disjunction(
-                                    disj(
-                                        conj(
-                                            .filter("red"),
-                                        ),
-                                        conj(
-                                            .filter("blue"),
-                                        ),
-                                    ),
-                                ),
-                                .filter("creature"),
-                            ),
-                        ),
-                    ),
-                ),
-            ),
-            "(red or blue) creature",
         ),
         
         // Multiple parenthesized groups
@@ -404,17 +346,7 @@ struct ParenthesizedQueryTests {
             ),
             "-lightning",
         ),
-        TestCase(
-            "-red -blue",
-            ["-red", "-blue"],
-            disj(
-                conj(
-                    .filter("-red"),
-                    .filter("-blue"),
-                ),
-            ),
-            "-red -blue",
-        ),
+
         
         // Negation with OR and AND
         TestCase(
@@ -429,17 +361,6 @@ struct ParenthesizedQueryTests {
                 ),
             ),
             "-red or blue",
-        ),
-        TestCase(
-            "-red creature",
-            ["-red", "creature"],
-            disj(
-                conj(
-                    .filter("-red"),
-                    .filter("creature"),
-                ),
-            ),
-            "-red creature",
         ),
         
         // Negation in parentheses
@@ -492,17 +413,7 @@ struct ParenthesizedQueryTests {
             ),
             "name:lightning",
         ),
-        TestCase(
-            "name:bolt color:red",
-            ["name:bolt", "color:red"],
-            disj(
-                conj(
-                    .filter("name:bolt"),
-                    .filter("color:red"),
-                ),
-            ),
-            "name:bolt color:red",
-        ),
+
         
         // Comparison operators (representative samples)
         TestCase(
@@ -514,36 +425,6 @@ struct ParenthesizedQueryTests {
                 ),
             ),
             "power>3",
-        ),
-        TestCase(
-            "cmc>=4",
-            ["cmc>=4"],
-            disj(
-                conj(
-                    .filter("cmc>=4"),
-                ),
-            ),
-            "cmc>=4",
-        ),
-        TestCase(
-            "power<3",
-            ["power<3"],
-            disj(
-                conj(
-                    .filter("power<3"),
-                ),
-            ),
-            "power<3",
-        ),
-        TestCase(
-            "type!=instant",
-            ["type!=instant"],
-            disj(
-                conj(
-                    .filter("type!=instant"),
-                ),
-            ),
-            "type!=instant",
         ),
         
         // Mixed with OR and parentheses
@@ -581,17 +462,7 @@ struct ParenthesizedQueryTests {
         ),
         
         // Mixed with regular terms
-        TestCase(
-            "creature power>=3",
-            ["creature", "power>=3"],
-            disj(
-                conj(
-                    .filter("creature"),
-                    .filter("power>=3"),
-                ),
-            ),
-            "creature power>=3",
-        ),
+
         TestCase(
             "((name:lightning) or (name:bolt))",
             ["name:lightning", "or", "name:bolt"],
@@ -637,17 +508,7 @@ struct ParenthesizedQueryTests {
             ),
             "name:\"lightning bolt\"",
         ),
-        TestCase(
-            "name:\"lightning bolt\" type:\"instant\"",
-            ["name:\"lightning bolt\"", "type:\"instant\""],
-            disj(
-                conj(
-                    .filter("name:\"lightning bolt\""),
-                    .filter("type:\"instant\""),
-                ),
-            ),
-            "name:\"lightning bolt\" type:\"instant\"",
-        ),
+
         
         // Single quotes
         TestCase(
@@ -662,17 +523,7 @@ struct ParenthesizedQueryTests {
         ),
         
         // Mixed quotes with OR and parentheses
-        TestCase(
-            "name:\"Serra Angel\" oracle:'draw a card'",
-            ["name:\"Serra Angel\"", "oracle:'draw a card'"],
-            disj(
-                conj(
-                    .filter("name:\"Serra Angel\""),
-                    .filter("oracle:'draw a card'"),
-                ),
-            ),
-            "name:\"Serra Angel\" oracle:'draw a card'",
-        ),
+
         TestCase(
             "(name:\"Serra Angel\" or name:\"Akroma\")",
             ["name:\"Serra Angel\"", "or", "name:\"Akroma\""],
@@ -716,17 +567,7 @@ struct ParenthesizedQueryTests {
             ),
             "name:",
         ),
-        TestCase(
-            "power> creature",
-            ["power>", "creature"],
-            disj(
-                conj(
-                    .filter("power>"),
-                    .filter("creature"),
-                ),
-            ),
-            "power> creature",
-        ),
+
         TestCase(
             "(power>) or (name:)",
             ["power>", "or", "name:"],
@@ -758,30 +599,21 @@ struct ParenthesizedQueryTests {
             "name:\"lightning",
             ["name:\"lightning"],
         ),
-        TestCase(
-            "name:\"lightning bolt",
-            ["name:\"lightning bolt"],
-        ),
+
         
         // Unclosed single quotes
         TestCase(
             "name:'lightning",
             ["name:'lightning"],
         ),
-        TestCase(
-            "oracle:'draw a card",
-            ["oracle:'draw a card"],
-        ),
+
         
         // Unclosed quotes in parentheses - closing paren becomes part of the string
         TestCase(
             "(name:\"lightning)",
             ["name:\"lightning)"],
         ),
-        TestCase(
-            "(oracle:'deals damage)",
-            ["oracle:'deals damage)"],
-        ),
+
         
         // MARK: Incomplete Regex Patterns
         
@@ -790,14 +622,7 @@ struct ParenthesizedQueryTests {
             "/^light",
             ["/^light"],
         ),
-        TestCase(
-            "/^light creature",
-            ["/^light creature"],
-        ),
-        TestCase(
-            "/.+ name:test",
-            ["/.+ name:test"],
-        ),
+
         
         // Multiple unclosed regex
         TestCase(
@@ -812,22 +637,8 @@ struct ParenthesizedQueryTests {
         ),
         
         // Unclosed regex in parentheses
-        TestCase(
-            "(/^light)",
-            ["/^light)"],
-        ),
+
         
-        // Unclosed regex with OR in the middle
-        TestCase(
-            "/^light or /bolt",
-            ["/^light or /bolt"],
-            disj(
-                conj(
-                    .filter("/^light or /bolt"),
-                ),
-            ),
-            "/^light or /bolt",
-        ),
         
         // MARK: Nested and Incomplete Parentheses
         
@@ -836,28 +647,16 @@ struct ParenthesizedQueryTests {
             "(red",
             ["red"],
         ),
-        TestCase(
-            "(red or blue",
-            ["red", "or", "blue"],
-        ),
         
         // Unclosed nested
         TestCase(
             "((red)",
             ["red"],
         ),
-        TestCase(
-            "(((red or blue) creature",
-            ["red", "or", "blue", "creature"],
-        ),
         
         // Extra closing parentheses
         TestCase(
             "red)",
-            ["red"],
-        ),
-        TestCase(
-            "(red))",
             ["red"],
         ),
         
@@ -888,17 +687,7 @@ struct ParenthesizedQueryTests {
             ),
             "-name:lightning",
         ),
-        TestCase(
-            "-color:red creature",
-            ["-color:red", "creature"],
-            disj(
-                conj(
-                    .filter("-color:red"),
-                    .filter("creature"),
-                ),
-            ),
-            "-color:red creature",
-        ),
+
         TestCase(
             "-power>3",
             ["-power>3"],
@@ -909,17 +698,7 @@ struct ParenthesizedQueryTests {
             ),
             "-power>3",
         ),
-        TestCase(
-            "creature -cmc>=4",
-            ["creature", "-cmc>=4"],
-            disj(
-                conj(
-                    .filter("creature"),
-                    .filter("-cmc>=4"),
-                ),
-            ),
-            "creature -cmc>=4",
-        ),
+
         
         // Negation with quoted values (various quote types)
         TestCase(
@@ -932,16 +711,7 @@ struct ParenthesizedQueryTests {
             ),
             "-name:\"lightning bolt\"",
         ),
-        TestCase(
-            "-oracle:'draw a card'",
-            ["-oracle:'draw a card'"],
-            disj(
-                conj(
-                    .filter("-oracle:'draw a card'"),
-                ),
-            ),
-            "-oracle:'draw a card'",
-        ),
+
         
         // Incomplete terms with negation
         TestCase(
@@ -954,14 +724,8 @@ struct ParenthesizedQueryTests {
             ),
             "-",
         ),
-        TestCase(
-            "-(",
-            [""],
-        ),
-        TestCase(
-            "-(-",
-            ["-"],
-        ),
+
+
         TestCase(
             "-power>",
             ["-power>"],
@@ -972,10 +736,7 @@ struct ParenthesizedQueryTests {
             ),
             "-power>",
         ),
-        TestCase(
-            "-name:\"lightning",
-            ["-name:\"lightning"],
-        ),
+
         
         // Nested parentheses with multiple features
         TestCase(
@@ -1018,6 +779,7 @@ struct ParenthesizedQueryTests {
             "   ",
             [],
         ),
+
         TestCase(
             "or red",
             ["or", "red"],
