@@ -28,6 +28,12 @@ struct PlausibleFilterRanges {
                             // existing filter range.
                             return (token.range.upperBound..<token.range.upperBound).shift(with: input, by: prefixOffset)
                         }
+                    } else if code == .CloseParen {
+                        // Symmetrically, as above.
+                        let previousIndex = input.index(token.range.lowerBound, offsetBy: prefixOffset)
+                        if previousIndex == input.startIndex || input[input.index(before: previousIndex)] == " " {
+                            return (token.range.lowerBound..<token.range.lowerBound).shift(with: input, by: prefixOffset)
+                        }
                     }
 
                     return nil
@@ -45,6 +51,9 @@ struct PlausibleFilterRanges {
             // two or more whitespace appear in sequence has at least a zero-width range of
             // whitespace where a filter can be safetly syntactically added, and we should suggest
             // something when the cursor is there.
+            //
+            // Relatedly, the open and close paren cases should gobble any whitespace in the
+            // appropriate direction if there is more than one there.
 
             let coalescedRanges = ranges.reduce(into: [Range<String.Index>]()) { result, range in
                 if let last = result.last, last.upperBound == range.lowerBound {

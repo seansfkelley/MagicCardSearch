@@ -867,6 +867,10 @@ struct ParenthesizedQueryTests {
             [""],
         ),
         TestCase(
+            ") red",
+            ["", "red"],
+        ),
+        TestCase(
             "red (",
             ["red", ""],
         ),
