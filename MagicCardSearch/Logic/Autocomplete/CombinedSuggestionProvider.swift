@@ -7,8 +7,18 @@
 
 import Foundation
 
+enum PrefixKind: Int {
+    // The search term is literally the character-for-character prefix of the suggestion.
+    case actual = 1
+    // The search term is more or less the prefix, accounting for low-significance formatting
+    // characters like required quotes, or a negation operator.
+    case effective = 2
+    // The search term is not a prefix under any interpretation.
+    case none = 3
+}
+
 protocol ScorableSuggestion {
-    var isPrefix: Bool { get }
+    var prefixKind: PrefixKind { get }
     var suggestionLength: Int { get }
 }
 
@@ -29,7 +39,7 @@ enum Suggestion: Equatable, Sendable, ScorableSuggestion {
         }
     }
     
-    var isPrefix: Bool { scorable.isPrefix }
+    var prefixKind: PrefixKind { scorable.prefixKind }
     var suggestionLength: Int { scorable.suggestionLength }
     var priority: Int {
         switch self {
@@ -103,9 +113,8 @@ class CombinedSuggestionProvider {
             )
             allSuggestions.append(contentsOf: enumerationSuggestions.map { Suggestion.enumeration($0) })
             
-            let scoredSuggestions = self.scoreSuggestions(allSuggestions)
-            continuation.yield(scoredSuggestions)
-            
+            continuation.yield(self.scoreSuggestions(allSuggestions))
+
             guard loadingState.isStillCurrent(id: currentTaskId) else {
                 continuation.finish()
                 return
@@ -123,10 +132,9 @@ class CombinedSuggestionProvider {
                 }
                 
                 allSuggestions.append(contentsOf: nameSuggestions.map { Suggestion.name($0) })
-                
-                let finalScoredSuggestions = self.scoreSuggestions(allSuggestions)
-                continuation.yield(finalScoredSuggestions)
-                
+
+                continuation.yield(self.scoreSuggestions(allSuggestions))
+
                 loadingState.stop(for: currentTaskId)
                 
                 continuation.finish()
@@ -136,25 +144,9 @@ class CombinedSuggestionProvider {
     
     private func scoreSuggestions(_ suggestions: [Suggestion]) -> [Suggestion] {
         suggestions.sorted(using: [
-            KeyPathComparator(\.isPrefix, comparator: BooleanComparator(order: .reverse)),
+            KeyPathComparator(\.prefixKind.rawValue),
             KeyPathComparator(\.suggestionLength),
             KeyPathComparator(\.priority),
         ])
-    }
-}
-
-private struct BooleanComparator: SortComparator {
-    typealias Compared = Bool
-
-    var order: SortOrder = .forward
-
-    func compare(_ lhs: Bool, _ rhs: Bool) -> ComparisonResult {
-        if lhs == rhs {
-            .orderedSame
-        } else if lhs {
-            order == .forward ? .orderedDescending : .orderedAscending
-        } else {
-            order == .forward ? .orderedAscending : .orderedDescending
-        }
     }
 }

@@ -11,7 +11,7 @@ import Observation
 struct PinnedFilterSuggestion: Equatable, Sendable, ScorableSuggestion {
     let filter: SearchFilter
     let matchRange: Range<String.Index>?
-    let isPrefix: Bool
+    let prefixKind: PrefixKind
     let suggestionLength: Int
 }
 
@@ -57,8 +57,8 @@ class PinnedFilterSuggestionProvider {
                     return PinnedFilterSuggestion(
                         filter: entry.filter,
                         matchRange: nil,
-                        // TODO: Would true produce better results?
-                        isPrefix: false,
+                        // TODO: Would .actual produce better results?
+                        prefixKind: .none,
                         suggestionLength: filterText.count,
                     )
                 }
@@ -67,7 +67,7 @@ class PinnedFilterSuggestionProvider {
                     return PinnedFilterSuggestion(
                         filter: entry.filter,
                         matchRange: range,
-                        isPrefix: range.lowerBound == filterText.startIndex,
+                        prefixKind: range.lowerBound == filterText.startIndex ? .actual : .none,
                         suggestionLength: filterText.count,
                     )
                 }

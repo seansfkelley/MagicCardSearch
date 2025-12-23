@@ -9,7 +9,7 @@ import ScryfallKit
 struct NameSuggestion: Equatable, Sendable, ScorableSuggestion {
     let filter: SearchFilter
     let matchRange: Range<String.Index>?
-    let isPrefix: Bool
+    let prefixKind: PrefixKind
     let suggestionLength: Int
 }
 
@@ -87,7 +87,7 @@ struct NameSuggestionProvider {
                 return NameSuggestion(
                     filter: filter,
                     matchRange: range,
-                    isPrefix: cardName.range(of: name, options: [.caseInsensitive, .anchored]) != nil,
+                    prefixKind: cardName.range(of: name, options: [.caseInsensitive, .anchored]) == nil ? .none : (cardName.contains(" ") || partial.negated ? .effective : .actual),
                     suggestionLength: cardName.count,
                 )
             }

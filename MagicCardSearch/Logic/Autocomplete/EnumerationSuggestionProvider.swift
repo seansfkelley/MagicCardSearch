@@ -12,7 +12,7 @@ import Algorithms
 struct EnumerationSuggestion: Equatable, Sendable, ScorableSuggestion {
     let filter: SearchFilter
     let matchRange: Range<String.Index>?
-    let isPrefix: Bool
+    let prefixKind: PrefixKind
     let suggestionLength: Int
 }
 
@@ -87,7 +87,7 @@ struct EnumerationSuggestionProvider {
                 return EnumerationSuggestion(
                     filter: .basic(filter),
                     matchRange: range,
-                    isPrefix: isPrefix,
+                    prefixKind: isPrefix ? (partial.negated ? .effective : .actual) : .none,
                     suggestionLength: filter.query.count,
                 )
             }

@@ -8,7 +8,7 @@ struct FilterTypeSuggestion: Equatable, Sendable, ScorableSuggestion {
     let filterType: String
     let matchRange: Range<String.Index>
     let comparisonKinds: ScryfallFilterType.ComparisonKinds
-    let isPrefix: Bool
+    let prefixKind: PrefixKind
     let suggestionLength: Int
 }
 
@@ -50,7 +50,7 @@ struct FilterTypeSuggestionProvider {
                         filterType: candidate,
                         matchRange: range,
                         comparisonKinds: filterType.comparisonKinds,
-                        isPrefix: range.lowerBound == candidate.startIndex,
+                        prefixKind: range.lowerBound == candidate.startIndex ? .actual : .none,
                         suggestionLength: candidate.count,
                     )
                     if let existing = bestMatch {
@@ -87,7 +87,7 @@ struct FilterTypeSuggestionProvider {
                         filterType: filterName,
                         matchRange: filterName.range,
                         comparisonKinds: exactMatch.comparisonKinds,
-                        isPrefix: true,
+                        prefixKind: .actual,
                         suggestionLength: filterName.count,
                     ),
                     at: 0
@@ -96,14 +96,18 @@ struct FilterTypeSuggestionProvider {
         
         if partial.negated {
             suggestions = suggestions.map {
+                let matchIsAtBeginning = $0.matchRange.lowerBound == $0.filterType.startIndex
                 let prefixed = "-\($0.filterType)"
+                let range = matchIsAtBeginning
+                ? $0.matchRange.lowerBound..<prefixed.index(after: $0.matchRange.upperBound)
+                : $0.matchRange.shift(with: prefixed, by: 1)
+
                 return FilterTypeSuggestion(
                     filterType: prefixed,
-                    matchRange: $0.matchRange.shift(with: prefixed, by: 1),
+                    matchRange: range,
                     comparisonKinds: $0.comparisonKinds,
-                    // No filter names have literal -, so preserve the scoring from the un-negated form.
-                    isPrefix: $0.isPrefix,
-                    suggestionLength: $0.suggestionLength,
+                    prefixKind: $0.prefixKind,
+                    suggestionLength: $0.suggestionLength + (matchIsAtBeginning ? 1 : 0),
                 )
             }
         }
