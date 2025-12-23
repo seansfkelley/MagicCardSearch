@@ -15,11 +15,11 @@ struct EnumerationSuggestionProviderTests {
             PartialSearchFilter(negated: false, content: .filter("manavalue", .equal, .bare(""))),
             [
                 .init(
-                    filter: .init(.keyValue("manavalue", .equal, "even")),
+                    filter: SearchFilter.basic(false, "manavalue", .equal, "even"),
                     matchRange: nil
                 ),
                 .init(
-                    filter: .init(.keyValue("manavalue", .equal, "odd")),
+                    filter: SearchFilter.basic(false, "manavalue", .equal, "odd"),
                     matchRange: nil
                 ),
             ],
@@ -30,11 +30,11 @@ struct EnumerationSuggestionProviderTests {
             PartialSearchFilter(negated: false, content: .filter("is", .including, .bare("scry"))),
             [
                 .init(
-                    filter: .init(.keyValue("is", .including, "scryfallpreview")),
+                    filter: SearchFilter.basic(false, "is", .including, "scryfallpreview"),
                     matchRange: "is:scryfallpreview".range(of: "scry")
                 ),
                 .init(
-                    filter: .init(.keyValue("is", .including, "scryland")),
+                    filter: SearchFilter.basic(false, "is", .including, "scryland"),
                     matchRange: "is:scryland".range(of: "scry")
                 ),
             ],
@@ -44,7 +44,7 @@ struct EnumerationSuggestionProviderTests {
             PartialSearchFilter(negated: false, content: .filter("format", .greaterThanOrEqual, .bare("less"))),
             [
                 .init(
-                    filter: .init(.keyValue("format", .greaterThanOrEqual, "timeless")),
+                    filter: SearchFilter.basic(false, "format", .greaterThanOrEqual, "timeless"),
                     matchRange: "format>=timeless".range(of: "less")
                 ),
             ],
@@ -54,11 +54,11 @@ struct EnumerationSuggestionProviderTests {
             PartialSearchFilter(negated: true, content: .filter("is", .including, .bare("scry"))),
             [
                 .init(
-                    filter: .init(true, .keyValue("is", .including, "scryfallpreview")),
+                    filter: SearchFilter.basic(true, "is", .including, "scryfallpreview"),
                     matchRange: "-is:scryfallpreview".range(of: "scry")
                 ),
                 .init(
-                    filter: .init(true, .keyValue("is", .including, "scryland")),
+                    filter: SearchFilter.basic(true, "is", .including, "scryland"),
                     matchRange: "-is:scryland".range(of: "scry")
                 ),
             ],
@@ -68,7 +68,7 @@ struct EnumerationSuggestionProviderTests {
             PartialSearchFilter(negated: false, content: .filter("foRMat", .greaterThanOrEqual, .bare("lESs"))),
             [
                 .init(
-                    filter: .init(.keyValue("format", .greaterThanOrEqual, "timeless")),
+                    filter: SearchFilter.basic(false, "format", .greaterThanOrEqual, "timeless"),
                     matchRange: "format>=timeless".range(of: "less", options: .caseInsensitive)
                 ),
             ],

@@ -13,9 +13,9 @@ struct PartialSearchFilterTests {
         let input: String
         let expectedPartial: PartialSearchFilter
         let expectedComplete: SearchFilter?
-        
+
         var description: String { input }
-        
+
         init(
             _ input: String,
             _ expectedPartial: PartialSearchFilter,
@@ -26,7 +26,7 @@ struct PartialSearchFilterTests {
             self.expectedComplete = expectedComplete
         }
     }
-    
+
     @Test("Parse and convert PartialSearchFilter", arguments: [
         // MARK: - Simple name searches
         TestCase(
@@ -35,27 +35,27 @@ struct PartialSearchFilterTests {
                 negated: false,
                 content: .name(false, .bare("foo"))
             ),
-            .init(.name("foo", false))
+            SearchFilter.name(false, false, "foo")
         ),
-        
+
         TestCase(
             "teferi's",
             PartialSearchFilter(
                 negated: false,
                 content: .name(false, .bare("teferi's"))
             ),
-            .init(.name("teferi's", false))
+            SearchFilter.name(false, false, "teferi's")
         ),
-        
+
         TestCase(
             "{p}",
             PartialSearchFilter(
                 negated: false,
                 content: .name(false, .bare("{p}"))
             ),
-            .init(.name("{p}", false))
+            SearchFilter.name(false, false, "{p}")
         ),
-        
+
         TestCase(
             // Names ending with comparison-like things parse as filters.
             "Fire!",
@@ -65,16 +65,16 @@ struct PartialSearchFilterTests {
             ),
             nil,
         ),
-        
+
         TestCase(
             "lightning bolt",
             PartialSearchFilter(
                 negated: false,
                 content: .name(false, .bare("lightning bolt"))
             ),
-            .init(.name("lightning bolt", false))
+            SearchFilter.name(false, false, "lightning bolt")
         ),
-        
+
         // MARK: - Exact name searches (!)
         TestCase(
             "!Fire",
@@ -82,27 +82,27 @@ struct PartialSearchFilterTests {
                 negated: false,
                 content: .name(true, .bare("Fire"))
             ),
-            .init(.name("Fire", true))
+            SearchFilter.name(false, true, "Fire")
         ),
-        
+
         TestCase(
             "!lightning",
             PartialSearchFilter(
                 negated: false,
                 content: .name(true, .bare("lightning"))
             ),
-            .init(.name("lightning", true))
+            SearchFilter.name(false, true, "lightning")
         ),
-        
+
         TestCase(
             "!\"Lightning Bolt\"",
             PartialSearchFilter(
                 negated: false,
                 content: .name(true, .balanced(.doubleQuote, "Lightning Bolt"))
             ),
-            .init(.name("Lightning Bolt", true))
+            SearchFilter.name(false, true, "Lightning Bolt")
         ),
-        
+
         // MARK: - Quoted name searches
         TestCase(
             "'foo'",
@@ -110,27 +110,27 @@ struct PartialSearchFilterTests {
                 negated: false,
                 content: .name(false, .balanced(.singleQuote, "foo"))
             ),
-            .init(.name("foo", false))
+            SearchFilter.name(false, false, "foo")
         ),
-        
+
         TestCase(
             "\"lightning bolt\"",
             PartialSearchFilter(
                 negated: false,
                 content: .name(false, .balanced(.doubleQuote, "lightning bolt"))
             ),
-            .init(.name("lightning bolt", false))
+            SearchFilter.name(false, false, "lightning bolt")
         ),
-        
+
         TestCase(
             "'lightning bolt'",
             PartialSearchFilter(
                 negated: false,
                 content: .name(false, .balanced(.singleQuote, "lightning bolt"))
             ),
-            .init(.name("lightning bolt", false))
+            SearchFilter.name(false, false, "lightning bolt")
         ),
-        
+
         // MARK: - Unterminated quotes
         TestCase(
             "\"foo",
@@ -140,7 +140,7 @@ struct PartialSearchFilterTests {
             ),
             nil
         ),
-        
+
         TestCase(
             "'foo",
             PartialSearchFilter(
@@ -149,7 +149,7 @@ struct PartialSearchFilterTests {
             ),
             nil
         ),
-        
+
         TestCase(
             "!\"lightning",
             PartialSearchFilter(
@@ -158,7 +158,7 @@ struct PartialSearchFilterTests {
             ),
             nil
         ),
-        
+
         // MARK: - Negated searches
         TestCase(
             "-lightning",
@@ -166,27 +166,27 @@ struct PartialSearchFilterTests {
                 negated: true,
                 content: .name(false, .bare("lightning"))
             ),
-            .init(true, .name("lightning", false))
+            SearchFilter.name(true, false, "lightning")
         ),
-        
+
         TestCase(
             "-!lightning",
             PartialSearchFilter(
                 negated: true,
                 content: .name(true, .bare("lightning"))
             ),
-            .init(true, .name("lightning", true))
+            SearchFilter.name(true, true, "lightning")
         ),
-        
+
         TestCase(
             "-\"lightning bolt\"",
             PartialSearchFilter(
                 negated: true,
                 content: .name(false, .balanced(.doubleQuote, "lightning bolt"))
             ),
-            .init(true, .name("lightning bolt", false))
+            SearchFilter.name(true, false, "lightning bolt")
         ),
-        
+
         // MARK: - Key-value filters with ":"
         TestCase(
             "set:foo",
@@ -194,27 +194,27 @@ struct PartialSearchFilterTests {
                 negated: false,
                 content: .filter("set", .including, .bare("foo"))
             ),
-            .init(.keyValue("set", .including, "foo"))
+            SearchFilter.basic(false, "set", .including, "foo")
         ),
-        
+
         TestCase(
             "type:creature",
             PartialSearchFilter(
                 negated: false,
                 content: .filter("type", .including, .bare("creature"))
             ),
-            .init(.keyValue("type", .including, "creature"))
+            SearchFilter.basic(false, "type", .including, "creature")
         ),
-        
+
         TestCase(
             "oracle:\"draw a card\"",
             PartialSearchFilter(
                 negated: false,
                 content: .filter("oracle", .including, .balanced(.doubleQuote, "draw a card"))
             ),
-            .init(.keyValue("oracle", .including, "draw a card"))
+            SearchFilter.basic(false, "oracle", .including, "draw a card")
         ),
-        
+
         TestCase(
             "foo:\"bar",
             PartialSearchFilter(
@@ -223,7 +223,7 @@ struct PartialSearchFilterTests {
             ),
             nil,
         ),
-        
+
         // MARK: - Negated key-value filters
         TestCase(
             "-type:creature",
@@ -231,18 +231,18 @@ struct PartialSearchFilterTests {
                 negated: true,
                 content: .filter("type", .including, .bare("creature"))
             ),
-            .init(true, .keyValue("type", .including, "creature"))
+            SearchFilter.basic(true, "type", .including, "creature")
         ),
-        
+
         TestCase(
             "-oracle:\"draw a card\"",
             PartialSearchFilter(
                 negated: true,
                 content: .filter("oracle", .including, .balanced(.doubleQuote, "draw a card"))
             ),
-            .init(true, .keyValue("oracle", .including, "draw a card"))
+            SearchFilter.basic(true, "oracle", .including, "draw a card")
         ),
-        
+
         // MARK: - Comparison operators
         TestCase(
             "s=bar",
@@ -250,72 +250,72 @@ struct PartialSearchFilterTests {
                 negated: false,
                 content: .filter("s", .equal, .bare("bar"))
             ),
-            .init(.keyValue("s", .equal, "bar"))
+            SearchFilter.basic(false, "s", .equal, "bar")
         ),
-        
+
         TestCase(
             "mv>=bar",
             PartialSearchFilter(
                 negated: false,
                 content: .filter("mv", .greaterThanOrEqual, .bare("bar"))
             ),
-            .init(.keyValue("mv", .greaterThanOrEqual, "bar"))
+            SearchFilter.basic(false, "mv", .greaterThanOrEqual, "bar")
         ),
-        
+
         TestCase(
             "m>{p/r}{g}",
             PartialSearchFilter(
                 negated: false,
                 content: .filter("m", .greaterThan, .bare("{p/r}{g}"))
             ),
-            .init(.keyValue("m", .greaterThan, "{p/r}{g}"))
+            SearchFilter.basic(false, "m", .greaterThan, "{p/r}{g}")
         ),
-        
+
         TestCase(
             "power>3",
             PartialSearchFilter(
                 negated: false,
                 content: .filter("power", .greaterThan, .bare("3"))
             ),
-            .init(.keyValue("power", .greaterThan, "3"))
+            SearchFilter.basic(false, "power", .greaterThan, "3")
         ),
-        
+
         TestCase(
             "cmc<3",
             PartialSearchFilter(
                 negated: false,
                 content: .filter("cmc", .lessThan, .bare("3"))
             ),
-            .init(.keyValue("cmc", .lessThan, "3"))
+            SearchFilter.basic(false, "cmc", .lessThan, "3")
         ),
-        
+
         TestCase(
             "cmc<=3",
             PartialSearchFilter(
                 negated: false,
                 content: .filter("cmc", .lessThanOrEqual, .bare("3"))
             ),
-            .init(.keyValue("cmc", .lessThanOrEqual, "3"))
+            SearchFilter.basic(false, "cmc", .lessThanOrEqual, "3")
         ),
-        
+
         TestCase(
             "color=red",
             PartialSearchFilter(
                 negated: false,
                 content: .filter("color", .equal, .bare("red"))
             ),
-            .init(.keyValue("color", .equal, "red"))
+            SearchFilter.basic(false, "color", .equal, "red")
         ),
-        
+
         TestCase(
             "color!=red",
             PartialSearchFilter(
                 negated: false,
                 content: .filter("color", .notEqual, .bare("red"))
             ),
-            .init(.keyValue("color", .notEqual, "red"))
+            SearchFilter.basic(false, "color", .notEqual, "red")
         ),
-        
+
         // MARK: - Incomplete comparisons
         TestCase(
             "foo:",
@@ -325,7 +325,7 @@ struct PartialSearchFilterTests {
             ),
             nil
         ),
-        
+
         TestCase(
             "power!",
             PartialSearchFilter(
@@ -334,7 +334,7 @@ struct PartialSearchFilterTests {
             ),
             nil
         ),
-        
+
         TestCase(
             "power!value",
             PartialSearchFilter(
@@ -343,7 +343,7 @@ struct PartialSearchFilterTests {
             ),
             nil
         ),
-        
+
         TestCase(
             "cmc<",
             PartialSearchFilter(
@@ -352,7 +352,7 @@ struct PartialSearchFilterTests {
             ),
             nil,
         ),
-        
+
         TestCase(
             "power>",
             PartialSearchFilter(
@@ -361,7 +361,7 @@ struct PartialSearchFilterTests {
             ),
             nil,
         ),
-        
+
         // MARK: - Regex filters (forward slashes)
         TestCase(
             "filtered:/regex with whitespace/",
@@ -369,27 +369,27 @@ struct PartialSearchFilterTests {
                 negated: false,
                 content: .filter("filtered", .including, .balanced(.forwardSlash, "regex with whitespace"))
             ),
-            .init(.regex("filtered", .including, "regex with whitespace"))
+            SearchFilter.regex(false, "filtered", .including, "regex with whitespace")
         ),
-        
+
         TestCase(
             "name:/^lightning/",
             PartialSearchFilter(
                 negated: false,
                 content: .filter("name", .including, .balanced(.forwardSlash, "^lightning"))
             ),
-            .init(.regex("name", .including, "^lightning"))
+            SearchFilter.regex(false, "name", .including, "^lightning")
         ),
-        
+
         TestCase(
             "-name:/^chain/",
             PartialSearchFilter(
                 negated: true,
                 content: .filter("name", .including, .balanced(.forwardSlash, "^chain"))
             ),
-            .init(true, .regex("name", .including, "^chain"))
+            SearchFilter.regex(true, "name", .including, "^chain")
         ),
-        
+
         // MARK: - Unterminated regex
         TestCase(
             "foo:/incomplete regex",
@@ -399,7 +399,7 @@ struct PartialSearchFilterTests {
             ),
             nil
         ),
-        
+
         // MARK: - Unterminated quoted filters
         TestCase(
             "foo:\"",
@@ -409,7 +409,7 @@ struct PartialSearchFilterTests {
             ),
             nil
         ),
-        
+
         TestCase(
             "oracle:'draw",
             PartialSearchFilter(
@@ -418,7 +418,7 @@ struct PartialSearchFilterTests {
             ),
             nil
         ),
-        
+
         TestCase(
             "-oracle:\"draw",
             PartialSearchFilter(
@@ -427,7 +427,7 @@ struct PartialSearchFilterTests {
             ),
             nil
         ),
-        
+
         TestCase(
             "-oracle:'draw",
             PartialSearchFilter(
@@ -436,7 +436,7 @@ struct PartialSearchFilterTests {
             ),
             nil
         ),
-        
+
         // MARK: - Empty strings
         TestCase(
             "",
@@ -444,27 +444,27 @@ struct PartialSearchFilterTests {
                 negated: false,
                 content: .name(false, .bare(""))
             ),
-            .init(.name("", false))
+            SearchFilter.name(false, false, "")
         ),
-        
+
         TestCase(
             "-",
             PartialSearchFilter(
                 negated: true,
                 content: .name(false, .bare(""))
             ),
-            .init(true, .name("", false))
+            SearchFilter.name(true, false, "")
         ),
-        
+
         TestCase(
             "!",
             PartialSearchFilter(
                 negated: false,
                 content: .name(true, .bare(""))
             ),
-            .init(.name("", true))
+            SearchFilter.name(false, true, "")
         ),
-        
+
         TestCase(
             "type:",
             PartialSearchFilter(
@@ -473,7 +473,7 @@ struct PartialSearchFilterTests {
             ),
             nil,
         ),
-        
+
         // MARK: - Mixed case field names
         TestCase(
             "Type:creature",
@@ -481,18 +481,18 @@ struct PartialSearchFilterTests {
                 negated: false,
                 content: .filter("Type", .including, .bare("creature"))
             ),
-            .init(.keyValue("Type", .including, "creature"))
+            SearchFilter.basic(false, "Type", .including, "creature")
         ),
-        
+
         TestCase(
             "POWER>3",
             PartialSearchFilter(
                 negated: false,
                 content: .filter("POWER", .greaterThan, .bare("3"))
             ),
-            .init(.keyValue("POWER", .greaterThan, "3"))
+            SearchFilter.basic(false, "POWER", .greaterThan, "3")
         ),
-        
+
         // MARK: - Edge cases with special characters
         TestCase(
             "name:\"test:value\"",
@@ -500,18 +500,18 @@ struct PartialSearchFilterTests {
                 negated: false,
                 content: .filter("name", .including, .balanced(.doubleQuote, "test:value"))
             ),
-            .init(.keyValue("name", .including, "test:value"))
+            SearchFilter.basic(false, "name", .including, "test:value")
         ),
-        
+
         TestCase(
             "oracle:\">3\"",
             PartialSearchFilter(
                 negated: false,
                 content: .filter("oracle", .including, .balanced(.doubleQuote, ">3"))
             ),
-            .init(.keyValue("oracle", .including, ">3"))
+            SearchFilter.basic(false, "oracle", .including, ">3")
         ),
-        
+
         // MARK: - Regex with comparison operators
         TestCase(
             "name=/^L/",
@@ -519,18 +519,18 @@ struct PartialSearchFilterTests {
                 negated: false,
                 content: .filter("name", .equal, .balanced(.forwardSlash, "^L"))
             ),
-            .init(.regex("name", .equal, "^L"))
+            SearchFilter.regex(false, "name", .equal, "^L")
         ),
-        
+
         TestCase(
             "power>/3/",
             PartialSearchFilter(
                 negated: false,
                 content: .filter("power", .greaterThan, .balanced(.forwardSlash, "3"))
             ),
-            .init(.regex("power", .greaterThan, "3"))
+            SearchFilter.regex(false, "power", .greaterThan, "3")
         ),
-        
+
         // MARK: - Single character inputs
         TestCase(
             "a",
@@ -538,18 +538,18 @@ struct PartialSearchFilterTests {
                 negated: false,
                 content: .name(false, .bare("a"))
             ),
-            .init(.name("a", false))
+            SearchFilter.name(false, false, "a")
         ),
-        
+
         TestCase(
             "-a",
             PartialSearchFilter(
                 negated: true,
                 content: .name(false, .bare("a"))
             ),
-            .init(true, .name("a", false))
+            SearchFilter.name(true, false, "a")
         ),
-        
+
         // MARK: - Numbers and special characters in values
         TestCase(
             "cmc:3",
@@ -557,18 +557,18 @@ struct PartialSearchFilterTests {
                 negated: false,
                 content: .filter("cmc", .including, .bare("3"))
             ),
-            .init(.keyValue("cmc", .including, "3"))
+            SearchFilter.basic(false, "cmc", .including, "3")
         ),
-        
+
         TestCase(
             "loyalty:\"5\"",
             PartialSearchFilter(
                 negated: false,
                 content: .filter("loyalty", .including, .balanced(.doubleQuote, "5"))
             ),
-            .init(.keyValue("loyalty", .including, "5"))
+            SearchFilter.basic(false, "loyalty", .including, "5")
         ),
-        
+
         // MARK: - Multiple operators in sequence
         TestCase(
             "field:=value",
@@ -576,9 +576,9 @@ struct PartialSearchFilterTests {
                 negated: false,
                 content: .filter("field", .including, .bare("=value"))
             ),
-            .init(.keyValue("field", .including, "=value"))
+            SearchFilter.basic(false, "field", .including, "=value")
         ),
-        
+
         // MARK: - Spaces in unquoted values (edge case)
         TestCase(
             "oracle:draw a card",
@@ -586,9 +586,9 @@ struct PartialSearchFilterTests {
                 negated: false,
                 content: .filter("oracle", .including, .bare("draw a card"))
             ),
-            .init(.keyValue("oracle", .including, "draw a card"))
+            SearchFilter.basic(false, "oracle", .including, "draw a card")
         ),
-        
+
         // MARK: - Negation with all comparison types
         TestCase(
             "-power>=5",
@@ -596,36 +596,36 @@ struct PartialSearchFilterTests {
                 negated: true,
                 content: .filter("power", .greaterThanOrEqual, .bare("5"))
             ),
-            .init(true, .keyValue("power", .greaterThanOrEqual, "5"))
+            SearchFilter.basic(true, "power", .greaterThanOrEqual, "5")
         ),
-        
+
         TestCase(
             "-cmc<=2",
             PartialSearchFilter(
                 negated: true,
                 content: .filter("cmc", .lessThanOrEqual, .bare("2"))
             ),
-            .init(true, .keyValue("cmc", .lessThanOrEqual, "2"))
+            SearchFilter.basic(true, "cmc", .lessThanOrEqual, "2")
         ),
-        
+
         TestCase(
             "-color=blue",
             PartialSearchFilter(
                 negated: true,
                 content: .filter("color", .equal, .bare("blue"))
             ),
-            .init(true, .keyValue("color", .equal, "blue"))
+            SearchFilter.basic(true, "color", .equal, "blue")
         ),
-        
+
         TestCase(
             "-type!=land",
             PartialSearchFilter(
                 negated: true,
                 content: .filter("type", .notEqual, .bare("land"))
             ),
-            .init(true, .keyValue("type", .notEqual, "land"))
+            SearchFilter.basic(true, "type", .notEqual, "land")
         ),
-        
+
         // MARK: - Empty quotes
         TestCase(
             "\"\"",
@@ -633,18 +633,18 @@ struct PartialSearchFilterTests {
                 negated: false,
                 content: .name(false, .balanced(.doubleQuote, ""))
             ),
-            .init(.name("", false))
+            SearchFilter.name(false, false, "")
         ),
-        
+
         TestCase(
             "''",
             PartialSearchFilter(
                 negated: false,
                 content: .name(false, .balanced(.singleQuote, ""))
             ),
-            .init(.name("", false))
+            SearchFilter.name(false, false, "")
         ),
-        
+
         // Empty strings are permitted if they are explicitly quoted. Just for UX clarity when you
         // type one in, not because it means anything useful.
         TestCase(
@@ -653,54 +653,54 @@ struct PartialSearchFilterTests {
                 negated: false,
                 content: .filter("oracle", .including, .balanced(.doubleQuote, ""))
             ),
-            .init(.keyValue("oracle", .including, "")),
+            SearchFilter.basic(false, "oracle", .including, "")
         ),
-        
+
         TestCase(
             "name://",
             PartialSearchFilter(
                 negated: false,
                 content: .filter("name", .including, .balanced(.forwardSlash, ""))
             ),
-            .init(.regex("name", .including, ""))
+            SearchFilter.regex(false, "name", .including, "")
         ),
-        
+
         TestCase(
             "/regexwithoutfilter/",
             PartialSearchFilter(
                 negated: false,
                 content: .name(false, .bare("/regexwithoutfilter/")),
             ),
-            .init(.name("/regexwithoutfilter/", false)),
+            SearchFilter.name(false, false, "/regexwithoutfilter/")
         ),
-        
+
         TestCase(
             "/^test$/",
             PartialSearchFilter(
                 negated: false,
                 content: .name(false, .bare("/^test$/")),
             ),
-            .init(.name("/^test$/", false)),
+            SearchFilter.name(false, false, "/^test$/")
         ),
-        
+
         TestCase(
             "type: creature",
             PartialSearchFilter(
                 negated: false,
                 content: .filter("type", .including, .bare(" creature")),
             ),
-            .init(.keyValue("type", .including, " creature")),
+            SearchFilter.basic(false, "type", .including, " creature")
         ),
     ])
     func parseAndConvert(testCase: TestCase) async throws {
         let actualPartial = PartialSearchFilter.from(testCase.input)
         #expect(actualPartial.description == testCase.input)
-        
+
         #expect(
             actualPartial == testCase.expectedPartial,
             "Parsing '\(testCase.input)' failed"
         )
-        
+
         let actualComplete = actualPartial.toComplete()
         #expect(
             actualComplete == testCase.expectedComplete,
