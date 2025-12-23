@@ -95,27 +95,6 @@ struct PartialSearchFilter: Equatable, CustomStringConvertible {
             case .filter(let field, let comparison, let term): "\(field)\(comparison)\(term)"
             }
         }
-        
-        func toComplete() -> SearchFilterContent? {
-            switch self {
-            case .name(let exact, let term):
-                if let completeTerm = term.toComplete() {
-                    return .name(completeTerm, exact)
-                } else {
-                    return nil
-                }
-            case .filter(let field, let comparison, let term):
-                if let completeTerm = term.toComplete(), let completeComparison = comparison.toComplete() {
-                    return switch term.quotingType {
-                    case .singleQuote, .doubleQuote: .keyValue(field, completeComparison, completeTerm)
-                    case .forwardSlash: .regex(field, completeComparison, completeTerm)
-                    case nil: completeTerm.isEmpty ? nil : .keyValue(field, completeComparison, completeTerm)
-                    }
-                } else {
-                    return nil
-                }
-            }
-        }
     }
     
     let negated: Bool
@@ -126,10 +105,26 @@ struct PartialSearchFilter: Equatable, CustomStringConvertible {
     }
     
     func toComplete() -> SearchFilter? {
-        return if let completeContent = content.toComplete() {
-            .init(negated, completeContent)
-        } else {
-            nil
+        switch content {
+        case .name(let exact, let term):
+            if let completeTerm = term.toComplete() {
+                return SearchFilter.name(negated, exact, completeTerm)
+            } else {
+                return nil
+            }
+        case .filter(let field, let comparison, let term):
+            if let completeTerm = term.toComplete(), let completeComparison = comparison.toComplete() {
+                return switch term.quotingType {
+                case .singleQuote, .doubleQuote:
+                    SearchFilter.basic(negated, field, completeComparison, completeTerm)
+                case .forwardSlash:
+                    SearchFilter.regex(negated, field, completeComparison, completeTerm)
+                case nil:
+                    completeTerm.isEmpty ? nil : SearchFilter.basic(negated, field, completeComparison, completeTerm)
+                }
+            } else {
+                return nil
+            }
         }
     }
     

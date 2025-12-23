@@ -33,8 +33,13 @@ struct ParenthesizedDisjunction: Equatable, CustomStringConvertible, Sendable {
         }
     }
 
-    func toSearchFilter() -> SearchFilter {
-        .init(negated, .disjunction(.init(clauses.map { $0.toSearchFilterContent() })))
+    func toSearchFilter() -> SearchFilter.Disjunction? {
+        let transformedClauses = clauses.compactMap { $0.toSearchFilter() }
+        return if transformedClauses.count == clauses.count {
+            .init(negated, transformedClauses)
+        } else {
+            nil
+        }
     }
 
     init(_ negated: Bool, _ clauses: [ParenthesizedConjunction]) {
@@ -79,10 +84,10 @@ struct ParenthesizedConjunction: Equatable, CustomStringConvertible, Sendable {
             }
         }
 
-        func toSearchFilterContent() -> SearchFilterContent.Conjunction.Clause? {
+        func toSearchFilter() -> SearchFilter.Conjunction.Clause? {
             switch self {
             case .filter(let string): PartialSearchFilter.from(string).toComplete().map { .filter($0) }
-            case .disjunction(let disjunction): .disjunction(disjunction.toSearchFilter())
+            case .disjunction(let disjunction): disjunction.toSearchFilter().map { .disjunction($0) }
             }
         }
     }
@@ -97,8 +102,13 @@ struct ParenthesizedConjunction: Equatable, CustomStringConvertible, Sendable {
         clauses.map { $0.descriptionWithContext(inConjunction: clauses.count > 1) }.joined(separator: " ")
     }
 
-    func toSearchFilterContent() -> SearchFilterContent.Conjunction {
-        .init(clauses.map { $0.toSearchFilterContent() })
+    func toSearchFilter() -> SearchFilter.Conjunction? {
+        let transformedClauses = clauses.compactMap { $0.toSearchFilter() }
+        return if transformedClauses.count == clauses.count {
+            .init(transformedClauses)
+        } else {
+            nil
+        }
     }
 
     init(_ clauses: [Clause]) {

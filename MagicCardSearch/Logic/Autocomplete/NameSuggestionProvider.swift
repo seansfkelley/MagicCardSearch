@@ -73,14 +73,13 @@ struct NameSuggestionProvider {
             .lazy
             .prefix(limit)
             .map { cardName in
-                let content: SearchFilterContent
+                let filter: SearchFilter
                 if let comparison {
-                    content = .keyValue("name", comparison, cardName)
+                    filter = SearchFilter.basic(partial.negated, "name", comparison, cardName)
                 } else {
-                    content = .name(cardName, true)
+                    filter = SearchFilter.name(partial.negated, true, cardName)
                 }
                 
-                let filter = SearchFilter(partial.negated, content)
                 // TODO: We can do better than this; we know where it should be!
                 let range = filter.description.range(of: name, options: .caseInsensitive)
                 return NameSuggestion(filter: filter, matchRange: range)

@@ -128,8 +128,8 @@ struct SearchBarView: View {
         // FIXME: This is kind of gross; shouldn't we be able to unconditionally pass it through to
         // the parser and then it can tell us if it's valid or not?
         if (try? /^-?\(/.prefixMatch(in: trimmed)) != nil {
-            if let parenthesized = try? ParenthesizedDisjunction.tryParse(trimmed) {
-                print("TODO add parenthetical")
+            if let disjunction = ParenthesizedDisjunction.tryParse(trimmed), let filter = disjunction.toSearchFilter() {
+                filters.append(.disjunction(filter))
                 inputText = ""
             } else {
                 // Fall through to potential catch-all.
@@ -141,7 +141,7 @@ struct SearchBarView: View {
         }
         
         if fallbackToNameFilter {
-            let filter = SearchFilter(.name(trimmed, false))
+            let filter = SearchFilter.name(false, false, trimmed)
             filters.append(filter)
             searchHistoryTracker.recordUsage(of: filter)
             inputText = ""

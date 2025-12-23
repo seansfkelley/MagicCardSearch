@@ -40,28 +40,3 @@ struct ReflowingFilterPillsView: View {
         }
     }
 }
-
-// MARK: - Preview
-
-#Preview {
-    struct PreviewWrapper: View {
-        @State private var filters: [SearchFilter] = [
-            .init(.keyValue("set", .equal, "7ED")),
-            .init(.keyValue("manavalue", .greaterThanOrEqual, "4")),
-            .init(.keyValue("power", .greaterThan, "3")),
-        ]
-
-        var body: some View {
-            VStack {
-                ReflowingFilterPillsView(
-                    filters: $filters
-                ) { filter in
-                    print("Editing filter: \(filter.description)")
-                }
-                Spacer()
-            }
-        }
-    }
-
-    return PreviewWrapper()
-}

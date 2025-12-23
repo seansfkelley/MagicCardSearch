@@ -90,10 +90,10 @@ struct HomeView: View {
                     
                     Button(action: {
                         onSearchSelected([
-                            .init(.keyValue("date", .greaterThanOrEqual, "today")),
-                            .init(.keyValue("order", .including, SortMode.spoiled.rawValue)),
-                            .init(.keyValue("dir", .including, SortDirection.desc.rawValue)),
-                            .init(.keyValue("unique", .including, UniqueMode.prints.rawValue)),
+                            SearchFilter.basic(false, "date", .greaterThanOrEqual, "today"),
+                            SearchFilter.basic(false, "order", .including, SortMode.spoiled.rawValue),
+                            SearchFilter.basic(false, "dir", .including, SortDirection.desc.rawValue),
+                            SearchFilter.basic(false, "unique", .including, UniqueMode.prints.rawValue),
                         ])
                     }) {
                         Text("View All")
@@ -195,7 +195,7 @@ struct HomeView: View {
         do {
             let searchResults = try await searchService.search(
                 filters: [
-                    .init(.keyValue("date", .greaterThanOrEqual, "today")),
+                    SearchFilter.basic(false, "date", .greaterThanOrEqual, "today"),
                 ],
                 config: SearchConfiguration(
                     uniqueMode: .prints,
@@ -225,29 +225,29 @@ struct ExampleSearch {
     
     private static let small: [ExampleSearch] = [
         .init(title: "All Modern-Legal U/R Pingers", filters: [
-            .init(.keyValue("color", .lessThanOrEqual, "ur")),
-            .init(.keyValue("function", .including, "pinger")),
-            .init(.keyValue("format", .including, "modern")),
+            SearchFilter.basic(false, "color", .lessThanOrEqual, "ur"),
+            SearchFilter.basic(false, "function", .including, "pinger"),
+            SearchFilter.basic(false, "format", .including, "modern"),
         ]),
     ]
     
     private static let medium: [ExampleSearch] = [
         .init(title: "Most Expensive 1-Drops in Standard", filters: [
-            .init(.keyValue("manavalue", .equal, "1")),
-            .init(.keyValue("format", .including, "standard")),
-            .init(.keyValue("order", .including, "usd")),
-            .init(.keyValue("dir", .including, "desc")),
+            SearchFilter.basic(false, "manavalue", .equal, "1"),
+            SearchFilter.basic(false, "format", .including, "standard"),
+            SearchFilter.basic(false, "order", .including, "usd"),
+            SearchFilter.basic(false, "dir", .including, "desc"),
         ]),
     ]
     
     private static let large: [ExampleSearch] = [
         .init(title: "Best Orzhov Commanders", filters: [
-            .init(.keyValue("id", .equal, "orzhov")),
-            .init(.keyValue("type", .including, "legendary")),
-            .init(.keyValue("type", .including, "creature")),
-            .init(.keyValue("format", .including, "commander")),
-            .init(.keyValue("order", .including, "edhrec")),
-            .init(.keyValue("dir", .including, "desc")),
+            SearchFilter.basic(false, "id", .equal, "orzhov"),
+            SearchFilter.basic(false, "type", .including, "legendary"),
+            SearchFilter.basic(false, "type", .including, "creature"),
+            SearchFilter.basic(false, "format", .including, "commander"),
+            SearchFilter.basic(false, "order", .including, "edhrec"),
+            SearchFilter.basic(false, "dir", .including, "desc"),
         ]),
     ]
     

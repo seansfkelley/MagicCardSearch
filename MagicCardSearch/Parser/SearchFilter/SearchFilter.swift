@@ -7,7 +7,6 @@ private func isScryfallFilter(_ filter: String) -> Bool {
     scryfallFilterByType[filter.lowercased()] != nil
 }
 
-/// Quoting to preserve whitespace not required; any quotes present will be assumed to be part of the term to search for.
 enum SearchFilter: SearchFilterContent {
     case name(Name)
     case basic(Basic)
@@ -27,10 +26,32 @@ enum SearchFilter: SearchFilterContent {
     var suggestedEditingRange: Range<String.Index> { content.suggestedEditingRange }
     var isKnownFilterType: Bool { content.isKnownFilterType }
 
+    static func name(_ negated: Bool, _ isExact: Bool, _ name: String) -> SearchFilter {
+        .name(Name(negated, isExact, name))
+    }
+    
+    static func basic(_ negated: Bool, _ filter: String, _ comparison: Comparison, _ query: String) -> SearchFilter {
+        .basic(Basic(negated, filter, comparison, query))
+    }
+    
+    static func regex(_ negated: Bool, _ filter: String, _ comparison: Comparison, _ regex: String) -> SearchFilter {
+        .regex(Regex(negated, filter, comparison, regex))
+    }
+    
+    static func disjunction(_ negated: Bool, _ clauses: [Conjunction]) -> SearchFilter {
+        .disjunction(Disjunction(negated, clauses))
+    }
+
     struct Name: SearchFilterContent {
         let negated: Bool
         let isExact: Bool
         let name: String
+
+        init(_ negated: Bool, _ isExact: Bool, _ name: String) {
+            self.negated = negated
+            self.isExact = isExact
+            self.name = name
+        }
 
         var description: String {
             var prefix = ""
@@ -67,6 +88,13 @@ enum SearchFilter: SearchFilterContent {
         let comparison: Comparison
         let regex: String
 
+        init(_ negated: Bool, _ filter: String, _ comparison: Comparison, _ regex: String) {
+            self.negated = negated
+            self.filter = filter
+            self.comparison = comparison
+            self.regex = regex
+        }
+
         var description: String {
             "\(negated ? "-" : "")\(filter)\(comparison)/\(regex)/"
         }
@@ -88,6 +116,13 @@ enum SearchFilter: SearchFilterContent {
         let filter: String
         let comparison: Comparison
         let query: String
+
+        init(_ negated: Bool, _ filter: String, _ comparison: Comparison, _ query: String) {
+            self.negated = negated
+            self.filter = filter
+            self.comparison = comparison
+            self.query = query
+        }
 
         var description: String {
             return if query.contains(" ") {

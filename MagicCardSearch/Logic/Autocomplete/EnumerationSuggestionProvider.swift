@@ -71,7 +71,7 @@ struct EnumerationSuggestionProvider {
         }
         
         return Array(matchingOpts
-            .map { SearchFilter(partial.negated, .keyValue(filterTypeName.lowercased(), comparison, $0)) }
+            .map { SearchFilter.basic(partial.negated, filterTypeName.lowercased(), comparison, $0) }
             .filter { !excludedFilters.contains($0) }
             .map { filter in
                 if value.isEmpty {
