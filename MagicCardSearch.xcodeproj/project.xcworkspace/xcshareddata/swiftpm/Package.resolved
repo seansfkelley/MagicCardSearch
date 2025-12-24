@@ -1,5 +1,5 @@
 {
-  "originHash" : "f0e77c2e87840882deb4dbc2d765706df10b48668bd00f9d9b1d26a55fb4420a",
+  "originHash" : "c7aa710ee01c591d77b905490a5a79c4b54a38a0c622e5ff71d3abe150842bdb",
   "pins" : [
     {
       "identity" : "cocoalumberjack",
@@ -8,6 +8,15 @@
       "state" : {
         "revision" : "a9ed4b6f9bdedce7d77046f43adfb8ce1fd54114",
         "version" : "3.9.0"
+      }
+    },
+    {
+      "identity" : "focusonappear",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/seansfkelley/FocusOnAppear",
+      "state" : {
+        "branch" : "main",
+        "revision" : "d7e01f11e16980cd746a647555204c3ee12e1970"
       }
     },
     {

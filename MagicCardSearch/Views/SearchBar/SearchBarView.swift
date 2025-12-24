@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import FocusOnAppear
 
 struct SearchBarView: View {
     @Binding var filters: [SearchFilter]
@@ -53,7 +54,12 @@ struct SearchBarView: View {
                     isSearchBarVisible = false
                     onSubmit()
                 }
-                
+                .focusOnAppear(config: .init(
+                    keyboardType: .asciiCapable,
+                    returnKeyType: .search,
+                    autocapitalizationType: .none,
+                ))
+
                 if !inputText.isEmpty {
                     Button(action: {
                         inputText = ""

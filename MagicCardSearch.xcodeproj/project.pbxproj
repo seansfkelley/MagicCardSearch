@@ -11,6 +11,7 @@
 		210115BE2EEF9543000D6D32 /* NukeUI in Frameworks */ = {isa = PBXBuildFile; productRef = 210115BD2EEF9543000D6D32 /* NukeUI */; };
 		21058ADE2EF36FC700F093EF /* InMemoryLogging in Frameworks */ = {isa = PBXBuildFile; productRef = 21058ADD2EF36FC700F093EF /* InMemoryLogging */; };
 		21058AE02EF36FC700F093EF /* Logging in Frameworks */ = {isa = PBXBuildFile; productRef = 21058ADF2EF36FC700F093EF /* Logging */; };
+		210E13AA2EFC66C4009D9FE0 /* FocusOnAppear in Frameworks */ = {isa = PBXBuildFile; productRef = 210E13A92EFC66C4009D9FE0 /* FocusOnAppear */; };
 		21332B992EF5D04100C80208 /* Algorithms in Frameworks */ = {isa = PBXBuildFile; productRef = 21332B982EF5D04100C80208 /* Algorithms */; };
 		213F299A2EE9285400E058DB /* SVGKitSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 213F29992EE9285400E058DB /* SVGKitSwift */; };
 		21A856BD2EE3AAE400E72541 /* ScryfallKit in Frameworks */ = {isa = PBXBuildFile; productRef = 21A856BC2EE3AAE400E72541 /* ScryfallKit */; };
@@ -131,6 +132,7 @@
 				213F299A2EE9285400E058DB /* SVGKitSwift in Frameworks */,
 				21058AE02EF36FC700F093EF /* Logging in Frameworks */,
 				21D3972C2EE225C5008B3EFD /* WrappingHStack in Frameworks */,
+				210E13AA2EFC66C4009D9FE0 /* FocusOnAppear in Frameworks */,
 				21332B992EF5D04100C80208 /* Algorithms in Frameworks */,
 				21A856BD2EE3AAE400E72541 /* ScryfallKit in Frameworks */,
 				21058ADE2EF36FC700F093EF /* InMemoryLogging in Frameworks */,
@@ -242,6 +244,7 @@
 				21058ADD2EF36FC700F093EF /* InMemoryLogging */,
 				21058ADF2EF36FC700F093EF /* Logging */,
 				21332B982EF5D04100C80208 /* Algorithms */,
+				210E13A92EFC66C4009D9FE0 /* FocusOnAppear */,
 			);
 			productName = MagicCardSearch;
 			productReference = 2137B5AD2EE139C60066BF7E /* MagicCardSearch.app */;
@@ -338,6 +341,7 @@
 				210115BA2EEF9543000D6D32 /* XCRemoteSwiftPackageReference "Nuke" */,
 				21058ADC2EF36FC700F093EF /* XCRemoteSwiftPackageReference "swift-log" */,
 				21332B972EF5D04100C80208 /* XCRemoteSwiftPackageReference "swift-algorithms" */,
+				210E13A82EFC66C4009D9FE0 /* XCRemoteSwiftPackageReference "FocusOnAppear" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 2137B5AE2EE139C60066BF7E /* Products */;
@@ -822,6 +826,14 @@
 				minimumVersion = 1.8.0;
 			};
 		};
+		210E13A82EFC66C4009D9FE0 /* XCRemoteSwiftPackageReference "FocusOnAppear" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/seansfkelley/FocusOnAppear";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
 		21332B972EF5D04100C80208 /* XCRemoteSwiftPackageReference "swift-algorithms" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/apple/swift-algorithms.git";
@@ -884,6 +896,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 21058ADC2EF36FC700F093EF /* XCRemoteSwiftPackageReference "swift-log" */;
 			productName = Logging;
+		};
+		210E13A92EFC66C4009D9FE0 /* FocusOnAppear */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 210E13A82EFC66C4009D9FE0 /* XCRemoteSwiftPackageReference "FocusOnAppear" */;
+			productName = FocusOnAppear;
 		};
 		21332B982EF5D04100C80208 /* Algorithms */ = {
 			isa = XCSwiftPackageProductDependency;
