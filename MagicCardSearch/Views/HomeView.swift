@@ -219,11 +219,11 @@ private class FeaturedCardsState: ScryfallSearchResultsList {
 }
 // MARK: - Example Search
 
-struct ExampleSearch {
+struct ExampleSearch: Hashable {
     let title: String
     let filters: [SearchFilter]
     
-    private static let small: [ExampleSearch] = [
+    private static let examples: [ExampleSearch] = [
         .init(title: "All Modern-Legal U/R Pingers", filters: [
             .basic(false, "color", .lessThanOrEqual, "ur"),
             .basic(false, "function", .including, "pinger"),
@@ -262,9 +262,6 @@ struct ExampleSearch {
             .basic(false, "color", .including, "white"),
             .regex(false, "oracle", .including, "^sacrifice ~"),
         ]),
-    ]
-    
-    private static let medium: [ExampleSearch] = [
         .init(title: "Most Expensive 1-Drops in Standard", filters: [
             .basic(false, "manavalue", .equal, "1"),
             .basic(false, "format", .including, "standard"),
@@ -277,9 +274,6 @@ struct ExampleSearch {
             .basic(false, "order", .including, "edhrec"),
             .basic(false, "dir", .including, "asc"),
         ]),
-    ]
-    
-    private static let large: [ExampleSearch] = [
         .init(title: "Best Orzhov Commanders", filters: [
             .basic(false, "id", .equal, "orzhov"),
             .basic(false, "type", .including, "legendary"),
@@ -292,17 +286,24 @@ struct ExampleSearch {
     
     private static func dailySeed() -> Int {
         let components = Calendar.current.dateComponents([.year, .month, .day], from: Date())
-        return (components.year ?? 0) * 10000 + (components.month ?? 0) * 100 + (components.day ?? 0)
+        return (components.year ?? 0) * 97 + (components.month ?? 0) * 31 + (components.day ?? 0)
     }
     
     static var dailyExamples: [ExampleSearch] {
-        let seed = dailySeed()
         // Swift doesn't have seedable RNGs in the standard library, so just bang together a one-off
-        // calculation for our purposes.
-        return [
-            small[seed.hashValue % small.count],
-            medium[(seed * 31).hashValue % medium.count],
-            large[(seed * 97).hashValue % large.count],
-        ]
+        // calculation for our purposes. This is so it doesn't change every. single. time. it renders.
+        let seed = dailySeed()
+
+        var chosenExamples: [ExampleSearch] = []
+        for i in [7, 37, 89] {
+            for j in 0..<examples.count {
+                let example = examples[(seed * i + j) % examples.count]
+                if !chosenExamples.contains(example) {
+                    chosenExamples.append(example)
+                    break
+                }
+            }
+        }
+        return chosenExamples
     }
 }
