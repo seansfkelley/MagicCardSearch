@@ -113,7 +113,7 @@ class CombinedSuggestionProvider {
             )
             allSuggestions.append(contentsOf: enumerationSuggestions.map { Suggestion.enumeration($0) })
             
-            continuation.yield(self.scoreSuggestions(allSuggestions))
+            continuation.yield(self.scoreSuggestions(allSuggestions, !searchTerm.isEmpty))
 
             guard loadingState.isStillCurrent(id: currentTaskId) else {
                 continuation.finish()
@@ -133,7 +133,7 @@ class CombinedSuggestionProvider {
                 
                 allSuggestions.append(contentsOf: nameSuggestions.map { Suggestion.name($0) })
 
-                continuation.yield(self.scoreSuggestions(allSuggestions))
+                continuation.yield(self.scoreSuggestions(allSuggestions, !searchTerm.isEmpty))
 
                 loadingState.stop(for: currentTaskId)
                 
@@ -142,11 +142,19 @@ class CombinedSuggestionProvider {
         }
     }
     
-    private func scoreSuggestions(_ suggestions: [Suggestion]) -> [Suggestion] {
-        suggestions.sorted(using: [
-            KeyPathComparator(\.prefixKind.rawValue),
-            KeyPathComparator(\.suggestionLength),
-            KeyPathComparator(\.priority),
-        ])
+    private func scoreSuggestions(_ suggestions: [Suggestion], _ hasSearchTerm: Bool) -> [Suggestion] {
+        if hasSearchTerm {
+            suggestions.sorted(using: [
+                KeyPathComparator(\.prefixKind.rawValue),
+                KeyPathComparator(\.suggestionLength),
+                KeyPathComparator(\.priority),
+            ])
+        } else {
+            suggestions.sorted(using: [
+                KeyPathComparator(\.priority),
+                KeyPathComparator(\.prefixKind.rawValue),
+                KeyPathComparator(\.suggestionLength),
+            ])
+        }
     }
 }

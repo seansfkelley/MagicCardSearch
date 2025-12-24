@@ -20,7 +20,24 @@ struct SearchSheetView: View {
     @State private var provider: CombinedSuggestionProvider
     @State private var showSyntaxReference = false
 
-    init() {
+    init(
+        inputText: Binding<String>,
+        inputSelection: Binding<TextSelection?>,
+        filters: Binding<[SearchFilter]>,
+        warnings: [String],
+        searchHistoryTracker: SearchHistoryTracker,
+        onClearAll: @escaping () -> Void,
+        onSubmit: @escaping () -> Void
+    ) {
+        _inputText = inputText
+        _inputSelection = inputSelection
+        _filters = filters
+        self.warnings = warnings
+        self.searchHistoryTracker = searchHistoryTracker
+        self.onClearAll = onClearAll
+        self.onSubmit = onSubmit
+
+        // This is why we have to have a custom initializer. :/
         _provider = State(initialValue: CombinedSuggestionProvider(
             pinnedFilter: PinnedFilterSuggestionProvider(),
             history: HistorySuggestionProvider(with: searchHistoryTracker),
@@ -46,11 +63,28 @@ struct SearchSheetView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button {
+                        dismiss()
+                    } label: {
+                        Image(systemName: "xmark")
+                    }
+                }
+                
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
                         showSyntaxReference = true
                     } label: {
                         Image(systemName: "book")
-                        Text("Syntax Reference")
                     }
+                }
+
+                ToolbarItem(placement: .confirmationAction) {
+                    Button {
+                        dismiss()
+                        onSubmit()
+                    } label: {
+                        Image(systemName: "checkmark")
+                    }
+                    .buttonStyle(.glassProminent)
                 }
             }
             .safeAreaInset(edge: .bottom) {

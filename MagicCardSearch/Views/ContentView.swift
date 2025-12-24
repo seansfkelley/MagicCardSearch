@@ -171,6 +171,7 @@ struct ContentView: View {
         searchFilters.removeAll()
         inputText = ""
         inputSelection = nil
+        searchResultsState.current = .unloaded
         mainContentType = .results
         isSearchSheetVisible = true
     }
