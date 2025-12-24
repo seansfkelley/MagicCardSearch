@@ -11,6 +11,7 @@ struct SearchBarView: View {
     @Binding var filters: [SearchFilter]
     @Binding var inputText: String
     @Binding var inputSelection: TextSelection?
+    @Binding var isSearchBarVisible: Bool
 
     @FocusState var isSearchFocused: Bool
     @State private var showSymbolPicker = false
@@ -49,8 +50,7 @@ struct SearchBarView: View {
                 .submitLabel(.search)
                 .onSubmit {
                     createNewFilterFromSearch(fallbackToNameFilter: true)
-                    // Perform search and unfocus
-                    isSearchFocused = false
+                    isSearchBarVisible = false
                     onSubmit()
                 }
                 
@@ -80,23 +80,19 @@ struct SearchBarView: View {
                     }
                     .presentationCompactAdaptation(.popover)
                 }
-                .if(!isSearchFocused) { view in
-                    // Do it this way to ensure we still contribute to layout!
-                    view.hidden()
-                }
             }
         }
         .padding(.vertical, 8)
         .padding(.horizontal, 12)
-        .onTapGesture {
-            isSearchFocused = true
-        }
         .onChange(of: inputText) { previous, current in
             if Self.didAppendSpace(previous, current, inputSelection) {
                 createNewFilterFromSearch()
             } else if let corrected = removeAutoinsertedWhitespace(current), corrected != current {
                 inputText = corrected
             }
+        }
+        .onAppear {
+            isSearchFocused = true
         }
     }
 

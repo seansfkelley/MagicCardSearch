@@ -27,12 +27,10 @@ struct ContentView: View {
     @State private var inputSelection: TextSelection?
     @State private var pendingSelection: TextSelection?
     @State private var searchResultsState = ScryfallSearchResultsList()
-    @State private var showWarningsPopover = false
     @State private var searchTask: Task<Void, Never>?
     @State private var mainContentType: MainContentType = .home
     @State private var isSearchBarVisible: Bool = false
-    @FocusState private var isSearchFocused: Bool
-    
+
     private let searchService = CardSearchService()
     
     private var filterFacade: CurrentlyHighlightedFilterFacade {
@@ -65,18 +63,7 @@ struct ContentView: View {
                         startNewSearch()
                     }
                 case .results:
-                    if isSearchFocused {
-                        AutocompleteView(
-                            filterText: filterFacade.currentFilter,
-                            provider: autocompleteProvider,
-                            searchHistoryTracker: searchHistoryTracker,
-                            filters: searchFilters,
-                            isSearchFocused: isSearchFocused,
-                            onSuggestionTap: handleSuggestionTap,
-                        )
-                    } else {
-                        SearchResultsGridView(state: searchResultsState)
-                    }
+                    SearchResultsGridView(state: searchResultsState)
                 }
             }
             .contentShape(Rectangle())
@@ -89,24 +76,18 @@ struct ContentView: View {
                         searchFilters.removeAll()
                         inputText = ""
                         inputSelection = nil
-                        isSearchFocused = true
+                        isSearchBarVisible = true
                     }
                 )
             }
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    ControlGroup {
+                if mainContentType == .results {
+                    ToolbarItem(placement: .topBarLeading) {
                         Button {
                             pendingSearchConfig = searchConfig
                             showDisplaySheet = true
                         } label: {
                             Image(systemName: "arrow.up.arrow.down")
-                        }
-                        
-                        Button {
-                            showSyntaxReference = true
-                        } label: {
-                            Image(systemName: "book")
                         }
                     }
                 }
@@ -114,7 +95,7 @@ struct ContentView: View {
                 ToolbarItem(placement: .principal) {
                     Button {
                         mainContentType = .home
-                        isSearchFocused = false
+                        isSearchBarVisible = false
                     } label: {
                         Image("HeaderIcon")
                             .resizable()
@@ -134,17 +115,18 @@ struct ContentView: View {
                         Image(systemName: "bookmark.circle")
                     }
                 }
-                
-                ToolbarItem(placement: .topBarTrailing) {
-                    ShareLink(
-                        item: CardSearchService
-                            .buildSearchURL(filters: searchFilters, config: searchConfig, forAPI: false) ?? URL(
-                                string: "https://scryfall.com"
-                            )!
-                    ) {
-                        Image(systemName: "square.and.arrow.up")
+
+                if mainContentType == .results {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        ShareLink(
+                            item: CardSearchService
+                                .buildSearchURL(filters: searchFilters, config: searchConfig, forAPI: false) ?? URL(
+                                    string: "https://scryfall.com"
+                                )!
+                        ) {
+                            Image(systemName: "square.and.arrow.up")
+                        }
                     }
-                    .disabled(searchFilters.isEmpty || isSearchFocused)
                 }
             }
             .toolbarBackground(.hidden, for: .navigationBar)
@@ -153,8 +135,8 @@ struct ContentView: View {
         .onChange(of: searchConfig) {
             startNewSearch(keepingCurrentResults: true)
         }
-        .onChange(of: isSearchFocused) { _, isFocused in
-            if isFocused {
+        .onChange(of: isSearchBarVisible) { _, isVisible in
+            if isVisible {
                 mainContentType = .results
             }
         }
@@ -188,22 +170,39 @@ struct ContentView: View {
         .sheet(isPresented: $showBookmarkedCardList) {
             BookmarkedCardsListView()
         }
-        .simultaneousGesture(
-            TapGesture()
-                .onEnded { _ in
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                        showWarningsPopover = false
+        .sheet(isPresented: $isSearchBarVisible) {
+            AutocompleteView(
+                filterText: filterFacade.currentFilter,
+                provider: autocompleteProvider,
+                searchHistoryTracker: searchHistoryTracker,
+                filters: searchFilters,
+                isSearchFocused: isSearchBarVisible,
+                onSuggestionTap: handleSuggestionTap,
+            )
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        showSyntaxReference = true
+                    } label: {
+                        Image(systemName: "book")
                     }
                 }
-        )
-        .simultaneousGesture(
-            DragGesture(minimumDistance: 1)
-                .onChanged { _ in
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                        showWarningsPopover = false
-                    }
-                }
-        )
+            }
+            .safeAreaInset(edge: .bottom) {
+                BottomBarFilterViewWithSearch(
+                    filters: $searchFilters,
+                    inputText: $inputText,
+                    inputSelection: $inputSelection,
+                    pendingSelection: $pendingSelection,
+                    warnings: searchResultsState.current.latestValue?.warnings ?? [],
+                    onFilterEdit: handleFilterEdit,
+                    searchHistoryTracker: searchHistoryTracker,
+                    onSubmit: { startNewSearch() },
+                    autocompleteProvider: autocompleteProvider,
+                    isSearchBarVisible: $isSearchBarVisible,
+                )
+            }
+        }
     }
     
     // MARK: - Helper Methods
@@ -261,12 +260,12 @@ struct ContentView: View {
         
         // Unfortunate, but seems to be the only way that we can reliably focus the
         // text whether or not the text field is currently focused.
-        if isSearchFocused {
-            inputSelection = selection
-        } else {
-            pendingSelection = selection
-            isSearchFocused = true
-        }
+//        if isSearchFocused {
+//            inputSelection = selection
+//        } else {
+//            pendingSelection = selection
+//            isSearchFocused = true
+//        }
     }
     
     private func handleSuggestionTap(_ suggestion: AutocompleteView.AcceptedSuggestion) {

@@ -12,16 +12,16 @@ struct BottomBarFilterViewWithSearch: View {
     @Binding var inputText: String
     @Binding var inputSelection: TextSelection?
     @Binding var pendingSelection: TextSelection?
-    @FocusState var isSearchFocused: Bool
     let warnings: [String]
-    @Binding var showWarningsPopover: Bool
     let onFilterEdit: (SearchFilter) -> Void
     let searchHistoryTracker: SearchHistoryTracker
     let onSubmit: () -> Void
-    @State var searchIconOpacity: CGFloat = 1
-    
-    /// The autocomplete provider to observe for loading state
     @Bindable var autocompleteProvider: CombinedSuggestionProvider
+    @Binding var isSearchBarVisible: Bool
+    @FocusState var isSearchFocused: Bool
+
+    @State var showWarningsPopover: Bool = false
+    @State var searchIconOpacity: CGFloat = 1
     
     @Namespace private var animation
     
@@ -41,158 +41,66 @@ struct BottomBarFilterViewWithSearch: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack(alignment: .bottom) {
-                if isSearchFocused || showWarningsPopover {
-                    WarningsPillView(
-                        warnings: warnings,
-                        mode: .pill,
-                        isExpanded: $showWarningsPopover
-                    )
-                    .matchedGeometryEffect(id: "warnings", in: animation)
-                }
-                
-                if isSearchFocused {
-                    Spacer()
-                    
-                    ClearAllButton(
-                        filters: filters,
-                        mode: .pill,
-                        onClearAll: onClearAll,
-                    )
-                    .matchedGeometryEffect(id: "clearAll", in: animation)
-                }
+                WarningsPillView(
+                    warnings: warnings,
+                    mode: .pill,
+                    isExpanded: $showWarningsPopover
+                )
+                .matchedGeometryEffect(id: "warnings", in: animation)
+
+                Spacer()
+
+                ClearAllButton(
+                    filters: filters,
+                    mode: .pill,
+                    onClearAll: onClearAll,
+                )
+                .matchedGeometryEffect(id: "clearAll", in: animation)
             }
-            .padding(.bottom, isSearchFocused || showWarningsPopover ? 8 : 0)
-            
-            HStack {
-                if !isSearchFocused && !showWarningsPopover {
-                    WarningsPillView(
-                        warnings: warnings,
-                        mode: .icon(collapsedButtonSize),
-                        isExpanded: $showWarningsPopover
-                    )
-                    .matchedGeometryEffect(id: "warnings", in: animation)
-                }
-                
-                VStack(spacing: 0) {
-                    if isSearchFocused && !filters.isEmpty {
-                        ScrollView {
-                            GlassEffectContainer(spacing: 8) {
-                                ReflowingFilterPillsView(
-                                    filters: $filters,
-                                    onFilterEdit: onFilterEdit
-                                )
-                            }
-                            .padding(.vertical, 8)
-                            .padding(.horizontal, 12)
+            .padding(.bottom, 8)
+
+            VStack(spacing: 0) {
+                if !filters.isEmpty {
+                    ScrollView {
+                        GlassEffectContainer(spacing: 8) {
+                            ReflowingFilterPillsView(
+                                filters: $filters,
+                                onFilterEdit: onFilterEdit
+                            )
                         }
-                        .frame(maxHeight: maxPillsHeight)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .mask {
-                            VStack(spacing: 0) {
-                                Rectangle()
-                                LinearGradient(
-                                    colors: [.black, .clear],
-                                    startPoint: .top,
-                                    endPoint: .bottom
-                                )
-                                .frame(height: 20)
-                            }
+                        .padding(.vertical, 8)
+                        .padding(.horizontal, 12)
+                    }
+                    .frame(maxHeight: maxPillsHeight)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .mask {
+                        VStack(spacing: 0) {
+                            Rectangle()
+                            LinearGradient(
+                                colors: [.black, .clear],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                            .frame(height: 20)
                         }
-                        
-                        Divider()
-                            .padding(.horizontal)
                     }
 
-                    SearchBarView(
-                        filters: $filters,
-                        inputText: $inputText,
-                        inputSelection: $inputSelection,
-                        isSearchFocused: _isSearchFocused,
-                        autocompleteProvider: autocompleteProvider,
-                        searchHistoryTracker: searchHistoryTracker,
-                        onSubmit: onSubmit
-                    )
-                    // In order to use isSearchFocused as the one and only state management for
-                    // expanded/collapsed state, we need to (1) make sure that the TextField in this
-                    // component is always rendered so that it _can_ take focus, and (2) that we
-                    // don't conditionally create slightly different views depending on focus state.
-                    // An earlier implementation of this used the `if` modifier for the latter,
-                    // which triggered an infinite loop of observable changes. The workaround is
-                    // here: ternaries, with `frame` and `clipped` being called unconditionally.
-                    .frame(
-                        width: isSearchFocused || filters.isEmpty ? nil : 0,
-                        height: isSearchFocused || filters.isEmpty ? nil : 0
-                    )
-                    .clipped()
-                    
-                    if !isSearchFocused && !filters.isEmpty {
-                        ZStack {
-                            HStack {
-                                Group {
-                                    if autocompleteProvider.loadingState.isLoadingDebounced {
-                                        ProgressView()
-                                            .controlSize(.small)
-                                    } else {
-                                        Image(systemName: "magnifyingglass")
-                                    }
-                                }
-                                .foregroundStyle(.secondary)
-                                .frame(width: 16, height: 16)
-                                .padding(12)
-                                .opacity(searchIconOpacity)
-                                Spacer()
-                            }
-                            
-                            ScrollView(.horizontal, showsIndicators: false) {
-                                HStack(spacing: 8) {
-                                    Image(systemName: "magnifyingglass")
-                                        .frame(width: 16, height: 16)
-                                        .padding(.trailing, 12)
-                                        .hidden()
-                                    
-                                    ForEach(Array(filters.enumerated()), id: \.offset) { _, filter in
-                                        FilterPillView(filter: filter)
-                                    }
-                                }
-                                .padding(.horizontal, 4)
-                            }
-                            .onScrollGeometryChange(
-                                for: CGFloat.self,
-                                of: { geometry in
-                                    let x = geometry.contentOffset.x
-                                    return x > searchIconFadeExtent ? searchIconFadeExtent : x < 0 ? 0 : x
-                                },
-                                action: { _, currentValue in
-                                    searchIconOpacity = (searchIconFadeExtent - currentValue) / searchIconFadeExtent
-                                })
-                            .clipShape(.capsule)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: collapsedButtonSize)
-                        }
-                    }
+                    Divider()
+                        .padding(.horizontal)
                 }
-                .contentShape(Rectangle())
-                .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 20))
-                .simultaneousGesture(
-                    TapGesture()
-                        .onEnded { _ in
-                            isSearchFocused = true
-                        }
+
+                SearchBarView(
+                    filters: $filters,
+                    inputText: $inputText,
+                    inputSelection: $inputSelection,
+                    isSearchBarVisible: $isSearchBarVisible,
+                    autocompleteProvider: autocompleteProvider,
+                    searchHistoryTracker: searchHistoryTracker,
+                    onSubmit: onSubmit
                 )
-                
-                if !isSearchFocused {
-                    // No idea why this is here when there is no equivalent for the warnings view,
-                    // which doesn't seem to need it to keep itself spaced out from the pills view.
-                    Spacer()
-                    
-                    ClearAllButton(
-                        filters: filters,
-                        mode: .icon(collapsedButtonSize),
-                        onClearAll: onClearAll,
-                    )
-                    .matchedGeometryEffect(id: "clearAll", in: animation)
-                }
             }
+            .contentShape(Rectangle())
+            .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 20))
         }
         .padding(.horizontal)
         .padding(.bottom)
