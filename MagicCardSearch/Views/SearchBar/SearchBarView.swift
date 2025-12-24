@@ -12,15 +12,11 @@ struct SearchBarView: View {
     @Binding var filters: [SearchFilter]
     @Binding var inputText: String
     @Binding var inputSelection: TextSelection?
-    @Binding var isSearchBarVisible: Bool
-
-    @FocusState var isSearchFocused: Bool
-    @State private var showSymbolPicker = false
-    
     @Bindable var autocompleteProvider: CombinedSuggestionProvider
-    
     let searchHistoryTracker: SearchHistoryTracker
     let onSubmit: () -> Void
+
+    @State private var showSymbolPicker = false
 
     var body: some View {
         ZStack {
@@ -42,7 +38,6 @@ struct SearchBarView: View {
                     selection: $inputSelection
                 )
                 .textFieldStyle(.plain)
-                .focused($isSearchFocused)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled(true)
                 .textContentType(.none)
@@ -51,7 +46,6 @@ struct SearchBarView: View {
                 .submitLabel(.search)
                 .onSubmit {
                     createNewFilterFromSearch(fallbackToNameFilter: true)
-                    isSearchBarVisible = false
                     onSubmit()
                 }
                 .focusOnAppear(config: .init(
@@ -96,9 +90,6 @@ struct SearchBarView: View {
             } else if let corrected = removeAutoinsertedWhitespace(current), corrected != current {
                 inputText = corrected
             }
-        }
-        .onAppear {
-            isSearchFocused = true
         }
     }
 

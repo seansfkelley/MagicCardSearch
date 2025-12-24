@@ -25,7 +25,6 @@ struct ContentView: View {
     @State private var pendingSearchConfig: SearchConfiguration?
     @State private var autocompleteProvider: CombinedSuggestionProvider
     @State private var inputSelection: TextSelection?
-    @State private var pendingSelection: TextSelection?
     @State private var searchResultsState = ScryfallSearchResultsList()
     @State private var searchTask: Task<Void, Never>?
     @State private var mainContentType: MainContentType = .home
@@ -71,14 +70,18 @@ struct ContentView: View {
                 FakeSearchBarButtonView(
                     filters: searchFilters,
                     warnings: searchResultsState.current.latestValue?.warnings ?? [],
-                    isSearchBarVisible: $isSearchBarVisible,
-                    onClearAll: {
-                        searchFilters.removeAll()
-                        inputText = ""
-                        inputSelection = nil
+                    onClearAll: handleClearAll,
+                ) {
+                    switch mainContentType {
+                    case .home:
+                        mainContentType = .results
+                        if searchFilters.isEmpty {
+                            isSearchBarVisible = true
+                        }
+                    case .results:
                         isSearchBarVisible = true
                     }
-                )
+                }
             }
             .toolbar {
                 if mainContentType == .results {
@@ -188,18 +191,19 @@ struct ContentView: View {
                     }
                 }
                 .safeAreaInset(edge: .bottom) {
-                    BottomBarFilterViewWithSearch(
+                    SearchBarAndPillsView(
                         filters: $searchFilters,
+                        warnings: searchResultsState.current.latestValue?.warnings ?? [],
                         inputText: $inputText,
                         inputSelection: $inputSelection,
-                        pendingSelection: $pendingSelection,
-                        warnings: searchResultsState.current.latestValue?.warnings ?? [],
-                        onFilterEdit: handleFilterEdit,
-                        searchHistoryTracker: searchHistoryTracker,
-                        onSubmit: { startNewSearch() },
                         autocompleteProvider: autocompleteProvider,
-                        isSearchBarVisible: $isSearchBarVisible,
-                    )
+                        searchHistoryTracker: searchHistoryTracker,
+                        onFilterEdit: handleFilterEdit,
+                        onClearAll: handleClearAll,
+                    ) {
+                        isSearchBarVisible = false
+                        startNewSearch()
+                    }
                 }
                 .sheet(isPresented: $showSyntaxReference) {
                     SyntaxReferenceView()
@@ -209,7 +213,14 @@ struct ContentView: View {
     }
     
     // MARK: - Helper Methods
-    
+
+    private func handleClearAll() {
+        searchFilters.removeAll()
+        inputText = ""
+        inputSelection = nil
+        isSearchBarVisible = true
+    }
+
     private func startNewSearch(keepingCurrentResults: Bool = false) {
         mainContentType = .results
         
@@ -259,16 +270,7 @@ struct ContentView: View {
     
     private func handleFilterEdit(_ filter: SearchFilter) {
         inputText = filter.description
-        let selection = TextSelection(range: filter.suggestedEditingRange)
-        
-        // Unfortunate, but seems to be the only way that we can reliably focus the
-        // text whether or not the text field is currently focused.
-//        if isSearchFocused {
-//            inputSelection = selection
-//        } else {
-//            pendingSelection = selection
-//            isSearchFocused = true
-//        }
+        inputSelection = TextSelection(range: filter.suggestedEditingRange)
     }
     
     private func handleSuggestionTap(_ suggestion: AutocompleteView.AcceptedSuggestion) {

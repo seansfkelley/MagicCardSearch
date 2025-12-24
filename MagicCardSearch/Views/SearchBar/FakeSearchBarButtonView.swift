@@ -10,25 +10,15 @@ import SwiftUI
 struct FakeSearchBarButtonView: View {
     var filters: [SearchFilter]
     let warnings: [String]
-    @Binding var isSearchBarVisible: Bool
     var onClearAll: () -> Void
+    var onTap: () -> Void
 
     @State var showWarningsPopover: Bool = false
     @State var searchIconOpacity: CGFloat = 1
     @Namespace private var animation
     
-    private let collapsedButtonSize: CGFloat = 44
+    private let buttonSize: CGFloat = 44
     private let searchIconFadeExtent: CGFloat = 24
-    
-    // Calculate max height based on pill dimensions without hardcoding
-    // Each pill is 32pt tall with 8pt spacing = 40pt per line
-    // 3.5 lines = 3.5 * 40 = 140pt
-    private var maxPillsHeight: CGFloat {
-        let pillHeight: CGFloat = 32
-        let lineSpacing: CGFloat = 8
-        let lines: CGFloat = 4
-        return (pillHeight + lineSpacing) * lines
-    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -48,7 +38,7 @@ struct FakeSearchBarButtonView: View {
                 if !showWarningsPopover {
                     WarningsPillView(
                         warnings: warnings,
-                        mode: .icon(collapsedButtonSize),
+                        mode: .icon(buttonSize),
                         isExpanded: $showWarningsPopover
                     )
                     .matchedGeometryEffect(id: "warnings", in: animation)
@@ -63,6 +53,7 @@ struct FakeSearchBarButtonView: View {
                             .padding(.leading, 12)
                             .padding(.trailing, 4)
                             .opacity(searchIconOpacity)
+
                         if filters.isEmpty {
                             Text("Search for cards...")
                                 .foregroundStyle(.tertiary)
@@ -95,126 +86,28 @@ struct FakeSearchBarButtonView: View {
                         })
                     .clipShape(.capsule)
                     .frame(maxWidth: .infinity)
-                    .frame(height: collapsedButtonSize)
+                    .frame(height: buttonSize)
                 }
                 .contentShape(Rectangle())
                 .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 20))
-                .simultaneousGesture(
-                    TapGesture()
-                        .onEnded { _ in
-                            isSearchBarVisible = true
-                        }
-                )
+                .simultaneousGesture(TapGesture().onEnded { onTap() })
                 
                 // No idea why this is here when there is no equivalent for the warnings view,
                 // which doesn't seem to need it to keep itself spaced out from the pills view.
                 Spacer()
 
-                ClearAllButton(
-                    filters: filters,
-                    mode: .icon(collapsedButtonSize),
-                    onClearAll: onClearAll,
-                )
-                .matchedGeometryEffect(id: "clearAll", in: animation)
+                if !filters.isEmpty {
+                    Button(role: .destructive, action: onClearAll) {
+                        Image(systemName: "xmark")
+                            .foregroundStyle(.red)
+                            .font(.system(size: 20))
+                            .frame(width: buttonSize, height: buttonSize)
+                            .glassEffect(.regular.interactive(), in: .circle)
+                    }
+                }
             }
         }
         .padding(.horizontal)
         .padding(.bottom)
-    }
-}
-
-private enum HelperButtonMode {
-    case pill, icon(CGFloat)
-}
-
-// MARK: - Warnings Pill View
-
-private struct WarningsPillView: View {
-    let warnings: [String]
-    let mode: HelperButtonMode
-    @Binding var isExpanded: Bool
-    
-    var body: some View {
-        if warnings.isEmpty {
-            EmptyView()
-        } else if isExpanded {
-            VStack(alignment: .leading, spacing: 0) {
-                ForEach(Array(warnings.enumerated()), id: \.offset) { index, warning in
-                    Text(warning)
-                        .font(.subheadline)
-                        .foregroundStyle(.orange)
-                        .multilineTextAlignment(.leading)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 12)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    
-                    if index < warnings.count - 1 {
-                        Divider()
-                            .padding(.horizontal, 12)
-                    }
-                }
-            }
-            .onTapGesture {
-                if isExpanded {
-                    withAnimation(.spring(response: 0.2, dampingFraction: 0.8)) {
-                        isExpanded = false
-                    }
-                }
-            }
-            .glassEffect(.regular.interactive(), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-        } else {
-            Button(action: {
-                withAnimation(.spring(response: 0.2, dampingFraction: 0.8)) {
-                    isExpanded = true
-                }
-            }) {
-                switch mode {
-                case .icon(let size):
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .foregroundStyle(.orange)
-                        .font(.system(size: 20))
-                        .frame(width: size, height: size)
-                        .glassEffect(.regular.interactive(), in: .circle)
-                case .pill:
-                    Text(warnings.count == 1 ? "1 warning" : "\(warnings.count) warnings")
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                        .foregroundStyle(.orange)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 6)
-                        .glassEffect(.regular.interactive(), in: .capsule)
-                }
-            }
-        }
-    }
-}
-
-private struct ClearAllButton: View {
-    let filters: [SearchFilter]
-    let mode: HelperButtonMode
-    let onClearAll: () -> Void
-    
-    var body: some View {
-        if filters.isEmpty {
-            EmptyView()
-        } else {
-            Button(role: .destructive, action: onClearAll) {
-                switch mode {
-                case .icon(let size):
-                    Image(systemName: "xmark")
-                        .foregroundStyle(.red)
-                        .font(.system(size: 20))
-                        .frame(width: size, height: size)
-                        .glassEffect(.regular.interactive(), in: .circle)
-                case .pill:
-                    Text("Clear all")
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                        .padding(.horizontal)
-                        .padding(.vertical, 6)
-                        .glassEffect(.regular.interactive(), in: .capsule)
-                }
-            }
-        }
     }
 }
