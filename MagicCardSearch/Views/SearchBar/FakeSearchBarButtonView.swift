@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct NoninteractiveSearchBarView: View {
+struct FakeSearchBarButtonView: View {
     var filters: [SearchFilter]
     let warnings: [String]
     @Binding var isSearchBarVisible: Bool
@@ -59,11 +59,13 @@ struct NoninteractiveSearchBarView: View {
                         Image(systemName: "magnifyingglass")
                             .foregroundStyle(.secondary)
                             .frame(width: 16, height: 16)
-                            .padding(12)
+                            .padding(.vertical, 12)
+                            .padding(.leading, 12)
+                            .padding(.trailing, 4)
                             .opacity(searchIconOpacity)
                         if filters.isEmpty {
                             Text("Search for cards...")
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(.tertiary)
                         }
                         Spacer()
                     }
@@ -72,7 +74,8 @@ struct NoninteractiveSearchBarView: View {
                         HStack(spacing: 8) {
                             Image(systemName: "magnifyingglass")
                                 .frame(width: 16, height: 16)
-                                .padding(.trailing, 12)
+                                .padding(.leading, 4)
+                                .padding(.trailing, 4)
                                 .hidden()
 
                             ForEach(Array(filters.enumerated()), id: \.offset) { _, filter in

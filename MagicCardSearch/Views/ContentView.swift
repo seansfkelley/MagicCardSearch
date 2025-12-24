@@ -68,7 +68,7 @@ struct ContentView: View {
             }
             .contentShape(Rectangle())
             .safeAreaInset(edge: .bottom) {
-                NoninteractiveSearchBarView(
+                FakeSearchBarButtonView(
                     filters: searchFilters,
                     warnings: searchResultsState.current.latestValue?.warnings ?? [],
                     isSearchBarVisible: $isSearchBarVisible,
