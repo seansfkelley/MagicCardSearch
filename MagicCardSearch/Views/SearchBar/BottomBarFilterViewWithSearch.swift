@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct BottomBarFilterView: View {
+struct BottomBarFilterViewWithSearch: View {
     @Binding var filters: [SearchFilter]
     @Binding var inputText: String
     @Binding var inputSelection: TextSelection?

@@ -30,6 +30,7 @@ struct ContentView: View {
     @State private var showWarningsPopover = false
     @State private var searchTask: Task<Void, Never>?
     @State private var mainContentType: MainContentType = .home
+    @State private var isSearchBarVisible: Bool = false
     @FocusState private var isSearchFocused: Bool
     
     private let searchService = CardSearchService()
@@ -80,18 +81,16 @@ struct ContentView: View {
             }
             .contentShape(Rectangle())
             .safeAreaInset(edge: .bottom) {
-                BottomBarFilterView(
-                    filters: $searchFilters,
-                    inputText: $inputText,
-                    inputSelection: $inputSelection,
-                    pendingSelection: $pendingSelection,
-                    isSearchFocused: _isSearchFocused,
+                NoninteractiveSearchBarView(
+                    filters: searchFilters,
                     warnings: searchResultsState.current.latestValue?.warnings ?? [],
-                    showWarningsPopover: $showWarningsPopover,
-                    onFilterEdit: handleFilterEdit,
-                    searchHistoryTracker: searchHistoryTracker,
-                    onSubmit: { startNewSearch() },
-                    autocompleteProvider: autocompleteProvider
+                    isSearchBarVisible: $isSearchBarVisible,
+                    onClearAll: {
+                        searchFilters.removeAll()
+                        inputText = ""
+                        inputSelection = nil
+                        isSearchFocused = true
+                    }
                 )
             }
             .toolbar {
