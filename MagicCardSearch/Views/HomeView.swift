@@ -225,29 +225,68 @@ struct ExampleSearch {
     
     private static let small: [ExampleSearch] = [
         .init(title: "All Modern-Legal U/R Pingers", filters: [
-            SearchFilter.basic(false, "color", .lessThanOrEqual, "ur"),
-            SearchFilter.basic(false, "function", .including, "pinger"),
-            SearchFilter.basic(false, "format", .including, "modern"),
+            .basic(false, "color", .lessThanOrEqual, "ur"),
+            .basic(false, "function", .including, "pinger"),
+            .basic(false, "format", .including, "modern"),
+        ]),
+        .init(title: "Biggest Dragons", filters: [
+            .basic(false, "type", .including, "dragon"),
+            .basic(false, "order", .including, "power"),
+            .basic(false, "dir", .including, "desc"),
+        ]),
+        .init(title: "Big Green Devotion Contributors", filters: [
+            .basic(false, "mana", .greaterThanOrEqual, "{G}{G}{G}"),
+            .basic(false, "is", .including, "permanent"),
+        ]),
+        .init(title: "All Non-basic-land Textless Cards", filters: [
+            .basic(false, "is", .including, "textless"),
+            .basic(true, "type", .including, "basic"),
+        ]),
+        .init(title: "Five-color Artifacts", filters: [
+            .basic(false, "type", .including, "artifact"),
+            .basic(false, "id", .equal, "5"),
+        ]),
+        .init(title: "Unusual, Non-un-card Rules", filters: [
+            .basic(false, "function", .including, "fun-ruling"),
+            .basic(true, "is", .including, "funny"),
+        ]),
+        .init(title: "Future Sight Frames", filters: [
+            .basic(false, "frame", .including, "future"),
+        ]),
+        .init(title: "Cheap, Top-heavy Red Creatures", filters: [
+            .basic(false, "power", .greaterThan, "toughness"),
+            .basic(false, "color", .equal, "red"),
+            .basic(false, "manavalue", .lessThanOrEqual, "2"),
+        ]),
+        .init(title: "White Self-sacrifice", filters: [
+            .basic(false, "color", .including, "white"),
+            .regex(false, "oracle", .including, "^sacrifice ~"),
         ]),
     ]
     
     private static let medium: [ExampleSearch] = [
         .init(title: "Most Expensive 1-Drops in Standard", filters: [
-            SearchFilter.basic(false, "manavalue", .equal, "1"),
-            SearchFilter.basic(false, "format", .including, "standard"),
-            SearchFilter.basic(false, "order", .including, "usd"),
-            SearchFilter.basic(false, "dir", .including, "desc"),
+            .basic(false, "manavalue", .equal, "1"),
+            .basic(false, "format", .including, "standard"),
+            .basic(false, "order", .including, "usd"),
+            .basic(false, "dir", .including, "desc"),
+        ]),
+        .init(title: "Best Boros Combat Tricks", filters: [
+            .basic(false, "color", .lessThanOrEqual, "boros"),
+            .basic(false, "function", .including, "combat-trick"),
+            .basic(false, "order", .including, "edhrec"),
+            .basic(false, "dir", .including, "asc"),
         ]),
     ]
     
     private static let large: [ExampleSearch] = [
         .init(title: "Best Orzhov Commanders", filters: [
-            SearchFilter.basic(false, "id", .equal, "orzhov"),
-            SearchFilter.basic(false, "type", .including, "legendary"),
-            SearchFilter.basic(false, "type", .including, "creature"),
-            SearchFilter.basic(false, "format", .including, "commander"),
-            SearchFilter.basic(false, "order", .including, "edhrec"),
-            SearchFilter.basic(false, "dir", .including, "desc"),
+            .basic(false, "id", .equal, "orzhov"),
+            .basic(false, "type", .including, "legendary"),
+            .basic(false, "type", .including, "creature"),
+            .basic(false, "format", .including, "commander"),
+            .basic(false, "order", .including, "edhrec"),
+            .basic(false, "dir", .including, "asc"),
         ]),
     ]
     
