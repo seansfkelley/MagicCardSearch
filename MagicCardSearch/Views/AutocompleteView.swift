@@ -17,7 +17,6 @@ struct AutocompleteView: View {
     let provider: CombinedSuggestionProvider
     let searchHistoryTracker: SearchHistoryTracker
     let filters: [SearchFilter]
-    let isSearchFocused: Bool
     let onSuggestionTap: (AcceptedSuggestion) -> Void
     
     @State private var suggestions: [Suggestion] = []
@@ -109,11 +108,6 @@ struct AutocompleteView: View {
         .task(id: searchSuggestionKey) {
             for await newSuggestions in provider.getSuggestions(for: filterText, existingFilters: Set(filters)) {
                 suggestions = newSuggestions
-            }
-        }
-        .onChange(of: isSearchFocused) { wasFocused, isFocused in
-            if !wasFocused && isFocused {
-                nonce += 1
             }
         }
     }

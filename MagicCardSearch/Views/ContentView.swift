@@ -18,33 +18,19 @@ struct ContentView: View {
     private let searchHistoryTracker = SearchHistoryTracker()
     @State private var searchFilters: [SearchFilter] = []
     @State private var inputText: String = ""
-    @State private var showDisplaySheet = false
-    @State private var showSyntaxReference = false
-    @State private var showBookmarkedCardList = false
-    @State private var searchConfig = SearchConfiguration.load()
-    @State private var pendingSearchConfig: SearchConfiguration?
-    @State private var autocompleteProvider: CombinedSuggestionProvider
     @State private var inputSelection: TextSelection?
     @State private var searchResultsState = ScryfallSearchResultsList()
     @State private var searchTask: Task<Void, Never>?
+
+    @State private var showDisplaySheet = false
+    @State private var showBookmarkedCardList = false
+    @State private var searchConfig = SearchConfiguration.load()
+    @State private var pendingSearchConfig: SearchConfiguration?
     @State private var mainContentType: MainContentType = .home
-    @State private var isSearchBarVisible: Bool = false
+
+    @State private var isSearchSheetVisible: Bool = false
 
     private let searchService = CardSearchService()
-    
-    private var filterFacade: CurrentlyHighlightedFilterFacade {
-        CurrentlyHighlightedFilterFacade(inputText: $inputText, inputSelection: $inputSelection)
-    }
-    
-    init() {
-        _autocompleteProvider = State(initialValue: CombinedSuggestionProvider(
-            pinnedFilter: PinnedFilterSuggestionProvider(),
-            history: HistorySuggestionProvider(with: searchHistoryTracker),
-            filterType: FilterTypeSuggestionProvider(),
-            enumeration: EnumerationSuggestionProvider(),
-            name: NameSuggestionProvider(debounce: .milliseconds(500))
-        ))
-    }
     
     var body: some View {
         NavigationStack {
@@ -76,10 +62,10 @@ struct ContentView: View {
                     case .home:
                         mainContentType = .results
                         if searchFilters.isEmpty {
-                            isSearchBarVisible = true
+                            isSearchSheetVisible = true
                         }
                     case .results:
-                        isSearchBarVisible = true
+                        isSearchSheetVisible = true
                     }
                 }
             }
@@ -98,7 +84,7 @@ struct ContentView: View {
                 ToolbarItem(placement: .principal) {
                     Button {
                         mainContentType = .home
-                        isSearchBarVisible = false
+                        isSearchSheetVisible = false
                     } label: {
                         Image("HeaderIcon")
                             .resizable()
@@ -138,11 +124,6 @@ struct ContentView: View {
         .onChange(of: searchConfig) {
             startNewSearch(keepingCurrentResults: true)
         }
-        .onChange(of: isSearchBarVisible) { _, isVisible in
-            if isVisible {
-                mainContentType = .results
-            }
-        }
         .onChange(of: searchFilters) {
             // Clear warnings when filters change by resetting to unloaded or keeping existing results
             if case .loaded(let searchResults, _) = searchResultsState.current {
@@ -170,44 +151,16 @@ struct ContentView: View {
         .sheet(isPresented: $showBookmarkedCardList) {
             BookmarkedCardsListView()
         }
-        .sheet(isPresented: $isSearchBarVisible) {
-            NavigationStack {
-                AutocompleteView(
-                    filterText: filterFacade.currentFilter,
-                    provider: autocompleteProvider,
-                    searchHistoryTracker: searchHistoryTracker,
-                    filters: searchFilters,
-                    isSearchFocused: isSearchBarVisible,
-                    onSuggestionTap: handleSuggestionTap,
-                )
-                .toolbar {
-                    ToolbarItem(placement: .topBarLeading) {
-                        Button {
-                            showSyntaxReference = true
-                        } label: {
-                            Image(systemName: "book")
-                            Text("Syntax Reference")
-                        }
-                    }
-                }
-                .safeAreaInset(edge: .bottom) {
-                    SearchBarAndPillsView(
-                        filters: $searchFilters,
-                        warnings: searchResultsState.current.latestValue?.warnings ?? [],
-                        inputText: $inputText,
-                        inputSelection: $inputSelection,
-                        autocompleteProvider: autocompleteProvider,
-                        searchHistoryTracker: searchHistoryTracker,
-                        onFilterEdit: handleFilterEdit,
-                        onClearAll: handleClearAll,
-                    ) {
-                        isSearchBarVisible = false
-                        startNewSearch()
-                    }
-                }
-                .sheet(isPresented: $showSyntaxReference) {
-                    SyntaxReferenceView()
-                }
+        .sheet(isPresented: $isSearchSheetVisible) {
+            SearchSheetView(
+                inputText: $inputText,
+                inputSelection: $inputSelection,
+                filters: $searchFilters,
+                warnings: searchResultsState.current.latestValue?.warnings ?? [],
+                searchHistoryTracker: searchHistoryTracker,
+                onClearAll: handleClearAll,
+            ) {
+                startNewSearch()
             }
         }
     }
@@ -218,7 +171,8 @@ struct ContentView: View {
         searchFilters.removeAll()
         inputText = ""
         inputSelection = nil
-        isSearchBarVisible = true
+        mainContentType = .results
+        isSearchSheetVisible = true
     }
 
     private func startNewSearch(keepingCurrentResults: Bool = false) {
@@ -267,38 +221,4 @@ struct ContentView: View {
             }
         }
     }
-    
-    private func handleFilterEdit(_ filter: SearchFilter) {
-        inputText = filter.description
-        inputSelection = TextSelection(range: filter.suggestedEditingRange)
-    }
-    
-    private func handleSuggestionTap(_ suggestion: AutocompleteView.AcceptedSuggestion) {
-        switch suggestion {
-        case .filter(let filter):
-            if let range = filterFacade.currentFilterRange, range != inputText.range {
-                let filterString = filter.description
-                inputText.replaceSubrange(range, with: filterString)
-                inputSelection = TextSelection(insertionPoint: inputText.index(range.lowerBound, offsetBy: filterString.count))
-            } else {
-                searchFilters.append(filter)
-                inputText = ""
-                inputSelection = TextSelection(insertionPoint: inputText.endIndex)
-            }
-        case .string(let string):
-            if let range = filterFacade.currentFilterRange {
-                inputText.replaceSubrange(range, with: string)
-                inputSelection = TextSelection(insertionPoint: inputText.index(range.lowerBound, offsetBy: string.count))
-            } else {
-                inputText = string
-                inputSelection = TextSelection(insertionPoint: inputText.endIndex)
-            }
-        }
-    }
-}
-
-// MARK: - Preview
-
-#Preview {
-    ContentView()
 }
