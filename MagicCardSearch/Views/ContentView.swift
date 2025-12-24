@@ -164,43 +164,46 @@ struct ContentView: View {
             ))
             .presentationDetents([.medium])
         }
-        .sheet(isPresented: $showSyntaxReference) {
-            SyntaxReferenceView()
-        }
         .sheet(isPresented: $showBookmarkedCardList) {
             BookmarkedCardsListView()
         }
         .sheet(isPresented: $isSearchBarVisible) {
-            AutocompleteView(
-                filterText: filterFacade.currentFilter,
-                provider: autocompleteProvider,
-                searchHistoryTracker: searchHistoryTracker,
-                filters: searchFilters,
-                isSearchFocused: isSearchBarVisible,
-                onSuggestionTap: handleSuggestionTap,
-            )
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button {
-                        showSyntaxReference = true
-                    } label: {
-                        Image(systemName: "book")
+            NavigationStack {
+                AutocompleteView(
+                    filterText: filterFacade.currentFilter,
+                    provider: autocompleteProvider,
+                    searchHistoryTracker: searchHistoryTracker,
+                    filters: searchFilters,
+                    isSearchFocused: isSearchBarVisible,
+                    onSuggestionTap: handleSuggestionTap,
+                )
+                .toolbar {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button {
+                            showSyntaxReference = true
+                        } label: {
+                            Image(systemName: "book")
+                            Text("Syntax Reference")
+                        }
                     }
                 }
-            }
-            .safeAreaInset(edge: .bottom) {
-                BottomBarFilterViewWithSearch(
-                    filters: $searchFilters,
-                    inputText: $inputText,
-                    inputSelection: $inputSelection,
-                    pendingSelection: $pendingSelection,
-                    warnings: searchResultsState.current.latestValue?.warnings ?? [],
-                    onFilterEdit: handleFilterEdit,
-                    searchHistoryTracker: searchHistoryTracker,
-                    onSubmit: { startNewSearch() },
-                    autocompleteProvider: autocompleteProvider,
-                    isSearchBarVisible: $isSearchBarVisible,
-                )
+                .safeAreaInset(edge: .bottom) {
+                    BottomBarFilterViewWithSearch(
+                        filters: $searchFilters,
+                        inputText: $inputText,
+                        inputSelection: $inputSelection,
+                        pendingSelection: $pendingSelection,
+                        warnings: searchResultsState.current.latestValue?.warnings ?? [],
+                        onFilterEdit: handleFilterEdit,
+                        searchHistoryTracker: searchHistoryTracker,
+                        onSubmit: { startNewSearch() },
+                        autocompleteProvider: autocompleteProvider,
+                        isSearchBarVisible: $isSearchBarVisible,
+                    )
+                }
+                .sheet(isPresented: $showSyntaxReference) {
+                    SyntaxReferenceView()
+                }
             }
         }
     }
