@@ -8,6 +8,21 @@
 import SwiftUI
 import ScryfallKit
 
+private let flavorTexts = [
+    "Infinite ideas flow through the Multiverse, waiting for an open mind.", // Brainstorm
+    "These seeds waited faithfully for the sun to rise again. Now, their patience is rewarded.", // Splendid Reclamation
+    "Opportunity isn't something you wait for. It's something you create.", // Opportunity
+    "Words of power never disappear. They sleep, awaiting those with the will to rouse them.", // Archaeomancer
+    "The Multiverse is filled with limitless power just waiting for someone to reach out and seize it.", // Pyretic Ritual
+    "Beneath crashing waves lies and ocean of secrets waiting to be explored.", // Thrasios, Triton Hero
+    "The worthy shall cultivate a nimble mind to perceive the glorious wonders that await them.", // Kefnet's Monument
+    "Untold riches await those who forsake the bustling world to search the secret, silent places.", // Shimmering Grotto
+]
+
+private func hourlyRotatingRandomFlavorText() -> String {
+    flavorTexts[Calendar.current.component(.hour, from: Date()) % flavorTexts.count]
+}
+
 struct SearchResultsGridView: View {
     let state: ScryfallSearchResultsList
     
@@ -25,10 +40,16 @@ struct SearchResultsGridView: View {
         ZStack {
             // TODO: Clean this up.
             if case .unloaded = state.current {
-                ContentUnavailableView(
-                    "No Results",
-                    systemImage: "circle.slash",
-                )
+                VStack(alignment: .center) {
+                    Spacer()
+                    Text(hourlyRotatingRandomFlavorText())
+                        .font(.system(.body, design: .serif))
+                        .foregroundStyle(.secondary)
+                        .italic()
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal)
+                    Spacer()
+                }
             } else if case .errored(let searchResults, let error) = state.current, searchResults?.cards.isEmpty ?? true {
                 ContentUnavailableView {
                     Label(error.title, systemImage: error.iconName)
