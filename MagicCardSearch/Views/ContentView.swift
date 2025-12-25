@@ -58,15 +58,10 @@ struct ContentView: View {
                     warnings: searchResultsState.current.latestValue?.warnings ?? [],
                     onClearAll: handleClearAll,
                 ) {
-                    switch mainContentType {
-                    case .home:
-                        mainContentType = .results
-                        if searchFilters.isEmpty {
-                            isSearchSheetVisible = true
-                        }
-                    case .results:
-                        isSearchSheetVisible = true
-                    }
+                    isSearchSheetVisible = true
+                    // Awkward, but seems to be the best way to negatively match only one case?
+                    guard case .unloaded = searchResultsState.current else { return }
+                    mainContentType = .results
                 }
             }
             .toolbar {
@@ -172,8 +167,9 @@ struct ContentView: View {
         inputText = ""
         inputSelection = nil
         searchResultsState.current = .unloaded
-        mainContentType = .results
         isSearchSheetVisible = true
+
+        // Don't change the main view until the search begins!
     }
 
     private func startNewSearch(keepingCurrentResults: Bool = false) {
