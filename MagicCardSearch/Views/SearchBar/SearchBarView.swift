@@ -31,6 +31,11 @@ struct SearchBarView: View {
             .autocorrectionDisabled(true)
             .textContentType(.none)
             .submitLabel(.search)
+            // I would like to do the below, but it seems to prevent third-party keyboards from
+            // being allowed to be the default keyboard. When set along with one or more of the
+            // preceding options (textContentType? autocorrectionDisabled?) it does successfully get
+            // rid of the predictive text bar that is not very useful.
+            // .keyboardType(.asciiCapable)
             .introspect(.textField, on: .iOS(.v26)) { textView in
                 textView.smartDashesType = .no
                 textView.smartQuotesType = .no
