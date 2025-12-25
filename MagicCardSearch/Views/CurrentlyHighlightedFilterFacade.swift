@@ -9,12 +9,12 @@ import SwiftUI
 
 /// Tracks the current filter being edited based on input text and cursor position
 struct CurrentlyHighlightedFilterFacade {
-    let inputText: Binding<String>
-    let inputSelection: Binding<TextSelection?>
+    let inputText: String
+    let inputSelection: TextSelection?
     
     var currentFilter: String {
         if let range = currentFilterRange {
-            String(inputText.wrappedValue[range])
+            String(inputText[range])
         } else {
             // TODO: Should this be nil?
             ""
@@ -22,14 +22,14 @@ struct CurrentlyHighlightedFilterFacade {
     }
     
     var currentFilterRange: Range<String.Index>? {
-        let allFilterRanges = PlausibleFilterRanges.from(inputText.wrappedValue).ranges
+        let allFilterRanges = PlausibleFilterRanges.from(inputText).ranges
 
         guard !allFilterRanges.isEmpty else {
             // This or nil?
-            return inputText.wrappedValue.range
+            return inputText.range
         }
         
-        guard let selection = inputSelection.wrappedValue, case .selection(let selectionRange) = selection.indices else {
+        guard let selection = inputSelection, case .selection(let selectionRange) = selection.indices else {
             return nil
         }
          

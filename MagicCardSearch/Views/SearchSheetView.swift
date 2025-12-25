@@ -48,7 +48,7 @@ struct SearchSheetView: View {
     }
 
     private var filterFacade: CurrentlyHighlightedFilterFacade {
-        CurrentlyHighlightedFilterFacade(inputText: $inputText, inputSelection: $inputSelection)
+        CurrentlyHighlightedFilterFacade(inputText: inputText, inputSelection: inputSelection)
     }
 
     var body: some View {
