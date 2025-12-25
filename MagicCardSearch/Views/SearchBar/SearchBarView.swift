@@ -7,6 +7,7 @@
 
 import SwiftUI
 import FocusOnAppear
+import SwiftUIIntrospect
 
 struct SearchBarView: View {
     @Binding var filters: [SearchFilter]
@@ -30,6 +31,11 @@ struct SearchBarView: View {
             .autocorrectionDisabled(true)
             .textContentType(.none)
             .submitLabel(.search)
+            .introspect(.textField, on: .iOS(.v26)) { textView in
+                textView.smartDashesType = .no
+                textView.smartQuotesType = .no
+                textView.smartInsertDeleteType = .no
+            }
             .onSubmit {
                 createNewFilterFromSearch(fallbackToNameFilter: true)
                 onSubmit()
@@ -39,6 +45,7 @@ struct SearchBarView: View {
                 autocorrectionType: .no,
                 autocapitalizationType: .none,
             ))
+            .frame(maxWidth: .infinity)
 
             if !inputText.isEmpty {
                 Button(action: {

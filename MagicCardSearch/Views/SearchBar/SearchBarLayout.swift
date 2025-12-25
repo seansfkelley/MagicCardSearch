@@ -43,7 +43,6 @@ struct SearchBarLayout<Content: View>: View {
             .frame(width: 16, height: 16)
 
             content()
-                .frame(maxWidth: .infinity)
         }
         .padding(.vertical, 8)
         .padding(.horizontal, 12)
