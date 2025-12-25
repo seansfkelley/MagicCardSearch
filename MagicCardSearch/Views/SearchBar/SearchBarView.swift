@@ -51,6 +51,7 @@ struct SearchBarView: View {
                 .focusOnAppear(config: .init(
                     keyboardType: .asciiCapable,
                     returnKeyType: .search,
+                    autocorrectionType: .no,
                     autocapitalizationType: .none,
                 ))
 

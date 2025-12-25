@@ -60,8 +60,10 @@ struct ContentView: View {
                 ) {
                     isSearchSheetVisible = true
                     // Awkward, but seems to be the best way to negatively match only one case?
-                    guard case .unloaded = searchResultsState.current else { return }
-                    mainContentType = .results
+                    guard case .unloaded = searchResultsState.current else {
+                        mainContentType = .results
+                        return
+                    }
                 }
             }
             .toolbar {

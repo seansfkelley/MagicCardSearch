@@ -1,5 +1,5 @@
 {
-  "originHash" : "c7aa710ee01c591d77b905490a5a79c4b54a38a0c622e5ff71d3abe150842bdb",
+  "originHash" : "fe8bb516d45a18a41efe952e3e15ce7cb182073b2877744482d09fca393c0b18",
   "pins" : [
     {
       "identity" : "cocoalumberjack",
@@ -16,7 +16,7 @@
       "location" : "https://github.com/seansfkelley/FocusOnAppear",
       "state" : {
         "branch" : "main",
-        "revision" : "d7e01f11e16980cd746a647555204c3ee12e1970"
+        "revision" : "b28206ac35dac3c73d3586e620ae1f52be07b7ae"
       }
     },
     {
