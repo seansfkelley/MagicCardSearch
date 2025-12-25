@@ -19,18 +19,7 @@ struct SearchBarView: View {
     @State private var showSymbolPicker = false
 
     var body: some View {
-        HStack(spacing: 12) {
-            Group {
-                if autocompleteProvider.loadingState.isLoadingDebounced {
-                    ProgressView()
-                        .controlSize(.small)
-                } else {
-                    Image(systemName: "magnifyingglass")
-                }
-            }
-            .foregroundStyle(.secondary)
-            .frame(width: 16, height: 16)
-
+        SearchBarLayout(icon: autocompleteProvider.loadingState.isLoadingDebounced ? .progress : .visible) {
             TextField(
                 filters.isEmpty ? "Search for cards..." : "Add filters...",
                 text: $inputText,
@@ -78,8 +67,6 @@ struct SearchBarView: View {
                 .presentationCompactAdaptation(.popover)
             }
         }
-        .padding(.vertical, 8)
-        .padding(.horizontal, 12)
         .onChange(of: inputText) { previous, current in
             if Self.didAppendSpace(previous, current, inputSelection) {
                 createNewFilterFromSearch()

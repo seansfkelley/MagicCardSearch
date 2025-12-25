@@ -45,32 +45,17 @@ struct FakeSearchBarButtonView: View {
                 }
                 
                 ZStack {
-                    HStack(spacing: 12) {
-                        Image(systemName: "magnifyingglass")
-                            .foregroundStyle(.secondary)
-                            .frame(width: 16, height: 16)
-                            .opacity(searchIconOpacity)
-
+                    SearchBarLayout(icon: .opacity(searchIconOpacity)) {
                         TextField(filters.isEmpty ? "Search for cards..." : "", text: .constant(""))
                             .disabled(true)
-                            .frame(maxWidth: .infinity)
                     }
-                    .padding(.vertical, 8)
-                    .padding(.horizontal, 12)
 
                     ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 12) {
-                            Image(systemName: "magnifyingglass")
-                                .foregroundStyle(.secondary)
-                                .frame(width: 16, height: 16)
-                                .hidden()
-
+                        SearchBarLayout(icon: .hidden) {
                             ForEach(Array(filters.enumerated()), id: \.offset) { _, filter in
                                 FilterPillView(filter: filter)
                             }
                         }
-                        .padding(.vertical, 8)
-                        .padding(.horizontal, 12)
                     }
                     .onScrollGeometryChange(
                         for: CGFloat.self,
