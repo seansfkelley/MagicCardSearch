@@ -19,68 +19,63 @@ struct SearchBarView: View {
     @State private var showSymbolPicker = false
 
     var body: some View {
-        ZStack {
-            HStack(spacing: 12) {
-                Group {
-                    if autocompleteProvider.loadingState.isLoadingDebounced {
-                        ProgressView()
-                            .controlSize(.small)
-                    } else {
-                        Image(systemName: "magnifyingglass")
-                    }
+        HStack(spacing: 12) {
+            Group {
+                if autocompleteProvider.loadingState.isLoadingDebounced {
+                    ProgressView()
+                        .controlSize(.small)
+                } else {
+                    Image(systemName: "magnifyingglass")
                 }
-                .foregroundStyle(.secondary)
-                .frame(width: 16, height: 16)
-                
-                TextField(
-                    filters.isEmpty ? "Search for cards..." : "Add filters...",
-                    text: $inputText,
-                    selection: $inputSelection
-                )
-                .textFieldStyle(.plain)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled(true)
-                .textContentType(.none)
-                // ASCII means we don't get smart quotes so can parse double quotes properly.
-                .keyboardType(.asciiCapable)
-                .submitLabel(.search)
-                .onSubmit {
-                    createNewFilterFromSearch(fallbackToNameFilter: true)
-                    onSubmit()
-                }
-                .focusOnAppear(config: .init(
-                    keyboardType: .asciiCapable,
-                    returnKeyType: .search,
-                    autocorrectionType: .no,
-                    autocapitalizationType: .none,
-                ))
+            }
+            .foregroundStyle(.secondary)
+            .frame(width: 16, height: 16)
 
-                if !inputText.isEmpty {
-                    Button(action: {
-                        inputText = ""
-                        inputSelection = nil
-                    }) {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(.secondary)
-                            .imageScale(.large)
-                    }
-                    .buttonStyle(.plain)
-                }
-                
+            TextField(
+                filters.isEmpty ? "Search for cards..." : "Add filters...",
+                text: $inputText,
+                selection: $inputSelection
+            )
+            .textFieldStyle(.plain)
+            .textInputAutocapitalization(.never)
+            .autocorrectionDisabled(true)
+            .textContentType(.none)
+            .submitLabel(.search)
+            .onSubmit {
+                createNewFilterFromSearch(fallbackToNameFilter: true)
+                onSubmit()
+            }
+            .focusOnAppear(config: .init(
+                returnKeyType: .search,
+                autocorrectionType: .no,
+                autocapitalizationType: .none,
+            ))
+
+            if !inputText.isEmpty {
                 Button(action: {
-                    showSymbolPicker.toggle()
+                    inputText = ""
+                    inputSelection = nil
                 }) {
-                    Image(systemName: "curlybraces")
+                    Image(systemName: "xmark.circle.fill")
                         .foregroundStyle(.secondary)
                         .imageScale(.large)
                 }
                 .buttonStyle(.plain)
-                .popover(isPresented: $showSymbolPicker, arrowEdge: .bottom) {
-                    SymbolPickerView { symbol in
-                        insertSymbol(symbol)
-                    }
-                    .presentationCompactAdaptation(.popover)
+            }
+
+            Button(action: {
+                showSymbolPicker.toggle()
+            }) {
+                Image(systemName: "curlybraces")
+                    .foregroundStyle(.secondary)
+                    .imageScale(.large)
+            }
+            .buttonStyle(.plain)
+            .popover(isPresented: $showSymbolPicker, arrowEdge: .bottom) {
+                SymbolPickerView { symbol in
+                    insertSymbol(symbol)
                 }
+                .presentationCompactAdaptation(.popover)
             }
         }
         .padding(.vertical, 8)

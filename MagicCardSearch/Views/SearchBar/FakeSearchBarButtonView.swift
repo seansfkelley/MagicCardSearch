@@ -45,35 +45,32 @@ struct FakeSearchBarButtonView: View {
                 }
                 
                 ZStack {
-                    HStack {
+                    HStack(spacing: 12) {
                         Image(systemName: "magnifyingglass")
                             .foregroundStyle(.secondary)
                             .frame(width: 16, height: 16)
-                            .padding(.vertical, 12)
-                            .padding(.leading, 12)
-                            .padding(.trailing, 4)
                             .opacity(searchIconOpacity)
 
-                        if filters.isEmpty {
-                            Text("Search for cards...")
-                                .foregroundStyle(.tertiary)
-                        }
-                        Spacer()
+                        TextField(filters.isEmpty ? "Search for cards..." : "", text: .constant(""))
+                            .disabled(true)
+                            .frame(maxWidth: .infinity)
                     }
+                    .padding(.vertical, 8)
+                    .padding(.horizontal, 12)
 
                     ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 8) {
+                        HStack(spacing: 12) {
                             Image(systemName: "magnifyingglass")
+                                .foregroundStyle(.secondary)
                                 .frame(width: 16, height: 16)
-                                .padding(.leading, 4)
-                                .padding(.trailing, 4)
                                 .hidden()
 
                             ForEach(Array(filters.enumerated()), id: \.offset) { _, filter in
                                 FilterPillView(filter: filter)
                             }
                         }
-                        .padding(.horizontal, 4)
+                        .padding(.vertical, 8)
+                        .padding(.horizontal, 12)
                     }
                     .onScrollGeometryChange(
                         for: CGFloat.self,
@@ -91,12 +88,9 @@ struct FakeSearchBarButtonView: View {
                 .contentShape(Rectangle())
                 .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 20))
                 .simultaneousGesture(TapGesture().onEnded { onTap() })
-                
-                // No idea why this is here when there is no equivalent for the warnings view,
-                // which doesn't seem to need it to keep itself spaced out from the pills view.
-                Spacer()
 
                 if !filters.isEmpty {
+                    Spacer()
                     Button(role: .destructive, action: onClearAll) {
                         Image(systemName: "xmark")
                             .foregroundStyle(.red)
