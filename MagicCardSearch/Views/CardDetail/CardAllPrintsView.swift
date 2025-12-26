@@ -337,10 +337,17 @@ private struct PagingCardImageView: View {
         .scrollTargetBehavior(.paging)
         .scrollPosition($scrollPosition, anchor: .center)
         .scrollIndicators(.hidden)
+        .onScrollPhaseChange { _, newPhase in
+            scrollPhase = newPhase
+            if newPhase == .idle {
+                partialScrollOffsetFraction = 0
+            }
+        }
         .onScrollGeometryChange(
             for: CGFloat.self,
             of: { geometry in
-                guard let currentId = scrollPosition.viewID(type: UUID.self),
+                guard scrollPhase != .idle,
+                      let currentId = scrollPosition.viewID(type: UUID.self),
                       let currentIdx = cards.firstIndex(where: { $0.id == currentId }) else {
                     return 0
                 }
@@ -348,6 +355,7 @@ private struct PagingCardImageView: View {
             },
             action: { _, new in
                 partialScrollOffsetFraction = new
+                print(new)
             })
     }
 }
@@ -387,6 +395,7 @@ private struct ThumbnailPreviewStrip: View {
             }
             .scrollTargetLayout()
             .padding(.leading, partialScrollOffsetFraction * (thumbnailWidth + thumbnailSpacing))
+            .animation(nil, value: partialScrollOffsetFraction)
             .padding(.vertical, 12)
         }
         .contentMargins(.horizontal, (screenWidth - thumbnailWidth) / 2, for: .scrollContent)
@@ -445,9 +454,7 @@ private struct ThumbnailCardView: View {
             }
         }
         .clipShape(RoundedRectangle(cornerRadius: 4))
-        .scaleEffect(isSelected ? 1.1 : 1.0)
-        // TODO: Enable this but only for the scale effect -- as written, it animates the offset
-        // which causes whacko UI jitters.
-//        .animation(.easeInOut(duration: 0.2), value: isSelected)
+        .scaleEffect(isSelected ? 1.1 : 1.0, anchor: .center)
+        .animation(.easeInOut(duration: 0.1), value: isSelected)
     }
 }
