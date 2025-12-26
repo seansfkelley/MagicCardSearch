@@ -6,6 +6,9 @@
 //
 import Foundation
 import Observation
+import Logging
+
+private let logger = Logger(label: "SearchHistoryTracker")
 
 struct FilterEntry: Codable {
     let filter: SearchFilter
@@ -34,25 +37,24 @@ class SearchHistoryTracker {
     private(set) var filterEntries: [SearchFilter: FilterEntry] = [:]
     private(set) var completeSearchEntries: [CompleteSearchEntry] = []
 
+    private var sideEffectDepth = 0
     private let hardLimit: Int
     private let softLimit: Int
     private let maxAgeInDays: Int
     // TODO: Is this really the right way to do persistence? Should I dependecy-inject it?
     private let persistenceKey: String
     
-    private var sortedCache: [FilterEntry]?
-    
-    var sortedFilterHistory: [FilterEntry] {
-        if let cached = sortedCache {
-            return cached
+    private var cachedSortedFilterEntries: [FilterEntry]?
+    var sortedFilterEntries: [FilterEntry] {
+        if let cachedSortedFilterEntries {
+            return cachedSortedFilterEntries
         }
 
         let sorted = filterEntries.values.sorted(using: [
             KeyPathComparator(\.lastUsedDate, order: .reverse),
             KeyPathComparator(\.filter.description, comparator: .localizedStandard),
         ])
-
-        sortedCache = sorted
+        cachedSortedFilterEntries = sorted
         return sorted
     }
 
@@ -70,46 +72,79 @@ class SearchHistoryTracker {
     // MARK: - Public Methods
 
     func recordUsage(of filter: SearchFilter) {
-        let entry = FilterEntry(
-            filter: filter,
-            lastUsedDate: Date(),
-        )
-        filterEntries[filter] = entry
-        invalidateCache()
-        saveHistory()
-    }
-    
-    func recordUsage(of filters: [SearchFilter]) {
-        if let existingIndex = completeSearchEntries.firstIndex(where: { $0.filters == filters }) {
-            completeSearchEntries.remove(at: existingIndex)
+        withSideEffects {
+            func recursivelyRecordDisjunctions(_ disjunction: SearchFilter.Disjunction) {
+                for disjunctionClause in disjunction.clauses {
+                    for conjunctionClause in disjunctionClause.clauses {
+                        switch conjunctionClause {
+                        case .filter(let filter): recordUsage(of: filter)
+                        case .disjunction(let disjunction): recursivelyRecordDisjunctions(disjunction)
+                        }
+                    }
+                }
+            }
+
+            if case .disjunction(let disjunction) = filter {
+                recursivelyRecordDisjunctions(disjunction)
+            }
+
+            filterEntries[filter] = FilterEntry(
+                filter: filter,
+                lastUsedDate: Date(),
+            )
         }
-        
-        let entry = CompleteSearchEntry(
-            filters: filters,
-            lastUsedDate: Date()
-        )
-        completeSearchEntries.insert(entry, at: 0)
-        saveHistory()
     }
 
-    func delete(filter: SearchFilter) {
-        filterEntries.removeValue(forKey: filter)
-        invalidateCache()
-        saveHistory()
+    func recordSearch(with filters: [SearchFilter]) {
+        withSideEffects {
+            if let existingIndex = completeSearchEntries.firstIndex(where: { $0.filters == filters }) {
+                completeSearchEntries.remove(at: existingIndex)
+            }
+
+            completeSearchEntries.insert(
+                CompleteSearchEntry(
+                    filters: filters,
+                    lastUsedDate: Date()
+                ),
+                at: 0,
+            )
+
+            for filter in filters {
+                recordUsage(of: filter)
+            }
+        }
+    }
+
+    func deleteUsage(of filter: SearchFilter) {
+        withSideEffects {
+            filterEntries.removeValue(forKey: filter)
+        }
     }
     
-    func delete(filters: [SearchFilter]) {
+    func deleteSearch(with filters: [SearchFilter]) {
         if let index = completeSearchEntries.firstIndex(where: { $0.filters == filters }) {
-            completeSearchEntries.remove(at: index)
-            saveHistory()
+            withSideEffects {
+                completeSearchEntries.remove(at: index)
+            }
         }
     }
 
-    // TODO: Can this be auto-run on the set of filterEntries?
-    private func invalidateCache() {
-        sortedCache = nil
+    private func withSideEffects(_ mutation: () -> Void) {
+        sideEffectDepth += 1
+
+        mutation()
+
+        sideEffectDepth -= 1
+        if sideEffectDepth == 0 {
+            cachedSortedFilterEntries = nil
+            saveHistory()
+        } else {
+            logger.debug("not committing changes as we aren't the top-most side-effect", metadata: [
+                "depth": "\(sideEffectDepth)",
+            ])
+        }
     }
-    
+
     // MARK: - Garbage Collection
     
     private func truncateByAgeAndSize<T>(_ entries: [T], getDate: (T) -> Date) -> [T] {
@@ -134,15 +169,15 @@ class SearchHistoryTracker {
     func maybeGarbageCollectHistory() {
         var didModify = false
 
-        if !sortedFilterHistory.isEmpty {
-            let originalCount = sortedFilterHistory.count
-            let reducedHistory = truncateByAgeAndSize(sortedFilterHistory) { $0.lastUsedDate }
+        if !sortedFilterEntries.isEmpty {
+            let originalCount = sortedFilterEntries.count
+            let reducedHistory = truncateByAgeAndSize(sortedFilterEntries) { $0.lastUsedDate }
             
             if reducedHistory.count != originalCount {
                 filterEntries = reducedHistory.reduce(into: [:]) { dict, entry in
                     dict[entry.filter] = entry
                 }
-                invalidateCache()
+                cachedSortedFilterEntries = nil
                 didModify = true
                 
                 print("Garbage collected \(originalCount - reducedHistory.count) filter entries")

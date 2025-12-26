@@ -200,10 +200,7 @@ struct ContentView: View {
             nil,
         )
 
-        searchHistoryTracker.recordUsage(of: searchFilters)
-        for filter in searchFilters {
-            searchHistoryTracker.recordUsage(of: filter)
-        }
+        searchHistoryTracker.recordSearch(with: searchFilters)
 
         searchTask = Task {
             do {

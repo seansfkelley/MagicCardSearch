@@ -54,7 +54,7 @@ class SearchHistoryTrackerTests {
 
         #expect(tracker.filterEntries.count == 2)
 
-        tracker.delete(filter: colorFilter)
+        tracker.deleteUsage(filter: colorFilter)
 
         #expect(tracker.filterEntries.count == 1)
         #expect(tracker.filterEntries[colorFilter] == nil)
@@ -69,7 +69,7 @@ class SearchHistoryTrackerTests {
 
         tracker.recordUsage(of: colorFilter)
 
-        tracker.delete(filter: oracleFilter)
+        tracker.deleteUsage(filter: oracleFilter)
 
         #expect(tracker.filterEntries.count == 1)
         #expect(tracker.filterEntries[colorFilter] != nil)
@@ -88,7 +88,7 @@ class SearchHistoryTrackerTests {
         Thread.sleep(forTimeInterval: 0.01)
         tracker.recordUsage(of: setFilter)
 
-        let sorted = tracker.sortedFilterHistory
+        let sorted = tracker.sortedFilterEntries
 
         #expect(sorted.count == 3)
         #expect(sorted[0].filter == setFilter)
@@ -106,7 +106,7 @@ class SearchHistoryTrackerTests {
             SearchFilter.basic(false, "oracle", .including, "flying"),
         ]
 
-        tracker.recordUsage(of: filters)
+        tracker.recordSearch(of: filters)
 
         #expect(tracker.completeSearchEntries.count == 1)
         #expect(tracker.completeSearchEntries[0].filters == filters)
@@ -118,13 +118,13 @@ class SearchHistoryTrackerTests {
         let firstSearch = [SearchFilter.basic(false, "color", .equal, "red")]
         let secondSearch = [SearchFilter.basic(false, "oracle", .including, "flying")]
 
-        tracker.recordUsage(of: firstSearch)
-        tracker.recordUsage(of: secondSearch)
+        tracker.recordSearch(of: firstSearch)
+        tracker.recordSearch(of: secondSearch)
 
         #expect(tracker.completeSearchEntries.count == 2)
         #expect(tracker.completeSearchEntries[0].filters == secondSearch)
 
-        tracker.recordUsage(of: firstSearch)
+        tracker.recordSearch(of: firstSearch)
 
         #expect(tracker.completeSearchEntries.count == 2)
         #expect(tracker.completeSearchEntries[0].filters == firstSearch)
@@ -137,12 +137,12 @@ class SearchHistoryTrackerTests {
         let firstSearch = [SearchFilter.basic(false, "color", .equal, "red")]
         let secondSearch = [SearchFilter.basic(false, "oracle", .including, "flying")]
 
-        tracker.recordUsage(of: firstSearch)
-        tracker.recordUsage(of: secondSearch)
+        tracker.recordSearch(of: firstSearch)
+        tracker.recordSearch(of: secondSearch)
 
         #expect(tracker.completeSearchEntries.count == 2)
 
-        tracker.delete(filters: firstSearch)
+        tracker.deleteSearch(filters: firstSearch)
 
         #expect(tracker.completeSearchEntries.count == 1)
         #expect(tracker.completeSearchEntries[0].filters == secondSearch)
@@ -154,9 +154,9 @@ class SearchHistoryTrackerTests {
         let firstSearch = [SearchFilter.basic(false, "color", .equal, "red")]
         let secondSearch = [SearchFilter.basic(false, "oracle", .including, "flying")]
 
-        tracker.recordUsage(of: firstSearch)
+        tracker.recordSearch(of: firstSearch)
 
-        tracker.delete(filters: secondSearch)
+        tracker.deleteSearch(filters: secondSearch)
 
         #expect(tracker.completeSearchEntries.count == 1)
         #expect(tracker.completeSearchEntries[0].filters == firstSearch)
@@ -225,11 +225,11 @@ class SearchHistoryTrackerTests {
         let secondSearch = [SearchFilter.basic(false, "oracle", .including, "flying")]
         let thirdSearch = [SearchFilter.basic(false, "set", .equal, "ody")]
 
-        tracker.recordUsage(of: firstSearch)
+        tracker.recordSearch(of: firstSearch)
         Thread.sleep(forTimeInterval: 0.01)
-        tracker.recordUsage(of: secondSearch)
+        tracker.recordSearch(of: secondSearch)
         Thread.sleep(forTimeInterval: 0.01)
-        tracker.recordUsage(of: thirdSearch)
+        tracker.recordSearch(of: thirdSearch)
 
         #expect(tracker.completeSearchEntries.count == 3)
 

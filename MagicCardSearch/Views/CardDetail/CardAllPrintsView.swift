@@ -446,8 +446,8 @@ private struct ThumbnailCardView: View {
         }
         .clipShape(RoundedRectangle(cornerRadius: 4))
         .scaleEffect(isSelected ? 1.1 : 1.0)
-        // TODO: Enable this but only for the scale effect -- as written, it animates the offset
-        // which causes whacko UI jitters.
+        // TODO: Enable this but only for the scale effect -- as written, it seems to animate the
+        // padding or otherwise cause whacko UI jitters.
 //        .animation(.easeInOut(duration: 0.2), value: isSelected)
     }
 }

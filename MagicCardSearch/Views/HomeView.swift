@@ -123,7 +123,7 @@ struct HomeView: View {
                         .buttonStyle(.plain)
                         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                             Button(role: .destructive) {
-                                searchHistoryTracker.delete(filters: entry.filters)
+                                searchHistoryTracker.deleteSearch(with: entry.filters)
                             } label: {
                                 Label("Delete", systemImage: "trash")
                             }

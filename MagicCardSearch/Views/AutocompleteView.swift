@@ -82,7 +82,7 @@ struct AutocompleteView: View {
                         }
                         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                             Button(role: .destructive) {
-                                searchHistoryTracker.delete(filter: suggestion.filter)
+                                searchHistoryTracker.deleteUsage(of: suggestion.filter)
                                 nonce += 1
                             } label: {
                                 Label("Delete", systemImage: "trash")
