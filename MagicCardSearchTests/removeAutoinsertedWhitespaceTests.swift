@@ -4,6 +4,7 @@
 //
 //  Created by Sean Kelley on 2025-12-23.
 //
+import SwiftUI
 import Testing
 @testable import MagicCardSearch
 
@@ -54,5 +55,48 @@ struct RemoveAutoinsertedWhitespaceTests {
     func testRemoveAutoinsertedWhitespace(input: String, expected: String) {
         let result = removeAutoinsertedWhitespace(input)
         #expect(result == expected)
+    }
+
+    @Test("Selection adjustment cases", arguments: [
+        // Selection at the start
+        ("color: red", 0..<0, "color:red", 0..<0),
+        
+        // Selection before the space
+        ("color: red", 5..<5, "color:red", 5..<5),
+        
+        // Selection after the space
+        ("color: red", 7..<7, "color:red", 6..<6),
+        
+        // Selection in the middle of value
+        ("color: red", 9..<9, "color:red", 8..<8),
+        
+        // Selection at the end
+        ("color: red", 10..<10, "color:red", 9..<9),
+        
+        // Selection range across the space
+        ("color: red", 5..<7, "color:red", 5..<6),
+        
+        // Selection range after the space
+        ("color: red", 7..<10, "color:red", 6..<9),
+        
+        // Multiple filters - selection in second filter
+        ("color: red type: instant", 19..<19, "color:red type:instant", 17..<17),
+        
+        // No whitespace to remove - selection unchanged
+        ("color:red", 5..<5, "color:red", 5..<5),
+        
+        // Range selection spanning multiple filters
+        ("color: red type: instant", 5..<19, "color:red type:instant", 5..<17),
+    ])
+    func testSelectionAdjustment(
+        input: String,
+        selection: Range<Int>,
+        expected: String,
+        expectedSelection: Range<Int>,
+    ) throws {
+        let actual = removeAutoinsertedWhitespace(input, TextSelection(range: selection.toStringIndices(in: input)!))
+        try #require(actual != nil)
+        #expect(actual!.0 == expected)
+        #expect(actual!.1 == TextSelection(range: expectedSelection.toStringIndices(in: actual!.0)!))
     }
 }

@@ -127,7 +127,7 @@ class HistorySuggestionProviderTests {
         let oracleFilter = SearchFilter.basic(false, "oracle", .including, "flying")
         recordUsages(of: [colorFilter])
 
-        tracker.deleteUsage(filter: oracleFilter)
+        tracker.deleteUsage(of: oracleFilter)
 
         let suggestions = provider.getSuggestions(for: "", excluding: Set(), limit: 10)
         #expect(suggestions == [.init(filter: colorFilter, matchRange: nil, prefixKind: .none, suggestionLength: 9)])
