@@ -375,10 +375,10 @@ private struct ThumbnailPreviewStrip: View {
                                 scrollPosition.scrollTo(id: card.id)
                             }
                         }
-                        .offset(x: partialScrollOffsetFraction * (thumbnailWidth + thumbnailSpacing))
                 }
             }
             .scrollTargetLayout()
+            .padding(.leading, partialScrollOffsetFraction * (thumbnailWidth + thumbnailSpacing))
             .padding(.vertical, 12)
         }
         .contentMargins(.horizontal, (screenWidth - thumbnailWidth) / 2, for: .scrollContent)
