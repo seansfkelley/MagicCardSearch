@@ -41,8 +41,8 @@ struct PrintFilterSettings: Equatable {
     }
     
     func toQueryFor(oracleId: String) -> String {
-        var query = "oracleid:\(oracleId) include:extras"
-        
+        var query = "oracleid:\(oracleId) include:extras unique:prints order:released dir:desc"
+
         switch frame {
         case .any:
             break

@@ -78,7 +78,7 @@ struct CardDetailView: View {
 
                 if let oracleId = card.bestEffortOracleId {
                     Divider().padding(.horizontal)
-                    CardOtherPrintsSection(
+                    CardAllPrintsSection(
                         oracleId: oracleId,
                         currentCardId: card.id
                     )

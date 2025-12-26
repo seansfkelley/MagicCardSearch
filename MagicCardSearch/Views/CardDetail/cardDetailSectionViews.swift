@@ -402,7 +402,7 @@ struct CardPricesSection: View {
 
 // MARK: - Card Other Prints Section
 
-struct CardOtherPrintsSection: View {
+struct CardAllPrintsSection: View {
     let oracleId: String
     let currentCardId: UUID
 
