@@ -246,7 +246,7 @@ struct ExampleSearch: Hashable {
             .basic(false, "type", .including, "artifact"),
             .basic(false, "id", .equal, "5"),
         ]),
-        .init(title: "Unusual, Non-un-card Rules", filters: [
+        .init(title: "Real Cards with Funny Rulings", filters: [
             .basic(false, "function", .including, "fun-ruling"),
             .basic(true, "is", .including, "funny"),
         ]),
