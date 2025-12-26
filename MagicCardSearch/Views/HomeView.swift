@@ -76,8 +76,13 @@ struct HomeView: View {
                                 ProgressView()
                                     .frame(width: featuredWidth, height: featuredWidth / Card.aspectRatio)
                             }
-                        case .errored(nil, _):
-                            EmptyView()
+                        case .errored(nil, let error):
+                            ContentUnavailableView(
+                                "Unable to Load Spoilers",
+                                systemImage: "exclamationmark.triangle",
+                                description: Text(error.description),
+                            )
+                            .frame(width: featuredWidth * 2, height: featuredWidth / Card.aspectRatio)
                         }
                     }
                     .padding(.horizontal)
