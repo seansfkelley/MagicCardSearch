@@ -16,4 +16,8 @@ extension Range where Bound == String.Index {
         let newUpperBound = string.index(upperBound, offsetBy: -right)
         return newLowerBound..<newUpperBound
     }
+
+    func length(in string: String) -> Int {
+        string.distance(from: lowerBound, to: upperBound)
+    }
 }

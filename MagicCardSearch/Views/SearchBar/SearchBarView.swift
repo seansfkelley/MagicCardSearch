@@ -82,8 +82,9 @@ struct SearchBarView: View {
         .onChange(of: inputText) { previous, current in
             if Self.didAppendSpace(previous, current, inputSelection) {
                 createNewFilterFromSearch()
-            } else if let corrected = removeAutoinsertedWhitespace(current), corrected != current {
-                inputText = corrected
+            } else if let (newText, newSelection) = removeAutoinsertedWhitespace(current, inputSelection), newText != inputText {
+                inputText = newText
+                inputSelection = newSelection
             }
         }
     }
