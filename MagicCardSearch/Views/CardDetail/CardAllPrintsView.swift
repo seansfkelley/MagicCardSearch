@@ -221,7 +221,7 @@ private struct CardPrintsDetailView: View {
     @State private var mainScrollPosition = ScrollPosition(idType: UUID.self)
     @State private var thumbnailScrollPosition = ScrollPosition(idType: UUID.self)
     @State private var partialScrollOffsetFraction: CGFloat = 0
-    
+
     private var currentCard: Card? {
         guard currentIndex >= 0 && currentIndex < cards.count else { return nil }
         return cards[currentIndex]
@@ -272,15 +272,19 @@ private struct CardPrintsDetailView: View {
                 currentIndex = newIndex
                 // n.b. not animated because the calculated partial scroll offset thing makes sure
                 // that the thumbnails are moving proportionally to the main view.
-                thumbnailScrollPosition.scrollTo(id: newCardId)
+                if thumbnailScrollPosition.viewID(type: UUID.self) != newCardId {
+                    thumbnailScrollPosition.scrollTo(id: newCardId)
+                }
             }
         }
         .onChange(of: thumbnailScrollPosition.viewID(type: UUID.self)) { _, newCardId in
             if let newCardId, let newIndex = cards.firstIndex(where: { $0.id == newCardId }), newIndex != currentIndex {
                 currentIndex = newIndex
                 // n.b. not animated to prevent excessive motion and potential image loads.
-                mainScrollPosition.scrollTo(id: newCardId)
-                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                if mainScrollPosition.viewID(type: UUID.self) != newCardId {
+                    mainScrollPosition.scrollTo(id: newCardId)
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                }
             }
         }
     }
@@ -293,7 +297,8 @@ private struct PagingCardImageView: View {
     @Binding var scrollPosition: ScrollPosition
     @Binding var partialScrollOffsetFraction: CGFloat
     let screenWidth: CGFloat
-    
+
+    @State private var scrollPhase: ScrollPhase = .idle
     @State private var cardFlipStates: [UUID: Bool] = [:]
     
     var body: some View {
