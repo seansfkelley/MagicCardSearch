@@ -6,7 +6,7 @@
 //
 import ScryfallKit
 
-struct NameSuggestion: Equatable, Sendable, ScorableSuggestion {
+struct NameSuggestion: Equatable, Hashable, Sendable, ScorableSuggestion {
     let filter: SearchFilter
     let matchRange: Range<String.Index>?
     let prefixKind: PrefixKind

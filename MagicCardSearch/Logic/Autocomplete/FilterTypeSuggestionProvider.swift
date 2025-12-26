@@ -4,7 +4,7 @@
 //
 //  Created by Sean Kelley on 2025-12-11.
 //
-struct FilterTypeSuggestion: Equatable, Sendable, ScorableSuggestion {
+struct FilterTypeSuggestion: Equatable, Hashable, Sendable, ScorableSuggestion {
     let filterType: String
     let matchRange: Range<String.Index>
     let comparisonKinds: ScryfallFilterType.ComparisonKinds

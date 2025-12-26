@@ -21,7 +21,6 @@ extension Card: Nameable {}
 struct LazyPagingDetailNavigator<ItemReference: Nameable, Item: Identifiable, Content: View, Toolbar: ToolbarContent>: View where ItemReference.ID == Item.ID {
     // MARK: - Types
     
-    /// Represents an item that can be in various loading states
     enum LoadingState {
         case unloaded
         case loading(Task<Void, Never>)

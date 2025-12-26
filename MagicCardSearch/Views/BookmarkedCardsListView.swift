@@ -184,7 +184,6 @@ struct BookmarkedCardsListView: View {
         }
     }
     
-    // Helper struct to make sheet item identifiable
     struct SheetState: Identifiable {
         let id: UUID
         let index: Int

@@ -59,7 +59,7 @@ struct AutocompleteView: View {
 
     var body: some View {
         List {
-            ForEach(Array(suggestions.enumerated()), id: \.offset) { _, suggestion in
+            ForEach(suggestions, id: \.self) { suggestion in
                 switch suggestion {
                 case .pinned(let suggestion):
                     pinnedRow(suggestion)

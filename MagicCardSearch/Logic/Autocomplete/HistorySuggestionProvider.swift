@@ -8,7 +8,7 @@
 import Foundation
 import Observation
 
-struct HistorySuggestion: Equatable, Sendable, ScorableSuggestion {
+struct HistorySuggestion: Equatable, Hashable, Sendable, ScorableSuggestion {
     let filter: SearchFilter
     let matchRange: Range<String.Index>?
     let prefixKind: PrefixKind

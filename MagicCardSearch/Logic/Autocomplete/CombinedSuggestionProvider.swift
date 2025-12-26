@@ -22,7 +22,7 @@ protocol ScorableSuggestion {
     var suggestionLength: Int { get }
 }
 
-enum Suggestion: Equatable, Sendable, ScorableSuggestion {
+enum Suggestion: Equatable, Hashable, Sendable, ScorableSuggestion {
     case pinned(PinnedFilterSuggestion)
     case history(HistorySuggestion)
     case filter(FilterTypeSuggestion)

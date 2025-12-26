@@ -52,7 +52,7 @@ struct FakeSearchBarButtonView: View {
 
                     ScrollView(.horizontal, showsIndicators: false) {
                         SearchBarLayout(icon: .hidden) {
-                            ForEach(Array(filters.enumerated()), id: \.offset) { _, filter in
+                            ForEach(filters, id: \.self) { filter in
                                 FilterPillView(filter: filter)
                             }
                         }

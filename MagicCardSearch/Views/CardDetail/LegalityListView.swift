@@ -178,30 +178,25 @@ private struct LegalityEditView: View {
     @Environment(\.dismiss) private var dismiss
     var configuration: LegalityConfiguration
     
-    // Local state that will only be applied on confirmation
     @State private var workingFormatOrder: [Format]
     @State private var workingDividerIndex: Int
     
     init(configuration: LegalityConfiguration) {
         self.configuration = configuration
-        // Initialize working state with current configuration
         self._workingFormatOrder = State(wrappedValue: configuration.formatOrder)
         self._workingDividerIndex = State(wrappedValue: configuration.dividerIndex)
     }
     
-    // Create a combined list with formats and divider
     private var listItems: [LegalityListItem] {
         var items: [LegalityListItem] = []
         
         for (index, format) in workingFormatOrder.enumerated() {
-            // Insert divider before this format if it matches the divider index
             if index == workingDividerIndex {
                 items.append(.divider)
             }
             items.append(.format(format))
         }
         
-        // If divider is at the end, add it after all formats
         if workingDividerIndex >= workingFormatOrder.count {
             items.append(.divider)
         }

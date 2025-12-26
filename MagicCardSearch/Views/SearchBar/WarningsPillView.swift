@@ -21,7 +21,7 @@ struct WarningsPillView: View {
             EmptyView()
         } else if isExpanded {
             VStack(alignment: .leading, spacing: 0) {
-                ForEach(Array(warnings.enumerated()), id: \.offset) { index, warning in
+                ForEach(Array(warnings.enumerated()), id: \.element) { index, warning in
                     Text(warning)
                         .font(.subheadline)
                         .foregroundStyle(.orange)

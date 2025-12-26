@@ -106,7 +106,7 @@ struct HomeView: View {
             
             if !searchHistoryTracker.completeSearchEntries.isEmpty {
                 Section {
-                    ForEach(Array(searchHistoryTracker.completeSearchEntries.prefix(10).enumerated()), id: \.element.lastUsedDate) { _, entry in
+                    ForEach(searchHistoryTracker.completeSearchEntries.prefix(10), id: \.lastUsedDate) { entry in
                         Button {
                             onSearchSelected(entry.filters)
                         } label: {
@@ -138,7 +138,7 @@ struct HomeView: View {
             }
             
             Section {
-                ForEach(Array(ExampleSearch.dailyExamples.enumerated()), id: \.element.title) { _, example in
+                ForEach(ExampleSearch.dailyExamples, id: \.title) { example in
                     Button {
                         onSearchSelected(example.filters)
                     } label: {
