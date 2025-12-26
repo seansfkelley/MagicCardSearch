@@ -335,7 +335,6 @@ private struct PagingCardImageView: View {
         .onScrollGeometryChange(
             for: CGFloat.self,
             of: { geometry in
-                // Calculate offset based on current card's position in the array
                 guard let currentId = scrollPosition.viewID(type: UUID.self),
                       let currentIdx = cards.firstIndex(where: { $0.id == currentId }) else {
                     return 0
@@ -368,7 +367,11 @@ private struct ThumbnailPreviewStrip: View {
             LazyHStack(spacing: thumbnailSpacing) {
                 ForEach(cards, id: \.id) { card in
                     ThumbnailCardView(card: card, isSelected: card.id == scrollPosition.viewID(type: UUID.self))
-                        .frame(height: thumbnailHeight)
+                        // Setting width here is crucial for the initial positioning; before the
+                        // images have loaded, the LazyHStack doesn't know where to scroll to in
+                        // order to show the initially-selected card. This should also help with
+                        // pop-in of images on slow connections.
+                        .frame(width: thumbnailWidth, height: thumbnailHeight)
                         .id(card.id)
                         .onTapGesture {
                             withAnimation(.easeInOut(duration: 0.3)) {
