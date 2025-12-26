@@ -240,7 +240,7 @@ private struct CardPrintsDetailView: View {
                 ThumbnailPreviewStrip(
                     cards: cards,
                     scrollPosition: $thumbnailScrollPosition,
-                    partialScrollOffsetFraction: $partialScrollOffsetFraction,
+                    partialScrollOffsetFraction: partialScrollOffsetFraction,
                     screenWidth: geometry.size.width
                 )
                 
@@ -353,7 +353,7 @@ private struct PagingCardImageView: View {
 private struct ThumbnailPreviewStrip: View {
     let cards: [Card]
     @Binding var scrollPosition: ScrollPosition
-    @Binding var partialScrollOffsetFraction: CGFloat
+    var partialScrollOffsetFraction: CGFloat
     let screenWidth: CGFloat
     
     private let thumbnailHeight: CGFloat = 100
@@ -363,16 +363,9 @@ private struct ThumbnailPreviewStrip: View {
         thumbnailHeight * Card.aspectRatio
     }
     
-    private var sidePadding: CGFloat {
-        (screenWidth - thumbnailWidth) / 2
-    }
-    
     var body: some View {
         ScrollView(.horizontal) {
             LazyHStack(spacing: thumbnailSpacing) {
-                Color.clear
-                    .frame(width: sidePadding - thumbnailSpacing)
-                
                 ForEach(cards, id: \.id) { card in
                     ThumbnailCardView(card: card, isSelected: card.id == scrollPosition.viewID(type: UUID.self))
                         .frame(height: thumbnailHeight)
@@ -382,18 +375,13 @@ private struct ThumbnailPreviewStrip: View {
                                 scrollPosition.scrollTo(id: card.id)
                             }
                         }
-                        // TODO: This works great, except that it reveals that the LazyHStack hasn't
-                        // loaded things off screen yet. How to make it load just one more view on
-                        // each side?
                         .offset(x: partialScrollOffsetFraction * (thumbnailWidth + thumbnailSpacing))
                 }
-                
-                Color.clear
-                    .frame(width: sidePadding - thumbnailSpacing)
             }
             .scrollTargetLayout()
             .padding(.vertical, 12)
         }
+        .contentMargins(.horizontal, (screenWidth - thumbnailWidth) / 2, for: .scrollContent)
         .scrollPosition($scrollPosition, anchor: .center)
         .scrollTargetBehavior(.viewAligned)
         .scrollIndicators(.hidden)
