@@ -80,7 +80,7 @@ struct SearchBarView: View {
             }
         }
         .onChange(of: inputText) { previous, current in
-            if Self.didAppendSpace(previous, current, inputSelection) {
+            if Self.didAppendClosingCharacter(previous, current, inputSelection) {
                 createNewFilterFromSearch()
             } else if let (newText, newSelection) = removeAutoinsertedWhitespace(current, inputSelection), newText != inputText {
                 inputText = newText
@@ -89,13 +89,12 @@ struct SearchBarView: View {
         }
     }
 
-    private static func didAppendSpace(_ previous: String, _ current: String, _ selection: TextSelection?) -> Bool {
+    private static func didAppendClosingCharacter(_ previous: String, _ current: String, _ selection: TextSelection?) -> Bool {
         guard current.count > previous.count else {
             return false
         }
 
-        // TODO: consider closing quotes or parens also triggering a creation?
-        guard current.hasSuffix(" ") else {
+        guard current.hasSuffix(" ") || current.hasSuffix(")") else {
             return false
         }
 
