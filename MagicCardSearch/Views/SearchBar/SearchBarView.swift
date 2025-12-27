@@ -94,7 +94,7 @@ struct SearchBarView: View {
             return false
         }
 
-        guard current.hasSuffix(" ") || current.hasSuffix(")") else {
+        guard current.firstMatch(of: /[ '"\)\/]$/) != nil else {
             return false
         }
 
