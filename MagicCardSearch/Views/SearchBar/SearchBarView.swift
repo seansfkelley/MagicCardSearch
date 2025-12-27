@@ -38,7 +38,7 @@ struct SearchBarView: View {
             // preceding options (textContentType? autocorrectionDisabled?) it does successfully get
             // rid of the predictive text bar that is not very useful.
             // .keyboardType(.asciiCapable)
-            .introspect(.textField, on: .iOS(.v26)) { textView in
+            .introspect(.textField(axis: .vertical), on: .iOS(.v26)) { textView in
                 textView.smartDashesType = .no
                 textView.smartQuotesType = .no
                 textView.smartInsertDeleteType = .no
