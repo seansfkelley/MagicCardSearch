@@ -115,9 +115,9 @@ struct FilterPopoverView: View {
                     Text("Show All Prints")
                 }
                 .frame(maxWidth: .infinity)
+                .foregroundStyle(filterSettings.isDefault ? .gray : .red)
             }
-            .buttonStyle(.bordered)
-            .tint(filterSettings.isDefault ? .gray : .red)
+            .buttonStyle(.borderless)
             .disabled(filterSettings.isDefault)
             .padding(.top)
         }
