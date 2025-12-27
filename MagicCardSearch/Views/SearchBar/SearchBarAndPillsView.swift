@@ -5,7 +5,6 @@
 //  Created by Sean Kelley on 2025-12-06.
 //
 import SwiftUI
-import WrappingHStack
 
 struct SearchBarAndPillsView: View {
     @Binding var filters: [SearchFilter]
@@ -25,16 +24,7 @@ struct SearchBarAndPillsView: View {
     
     private let collapsedButtonSize: CGFloat = 44
     private let searchIconFadeExtent: CGFloat = 24
-    
-    // Calculate max height based on pill dimensions without hardcoding
-    // Each pill is 32pt tall with 8pt spacing = 40pt per line
-    // 3.5 lines = 3.5 * 40 = 140pt
-    private var maxPillsHeight: CGFloat {
-        let pillHeight: CGFloat = 32
-        let lineSpacing: CGFloat = 8
-        let lines: CGFloat = 4
-        return (pillHeight + lineSpacing) * lines
-    }
+    private let maxPillRows: Int = 4
 
     var body: some View {
         VStack(spacing: 0) {
@@ -60,31 +50,11 @@ struct SearchBarAndPillsView: View {
 
             VStack(spacing: 0) {
                 if !filters.isEmpty {
-                    ScrollView {
-                        WrappingHStack(
-                            // n.b. you can't use ForEach here as a limitation of the library, so pass the list of
-                            // things to render to the stack.
-                            filters.enumerated(),
-                            alignment: .leading,
-                            spacing: .constant(8),
-                            lineSpacing: 8
-                        ) { index, filter in
-                            FilterPillView(
-                                filter: filter,
-                                onTap: {
-                                    onFilterEdit(filter)
-                                    filters.remove(at: index)
-                                },
-                                onDelete: {
-                                    filters.remove(at: index)
-                                }
-                            )
-                        }
-                        .padding(.vertical, 8)
-                        .padding(.horizontal, 12)
-                    }
-                    .frame(maxHeight: maxPillsHeight)
-                    .fixedSize(horizontal: false, vertical: true)
+                    ReflowingFilterPillsView(
+                        filters: $filters,
+                        maxRows: maxPillRows,
+                        onEdit: onFilterEdit
+                    )
                     .mask {
                         VStack(spacing: 0) {
                             Rectangle()

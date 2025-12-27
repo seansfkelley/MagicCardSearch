@@ -16,7 +16,6 @@
 		21332B992EF5D04100C80208 /* Algorithms in Frameworks */ = {isa = PBXBuildFile; productRef = 21332B982EF5D04100C80208 /* Algorithms */; };
 		213F299A2EE9285400E058DB /* SVGKitSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 213F29992EE9285400E058DB /* SVGKitSwift */; };
 		21A856BD2EE3AAE400E72541 /* ScryfallKit in Frameworks */ = {isa = PBXBuildFile; productRef = 21A856BC2EE3AAE400E72541 /* ScryfallKit */; };
-		21D3972C2EE225C5008B3EFD /* WrappingHStack in Frameworks */ = {isa = PBXBuildFile; productRef = 21D3972B2EE225C5008B3EFD /* WrappingHStack */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -133,7 +132,6 @@
 				213F299A2EE9285400E058DB /* SVGKitSwift in Frameworks */,
 				21058AE02EF36FC700F093EF /* Logging in Frameworks */,
 				210E14922EFDE5FB009D9FE0 /* SwiftUIIntrospect in Frameworks */,
-				21D3972C2EE225C5008B3EFD /* WrappingHStack in Frameworks */,
 				210E13AA2EFC66C4009D9FE0 /* FocusOnAppear in Frameworks */,
 				21332B992EF5D04100C80208 /* Algorithms in Frameworks */,
 				21A856BD2EE3AAE400E72541 /* ScryfallKit in Frameworks */,
@@ -238,7 +236,6 @@
 			);
 			name = MagicCardSearch;
 			packageProductDependencies = (
-				21D3972B2EE225C5008B3EFD /* WrappingHStack */,
 				21A856BC2EE3AAE400E72541 /* ScryfallKit */,
 				213F29992EE9285400E058DB /* SVGKitSwift */,
 				210115BB2EEF9543000D6D32 /* Nuke */,
@@ -337,7 +334,6 @@
 			mainGroup = 2137B5A42EE139C60066BF7E;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				21D3972A2EE225C5008B3EFD /* XCRemoteSwiftPackageReference "WrappingHStack" */,
 				21A856BA2EE3AA9200E72541 /* XCRemoteSwiftPackageReference "ScryfallKit" */,
 				213F29982EE9285400E058DB /* XCRemoteSwiftPackageReference "SVGKit" */,
 				21A5FCA72EE9E7FA0034E695 /* XCRemoteSwiftPackageReference "SwiftLintPlugins" */,
@@ -878,14 +874,6 @@
 				kind = branch;
 			};
 		};
-		21D3972A2EE225C5008B3EFD /* XCRemoteSwiftPackageReference "WrappingHStack" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/dkk/WrappingHStack";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 2.2.11;
-			};
-		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -948,11 +936,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 21A856BA2EE3AA9200E72541 /* XCRemoteSwiftPackageReference "ScryfallKit" */;
 			productName = ScryfallKit;
-		};
-		21D3972B2EE225C5008B3EFD /* WrappingHStack */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 21D3972A2EE225C5008B3EFD /* XCRemoteSwiftPackageReference "WrappingHStack" */;
-			productName = WrappingHStack;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
