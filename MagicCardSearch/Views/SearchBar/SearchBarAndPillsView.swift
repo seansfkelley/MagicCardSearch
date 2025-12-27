@@ -5,6 +5,7 @@
 //  Created by Sean Kelley on 2025-12-06.
 //
 import SwiftUI
+import WrappingHStack
 
 struct SearchBarAndPillsView: View {
     @Binding var filters: [SearchFilter]
@@ -60,10 +61,23 @@ struct SearchBarAndPillsView: View {
             VStack(spacing: 0) {
                 if !filters.isEmpty {
                     ScrollView {
-                        GlassEffectContainer(spacing: 8) {
-                            ReflowingFilterPillsView(
-                                filters: $filters,
-                                onFilterEdit: onFilterEdit
+                        WrappingHStack(
+                            // n.b. you can't use ForEach here as a limitation of the library, so pass the list of
+                            // things to render to the stack.
+                            filters.enumerated(),
+                            alignment: .leading,
+                            spacing: .constant(8),
+                            lineSpacing: 8
+                        ) { index, filter in
+                            FilterPillView(
+                                filter: filter,
+                                onTap: {
+                                    onFilterEdit(filter)
+                                    filters.remove(at: index)
+                                },
+                                onDelete: {
+                                    filters.remove(at: index)
+                                }
                             )
                         }
                         .padding(.vertical, 8)
