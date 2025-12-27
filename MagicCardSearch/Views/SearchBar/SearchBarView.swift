@@ -24,8 +24,10 @@ struct SearchBarView: View {
             TextField(
                 filters.isEmpty ? "Search for cards..." : "Add filters...",
                 text: $inputText,
-                selection: $inputSelection
+                selection: $inputSelection,
+                axis: .vertical
             )
+            .lineLimit(1...3)
             .textFieldStyle(.plain)
             .textInputAutocapitalization(.never)
             .autocorrectionDisabled(true)
