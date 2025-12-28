@@ -365,8 +365,9 @@ private struct HorizontallyScrollablePillSelector<T: PillSelectorOption>: View {
                                 text: option.label,
                                 highlightRange: option.range,
                             )
-                            .frame(minWidth: 30)
+                            .frame(width: 24, height: 24)
                         }
+                        .clipShape(Circle())
                         // Unfortunately this makes it slightly transparent, so you can see the
                         // label overlapping the first pills as you scroll over the label.
                         .buttonStyle(.bordered)
