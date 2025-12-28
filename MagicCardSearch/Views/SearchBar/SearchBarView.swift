@@ -113,30 +113,7 @@ struct SearchBarView: View {
     }
 
     private func createNewFilterFromSearch(fallbackToNameFilter: Bool = false) {
-        let trimmed = inputText.trimmingCharacters(in: .whitespaces)
-        
-        guard !trimmed.isEmpty else { return }
-        
-        // FIXME: This is kind of gross; shouldn't we be able to unconditionally pass it through to
-        // the parser and then it can tell us if it's valid or not?
-        //
-        // TODO: The parenthesized parser is a superset of PartialSearchFilter. This control flow
-        // should be cleaned up to not have duplicative regexes.
-        if (try? /^-?\(/.prefixMatch(in: trimmed)) != nil {
-            if let disjunction = ParenthesizedDisjunction.tryParse(trimmed), let filter = disjunction.toSearchFilter() {
-                filters.append(.disjunction(filter))
-                inputText = ""
-                return // TODO: gross control flow
-            }
-        } else if let filter = PartialSearchFilter.from(trimmed).toComplete() {
-            filters.append(filter)
-            searchHistoryTracker.recordUsage(of: filter)
-            inputText = ""
-            return // TODO: gross control flow
-        }
-
-        if fallbackToNameFilter {
-            let filter = SearchFilter.name(false, false, trimmed)
+        if let filter = inputText.toSearchFilter().value {
             filters.append(filter)
             searchHistoryTracker.recordUsage(of: filter)
             inputText = ""

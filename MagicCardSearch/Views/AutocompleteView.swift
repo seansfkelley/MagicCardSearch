@@ -13,6 +13,7 @@ struct AutocompleteView: View {
         case string(String)
     }
 
+    let allText: String
     let filterText: String
     let provider: CombinedSuggestionProvider
     let searchHistoryTracker: SearchHistoryTracker
@@ -58,6 +59,10 @@ struct AutocompleteView: View {
 
     var body: some View {
         List {
+            if let filter = allText.toSearchFilter().value {
+                verbatimRow(filter)
+            }
+
             ForEach(suggestions, id: \.self) { suggestion in
                 switch suggestion {
                 case .pinned(let suggestion):
@@ -113,6 +118,26 @@ struct AutocompleteView: View {
                 suggestions = newSuggestions
             }
         }
+    }
+    
+    @ViewBuilder
+    private func verbatimRow(_ filter: SearchFilter) -> some View {
+        Button {
+            onSuggestionTap(.filter(filter))
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "magnifyingglass")
+                    .foregroundStyle(.secondary)
+
+                Text(filter.description)
+                    .foregroundStyle(.primary)
+
+                Spacer(minLength: 0)
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .listRowInsets(.vertical, 0)
     }
     
     @ViewBuilder

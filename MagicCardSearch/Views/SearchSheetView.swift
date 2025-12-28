@@ -55,6 +55,7 @@ struct SearchSheetView: View {
     var body: some View {
         NavigationStack {
             AutocompleteView(
+                allText: inputText,
                 filterText: filterFacade.currentFilter,
                 provider: provider,
                 searchHistoryTracker: searchHistoryTracker,
