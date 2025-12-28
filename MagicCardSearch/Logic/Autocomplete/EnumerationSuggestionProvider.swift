@@ -29,8 +29,9 @@ private let logger = Logger(label: "EnumerationSuggestionProvider")
 
 @MainActor
 struct EnumerationSuggestionProvider {
-    private static let shared = MemoryCache<CacheKey, IndexedEnumerationValues>(expiration: .never)
+    private static let shared = MemoryCache<CacheKey, IndexedEnumerationValues<String>>(expiration: .never)
 
+    // swiftlint:disable:next function_body_length
     func getSuggestions(for partial: PartialSearchFilter, excluding excludedFilters: Set<SearchFilter>, limit: Int) -> [EnumerationSuggestion] {
         guard limit > 0 else {
             return []
@@ -60,7 +61,7 @@ struct EnumerationSuggestionProvider {
             
             matchingOpts = chain(AnySequence(typeMatches), AnySequence(subtypeMatches))
         } else {
-            let options: IndexedEnumerationValues
+            let options: IndexedEnumerationValues<String>
             if let cacheKey = Self.cacheKey(for: filterType.canonicalName) {
                 options = Self.getOptionsFromCache(for: cacheKey)
             } else if let staticOptions = filterType.enumerationValues {
@@ -95,7 +96,7 @@ struct EnumerationSuggestionProvider {
         )
     }
     
-    private func matchingOptions(from options: IndexedEnumerationValues, searchTerm: String) -> any Sequence<(String, Bool)> {
+    private func matchingOptions(from options: IndexedEnumerationValues<String>, searchTerm: String) -> any Sequence<(String, Bool)> {
         if searchTerm.isEmpty {
             // TODO: Would true produce better results?
             return options.sortedAlphabetically.lazy.map { ($0, false) }
@@ -134,7 +135,7 @@ struct EnumerationSuggestionProvider {
         }
     }
     
-    private static func getOptionsFromCache(for key: CacheKey) -> IndexedEnumerationValues {
+    private static func getOptionsFromCache(for key: CacheKey) -> IndexedEnumerationValues<String> {
         if let options = shared[key] {
             return options
         } else {
@@ -143,7 +144,7 @@ struct EnumerationSuggestionProvider {
         }
     }
     
-    private static func fetchOptions(for key: CacheKey) -> IndexedEnumerationValues {
+    private static func fetchOptions(for key: CacheKey) -> IndexedEnumerationValues<String> {
         let catalogs = ScryfallCatalogs.shared
         
         switch key {

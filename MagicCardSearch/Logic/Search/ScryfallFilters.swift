@@ -9,21 +9,6 @@ import Foundation
 
 // MARK: - Scryfall Filter Type
 
-struct IndexedEnumerationValues {
-    let sortedByLength: [String]
-    let sortedAlphabetically: [String]
-    
-    init(_ values: [String]) {
-        self.sortedByLength = values.sorted(using: [
-            KeyPathComparator(\.count),
-            KeyPathComparator(\.self, comparator: .localizedStandard),
-        ])
-        self.sortedAlphabetically = values.sorted(using: [
-            KeyPathComparator(\.self, comparator: .localizedStandard),
-        ])
-    }
-}
-
 struct ScryfallFilterType: Sendable {
     enum ComparisonKinds: Sendable {
         case all, equality
@@ -31,7 +16,7 @@ struct ScryfallFilterType: Sendable {
     
     let canonicalName: String
     let allNames: Set<String>
-    let enumerationValues: IndexedEnumerationValues?
+    let enumerationValues: IndexedEnumerationValues<String>?
     let comparisonKinds: ComparisonKinds
     
     init(
@@ -42,7 +27,7 @@ struct ScryfallFilterType: Sendable {
     ) {
         self.canonicalName = name
         self.allNames = Set([canonicalName]).union(aliases)
-        self.enumerationValues = enumerationValues.map { IndexedEnumerationValues($0) }
+        self.enumerationValues = enumerationValues.map { IndexedEnumerationValues($0, \.self) }
         self.comparisonKinds = comparisonKinds
     }
 }
