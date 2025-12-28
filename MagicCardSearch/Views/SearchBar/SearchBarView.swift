@@ -113,10 +113,19 @@ struct SearchBarView: View {
     }
 
     private func createNewFilterFromSearch(fallbackToNameFilter: Bool = false) {
-        if let filter = inputText.toSearchFilter().value {
+        let filter = inputText.toSearchFilter()
+        switch filter {
+        case .fallback(let filter):
+            if fallbackToNameFilter {
+                // swiftlint:disable:next fallthrough
+                fallthrough
+            }
+        case .parsed(let filter):
             filters.append(filter)
             searchHistoryTracker.recordUsage(of: filter)
             inputText = ""
+        case .empty:
+            break
         }
     }
 
