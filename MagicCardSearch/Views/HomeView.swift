@@ -229,7 +229,7 @@ struct ExampleSearch: Hashable {
     let filters: [SearchFilter]
     
     private static let examples: [ExampleSearch] = [
-        .init(title: "All Modern-Legal U/R Pingers", filters: [
+        .init(title: "Modern-Legal U/R Pingers", filters: [
             .basic(false, "color", .lessThanOrEqual, "ur"),
             .basic(false, "function", .including, "pinger"),
             .basic(false, "format", .including, "modern"),
@@ -239,9 +239,10 @@ struct ExampleSearch: Hashable {
             .basic(false, "order", .including, "power"),
             .basic(false, "dir", .including, "desc"),
         ]),
-        .init(title: "Big Green Devotion Contributors", filters: [
-            .basic(false, "mana", .greaterThanOrEqual, "{G}{G}{G}"),
-            .basic(false, "is", .including, "permanent"),
+        .init(title: "Most Devoted Green Permanents", filters: [
+            .basic(false, "devotion", .greaterThanOrEqual, "gggg"),
+            .basic(false, "order", .including, "manavalue"),
+            .basic(false, "dir", .including, "desc"),
         ]),
         .init(title: "All Non-basic-land Textless Cards", filters: [
             .basic(false, "is", .including, "textless"),
@@ -286,6 +287,32 @@ struct ExampleSearch: Hashable {
             .basic(false, "format", .including, "commander"),
             .basic(false, "order", .including, "edhrec"),
             .basic(false, "dir", .including, "asc"),
+        ]),
+        .init(title: "Muraganda Petroglyphs Creatures", filters: [
+            .basic(false, "type", .including, "creature"),
+            .basic(false, "is", .including, "vanilla"),
+            .basic(true, "is", .including, "token"),
+        ]),
+        .init(title: "Morphling and Friends", filters: [
+            .regex(false, "name", .including, "^[^\\s]+ling$"),
+            .basic(false, "type", .including, "shapeshifter"),
+        ]),
+        .init(title: "Stained Glass", filters: [
+            .basic(false, "art", .including, "stained-glass"),
+        ]),
+        .init(title: "Green Can Do Anything", filters: [
+            .basic(false, "color", .including, "green"),
+            .basic(false, "function", .including, "color-break"),
+        ]),
+        .init(title: "Dog Tongues", filters: [
+            .basic(false, "art", .including, "dog"),
+            .basic(false, "art", .including, "tongue-sticking-out"),
+        ]),
+        .init(title: "Most Color-committed Cards", filters: [
+            .basic(false, "color", .equal, "1"),
+            .basic(true, "mana", .including, "{1}"),
+            .basic(true, "is", .including, "hybrid"),
+            .basic(false, "manavalue", .greaterThanOrEqual, "4"),
         ]),
     ]
     
