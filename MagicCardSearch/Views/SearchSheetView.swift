@@ -43,6 +43,7 @@ struct SearchSheetView: View {
             history: HistorySuggestionProvider(with: searchHistoryTracker),
             filterType: FilterTypeSuggestionProvider(),
             enumeration: EnumerationSuggestionProvider(),
+            reverseEnumeration: ReverseEnumerationSuggestionProvider(),
             name: NameSuggestionProvider(debounce: .milliseconds(500))
         ))
     }

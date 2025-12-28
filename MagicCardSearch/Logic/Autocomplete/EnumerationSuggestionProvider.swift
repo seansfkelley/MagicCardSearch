@@ -31,21 +31,11 @@ private let logger = Logger(label: "EnumerationSuggestionProvider")
 struct EnumerationSuggestionProvider {
     private static let shared = MemoryCache<CacheKey, IndexedEnumerationValues<String>>(expiration: .never)
 
-    // swiftlint:disable:next function_body_length
     func getSuggestions(for partial: PartialSearchFilter, excluding excludedFilters: Set<SearchFilter>, limit: Int) -> [EnumerationSuggestion] {
-        guard limit > 0 else {
-            return []
-        }
-        
-        guard case .filter(let filterTypeName, let partialComparison, let partialValue) = partial.content else {
-            return []
-        }
-        
-        guard let comparison = partialComparison.toComplete() else {
-            return []
-        }
-        
-        guard let filterType = scryfallFilterByType[filterTypeName.lowercased()] else {
+        guard limit > 0,
+              case .filter(let filterTypeName, let partialComparison, let partialValue) = partial.content,
+              let comparison = partialComparison.toComplete(),
+              let filterType = scryfallFilterByType[filterTypeName.lowercased()] else {
             return []
         }
         

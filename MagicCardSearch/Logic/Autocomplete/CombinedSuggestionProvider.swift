@@ -27,6 +27,7 @@ enum Suggestion: Equatable, Hashable, Sendable, ScorableSuggestion {
     case history(HistorySuggestion)
     case filter(FilterTypeSuggestion)
     case enumeration(EnumerationSuggestion)
+    case reverseEnumeration(ReverseEnumerationSuggestion)
     case name(NameSuggestion)
     
     private var scorable: any ScorableSuggestion {
@@ -35,6 +36,7 @@ enum Suggestion: Equatable, Hashable, Sendable, ScorableSuggestion {
         case .history(let suggestion): suggestion
         case .filter(let suggestion): suggestion
         case .enumeration(let suggestion): suggestion
+        case .reverseEnumeration(let suggestion): suggestion
         case .name(let suggestion): suggestion
         }
     }
@@ -47,7 +49,8 @@ enum Suggestion: Equatable, Hashable, Sendable, ScorableSuggestion {
         case .history: return 1
         case .filter: return 2
         case .enumeration: return 3
-        case .name: return 4
+        case .reverseEnumeration: return 4
+        case .name: return 5
         }
     }
 }
@@ -59,6 +62,7 @@ class CombinedSuggestionProvider {
     let historyProvider: HistorySuggestionProvider
     let filterTypeProvider: FilterTypeSuggestionProvider
     let enumerationProvider: EnumerationSuggestionProvider
+    let reverseEnumerationProvider: ReverseEnumerationSuggestionProvider
     let nameProvider: NameSuggestionProvider
     
     let loadingState = DebouncedLoadingState()
@@ -68,12 +72,14 @@ class CombinedSuggestionProvider {
         history: HistorySuggestionProvider,
         filterType: FilterTypeSuggestionProvider,
         enumeration: EnumerationSuggestionProvider,
+        reverseEnumeration: ReverseEnumerationSuggestionProvider,
         name: NameSuggestionProvider
     ) {
         self.pinnedFilterProvider = pinnedFilter
         self.historyProvider = history
         self.filterTypeProvider = filterType
         self.enumerationProvider = enumeration
+        self.reverseEnumerationProvider = reverseEnumeration
         self.nameProvider = name
     }
 
@@ -112,6 +118,13 @@ class CombinedSuggestionProvider {
                 limit: 40
             )
             allSuggestions.append(contentsOf: enumerationSuggestions.map { Suggestion.enumeration($0) })
+            
+            let reverseEnumerationSuggestions = self.reverseEnumerationProvider.getSuggestions(
+                for: partial,
+                excluding: excludedFilters,
+                limit: 20
+            )
+            allSuggestions.append(contentsOf: reverseEnumerationSuggestions.map { Suggestion.reverseEnumeration($0) })
             
             continuation.yield(self.scoreSuggestions(allSuggestions, !searchTerm.isEmpty))
 

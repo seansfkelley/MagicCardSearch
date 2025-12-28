@@ -98,6 +98,10 @@ struct AutocompleteView: View {
                     enumerationRow(suggestion)
                         .listRowInsets(.vertical, 0)
                 
+                case .reverseEnumeration(let suggestion):
+                    reverseEnumerationRow(suggestion)
+                        .listRowInsets(.vertical, 0)
+                
                 case .name(let suggestion):
                     nameRow(suggestion)
                         .listRowInsets(.vertical, 0)
@@ -193,6 +197,24 @@ struct AutocompleteView: View {
         .swipeActions(edge: .leading, allowsFullSwipe: true) {
             pinSwipeAction(for: suggestion.filter)
         }
+    }
+    
+    private func reverseEnumerationRow(_ suggestion: ReverseEnumerationSuggestion) -> some View {
+        Button {
+            onSuggestionTap(.filter(PartialSearchFilter.from("\(suggestion.canonicalFilterName):\(suggestion.value)").toComplete()!))
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "line.3.horizontal.decrease.circle")
+                    .foregroundStyle(.secondary)
+                Text("\(suggestion.canonicalFilterName):\(suggestion.value)")
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                Spacer(minLength: 0)
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
     
     private func nameRow(_ suggestion: NameSuggestion) -> some View {
