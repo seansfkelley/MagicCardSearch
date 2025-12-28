@@ -295,6 +295,9 @@ struct CardPricesSection: View {
     let prices: Card.Prices
     let purchaseUris: [String: String]?
     
+    private let textFadeExtent: CGFloat = 36
+    @State var textOpacity: CGFloat = 1
+    
     static func hasPrices(card: Card) -> Bool {
         let usdAvailable = card.prices.usd != nil && !card.prices.usd!.isEmpty
         let eurAvailable = card.prices.eur != nil && !card.prices.eur!.isEmpty
@@ -304,59 +307,65 @@ struct CardPricesSection: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 16) {
+        ZStack {
+            HStack {
                 Text("Buy It")
                     .font(.headline)
                     .fontWeight(.semibold)
-
-                if let usd = prices.usd, !usd.isEmpty {
-                    Text("USD $\(usd)")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
-
-                if let eur = prices.eur, !eur.isEmpty {
-                    Text("EUR €\(eur)")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
-
-                if let tix = prices.tix, !tix.isEmpty {
-                    Text("TIX \(tix)")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
-
+                    .padding(.trailing, 8)
+                    .opacity(textOpacity)
                 Spacer()
             }
-
-            if let purchaseUris, !purchaseUris.isEmpty {
-                ViewThatFits {
-                    vendorButtons
-                        .frame(maxWidth: .infinity, alignment: .leading)
-
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        vendorButtons
+            
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    Text("Buy It")
+                        .font(.headline)
+                        .fontWeight(.semibold)
+                        .padding(.trailing, 8)
+                        .hidden()
+                    
+                    if let purchaseUris {
+                        ForEach(Vendor.allCases, id: \.rawValue) { vendor in
+                            if let url = purchaseUris[vendor.rawValue] {
+                                VendorButton(vendor: vendor, prices: prices, url: url)
+                            }
+                        }
                     }
+                    
+                    Spacer()
+                }
+            }
+            .onScrollGeometryChange(
+                for: CGFloat.self,
+                of: { geometry in
+                    let x = geometry.contentOffset.x
+                    return x > textFadeExtent ? textFadeExtent : x < 0 ? 0 : x
+                },
+                action: { _, currentValue in
+                    textOpacity = (textFadeExtent - currentValue) / textFadeExtent
+                })
+            .mask {
+                HStack(spacing: 0) {
+                    LinearGradient(
+                        colors: [.clear, .black],
+                        startPoint: .leading,
+                        endPoint: .trailing,
+                    )
+                    .frame(width: 20)
+                    Rectangle()
+                    LinearGradient(
+                        colors: [.black, .clear],
+                        startPoint: .leading,
+                        endPoint: .trailing,
+                    )
+                    .frame(width: 20)
                 }
             }
         }
         .padding(.horizontal)
         .padding(.vertical, 12)
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    @ViewBuilder private var vendorButtons: some View {
-        HStack(spacing: 8) {
-            if let purchaseUris {
-                ForEach(Vendor.allCases, id: \.rawValue) { vendor in
-                    if let url = purchaseUris[vendor.rawValue] {
-                        VendorButton(vendor: vendor, url: url)
-                    }
-                }
-            }
-        }
+        .frame(maxWidth: .infinity)
     }
     
     private enum Vendor: String, CaseIterable {
@@ -369,10 +378,19 @@ struct CardPricesSection: View {
             case .cardhoarder: "Cardhoarder"
             }
         }
+        
+        func price(from prices: Card.Prices) -> String? {
+            switch self {
+            case .tcgplayer: prices.usd.map { "$\($0)" }
+            case .cardmarket: prices.eur.map { "€\($0)" }
+            case .cardhoarder: prices.tix.map { "TIX \($0)" }
+            }
+        }
     }
 
     private struct VendorButton: View {
         let vendor: Vendor
+        let prices: Card.Prices
         let url: String
 
         var body: some View {
@@ -387,6 +405,13 @@ struct CardPricesSection: View {
                         .fontWeight(.medium)
                         .foregroundStyle(.blue)
                         .lineLimit(1)
+                    
+                    if let price = vendor.price(from: prices) {
+                        Text(price)
+                            .font(.subheadline)
+                            .foregroundStyle(.blue)
+                            .lineLimit(1)
+                    }
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.horizontal, 12)

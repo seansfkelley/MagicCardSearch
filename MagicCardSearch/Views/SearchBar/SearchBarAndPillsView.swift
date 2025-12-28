@@ -18,12 +18,8 @@ struct SearchBarAndPillsView: View {
     let onSubmit: () -> Void
 
     @State var showWarningsPopover: Bool = false
-    @State var searchIconOpacity: CGFloat = 1
-    
     @Namespace private var animation
     
-    private let collapsedButtonSize: CGFloat = 44
-    private let searchIconFadeExtent: CGFloat = 24
     private let maxPillRows: Int = 4
 
     var body: some View {
