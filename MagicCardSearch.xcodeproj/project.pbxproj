@@ -870,7 +870,7 @@
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/seansfkelley/ScryfallKit";
 			requirement = {
-				branch = "gamechanger-and-legalities";
+				branch = main;
 				kind = branch;
 			};
 		};

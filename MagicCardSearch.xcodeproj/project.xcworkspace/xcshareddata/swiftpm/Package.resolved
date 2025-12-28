@@ -33,8 +33,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/seansfkelley/ScryfallKit",
       "state" : {
-        "branch" : "gamechanger-and-legalities",
-        "revision" : "34680489f2bc827c9b47079ac1170a87c9ff6483"
+        "branch" : "main",
+        "revision" : "86951111ac6c12894d0802f68190817210fe26cb"
       }
     },
     {
