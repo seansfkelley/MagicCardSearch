@@ -314,6 +314,9 @@ struct ExampleSearch: Hashable {
             .basic(true, "is", .including, "hybrid"),
             .basic(false, "manavalue", .greaterThanOrEqual, "4"),
         ]),
+        .init(title: "Most Reprinted Cards", filters: [
+            .basic(false, "prints", .greaterThan, "30"),
+        ]),
     ]
     
     private static func hourlySeed() -> Int {
