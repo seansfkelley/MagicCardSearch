@@ -122,7 +122,6 @@ class CombinedSuggestionProvider {
             
             let reverseEnumerationSuggestions = self.reverseEnumerationProvider.getSuggestions(
                 for: partial,
-                excluding: excludedFilters,
                 limit: 20
             )
             allSuggestions.append(contentsOf: reverseEnumerationSuggestions.map { Suggestion.reverseEnumeration($0) })

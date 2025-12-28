@@ -17,11 +17,17 @@ struct ReverseEnumerationSuggestion: Equatable, Hashable, Sendable, ScorableSugg
     let suggestionLength: Int
 }
 
+// These are really noisy in the search results and I can't imagine anyone ever wants them.
+private let ignoredSetTypes: Set<MTGSet.`Type`> = [
+    .token,
+    .promo,
+]
+
 struct ReverseEnumerationSuggestionProvider {
     private static let cacheLock = NSLock()
     nonisolated(unsafe) private static var cache: CachedIndex = .unloaded
 
-    func getSuggestions(for partial: PartialSearchFilter, excluding excludedFilters: Set<SearchFilter>, limit: Int) -> [ReverseEnumerationSuggestion] {
+    func getSuggestions(for partial: PartialSearchFilter, limit: Int) -> [ReverseEnumerationSuggestion] {
         guard limit > 0,
                 case .name(let isExact, let partialTerm) = partial.content,
                 !isExact,
@@ -35,11 +41,11 @@ struct ReverseEnumerationSuggestionProvider {
         let prefixMatches = Array(options.matching(prefix: searchTerm, sorted: .byLength))
 
         var prefixSet: Set<String>?
-        let substringMatches = options.matching(anywhere: searchTerm, sorted: .byLength).filter { option in
+        let substringMatches = options.matching(anywhere: searchTerm, sorted: .byLength).filter { match in
             if prefixSet == nil {
-                prefixSet = Set(prefixMatches.map { $0.value.0 })
+                prefixSet = Set(prefixMatches.map(\.value.0))
             }
-            return !prefixSet!.contains(option.value.0)
+            return !prefixSet!.contains(match.value.0)
         }
 
         return Array(
@@ -135,15 +141,17 @@ struct ReverseEnumerationSuggestionProvider {
         addCatalog(.watermarks, to: "watermark")
         addCatalog(.supertypes, .cardTypes, .artifactTypes, .battleTypes, .creatureTypes, .enchantmentTypes, .landTypes, .planeswalkerTypes, .spellTypes, to: "type")
 
+        let sets = catalogs.sets.values.filter { !ignoredSetTypes.contains($0.setType) }
+
         if let setFilter = scryfallFilterByType["set"] {
-            for set in catalogs.sets.values {
-                valueToFilters[set.code.lowercased().replacing(/[^a-z0-9 ]/, with: ""), default: []].append(setFilter)
-                valueToFilters[set.name.lowercased().replacing(/[^a-z0-9 ]/, with: ""), default: []].append(setFilter)
+            for set in sets {
+                valueToFilters[set.code.uppercased().replacing(/[^a-zA-Z0-9 ]/, with: ""), default: []].append(setFilter)
+                valueToFilters[set.name.replacing(/[^a-zA-Z0-9 ]/, with: ""), default: []].append(setFilter)
             }
         }
 
         if let blockFilter = scryfallFilterByType["block"] {
-            for block in catalogs.sets.values.compactMap({ $0.block?.lowercased().replacing(/[^a-z0-9 ]/, with: "") }) {
+            for block in sets.compactMap({ $0.block?.replacing(/[^a-zA-Z0-9 ]/, with: "") }).uniqued() {
                 valueToFilters[block, default: []].append(blockFilter)
             }
         }

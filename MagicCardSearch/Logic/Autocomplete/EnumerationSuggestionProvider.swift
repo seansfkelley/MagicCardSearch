@@ -25,6 +25,12 @@ private enum CacheKey: Hashable {
     case watermark
 }
 
+// These are really noisy in the search results and I can't imagine anyone ever wants them.
+private let ignoredSetTypes: Set<MTGSet.`Type`> = [
+    .token,
+    .promo,
+]
+
 private let logger = Logger(label: "EnumerationSuggestionProvider")
 
 struct EnumerationSuggestionProvider {
@@ -142,17 +148,19 @@ struct EnumerationSuggestionProvider {
             ScryfallCatalogs.sync.map {
                 IndexedEnumerationValues(
                     $0.sets.values
-                        .flatMap { [$0.code, $0.name] }
-                        .map { $0.lowercased().replacing(/[^a-z0-9 ]/, with: "") }
+                        .filter { !ignoredSetTypes.contains($0.setType) }
+                        .flatMap { [$0.code.uppercased(), $0.name] }
+                        .map { $0.replacing(/[^a-zA-Z0-9 ]/, with: "") }
                 )
             }
             
         case .block:
             ScryfallCatalogs.sync.map {
                 IndexedEnumerationValues(
-                    $0.sets.values.compactMap {
-                        $0.block?.lowercased().replacing(/[^a-z0-9 ]/, with: "")
-                    }
+                    $0.sets.values
+                        .filter { !ignoredSetTypes.contains($0.setType) }
+                        .compactMap { $0.block?.replacing(/[^a-zA-Z0-9 ]/, with: "") }
+                        .uniqued()
                 )
             }
 
