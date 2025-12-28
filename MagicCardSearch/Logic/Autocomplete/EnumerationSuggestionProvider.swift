@@ -99,28 +99,20 @@ struct EnumerationSuggestionProvider {
     private func matchingOptions(from options: IndexedEnumerationValues<String>, searchTerm: String) -> any Sequence<(String, Bool)> {
         if searchTerm.isEmpty {
             // TODO: Would true produce better results?
-            return options.sortedAlphabetically.lazy.map { ($0, false) }
+            return options.all(sorted: .alphabetically).map { ($0, false) }
         }
-        
-        let lowerBound = options.sortedAlphabetically.partitioningIndex { element in
-            element.compare(searchTerm, options: [.caseInsensitive]) != .orderedAscending
-        }
-        
-        let upperBound = options.sortedAlphabetically[lowerBound...].partitioningIndex { element in
-            element.range(of: searchTerm, options: [.anchored, .caseInsensitive]) == nil
-        }
-        
-        let prefixMatches = options.sortedAlphabetically[lowerBound..<upperBound]
-        
+
+        let prefixMatches = Array(options.matching(prefix: searchTerm, sorted: .byLength))
+
         var prefixSet: Set<String>?
-        let substringMatches = options.sortedByLength.lazy.filter { option in
+        let substringMatches = options.matching(anywhere: searchTerm, sorted: .byLength).filter { option in
             if prefixSet == nil {
-                prefixSet = Set(prefixMatches)
+                prefixSet = Set(prefixMatches.map { $0.value })
             }
-            return !prefixSet!.contains(option) && option.range(of: searchTerm, options: .caseInsensitive) != nil
+            return !prefixSet!.contains(option.value)
         }
         
-        return chain(prefixMatches.lazy.map { ($0, true) }, substringMatches.map { ($0, false) })
+        return chain(prefixMatches.lazy.map { ($0.value, true) }, substringMatches.map { ($0.value, false) })
     }
     
     // MARK: - Cache Management

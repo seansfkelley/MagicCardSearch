@@ -29,21 +29,20 @@ struct EnumerationSuggestionProviderTests {
             ],
         ),
         (
-            // narrows based on substring match, preferring strings earlier in the alphabet when
-            // they are both prefixes
+            // narrows based on substring match, preferring shorter strings when they are both prefixes
             PartialSearchFilter(negated: false, content: .filter("is", .including, .bare("scry"))),
             [
-                .init(
-                    filter: SearchFilter.basic(false, "is", .including, "scryfallpreview"),
-                    matchRange: "is:scryfallpreview".range(of: "scry"),
-                    prefixKind: .actual,
-                    suggestionLength: 15
-                ),
                 .init(
                     filter: SearchFilter.basic(false, "is", .including, "scryland"),
                     matchRange: "is:scryland".range(of: "scry"),
                     prefixKind: .actual,
                     suggestionLength: 8
+                ),
+                .init(
+                    filter: SearchFilter.basic(false, "is", .including, "scryfallpreview"),
+                    matchRange: "is:scryfallpreview".range(of: "scry"),
+                    prefixKind: .actual,
+                    suggestionLength: 15
                 ),
             ],
         ),
@@ -64,16 +63,16 @@ struct EnumerationSuggestionProviderTests {
             PartialSearchFilter(negated: true, content: .filter("is", .including, .bare("scry"))),
             [
                 .init(
-                    filter: SearchFilter.basic(true, "is", .including, "scryfallpreview"),
-                    matchRange: "-is:scryfallpreview".range(of: "scry"),
-                    prefixKind: .effective,
-                    suggestionLength: 15
-                ),
-                .init(
                     filter: SearchFilter.basic(true, "is", .including, "scryland"),
                     matchRange: "-is:scryland".range(of: "scry"),
                     prefixKind: .effective,
                     suggestionLength: 8
+                ),
+                .init(
+                    filter: SearchFilter.basic(true, "is", .including, "scryfallpreview"),
+                    matchRange: "-is:scryfallpreview".range(of: "scry"),
+                    prefixKind: .effective,
+                    suggestionLength: 15
                 ),
             ],
         ),

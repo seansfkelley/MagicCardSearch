@@ -9,8 +9,8 @@ import Algorithms
 
 struct IndexedEnumerationValues<T: Sendable> {
     enum Sort {
-        case alphabetical
-        case length
+        case alphabetically
+        case byLength
     }
 
     struct Match<U> {
@@ -36,7 +36,16 @@ struct IndexedEnumerationValues<T: Sendable> {
             ])
     }
 
-    func matching(prefix: String, sortingBy sort: Sort = .alphabetical) -> any Sequence<Match<T>> {
+    func all(sorted sort: Sort) -> any Sequence<T> {
+        let matches = switch sort {
+        case .alphabetically: sortedAlphabetically
+        case .byLength: sortedByLength
+        }
+
+        return matches.lazy.map { $0.1 }
+    }
+
+    func matching(prefix: String, sorted sort: Sort) -> any Sequence<Match<T>> {
         var matches: ArraySlice<(String, T)>
         if prefix.isEmpty {
             matches = sortedAlphabetically[sortedAlphabetically.startIndex..<sortedAlphabetically.endIndex]
@@ -53,8 +62,8 @@ struct IndexedEnumerationValues<T: Sendable> {
         }
 
         matches = switch sort {
-        case .alphabetical: matches
-        case .length: ArraySlice(matches.sorted(using: KeyPathComparator(\.0.count)))
+        case .alphabetically: matches
+        case .byLength: ArraySlice(matches.sorted(using: KeyPathComparator(\.0.count)))
         }
 
         return matches
@@ -68,10 +77,10 @@ struct IndexedEnumerationValues<T: Sendable> {
             }
     }
 
-    func matching(anywhere string: String, sortingBy sort: Sort = .alphabetical) -> any Sequence<Match<T>> {
+    func matching(anywhere string: String, sorted sort: Sort) -> any Sequence<Match<T>> {
         let matches = switch sort {
-        case .alphabetical: sortedAlphabetically
-        case .length: sortedByLength
+        case .alphabetically: sortedAlphabetically
+        case .byLength: sortedByLength
         }
 
         return matches
@@ -83,7 +92,7 @@ struct IndexedEnumerationValues<T: Sendable> {
                     nil
                 }
             }
-            .map { (range, item) in
+            .map { range, item in
                 .init(
                     value: item.1,
                     string: item.0,
