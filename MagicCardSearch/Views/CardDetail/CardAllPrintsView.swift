@@ -16,7 +16,6 @@ struct CardAllPrintsView: View {
     @State private var currentIndex: Int = 0
     @State private var showFilterPopover = false
     @State private var printFilterSettings = PrintFilterSettings()
-    @State private var cardFlipStates: [UUID: Bool] = [:]
     @ObservedObject private var listManager = BookmarkedCardListManager.shared
     @Environment(\.dismiss) private var dismiss
 
@@ -81,8 +80,7 @@ struct CardAllPrintsView: View {
                     } else {
                         CardPrintsDetailView(
                             cards: cards,
-                            currentIndex: $currentIndex,
-                            cardFlipStates: $cardFlipStates
+                            currentIndex: $currentIndex
                         )
                     }
                 } else if let error = loadState.latestError {
@@ -217,13 +215,13 @@ struct CardAllPrintsView: View {
 private struct CardPrintsDetailView: View {
     let cards: [Card]
     @Binding var currentIndex: Int
-    @Binding var cardFlipStates: [UUID: Bool]
     
     // It seems that these cannot share a position object, so we bridge between the two and,
     // unfortunately, also the currentIndex binding from the parent.
     @State private var mainScrollPosition = ScrollPosition(idType: UUID.self)
     @State private var thumbnailScrollPosition = ScrollPosition(idType: UUID.self)
     @State private var partialScrollOffsetFraction: CGFloat = 0
+    @State private var isFlipped: Bool = false
 
     private var currentCard: Card? {
         guard currentIndex >= 0 && currentIndex < cards.count else { return nil }
@@ -238,7 +236,7 @@ private struct CardPrintsDetailView: View {
                     scrollPosition: $mainScrollPosition,
                     partialScrollOffsetFraction: $partialScrollOffsetFraction,
                     screenWidth: geometry.size.width,
-                    cardFlipStates: $cardFlipStates
+                    isFlipped: $isFlipped
                 )
                 
                 ThumbnailPreviewStrip(
@@ -246,7 +244,7 @@ private struct CardPrintsDetailView: View {
                     scrollPosition: $thumbnailScrollPosition,
                     partialScrollOffsetFraction: partialScrollOffsetFraction,
                     screenWidth: geometry.size.width,
-                    cardFlipStates: cardFlipStates
+                    isFlipped: isFlipped
                 )
                 
                 Spacer()
@@ -302,7 +300,7 @@ private struct PagingCardImageView: View {
     @Binding var scrollPosition: ScrollPosition
     @Binding var partialScrollOffsetFraction: CGFloat
     let screenWidth: CGFloat
-    @Binding var cardFlipStates: [UUID: Bool]
+    @Binding var isFlipped: Bool
 
     @State private var scrollPhase: ScrollPhase = .idle
     
@@ -314,10 +312,7 @@ private struct PagingCardImageView: View {
                         CardView(
                             card: card,
                             quality: .large,
-                            isFlipped: Binding(
-                                get: { cardFlipStates[card.id] ?? false },
-                                set: { cardFlipStates[card.id] = $0 }
-                            ),
+                            isFlipped: $isFlipped,
                             cornerRadius: 16,
                         )
                         .padding(.horizontal)
@@ -364,7 +359,7 @@ private struct ThumbnailPreviewStrip: View {
     @Binding var scrollPosition: ScrollPosition
     var partialScrollOffsetFraction: CGFloat
     let screenWidth: CGFloat
-    var cardFlipStates: [UUID: Bool]
+    var isFlipped: Bool
     
     private let thumbnailHeight: CGFloat = 100
     private let thumbnailSpacing: CGFloat = 8
@@ -377,22 +372,29 @@ private struct ThumbnailPreviewStrip: View {
         ScrollView(.horizontal) {
             LazyHStack(spacing: thumbnailSpacing) {
                 ForEach(cards, id: \.id) { card in
-                    ThumbnailCardView(
+                    CardView(
                         card: card,
-                        isSelected: card.id == scrollPosition.viewID(type: UUID.self),
-                        isFlipped: cardFlipStates[card.id] ?? false
+                        quality: .small,
+                        isFlipped: .constant(isFlipped),
+                        cornerRadius: 4,
+                        showFlipButton: false
                     )
-                        // Setting width here is crucial for the initial positioning; before the
-                        // images have loaded, the LazyHStack doesn't know where to scroll to in
-                        // order to show the initially-selected card. This should also help with
-                        // pop-in of images on slow connections.
-                        .frame(width: thumbnailWidth, height: thumbnailHeight)
-                        .id(card.id)
-                        .onTapGesture {
-                            withAnimation(.easeInOut(duration: 0.3)) {
-                                scrollPosition.scrollTo(id: card.id)
-                            }
+                    .scaleEffect(card.id == scrollPosition.viewID(type: UUID.self) ? 1.1 : 1.0)
+                    // TODO: Enable this but only for the scale effect -- as written, it seems to animate the
+                    // padding or otherwise cause whacko UI jitters.
+                    // .animation(.easeInOut(duration: 0.2), value: isSelected)
+                    //
+                    // Setting width here is crucial for the initial positioning; before the
+                    // images have loaded, the LazyHStack doesn't know where to scroll to in
+                    // order to show the initially-selected card. This should also help with
+                    // pop-in of images on slow connections.
+                    .frame(width: thumbnailWidth, height: thumbnailHeight)
+                    .id(card.id)
+                    .onTapGesture {
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            scrollPosition.scrollTo(id: card.id)
                         }
+                    }
                 }
             }
             .scrollTargetLayout()
@@ -405,69 +407,5 @@ private struct ThumbnailPreviewStrip: View {
         .scrollIndicators(.hidden)
         .background(Color.clear)
         .frame(height: thumbnailHeight + 16)
-    }
-}
-
-// MARK: - Thumbnail Card View
-
-private struct ThumbnailCardView: View {
-    let card: Card
-    let isSelected: Bool
-    let isFlipped: Bool
-    
-    var body: some View {
-        Group {
-            if let faces = card.cardFaces, card.layout.isDoubleFaced && faces.count >= 2 {
-                let faceIndex = isFlipped ? 1 : 0
-                if let imageUri = faces[faceIndex].imageUris?.small {
-                    LazyImage(url: URL(string: imageUri)) { state in
-                        if let image = state.image {
-                            image
-                                .resizable()
-                                .aspectRatio(contentMode: .fit)
-                        } else {
-                            Color.clear
-                                .aspectRatio(Card.aspectRatio, contentMode: .fit)
-                                .overlay {
-                                    ProgressView()
-                                }
-                        }
-                    }
-                } else {
-                    Color.clear
-                        .aspectRatio(Card.aspectRatio, contentMode: .fit)
-                        .overlay {
-                            Image(systemName: "photo")
-                                .foregroundStyle(.secondary)
-                        }
-                }
-            } else if let imageUri = card.imageUris?.small {
-                LazyImage(url: URL(string: imageUri)) { state in
-                    if let image = state.image {
-                        image
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                    } else {
-                        Color.clear
-                            .aspectRatio(Card.aspectRatio, contentMode: .fit)
-                            .overlay {
-                                ProgressView()
-                            }
-                    }
-                }
-            } else {
-                Color.clear
-                    .aspectRatio(Card.aspectRatio, contentMode: .fit)
-                    .overlay {
-                        Image(systemName: "photo")
-                            .foregroundStyle(.secondary)
-                    }
-            }
-        }
-        .clipShape(RoundedRectangle(cornerRadius: 4))
-        .scaleEffect(isSelected ? 1.1 : 1.0)
-        // TODO: Enable this but only for the scale effect -- as written, it seems to animate the
-        // padding or otherwise cause whacko UI jitters.
-//        .animation(.easeInOut(duration: 0.2), value: isSelected)
     }
 }

@@ -67,6 +67,21 @@ struct CardView: View {
     let quality: CardImageQuality
     @Binding var isFlipped: Bool
     let cornerRadius: CGFloat
+    let showFlipButton: Bool
+
+    init(
+        card: Card,
+        quality: CardImageQuality,
+        isFlipped: Binding<Bool>,
+        cornerRadius: CGFloat,
+        showFlipButton: Bool = true
+    ) {
+        self.card = card
+        self.quality = quality
+        self._isFlipped = isFlipped
+        self.cornerRadius = cornerRadius
+        self.showFlipButton = showFlipButton
+    }
 
     var body: some View {
         Group {
@@ -77,6 +92,7 @@ struct CardView: View {
                     quality: quality,
                     isShowingBackFace: $isFlipped,
                     cornerRadius: cornerRadius,
+                    showFlipButton: showFlipButton
                 )
             } else {
                 CardFaceView(
@@ -191,6 +207,7 @@ private struct FlippableCardFaceView: View {
     let quality: CardImageQuality
     @Binding var isShowingBackFace: Bool
     let cornerRadius: CGFloat
+    let showFlipButton: Bool
     
     var body: some View {
         ZStack(alignment: Alignment(horizontal: .trailing, vertical: .centeredOnArt)) {
@@ -220,18 +237,20 @@ private struct FlippableCardFaceView: View {
             .animation(.spring(response: 0.4, dampingFraction: 0.8), value: isShowingBackFace)
             .alignmentGuide(.centeredOnArt) { $0.height * 0.33 }
             
-            Button {
-                isShowingBackFace.toggle()
-            } label: {
-                Image(systemName: "arrow.triangle.2.circlepath")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(.primary)
-                    .padding(8)
+            if showFlipButton {
+                Button {
+                    isShowingBackFace.toggle()
+                } label: {
+                    Image(systemName: "arrow.triangle.2.circlepath")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(.primary)
+                        .padding(8)
+                }
+                .buttonStyle(.glass)
+                .buttonBorderShape(.circle)
+                .shadow(color: .black.opacity(0.2), radius: 3, x: 0, y: 2)
+                .alignmentGuide(.centeredOnArt) { $0[VerticalAlignment.center] }
             }
-            .buttonStyle(.glass)
-            .buttonBorderShape(.circle)
-            .shadow(color: .black.opacity(0.2), radius: 3, x: 0, y: 2)
-            .alignmentGuide(.centeredOnArt) { $0[VerticalAlignment.center] }
         }
     }
 }
