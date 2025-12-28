@@ -163,4 +163,3 @@ struct ReflowingFilterPillsView: View {
         return rows
     }
 }
-

@@ -144,9 +144,7 @@ final class DiskCache<Key: Hashable & Sendable, Value: Codable & Sendable>: Cach
     }
     
     private func write(_ value: Value, to fileURL: URL, expirationDate: Date?, nonce: String?) {
-        queue.async(flags: .barrier) { [weak self] in
-            guard let self else { return }
-            
+        queue.async(flags: .barrier) {
             do {
                 let wrapper = CacheEntryWrapper(value: value, expirationDate: expirationDate, nonce: nonce)
                 let data = try JSONEncoder().encode(wrapper)

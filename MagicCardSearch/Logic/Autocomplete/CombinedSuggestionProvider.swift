@@ -83,6 +83,7 @@ class CombinedSuggestionProvider {
         self.nameProvider = name
     }
 
+    // swiftlint:disable:next function_body_length
     func getSuggestions(for searchTerm: String, existingFilters: Set<SearchFilter>) -> AsyncStream<[Suggestion]> {
         let currentTaskId = loadingState.start()
         let partial = PartialSearchFilter.from(searchTerm)

@@ -200,21 +200,10 @@ struct AutocompleteView: View {
     }
     
     private func reverseEnumerationRow(_ suggestion: ReverseEnumerationSuggestion) -> some View {
-        Button {
-            onSuggestionTap(.filter(PartialSearchFilter.from("\(suggestion.canonicalFilterName):\(suggestion.value)").toComplete()!))
-        } label: {
-            HStack(spacing: 12) {
-                Image(systemName: "line.3.horizontal.decrease.circle")
-                    .foregroundStyle(.secondary)
-                Text("\(suggestion.canonicalFilterName):\(suggestion.value)")
-                    .foregroundStyle(.primary)
-                    .lineLimit(1)
-                    .truncationMode(.tail)
-                Spacer(minLength: 0)
-            }
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
+        ReverseEnumerationRowView(
+            suggestion: suggestion,
+            onSuggestionTap: onSuggestionTap
+        )
     }
     
     private func nameRow(_ suggestion: NameSuggestion) -> some View {
@@ -234,6 +223,104 @@ struct AutocompleteView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+    }
+}
+
+// MARK: - Reverse Enumeration Row
+
+private struct ReverseEnumerationRowView: View {
+    let suggestion: ReverseEnumerationSuggestion
+    let onSuggestionTap: (AutocompleteView.AcceptedSuggestion) -> Void
+    
+    @State private var showingPopover = false
+
+    private var filter: ScryfallFilterType {
+        // TODO: Unsafe assertion.
+        scryfallFilterByType[suggestion.canonicalFilterName]!
+    }
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "line.3.horizontal.decrease.circle")
+                .foregroundStyle(.secondary)
+            
+            Text(suggestion.canonicalFilterName)
+                .foregroundStyle(.primary)
+            
+            Button {
+                showingPopover = true
+            } label: {
+                Image(systemName: "ellipsis")
+            }
+            .buttonStyle(.bordered)
+            .tint(.blue)
+            .fixedSize()
+            .popover(isPresented: $showingPopover) {
+                ComparisonGridPicker(comparisonKinds: filter.comparisonKinds) { comparison in
+                    showingPopover = false
+                    onSuggestionTap(.filter(.basic(
+                        false,
+                        suggestion.canonicalFilterName,
+                        comparison,
+                        suggestion.value
+                    )))
+                }
+                .presentationCompactAdaptation(.popover)
+            }
+            
+            Text(suggestion.value)
+                .foregroundStyle(.primary)
+            
+            Spacer(minLength: 0)
+        }
+    }
+}
+
+// MARK: - Comparison Grid Picker
+
+private struct ComparisonGridPicker: View {
+    let comparisonKinds: ScryfallFilterType.ComparisonKinds
+    let onSelect: (Comparison) -> Void
+    
+    private var groupedComparisons: [[Comparison]] {
+        switch comparisonKinds {
+        case .equality:
+            return [[.including, .equal, .notEqual]]
+        case .all:
+            return [
+                // TODO: Should include not-equal?
+                [.including, .equal],
+                [.lessThan, .lessThanOrEqual],
+                [.greaterThanOrEqual, .greaterThan],
+            ]
+        }
+    }
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            ForEach(groupedComparisons, id: \.self) { comparisons in
+                HStack(spacing: 0) {
+                    ForEach(comparisons, id: \.self) { comparison in
+                        Button {
+                            onSelect(comparison)
+                        } label: {
+                            Text(comparison.rawValue)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 8)
+                                .padding(.horizontal, 12)
+                        }
+                        .buttonStyle(.plain)
+                        .background {
+                            RoundedRectangle(cornerRadius: 6)
+                                .fill(Color.blue.opacity(0.1))
+                        }
+                        .padding(4)
+                    }
+                }
+            }
+        }
+        .padding(8)
+        .frame(minWidth: 180)
     }
 }
 
