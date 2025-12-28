@@ -72,7 +72,7 @@ struct IndexedEnumerationValues<T: Sendable> {
                 .init(
                     value: item.1,
                     string: item.0,
-                    range: (0..<item.0.count).toStringIndices(in: item.0)!,
+                    range: (0..<prefix.count).toStringIndices(in: item.0)!,
                 )
             }
     }

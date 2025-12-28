@@ -240,9 +240,8 @@ private struct ReverseEnumerationRowView: View {
 
     var body: some View {
         Button {
-            // Default action: insert filter with .including comparison
             onSuggestionTap(.filter(.basic(
-                false,
+                suggestion.negated,
                 suggestion.canonicalFilterName,
                 .including,
                 suggestion.value
@@ -253,7 +252,7 @@ private struct ReverseEnumerationRowView: View {
                     .foregroundStyle(.secondary)
 
                 HStack(spacing: 4) {
-                    Text(suggestion.canonicalFilterName)
+                    Text("\(suggestion.negated ? "-" : "")\(suggestion.canonicalFilterName)")
                         .foregroundStyle(.primary)
 
                     Button {
@@ -275,7 +274,7 @@ private struct ReverseEnumerationRowView: View {
                         ComparisonGridPicker(comparisonKinds: filter.comparisonKinds) { comparison in
                             showingPopover = false
                             onSuggestionTap(.filter(.basic(
-                                false,
+                                suggestion.negated,
                                 suggestion.canonicalFilterName,
                                 comparison,
                                 suggestion.value
@@ -284,12 +283,11 @@ private struct ReverseEnumerationRowView: View {
                         .presentationCompactAdaptation(.popover)
                     }
 
-                    HighlightedText(text: suggestion.value, highlightRange: suggestion.matchRange)
+                    HighlightedText(text: suggestion.value, highlightRange: suggestion.valueMatchRange)
                         .foregroundStyle(.primary)
                     
                     Spacer(minLength: 0)
                 }
-
             }
             .contentShape(Rectangle())
         }
@@ -306,13 +304,13 @@ private struct ComparisonGridPicker: View {
     private var groupedComparisons: [[Comparison]] {
         switch comparisonKinds {
         case .equality:
-            return [[.including, .equal]]
+            return [[.including], [.equal]]
         case .all:
             return [
-                // TODO: Should include not-equal somehow, but it fucks up the layout.
-                [.including, .equal],
-                [.lessThanOrEqual, .lessThan],
-                [.greaterThanOrEqual, .greaterThan],
+                [.including],
+                [.equal, .notEqual],
+                [.lessThanOrEqual, .greaterThanOrEqual],
+                [.lessThan, .greaterThan],
             ]
         }
     }
@@ -327,21 +325,17 @@ private struct ComparisonGridPicker: View {
                         } label: {
                             Text(comparison.rawValue)
                                 .frame(maxWidth: .infinity)
-                                .padding(.vertical, 8)
-                                .padding(.horizontal, 12)
                         }
-                        .buttonStyle(.plain)
-                        .background {
-                            RoundedRectangle(cornerRadius: 6)
-                                .fill(Color.blue.opacity(0.1))
-                        }
+                        .buttonStyle(.bordered)
+                        .tint(.blue)
+                        .clipShape(Capsule())
                         .padding(4)
                     }
                 }
             }
         }
         .padding(8)
-        .frame(minWidth: 180)
+        .frame(minWidth: comparisonKinds == .all ? 180 : 100)
     }
 }
 

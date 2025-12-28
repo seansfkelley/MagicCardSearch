@@ -9,9 +9,10 @@ import Algorithms
 import ScryfallKit
 
 struct ReverseEnumerationSuggestion: Equatable, Hashable, Sendable, ScorableSuggestion {
+    let negated: Bool
     let canonicalFilterName: String
     let value: String
-    let matchRange: Range<String.Index>?
+    let valueMatchRange: Range<String.Index>
     let prefixKind: PrefixKind
     let suggestionLength: Int
 }
@@ -46,9 +47,10 @@ struct ReverseEnumerationSuggestionProvider {
                 prefixMatches.lazy.flatMap { match in
                     match.value.1.map { filter in
                         ReverseEnumerationSuggestion(
+                            negated: partial.negated,
                             canonicalFilterName: filter.canonicalName,
                             value: match.value.0,
-                            matchRange: match.range,
+                            valueMatchRange: match.range,
                             prefixKind: .effective,
                             // TODO: Should this count the filter name's length too?
                             suggestionLength: match.value.0.count,
@@ -58,9 +60,10 @@ struct ReverseEnumerationSuggestionProvider {
                 substringMatches.flatMap { match in
                     match.value.1.map { filter in
                         ReverseEnumerationSuggestion(
+                            negated: partial.negated,
                             canonicalFilterName: filter.canonicalName,
                             value: match.value.0,
-                            matchRange: match.range,
+                            valueMatchRange: match.range,
                             prefixKind: .none,
                             // TODO: Should this count the filter name's length too?
                             suggestionLength: match.value.0.count,
