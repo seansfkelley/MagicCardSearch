@@ -16,6 +16,7 @@ struct CardAllPrintsView: View {
     @State private var currentIndex: Int = 0
     @State private var showFilterPopover = false
     @State private var printFilterSettings = PrintFilterSettings()
+    @State private var cardFlipStates: [UUID: Bool] = [:]
     @ObservedObject private var listManager = BookmarkedCardListManager.shared
     @Environment(\.dismiss) private var dismiss
 
@@ -80,7 +81,8 @@ struct CardAllPrintsView: View {
                     } else {
                         CardPrintsDetailView(
                             cards: cards,
-                            currentIndex: $currentIndex
+                            currentIndex: $currentIndex,
+                            cardFlipStates: $cardFlipStates
                         )
                     }
                 } else if let error = loadState.latestError {
@@ -215,6 +217,7 @@ struct CardAllPrintsView: View {
 private struct CardPrintsDetailView: View {
     let cards: [Card]
     @Binding var currentIndex: Int
+    @Binding var cardFlipStates: [UUID: Bool]
     
     // It seems that these cannot share a position object, so we bridge between the two and,
     // unfortunately, also the currentIndex binding from the parent.
@@ -234,14 +237,16 @@ private struct CardPrintsDetailView: View {
                     cards: cards,
                     scrollPosition: $mainScrollPosition,
                     partialScrollOffsetFraction: $partialScrollOffsetFraction,
-                    screenWidth: geometry.size.width
+                    screenWidth: geometry.size.width,
+                    cardFlipStates: $cardFlipStates
                 )
                 
                 ThumbnailPreviewStrip(
                     cards: cards,
                     scrollPosition: $thumbnailScrollPosition,
                     partialScrollOffsetFraction: partialScrollOffsetFraction,
-                    screenWidth: geometry.size.width
+                    screenWidth: geometry.size.width,
+                    cardFlipStates: cardFlipStates
                 )
                 
                 Spacer()
@@ -297,9 +302,9 @@ private struct PagingCardImageView: View {
     @Binding var scrollPosition: ScrollPosition
     @Binding var partialScrollOffsetFraction: CGFloat
     let screenWidth: CGFloat
+    @Binding var cardFlipStates: [UUID: Bool]
 
     @State private var scrollPhase: ScrollPhase = .idle
-    @State private var cardFlipStates: [UUID: Bool] = [:]
     
     var body: some View {
         ScrollView(.horizontal) {
@@ -359,6 +364,7 @@ private struct ThumbnailPreviewStrip: View {
     @Binding var scrollPosition: ScrollPosition
     var partialScrollOffsetFraction: CGFloat
     let screenWidth: CGFloat
+    var cardFlipStates: [UUID: Bool]
     
     private let thumbnailHeight: CGFloat = 100
     private let thumbnailSpacing: CGFloat = 8
@@ -371,7 +377,11 @@ private struct ThumbnailPreviewStrip: View {
         ScrollView(.horizontal) {
             LazyHStack(spacing: thumbnailSpacing) {
                 ForEach(cards, id: \.id) { card in
-                    ThumbnailCardView(card: card, isSelected: card.id == scrollPosition.viewID(type: UUID.self))
+                    ThumbnailCardView(
+                        card: card,
+                        isSelected: card.id == scrollPosition.viewID(type: UUID.self),
+                        isFlipped: cardFlipStates[card.id] ?? false
+                    )
                         // Setting width here is crucial for the initial positioning; before the
                         // images have loaded, the LazyHStack doesn't know where to scroll to in
                         // order to show the initially-selected card. This should also help with
@@ -403,23 +413,33 @@ private struct ThumbnailPreviewStrip: View {
 private struct ThumbnailCardView: View {
     let card: Card
     let isSelected: Bool
+    let isFlipped: Bool
     
     var body: some View {
         Group {
-            if let faces = card.cardFaces, card.layout.isDoubleFaced && faces.count >= 2,
-               let imageUri = faces[0].imageUris?.small {
-                LazyImage(url: URL(string: imageUri)) { state in
-                    if let image = state.image {
-                        image
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                    } else {
-                        Color.clear
-                            .aspectRatio(Card.aspectRatio, contentMode: .fit)
-                            .overlay {
-                                ProgressView()
-                            }
+            if let faces = card.cardFaces, card.layout.isDoubleFaced && faces.count >= 2 {
+                let faceIndex = isFlipped ? 1 : 0
+                if let imageUri = faces[faceIndex].imageUris?.small {
+                    LazyImage(url: URL(string: imageUri)) { state in
+                        if let image = state.image {
+                            image
+                                .resizable()
+                                .aspectRatio(contentMode: .fit)
+                        } else {
+                            Color.clear
+                                .aspectRatio(Card.aspectRatio, contentMode: .fit)
+                                .overlay {
+                                    ProgressView()
+                                }
+                        }
                     }
+                } else {
+                    Color.clear
+                        .aspectRatio(Card.aspectRatio, contentMode: .fit)
+                        .overlay {
+                            Image(systemName: "photo")
+                                .foregroundStyle(.secondary)
+                        }
                 }
             } else if let imageUri = card.imageUris?.small {
                 LazyImage(url: URL(string: imageUri)) { state in
