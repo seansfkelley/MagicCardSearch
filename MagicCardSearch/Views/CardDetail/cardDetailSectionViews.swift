@@ -202,51 +202,31 @@ struct CardRelatedPartsSection: View {
 // MARK: - Card Rulings Section
 
 struct CardRulingsSection: View {
-    let rulings: [Card.Ruling]
-    let isLoading: Bool
-    let error: Error?
+    let rulings: LoadableResult<[Card.Ruling], Error>
     let onRetry: () -> Void
-
-    @State private var isExpanded = false
-
+    
     var body: some View {
-        DisclosureGroup(isExpanded: $isExpanded) {
+        Section {
             VStack(alignment: .leading, spacing: 16) {
-                if isLoading {
+                if case .loading = rulings {
                     HStack {
                         Text("Loading rulings...")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
                     .padding(.top, 4)
-                } else if let error = error {
-                    HStack(spacing: 12) {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Failed to load rulings")
-                                .font(.body)
-                                .foregroundStyle(.secondary)
-                            Text(error.localizedDescription)
-                                .font(.caption)
-                                .foregroundStyle(.tertiary)
-                        }
-
-                        Spacer()
-
-                        Button(action: onRetry) {
-                            Image(systemName: "arrow.clockwise")
-                                .font(.caption)
-                                .foregroundStyle(.blue)
-                        }
-                        .buttonStyle(.plain)
+                } else if case .errored(_, let error) = rulings {
+                    ContentUnavailableView {
+                        Label("Failed to Load Rulings", systemImage: "exclamationmark.triangle")
+                    } description: {
+                        Text(error.localizedDescription)
+                    } actions: {
+                        Button("Try Again", action: onRetry)
+                            .buttonStyle(.borderedProminent)
+                            .tint(.blue)
                     }
-                    .padding(.top, 4)
-                } else if rulings.isEmpty {
-                    Text("No rulings available")
-                        .font(.body)
-                        .foregroundStyle(.secondary)
-                        .padding(.top, 4)
                 } else {
-                    ForEach(rulings) { ruling in
+                    ForEach(rulings.latestValue ?? []) { ruling in
                         VStack(alignment: .leading, spacing: 6) {
                             Text(ruling.comment)
                                 .font(.body)
@@ -258,28 +238,14 @@ struct CardRulingsSection: View {
                                     .foregroundStyle(.tertiary)
                             }
                         }
-                        .padding(.top, ruling.id == rulings.first?.id ? 4 : 12)
                     }
                 }
             }
-        } label: {
+        } header: {
             HStack {
                 Text("Rulings")
                     .font(.headline)
                     .fontWeight(.semibold)
-
-                if !isLoading && error == nil && !rulings.isEmpty {
-                    Text("(\(rulings.count))")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
-
-                Spacer()
-
-                if isLoading {
-                    ProgressView()
-                        .controlSize(.small)
-                }
             }
         }
         .tint(.primary)

@@ -4,9 +4,11 @@
 //
 //  Created by Sean Kelley on 2025-12-08.
 //
-
+import Logging
 import ScryfallKit
 import SwiftUI
+
+private let logger = Logger(label: "CardDetailView")
 
 struct CardDetailView: View {
     let card: Card
@@ -14,9 +16,7 @@ struct CardDetailView: View {
 
     @State private var relatedCardToShow: Card?
     @State private var isLoadingRelatedCard = false
-    @State private var rulings: [Card.Ruling] = []
-    @State private var isLoadingRulings = false
-    @State private var rulingsError: Error?
+    @State private var rulingsResult: LoadableResult<[Card.Ruling], Error> = .unloaded
     @ObservedObject private var listManager = BookmarkedCardListManager.shared
     private let cardSearchService = CardSearchService()
     private let rulingsService = RulingsService.shared
@@ -34,7 +34,7 @@ struct CardDetailView: View {
                 .padding(.bottom, 24)
                 
                 if let faces = card.cardFaces {
-                    // Some double-faced cards are just alternate arts on both sides!i
+                    // Some double-faced cards are just alternate arts on both sides!
                     let uniqueFaces = faces.uniqued(by: \.name)
                     let allArtists = faces.compactMap(\.artist)
                         .filter { !$0.isEmpty }
@@ -102,21 +102,22 @@ struct CardDetailView: View {
                     }
                 }
 
-                if isLoadingRulings || rulingsError != nil || !rulings.isEmpty {
+                if case .unloaded = rulingsResult {
+                    // nop
+                } else if case .loading(let value, _) = rulingsResult, value?.isEmpty ?? true {
+                    // HACK: We use the empty array in a loading state to indicate that this is a
+                    // retry, which we DO want to render the view for.
+                } else if case .loaded(let value, _) = rulingsResult, value.isEmpty {
+                    // nop
+                } else {
                     Divider().padding(.horizontal)
 
-                    CardRulingsSection(
-                        rulings: rulings,
-                        isLoading: isLoadingRulings,
-                        error: rulingsError
-                    ) {
+                    CardRulingsSection(rulings: rulingsResult) {
                         Task {
-                            await loadRulings(from: card.rulingsUri)
+                            await loadRulings(from: card.rulingsUri, isRetry: true)
                         }
                     }
                 }
-
-                Divider().padding(.horizontal)
             }
             .background(Color(.systemBackground))
             .padding(.top)
@@ -246,19 +247,22 @@ struct CardDetailView: View {
         }
     }
 
-    private func loadRulings(from urlString: String) async {
-        isLoadingRulings = true
-        rulingsError = nil
-        defer { isLoadingRulings = false }
+    private func loadRulings(from urlString: String, isRetry: Bool = false) async {
+        rulingsResult = isRetry ? .loading([], nil) : .loading(nil, nil)
 
         do {
-            rulings = try await rulingsService.fetchRulings(
+            let fetchedRulings = try await rulingsService.fetchRulings(
                 from: urlString,
                 oracleId: card.oracleId
             )
+            rulingsResult = rulingsResult.asLoaded(fetchedRulings)
         } catch {
-            rulingsError = error
-            print("Error loading rulings: \(error)")
+            rulingsResult = rulingsResult.asErrored(error)
+            logger.error("error loading rulings", metadata: [
+                "cardId": "\(card.id)",
+                "cardName": "\(card.name)",
+                "error": "\(error)",
+            ])
         }
     }
 }

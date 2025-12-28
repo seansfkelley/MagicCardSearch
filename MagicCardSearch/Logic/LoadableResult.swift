@@ -27,4 +27,16 @@ enum LoadableResult<T, E: Error> {
         case .errored(_, let error): error
         }
     }
+    
+    func asLoading(keepingData: Bool = true, keepingError: Bool = false) -> LoadableResult<T, E> {
+        .loading(keepingData ? latestValue : nil, keepingError ? latestError : nil)
+    }
+    
+    func asLoaded(_ data: T, keepingError: Bool = false) -> LoadableResult<T, E> {
+        .loaded(data, keepingError ? latestError : nil)
+    }
+    
+    func asErrored(_ error: E, keepingData: Bool = true) -> LoadableResult<T, E> {
+        .errored(keepingData ? latestValue : nil, error)
+    }
 }
