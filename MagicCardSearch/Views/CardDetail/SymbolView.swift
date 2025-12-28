@@ -78,7 +78,7 @@ struct SymbolView: View {
             return cachedImage
         }
         
-        guard let svgData = ScryfallCatalogs.shared.symbolSvg[symbol] else {
+        guard let svgData = ScryfallCatalogs.sync?.symbolSvg[symbol] else {
             return nil
         }
         

@@ -22,7 +22,7 @@ struct MagicCardSearchApp: App {
         WindowGroup {
             ContentView()
                 .task {
-                    await ScryfallCatalogs.shared.prefetchAll()
+                    await ScryfallCatalogs.initialize()
                 }
         }
     }

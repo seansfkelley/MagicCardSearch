@@ -64,7 +64,7 @@ final class DebouncedLoadingState {
         isLoading = false
         isLoadingDebounced = false
     }
-    
+
     @MainActor
     deinit {
         guard let state else { return }

@@ -27,12 +27,11 @@ struct SymbolCode: Equatable, Hashable, Sendable, Codable, CustomStringConvertib
     }
 
     /// Nil, if the metadata telling us this is not yet loaded.
-    @MainActor var isOversized: Bool? {
-        if let symbol = ScryfallCatalogs.shared.symbols[self] {
-            symbol.phyrexian || symbol.hybrid
-        } else {
-            nil
+    var isOversized: Bool? {
+        guard let symbol = ScryfallCatalogs.sync?.symbols[self] else {
+            return nil
         }
+        return symbol.phyrexian || symbol.hybrid
     }
 }
 
@@ -52,159 +51,176 @@ enum ScryfallMetadataError: Error {
     case errorLoadingData(Error?)
 }
 
-@MainActor
-final class ScryfallCatalogs {
+final class ScryfallCatalogs: Sendable {
     // MARK: - Singleton
 
-    public static let shared = ScryfallCatalogs()
+    public static var sync: ScryfallCatalogs? {
+        lock.withLock {
+            return _shared.latestValue
+        }
+    }
+
+    private static let lock = NSLock()
+    nonisolated(unsafe) private static var _shared: LoadableResult<ScryfallCatalogs, Error> = .unloaded
 
     // MARK: - Public Properties
 
-    public var sets: [SetCode: MTGSet] = [:]
-    public var symbols: [SymbolCode: Card.Symbol] = [:]
-    public var symbolSvg: [SymbolCode: Data] = [:]
-    public func catalog(_ catalogType: Catalog.`Type`) -> Set<String>? {
-        return stringCache[catalogType]
+    public let sets: [SetCode: MTGSet]
+    public let symbols: [SymbolCode: Card.Symbol]
+    public let symbolSvg: [SymbolCode: Data]
+    public let catalogs: [Catalog.`Type`: Set<String>]
+
+    // MARK: - Initialization
+
+    private init(
+        sets: [SetCode: MTGSet],
+        symbols: [SymbolCode: Card.Symbol],
+        symbolSvg: [SymbolCode: Data],
+        catalogs: [Catalog.`Type`: Set<String>]
+    ) {
+        self.sets = sets
+        self.symbols = symbols
+        self.symbolSvg = symbolSvg
+        self.catalogs = catalogs
     }
 
-    // MARK: - Private Properties
-
-    private let scryfallClient = ScryfallClient()
-    private var setCache: any Cache<String, [SetCode: MTGSet]>
-    private var symbolCache: any Cache<String, [SymbolCode: Card.Symbol]>
-    private var stringCache: any Cache<Catalog.`Type`, Set<String>>
-    private var symbolSvgCache: any Cache<SymbolCode, Data>
-    
-    private init() {
-        setCache =
-            HybridCache(
-                name: "ScryfallSets",
-                expiration: .interval(24 * 60 * 60),
-            ) ?? MemoryCache(expiration: .never)
-
-        symbolCache =
-            HybridCache(
-                name: "ScryfallSymbols",
-                expiration: .interval(30 * 24 * 60 * 60),
-            ) ?? MemoryCache(expiration: .never)
-
-        stringCache =
-            HybridCache(
-                name: "ScryfallStrings",
-                expiration: .interval(30 * 24 * 60 * 60)
-            ) ?? MemoryCache(expiration: .never)
-
-        symbolSvgCache =
-            HybridCache(
-                name: "ScryfallSymbolSvgs",
-                expiration: .interval(30 * 24 * 60 * 60)
-            ) ?? MemoryCache(expiration: .never)
+    private convenience init() {
+        self.init(sets: [:], symbols: [:], symbolSvg: [:], catalogs: [:])
     }
 
     // MARK: - Public Methods
 
-    /// Prefetches all symbology data into the cache
-    /// - Returns: Result indicating success or failure of the prefetch operation
-    @discardableResult
-    public func prefetchSymbology() async -> Result<Void, ScryfallMetadataError> {
-        guard !isRunningTests() else {
-            logger.info("Skipping symbology prefetch in test environment")
-            return .success(())
+    // swiftlint:disable:next function_body_length
+    public static func initialize() async {
+        lock.withLock {
+            guard case .unloaded = _shared else {
+                logger.warning("ignoring request to reload ScryfallCatalogs")
+                return
+            }
+
+            guard !isRunningTests() else {
+                logger.info("stubbing ScryfallCatalogs initialization to be empty in test environment")
+                _shared = .loaded(.init(), nil)
+                return
+            }
+
+            _shared = .loading(.init(), nil)
         }
-        
+
+        logger.info("initializing ScryfallCatalogs...")
+
+        let scryfallClient = ScryfallClient()
+
+        let setCache: any Cache<String, [SetCode: MTGSet]> =
+        DiskCache(
+            name: "ScryfallSets",
+            expiration: .interval(24 * 60 * 60)
+        ) ?? MemoryCache(expiration: .never)
+
+        let symbolCache: any Cache<String, [SymbolCode: Card.Symbol]> =
+        DiskCache(
+            name: "ScryfallSymbols",
+            expiration: .interval(30 * 24 * 60 * 60)
+        ) ?? MemoryCache(expiration: .never)
+
+        let stringCache: any Cache<Catalog.`Type`, Set<String>> =
+        DiskCache(
+            name: "ScryfallStrings",
+            expiration: .interval(30 * 24 * 60 * 60)
+        ) ?? MemoryCache(expiration: .never)
+
+        let symbolSvgCache: any Cache<SymbolCode, Data> =
+        DiskCache(
+            name: "ScryfallSymbolSvgs",
+            expiration: .interval(30 * 24 * 60 * 60)
+        ) ?? MemoryCache(expiration: .never)
+
         do {
-            symbols = try await symbolCache.get(forKey: "symbology") {
-                logger.info("Fetching symbology...")
-                let allSymbols = try await ScryfallPagination.fetchAllPages {
-                    try await self.scryfallClient.getSymbology()
-                }
-                return Dictionary(
-                    uniqueKeysWithValues: allSymbols.map { (SymbolCode($0.symbol), $0) }
+            async let setsData = fetchSets(client: scryfallClient, cache: setCache)
+            async let symbolsData = fetchSymbols(client: scryfallClient, cache: symbolCache)
+            async let catalogsData = fetchCatalogs(client: scryfallClient, cache: stringCache)
+
+            let (sets, symbols, catalogs) = try await (setsData, symbolsData, catalogsData)
+            let symbolSvg = await fetchSymbolSvgs(symbols: symbols, cache: symbolSvgCache)
+            
+            lock.withLock {
+                _shared = .loaded(
+                    ScryfallCatalogs(
+                        sets: sets,
+                        symbols: symbols,
+                        symbolSvg: symbolSvg,
+                        catalogs: catalogs
+                    ),
+                    nil,
                 )
             }
-
-            await prefetchSymbolSvgs(from: symbols)
-
-            return .success(())
+            logger.info("ScryfallCatalogs initialization complete")
         } catch {
-            return .failure(.errorLoadingData(error))
+            lock.withLock {
+                _shared = .errored(.init(), error)
+            }
+            logger.error("failed to initialize ScryfallCatalogs", metadata: ["error": "\(error)"])
         }
     }
 
-    /// Prefetches all set data into the cache
-    /// - Returns: Result indicating success or failure of the prefetch operation
-    @discardableResult
-    public func prefetchSets() async -> Result<Void, ScryfallMetadataError> {
-        guard !isRunningTests() else {
-            logger.info("Skipping sets prefetch in test environment")
-            return .success(())
+    private static func fetchSets(
+        client: ScryfallClient,
+        cache: any Cache<String, [SetCode: MTGSet]>
+    ) async throws -> [SetCode: MTGSet] {
+        try await cache.get(forKey: "sets") {
+            logger.info("fetching sets...")
+            let allSets = try await ScryfallPagination.fetchAllPages {
+                try await client.getSets()
+            }
+            return Dictionary(uniqueKeysWithValues: allSets.map { (SetCode($0.code), $0) })
+        }
+    }
+
+    private static func fetchSymbols(
+        client: ScryfallClient,
+        cache: any Cache<String, [SymbolCode: Card.Symbol]>
+    ) async throws -> [SymbolCode: Card.Symbol] {
+        try await cache.get(forKey: "symbology") {
+            logger.info("fetching symbology...")
+            let allSymbols = try await ScryfallPagination.fetchAllPages {
+                try await client.getSymbology()
+            }
+            return Dictionary(
+                uniqueKeysWithValues: allSymbols.map { (SymbolCode($0.symbol), $0) }
+            )
+        }
+    }
+
+    private static func fetchCatalogs(
+        client: ScryfallClient,
+        cache: any Cache<Catalog.`Type`, Set<String>>
+    ) async throws -> [Catalog.`Type`: Set<String>] {
+        logger.info("fetching catalogs...")
+
+        var result: [Catalog.`Type`: Set<String>] = [:]
+        
+        // Workaround for the compiler being unhappy about Catalog.`Type`.allCases.
+        typealias CatalogType = Catalog.`Type`
+        for catalogType in CatalogType.allCases {
+            let data = try await cache.get(forKey: catalogType) {
+                logger.debug("fetching catalog", metadata: ["type": "\(catalogType.rawValue)"])
+                let catalog = try await client.getCatalog(catalogType: catalogType)
+                return Set(catalog.data)
+            }
+            result[catalogType] = data
         }
         
-        do {
-            sets = try await setCache.get(forKey: "sets") {
-                logger.info("Fetching sets...")
-                let allSets = try await ScryfallPagination.fetchAllPages {
-                    try await self.scryfallClient.getSets()
-                }
-                return Dictionary(uniqueKeysWithValues: allSets.map { (SetCode($0.code), $0) })
-            }
-            return .success(())
-        } catch {
-            return .failure(.errorLoadingData(error))
-        }
+        return result
     }
-
-    /// Prefetches all catalog data into the cache
-    /// - Returns: Result indicating success or failure of the prefetch operation
-    @discardableResult
-    public func prefetchCatalogs() async -> Result<Void, ScryfallMetadataError> {
-        guard !isRunningTests() else {
-            logger.info("Skipping catalogs prefetch in test environment")
-            return .success(())
-        }
-        
-        do {
-            logger.info("Fetching catalogs...")
-
-            // Workaround for the compiler being unhappy about Catalog.`Type`.allCases.
-            typealias CatalogType = Catalog.`Type`
-            for catalogType in CatalogType.allCases {
-                _ = try await stringCache.get(forKey: catalogType) {
-                    logger.debug("Fetching catalog", metadata: ["type": "\(catalogType.rawValue)"])
-                    let catalog = try await self.scryfallClient.getCatalog(catalogType: catalogType)
-                    return Set(catalog.data)
-                }
-            }
-
-            return .success(())
-        } catch {
-            return .failure(.errorLoadingData(error))
-        }
-    }
-
-    /// Pre-fetches Scryfall metadata (symbols, sets, and catalogs) in the background
-    public func prefetchAll() async {
-        await withTaskGroup(of: Void.self) { group in
-            group.addTask {
-                _ = await self.prefetchSymbology()
-            }
-
-            group.addTask {
-                _ = await self.prefetchSets()
-            }
-
-            group.addTask {
-                _ = await self.prefetchCatalogs()
-            }
-        }
-    }
-
-    // MARK: - Private Methods
 
     // swiftlint:disable:next function_body_length
-    private func prefetchSymbolSvgs(from symbols: [SymbolCode: Card.Symbol]) async {
-        logger.info("Prefetching \(symbols.count) symbol SVGs...")
+    private static func fetchSymbolSvgs(
+        symbols: [SymbolCode: Card.Symbol],
+        cache: any Cache<SymbolCode, Data>
+    ) async -> [SymbolCode: Data] {
+        logger.info("fetching \(symbols.count) symbol SVGs...")
 
+        var result: [SymbolCode: Data] = [:]
         let batchSize = 10
         let symbolArray = Array(symbols)
 
@@ -219,10 +235,10 @@ final class ScryfallCatalogs {
                 for (symbolCode, symbolData) in batch {
                     group.addTask {
                         do {
-                            let data = try await self.symbolSvgCache.get(forKey: symbolCode) {
+                            let data = try await cache.get(forKey: symbolCode) {
                                 if let svgUri = symbolData.svgUri,
                                     let url = URL(string: svgUri) {
-                                    logger.debug("Fetching symbol SVG", metadata: [
+                                    logger.debug("fetching symbol SVG", metadata: [
                                         "symbolCode": "\(symbolCode)",
                                         "svgUri": "\(svgUri)",
                                     ])
@@ -232,7 +248,7 @@ final class ScryfallCatalogs {
                                     guard let httpResponse = response as? HTTPURLResponse,
                                           (200...299).contains(httpResponse.statusCode),
                                           !data.isEmpty else {
-                                        logger.error("Invalid SVG response", metadata: [
+                                        logger.error("invalid SVG response", metadata: [
                                             "symbolCode": "\(symbolCode)",
                                             "svgUri": "\(svgUri)",
                                             "dataSize": "\(data.count)",
@@ -258,7 +274,7 @@ final class ScryfallCatalogs {
                             return (symbolCode, data)
                         } catch {
                             logger.warning(
-                                "Failed to fetch symbol SVG; this symbol will not render properly",
+                                "failed to fetch symbol SVG; this symbol will not render properly",
                                 metadata: [
                                     "symbolCode": "\(symbolCode)",
                                     "error": "\(error)",
@@ -269,14 +285,14 @@ final class ScryfallCatalogs {
                     }
                 }
 
-                for await result in group {
-                    if let (symbolCode, data) = result {
-                        symbolSvg[symbolCode] = data
+                for await fetchedResult in group {
+                    if let (symbolCode, data) = fetchedResult {
+                        result[symbolCode] = data
                     }
                 }
             }
         }
 
-        logger.info("Completed SVG prefetch")
+        return result
     }
 }

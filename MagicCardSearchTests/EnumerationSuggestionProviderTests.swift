@@ -109,7 +109,6 @@ struct EnumerationSuggestionProviderTests {
             [],
         ),
     ])
-    @MainActor
     func getSuggestions(partial: PartialSearchFilter, expected: [EnumerationSuggestion]) {
         let actual = EnumerationSuggestionProvider().getSuggestions(for: partial, excluding: [], limit: 100)
         #expect(actual == expected)

@@ -15,8 +15,6 @@ struct ReverseEnumerationSuggestion: Equatable, Hashable, Sendable, ScorableSugg
 }
 
 struct ReverseEnumerationSuggestionProvider {
-    //    private static let shared = MemoryCache<CacheKey, IndexedEnumerationValues<String>>(expiration: .never)
-    
     func getSuggestions(for partial: PartialSearchFilter, excluding excludedFilters: Set<SearchFilter>, limit: Int) -> [ReverseEnumerationSuggestion] {
         guard limit > 0,
                 case .name(let isExact, let partialTerm) = partial.content,
