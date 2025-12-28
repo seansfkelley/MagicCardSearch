@@ -44,7 +44,6 @@ struct AutocompleteView: View {
     private let orderedEqualityComparison: [Comparison] = [
         .including,
         .equal,
-        .notEqual,
     ]
     
     private let orderedAllComparisons: [Comparison] = [
@@ -54,7 +53,7 @@ struct AutocompleteView: View {
         .lessThanOrEqual,
         .greaterThanOrEqual,
         .greaterThan,
-        .notEqual,
+        .notEqual, // n.b. this only works for some orderable things; equality-only things require the negation syntax
     ]
 
     var body: some View {
@@ -240,39 +239,61 @@ private struct ReverseEnumerationRowView: View {
     }
 
     var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: "line.3.horizontal.decrease.circle")
-                .foregroundStyle(.secondary)
-            
-            Text(suggestion.canonicalFilterName)
-                .foregroundStyle(.primary)
-            
-            Button {
-                showingPopover = true
-            } label: {
-                Image(systemName: "ellipsis")
-            }
-            .buttonStyle(.bordered)
-            .tint(.blue)
-            .fixedSize()
-            .popover(isPresented: $showingPopover) {
-                ComparisonGridPicker(comparisonKinds: filter.comparisonKinds) { comparison in
-                    showingPopover = false
-                    onSuggestionTap(.filter(.basic(
-                        false,
-                        suggestion.canonicalFilterName,
-                        comparison,
-                        suggestion.value
-                    )))
+        Button {
+            // Default action: insert filter with .including comparison
+            onSuggestionTap(.filter(.basic(
+                false,
+                suggestion.canonicalFilterName,
+                .including,
+                suggestion.value
+            )))
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "line.3.horizontal.decrease.circle")
+                    .foregroundStyle(.secondary)
+
+                HStack(spacing: 4) {
+                    Text(suggestion.canonicalFilterName)
+                        .foregroundStyle(.primary)
+
+                    Button {
+                        showingPopover = true
+                    } label: {
+                        Text(":")
+                            .foregroundStyle(.primary)
+
+                        Divider()
+
+                        Image(systemName: "chevron.up.chevron.down")
+                            .imageScale(.small)
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(.blue)
+                    .fixedSize()
+                    .popover(isPresented: $showingPopover) {
+                        ComparisonGridPicker(comparisonKinds: filter.comparisonKinds) { comparison in
+                            showingPopover = false
+                            onSuggestionTap(.filter(.basic(
+                                false,
+                                suggestion.canonicalFilterName,
+                                comparison,
+                                suggestion.value
+                            )))
+                        }
+                        .presentationCompactAdaptation(.popover)
+                    }
+
+                    HighlightedText(text: suggestion.value, highlightRange: suggestion.matchRange)
+                        .foregroundStyle(.primary)
+                    
+                    Spacer(minLength: 0)
                 }
-                .presentationCompactAdaptation(.popover)
+
             }
-
-            HighlightedText(text: suggestion.value, highlightRange: suggestion.matchRange)
-                .foregroundStyle(.primary)
-
-            Spacer(minLength: 0)
+            .contentShape(Rectangle())
         }
+        .buttonStyle(.plain)
     }
 }
 
@@ -285,10 +306,10 @@ private struct ComparisonGridPicker: View {
     private var groupedComparisons: [[Comparison]] {
         switch comparisonKinds {
         case .equality:
-            return [[.including, .equal, .notEqual]]
+            return [[.including, .equal]]
         case .all:
             return [
-                // TODO: Should include not-equal?
+                // TODO: Should include not-equal somehow, but it fucks up the layout.
                 [.including, .equal],
                 [.lessThanOrEqual, .lessThan],
                 [.greaterThanOrEqual, .greaterThan],
