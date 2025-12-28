@@ -41,7 +41,6 @@ struct ReverseEnumerationSuggestionProvider {
             return !prefixSet!.contains(option.value.0)
         }
 
-        // TODO: Condense these together and calculate ranges properly.
         return Array(
             chain(
                 prefixMatches.lazy.flatMap { match in
@@ -49,9 +48,10 @@ struct ReverseEnumerationSuggestionProvider {
                         ReverseEnumerationSuggestion(
                             canonicalFilterName: filter.canonicalName,
                             value: match.value.0,
-                            matchRange: nil,
+                            matchRange: match.range,
                             prefixKind: .effective,
-                            suggestionLength: filter.canonicalName.count + match.value.0.count,
+                            // TODO: Should this count the filter name's length too?
+                            suggestionLength: match.value.0.count,
                         )
                     }
                 },
@@ -60,9 +60,10 @@ struct ReverseEnumerationSuggestionProvider {
                         ReverseEnumerationSuggestion(
                             canonicalFilterName: filter.canonicalName,
                             value: match.value.0,
-                            matchRange: nil,
+                            matchRange: match.range,
                             prefixKind: .none,
-                            suggestionLength: filter.canonicalName.count + match.value.0.count,
+                            // TODO: Should this count the filter name's length too?
+                            suggestionLength: match.value.0.count,
                         )
                     }
                 },

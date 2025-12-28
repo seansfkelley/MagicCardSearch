@@ -267,10 +267,10 @@ private struct ReverseEnumerationRowView: View {
                 }
                 .presentationCompactAdaptation(.popover)
             }
-            
-            Text(suggestion.value)
+
+            HighlightedText(text: suggestion.value, highlightRange: suggestion.matchRange)
                 .foregroundStyle(.primary)
-            
+
             Spacer(minLength: 0)
         }
     }
@@ -290,7 +290,7 @@ private struct ComparisonGridPicker: View {
             return [
                 // TODO: Should include not-equal?
                 [.including, .equal],
-                [.lessThan, .lessThanOrEqual],
+                [.lessThanOrEqual, .lessThan],
                 [.greaterThanOrEqual, .greaterThan],
             ]
         }
