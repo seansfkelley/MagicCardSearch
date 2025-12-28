@@ -119,10 +119,10 @@ let scryfallFilterTypes: [ScryfallFilterType] = [
     .init("keyword", ["kw"]), // Enumeration values loaded from Scryfall.
     
     // MARK: - Mana Costs
-    .init("mana", ["m"]),
+    .init("mana", ["m"], comparisonKinds: .all),
     .init("manavalue", ["mv"], enumerationValues: ["even", "odd"], comparisonKinds: .all),
-    .init("devotion"),
-    .init("produces"),
+    .init("devotion", comparisonKinds: .all),
+    .init("produces", comparisonKinds: .all),
     // see also `is`
     
     // MARK: - Power, Toughness, and Loyalty
