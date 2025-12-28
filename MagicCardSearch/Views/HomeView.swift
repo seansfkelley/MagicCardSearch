@@ -288,7 +288,7 @@ struct ExampleSearch: Hashable {
             .basic(false, "order", .including, "edhrec"),
             .basic(false, "dir", .including, "asc"),
         ]),
-        .init(title: "Muraganda Petroglyphs Creatures", filters: [
+        .init(title: "Muraganda Petroglyphs \"Synergy\"", filters: [
             .basic(false, "type", .including, "creature"),
             .basic(false, "is", .including, "vanilla"),
             .basic(true, "is", .including, "token"),
@@ -316,15 +316,15 @@ struct ExampleSearch: Hashable {
         ]),
     ]
     
-    private static func dailySeed() -> Int {
-        let components = Calendar.current.dateComponents([.year, .month, .day], from: Date())
-        return (components.year ?? 0) * 97 + (components.month ?? 0) * 31 + (components.day ?? 0)
+    private static func hourlySeed() -> Int {
+        let components = Calendar.current.dateComponents([.month, .day, .hour], from: Date())
+        return (components.month ?? 0) * 97 + (components.day ?? 0) * 31 + (components.hour ?? 0)
     }
     
     static var dailyExamples: [ExampleSearch] {
         // Swift doesn't have seedable RNGs in the standard library, so just bang together a one-off
         // calculation for our purposes. This is so it doesn't change every. single. time. it renders.
-        let seed = dailySeed()
+        let seed = hourlySeed()
 
         var chosenExamples: [ExampleSearch] = []
         for i in [7, 37, 89] {
