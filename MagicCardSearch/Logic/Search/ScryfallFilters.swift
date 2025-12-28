@@ -260,7 +260,7 @@ let scryfallFilterTypes: [ScryfallFilterType] = [
     // `display` not supported
     .init("order", enumerationValues: [
         "artist", "cmc", "power", "toughness", "set", "name", "usd", "tix", "eur",
-        "rarity", "color", "released", "spoiled", "edhrec", "penny", "review", "spoiled",
+        "rarity", "color", "released", "spoiled", "edhrec", "penny", "review",
     ]),
     .init("prefer", enumerationValues: [
         "oldest", "newest", "usd-low", "usd-high", "eur-low", "eur-high", "tix-low", "tix-high", "promo"
