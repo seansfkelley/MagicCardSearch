@@ -55,13 +55,13 @@ final class ScryfallCatalogs: Sendable {
     // MARK: - Singleton
 
     public static var sync: ScryfallCatalogs? {
-        lock.withLock {
-            return _shared.latestValue
+        singletonLock.withLock {
+            return singleton.latestValue
         }
     }
 
-    private static let lock = NSLock()
-    nonisolated(unsafe) private static var _shared: LoadableResult<ScryfallCatalogs, Error> = .unloaded
+    private static let singletonLock = NSLock()
+    nonisolated(unsafe) private static var singleton: LoadableResult<ScryfallCatalogs, Error> = .unloaded
 
     // MARK: - Public Properties
 
@@ -92,19 +92,19 @@ final class ScryfallCatalogs: Sendable {
 
     // swiftlint:disable:next function_body_length
     public static func initialize() async {
-        lock.withLock {
-            guard case .unloaded = _shared else {
+        singletonLock.withLock {
+            guard case .unloaded = singleton else {
                 logger.warning("ignoring request to reload ScryfallCatalogs")
                 return
             }
 
             guard !isRunningTests() else {
                 logger.info("stubbing ScryfallCatalogs initialization to be empty in test environment")
-                _shared = .loaded(.init(), nil)
+                singleton = .loaded(.init(), nil)
                 return
             }
 
-            _shared = .loading(.init(), nil)
+            singleton = .loading(.init(), nil)
         }
 
         logger.info("initializing ScryfallCatalogs...")
@@ -143,8 +143,8 @@ final class ScryfallCatalogs: Sendable {
             let (sets, symbols, catalogs) = try await (setsData, symbolsData, catalogsData)
             let symbolSvg = await fetchSymbolSvgs(symbols: symbols, cache: symbolSvgCache)
             
-            lock.withLock {
-                _shared = .loaded(
+            singletonLock.withLock {
+                singleton = .loaded(
                     ScryfallCatalogs(
                         sets: sets,
                         symbols: symbols,
@@ -156,8 +156,8 @@ final class ScryfallCatalogs: Sendable {
             }
             logger.info("ScryfallCatalogs initialization complete")
         } catch {
-            lock.withLock {
-                _shared = .errored(.init(), error)
+            singletonLock.withLock {
+                singleton = .errored(.init(), error)
             }
             logger.error("failed to initialize ScryfallCatalogs", metadata: ["error": "\(error)"])
         }
