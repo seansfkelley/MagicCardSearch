@@ -22,8 +22,7 @@ struct DatabaseMigrationTests {
 
     @Test
     func testMigratesFromEmpty() async throws {
-        let db = try await SQLiteDatabase.initializeTest()
-        let userVersion = await db.userVersion
-        #expect(userVersion! == orderedMigrations.last!.version)
+        let db = try SQLiteDatabase.initializeTest()
+        #expect(db.userVersion! == orderedMigrations.last!.version)
     }
 }

@@ -20,7 +20,7 @@ struct Migrate20251229Initial: DatabaseMigration {
             try db.run(filterHistory.create(ifNotExists: true) { table in
                 table.column(id, primaryKey: .autoincrement)
                 table.column(lastUsedAt, defaultValue: Date())
-                table.column(filter)
+                table.column(filter, unique: true)
             })
         }
 

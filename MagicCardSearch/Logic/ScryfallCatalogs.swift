@@ -92,20 +92,23 @@ final class ScryfallCatalogs: Sendable {
 
     // swiftlint:disable:next function_body_length
     public static func initialize() async {
-        singletonLock.withLock {
+        let skip = singletonLock.withLock {
             guard case .unloaded = singleton else {
                 logger.warning("ignoring request to reload ScryfallCatalogs")
-                return
+                return true
             }
 
             guard !isRunningTests() else {
                 logger.info("stubbing ScryfallCatalogs initialization to be empty in test environment")
                 singleton = .loaded(.init(), nil)
-                return
+                return true
             }
 
             singleton = .loading(.init(), nil)
+            return false
         }
+
+        guard !skip else { return }
 
         logger.info("initializing ScryfallCatalogs...")
 
