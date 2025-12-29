@@ -320,6 +320,11 @@ struct ExampleSearch: Hashable {
         .init(title: "Most Reprinted Cards", filters: [
             .basic(false, "prints", .greaterThan, "30"),
         ]),
+        .init(title: "John Avon's Landscapes", filters: [
+            .basic(false, "artist", .including, "John Avon"),
+            .basic(false, "type", .including, "land"),
+            .basic(false, "unique", .including, "art"),
+        ]),
     ]
     
     private static func hourlySeed() -> Int {
