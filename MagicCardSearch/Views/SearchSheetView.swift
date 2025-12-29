@@ -117,7 +117,18 @@ struct SearchSheetView: View {
 
     private func handleSuggestionTap(_ suggestion: AutocompleteView.AcceptedSuggestion) {
         switch suggestion {
-        case .filter(let filter):
+        case .search(let search):
+            filters = search
+            inputText = ""
+            inputSelection = TextSelection(insertionPoint: inputText.endIndex)
+            // TODO: The below, yes?
+            dismiss()
+            onSubmit()
+        case .topLevelFilter(let filter):
+            filters.append(filter)
+            inputText = ""
+            inputSelection = TextSelection(insertionPoint: inputText.endIndex)
+        case .scopedFilter(let filter):
             if let range = filterFacade.currentFilterRange, range != inputText.range {
                 let filterString = filter.description
                 inputText.replaceSubrange(range, with: filterString)
@@ -127,7 +138,7 @@ struct SearchSheetView: View {
                 inputText = ""
                 inputSelection = TextSelection(insertionPoint: inputText.endIndex)
             }
-        case .string(let string):
+        case .scopedString(let string):
             if let range = filterFacade.currentFilterRange {
                 inputText.replaceSubrange(range, with: string)
                 inputSelection = TextSelection(insertionPoint: inputText.index(range.lowerBound, offsetBy: string.count))

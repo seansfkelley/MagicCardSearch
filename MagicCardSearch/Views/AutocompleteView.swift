@@ -9,8 +9,10 @@ import SwiftUI
 
 struct AutocompleteView: View {
     enum AcceptedSuggestion {
-        case filter(SearchFilter)
-        case string(String)
+        case search([SearchFilter])
+        case topLevelFilter(SearchFilter)
+        case scopedFilter(SearchFilter)
+        case scopedString(String)
     }
 
     let allText: String
@@ -123,7 +125,7 @@ struct AutocompleteView: View {
     @ViewBuilder
     private func verbatimRow(_ filter: SearchFilter) -> some View {
         Button {
-            onSuggestionTap(.filter(filter))
+            onSuggestionTap(.topLevelFilter(filter))
         } label: {
             HStack(spacing: 12) {
                 Image(systemName: "magnifyingglass")
@@ -153,7 +155,7 @@ struct AutocompleteView: View {
     
     private func pinnedRow(_ suggestion: PinnedFilterSuggestion) -> some View {
         return Button {
-            onSuggestionTap(.filter(suggestion.filter))
+            onSuggestionTap(.scopedFilter(suggestion.filter))
         } label: {
             HStack(spacing: 12) {
                 Image(systemName: "pin.fill")
@@ -171,7 +173,7 @@ struct AutocompleteView: View {
 
     private func historyRow(_ suggestion: HistorySuggestion) -> some View {
         return Button {
-            onSuggestionTap(.filter(suggestion.filter))
+            onSuggestionTap(.scopedFilter(suggestion.filter))
         } label: {
             HStack(spacing: 12) {
                 Image(systemName: "clock.arrow.circlepath")
@@ -197,14 +199,14 @@ struct AutocompleteView: View {
                 labelRange: suggestion.matchRange,
                 options: suggestion.comparisonKinds == .all ? orderedAllComparisons : orderedEqualityComparison,
             ) { comparison in
-                onSuggestionTap(.string("\(suggestion.filterType)\(comparison.rawValue)"))
+                onSuggestionTap(.scopedString("\(suggestion.filterType)\(comparison.rawValue)"))
             }
         }
     }
     
     private func enumerationRow(_ suggestion: EnumerationSuggestion) -> some View {
         Button {
-            onSuggestionTap(.filter(suggestion.filter))
+            onSuggestionTap(.scopedFilter(suggestion.filter))
         } label: {
             HStack(spacing: 12) {
                 Image(systemName: "list.bullet.circle")
@@ -232,7 +234,7 @@ struct AutocompleteView: View {
     
     private func nameRow(_ suggestion: NameSuggestion) -> some View {
         Button {
-            onSuggestionTap(.filter(suggestion.filter))
+            onSuggestionTap(.scopedFilter(suggestion.filter))
         } label: {
             HStack(spacing: 12) {
                 Image(systemName: "textformat.abc")
@@ -265,7 +267,7 @@ private struct ReverseEnumerationRowView: View {
 
     var body: some View {
         Button {
-            onSuggestionTap(.filter(.basic(
+            onSuggestionTap(.scopedFilter(.basic(
                 suggestion.negated,
                 suggestion.canonicalFilterName,
                 .including,
@@ -298,7 +300,7 @@ private struct ReverseEnumerationRowView: View {
                     .popover(isPresented: $showingPopover) {
                         ComparisonGridPicker(comparisonKinds: filter.comparisonKinds) { comparison in
                             showingPopover = false
-                            onSuggestionTap(.filter(.basic(
+                            onSuggestionTap(.scopedFilter(.basic(
                                 suggestion.negated,
                                 suggestion.canonicalFilterName,
                                 comparison,
