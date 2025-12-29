@@ -28,7 +28,10 @@ struct SearchSheetView: View {
                 filters: $filters,
                 suggestionLoadingState: $suggestionLoadingState,
                 searchHistoryTracker: searchHistoryTracker,
-            )
+            ) {
+                dismiss()
+                onSubmit()
+            }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button {

@@ -15,6 +15,7 @@ struct AutocompleteView: View {
     @Binding var filters: [SearchFilter]
     @Binding var suggestionLoadingState: DebouncedLoadingState
     let searchHistoryTracker: SearchHistoryTracker
+    let performSearch: () -> Void
 
     @State private var provider: CombinedSuggestionProvider
     @State private var suggestions: [Suggestion] = []
@@ -29,14 +30,16 @@ struct AutocompleteView: View {
         inputSelection: Binding<TextSelection?>,
         filters: Binding<[SearchFilter]>,
         suggestionLoadingState: Binding<DebouncedLoadingState>,
-        searchHistoryTracker: SearchHistoryTracker
+        searchHistoryTracker: SearchHistoryTracker,
+        performSearch: @escaping () -> Void,
     ) {
         self._inputText = inputText
         self._inputSelection = inputSelection
         self._filters = filters
         self._suggestionLoadingState = suggestionLoadingState
         self.searchHistoryTracker = searchHistoryTracker
-        
+        self.performSearch = performSearch
+
         _provider = State(initialValue: CombinedSuggestionProvider(
             pinnedFilter: PinnedFilterSuggestionProvider(),
             history: HistorySuggestionProvider(with: searchHistoryTracker),
@@ -162,7 +165,10 @@ struct AutocompleteView: View {
                         filter: suggestion.filter,
                         matchRange: suggestion.matchRange,
                         systemImageName: "textformat.abc",
-                    ) { addScopedFilter($0) }
+                    ) {
+                        setEntireSearch(to: [$0])
+                        performSearch()
+                    }
                     .listRowInsets(.vertical, 0)
                 }
             }
@@ -179,8 +185,7 @@ struct AutocompleteView: View {
         filters = search
         inputText = ""
         inputSelection = TextSelection(insertionPoint: inputText.endIndex)
-        // TODO: The below, yes?
-        dismiss()
+        performSearch()
     }
     
     private func addTopLevelFilter(_ filter: SearchFilter) {
