@@ -56,7 +56,7 @@ struct Migrate20251229Initial: DatabaseMigration {
             let pinnedAt = Expression<Date>("pinned_at")
             let search = Expression<String>("search")
 
-            try db.run(pinnedFilters.create(ifNotExists: true) { table in
+            try db.run(pinnedSearches.create(ifNotExists: true) { table in
                 table.column(id, primaryKey: .autoincrement)
                 table.column(pinnedAt, defaultValue: Date())
                 table.column(search)

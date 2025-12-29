@@ -8,77 +8,52 @@ import SQLite
 import Foundation
 
 struct SQLiteDatabase {
-    private let db: Connection
+    enum Location {
+        case memory
+        case filename(String)
+    }
+
+    private let connection: Connection
     public let filterHistory: FilterHistory
 
-    private init(db: Connection) {
-        self.db = db
-        self.filterHistory = .init(db: db)
+    private init(_ connection: Connection) {
+        self.connection = connection
+        self.filterHistory = .init(db: connection)
     }
 
-    var userVersion: Int32? { db.userVersion }
+    var userVersion: Int32? { connection.userVersion }
 
-    public static func initialize(path: String = "MagicCardSearch.sqlite3") throws -> SQLiteDatabase {
-        let documentsPath = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-        let dbPath = documentsPath.appendingPathComponent(path).path
+    public static func initialize(_ location: Location = .memory) throws -> SQLiteDatabase {
+        let connection = switch location {
+        case .memory:
+            try Connection(.inMemory)
+        case .filename(let filename):
+            try {
+                let documentsPath = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+                let dbPath = documentsPath.appendingPathComponent(filename).path
 
-        let db = SQLiteDatabase(db: try Connection(dbPath))
-        try db.applyMigrations()
-        return db
-    }
+                let connection = try Connection(dbPath)
+                // Aggressively keep things in memory so I can avoid writing my own memory caching and just bang on SQLite.
+                try connection.execute("PRAGMA temp_store = MEMORY;")
+                try connection.execute("PRAGMA cache_size = -20000;")
+                try connection.execute("PRAGMA mmap_size  = 268435456;")
 
-    public static func initializeTest() throws -> SQLiteDatabase {
-        let db = SQLiteDatabase(db: try Connection(.inMemory))
+                return connection
+            }()
+        }
+
+        let db = SQLiteDatabase(connection)
         try db.applyMigrations()
         return db
     }
 
     fileprivate func applyMigrations() throws {
-        let index = Int(db.userVersion ?? 0)
+        let index = Int(connection.userVersion ?? 0)
         for migration in orderedMigrations[index...] {
-            try db.transaction {
-                try migration.migrate(db: db)
-                db.userVersion = migration.version
+            try connection.transaction {
+                try migration.migrate(db: connection)
+                connection.userVersion = migration.version
             }
         }
-    }
-}
-
-struct FilterHistory {
-    struct Row: Codable {
-        let id: Int
-        let lastUsedAt: Date
-        let filter: SearchFilter
-        
-        enum CodingKeys: String, CodingKey {
-            case id
-            case lastUsedAt = "last_used_at"
-            case filter
-        }
-    }
-
-    private let db: Connection
-    private let table = Table("filter_history")
-
-    private let id = Expression<Int>("id")
-    private let lastUsedAt = Expression<Date>("last_used_at")
-    private let filter = Expression<String>("filter")
-
-    fileprivate init(db: Connection) {
-        self.db = db
-    }
-
-    func recordUsage(of searchFilter: SearchFilter) throws {
-        let filterString = String(data: try JSONEncoder().encode(searchFilter), encoding: .utf8)!
-        
-        try db.run(table.upsert(
-            lastUsedAt <- Date(),
-            filter <- filterString,
-            onConflictOf: filter
-        ))
-    }
-
-    internal func test_getAll() throws -> [Row] {
-        try db.prepare(table).map { try $0.decode() }
     }
 }

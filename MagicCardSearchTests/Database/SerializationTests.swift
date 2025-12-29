@@ -10,7 +10,7 @@ import Testing
 struct SerializationTests {
     @Test
     func testBasicSerialization() throws {
-        let db = try SQLiteDatabase.initializeTest()
+        let db = try SQLiteDatabase.initialize(.memory)
 
         try db.filterHistory.recordUsage(of: .basic(false, "color", .including, "black"))
         let rows = try db.filterHistory.test_getAll()
