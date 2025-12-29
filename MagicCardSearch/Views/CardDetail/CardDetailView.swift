@@ -145,7 +145,7 @@ struct CardDetailView: View {
 
     // MARK: - Card Face Details View
     
-    // swiftlint:disable function_body_length cyclomatic_complexity
+    // swiftlint:disable function_body_length
     @ViewBuilder
     private func cardFaceDetailsView(face: CardFaceDisplayable, showArtist: Bool = true) -> some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -193,16 +193,7 @@ struct CardDetailView: View {
                 }
 
                 if !flavorText.isEmpty {
-                    VStack(alignment: .leading, spacing: 8) {
-                        ForEach(flavorText.components(separatedBy: "\n"), id: \.self) { line in
-                            if !line.isEmpty {
-                                Text(line)
-                                    .font(.system(.body, design: .serif))
-                                    .italic()
-                                    .fixedSize(horizontal: false, vertical: true)
-                            }
-                        }
-                    }
+                    FlavorTextView(flavorText)
                 }
             }
             .padding(.horizontal)
@@ -230,7 +221,7 @@ struct CardDetailView: View {
             CardArtistSection(artist: artist)
         }
     }
-    // swiftlint:enable function_body_length cyclomatic_complexity
+    // swiftlint:enable function_body_length
 
     private func loadRelatedCard(id: UUID) async {
         print("Loading related card...")

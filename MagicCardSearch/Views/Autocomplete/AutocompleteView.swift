@@ -166,7 +166,9 @@ struct AutocompleteView: View {
                         matchRange: suggestion.matchRange,
                         systemImageName: "textformat.abc",
                     ) {
-                        setEntireSearch(to: [$0])
+                        // We don't replace the entire search because some other filters might
+                        // actually have an effect on the results, like `set:`.
+                        addTopLevelFilter($0)
                         performSearch()
                     }
                     .listRowInsets(.vertical, 0)
