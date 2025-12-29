@@ -13,14 +13,14 @@ struct SearchBarView: View {
     @Binding var filters: [SearchFilter]
     @Binding var inputText: String
     @Binding var inputSelection: TextSelection?
-    @Bindable var autocompleteProvider: CombinedSuggestionProvider
+    let isAutocompleteLoading: Bool
     let searchHistoryTracker: SearchHistoryTracker
     let onSubmit: () -> Void
 
     @State private var showSymbolPicker = false
 
     var body: some View {
-        SearchBarLayout(icon: autocompleteProvider.loadingState.isLoadingDebounced ? .progress : .visible) {
+        SearchBarLayout(icon: isAutocompleteLoading ? .progress : .visible) {
             TextField(
                 filters.isEmpty ? "Search for cards..." : "Add filters...",
                 text: $inputText,

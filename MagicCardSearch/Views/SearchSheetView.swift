@@ -95,7 +95,7 @@ struct SearchSheetView: View {
                     warnings: warnings,
                     inputText: $inputText,
                     inputSelection: $inputSelection,
-                    autocompleteProvider: provider,
+                    isAutocompleteLoading: provider.loadingState.isLoadingDebounced,
                     searchHistoryTracker: searchHistoryTracker,
                     onFilterEdit: handleFilterEdit,
                     onClearAll: onClearAll,

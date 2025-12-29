@@ -11,7 +11,7 @@ struct SearchBarAndPillsView: View {
     let warnings: [String]
     @Binding var inputText: String
     @Binding var inputSelection: TextSelection?
-    @Bindable var autocompleteProvider: CombinedSuggestionProvider
+    let isAutocompleteLoading: Bool
     let searchHistoryTracker: SearchHistoryTracker
     let onFilterEdit: (SearchFilter) -> Void
     let onClearAll: () -> Void
@@ -71,7 +71,7 @@ struct SearchBarAndPillsView: View {
                     filters: $filters,
                     inputText: $inputText,
                     inputSelection: $inputSelection,
-                    autocompleteProvider: autocompleteProvider,
+                    isAutocompleteLoading: isAutocompleteLoading,
                     searchHistoryTracker: searchHistoryTracker,
                     onSubmit: onSubmit,
                 )
