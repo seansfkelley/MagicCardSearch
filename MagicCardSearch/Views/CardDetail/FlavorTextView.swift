@@ -21,29 +21,19 @@ struct FlavorTextView: View {
         VStack(alignment: .leading, spacing: 8) {
             ForEach(lines, id: \.self) { line in
                 if !line.isEmpty {
-                    FlavorLineView(line: line, fontSize: fontSize)
-                        .fixedSize(horizontal: false, vertical: true)
+                    buildLine(line).fixedSize(horizontal: false, vertical: true)
                 }
             }
         }
     }
-}
-
-private struct FlavorLineView: View {
-    let line: String
-    let fontSize: CGFloat
-    
-    var body: some View {
-        buildFlavorText(line)
-    }
 
     // swiftlint:disable shorthand_operator
-    private func buildFlavorText(_ text: String) -> Text {
-        let pattern = #/\*([^*]+)\*/#
+    private func buildLine(_ text: String) -> Text {
+        let emphasisPattern = #/\*([^*]+)\*/#
         var result = Text("")
         var lastIndex = text.startIndex
         
-        for match in text.matches(of: pattern) {
+        for match in text.matches(of: emphasisPattern) {
             if lastIndex < match.range.lowerBound {
                 result = result + Text(text[lastIndex..<match.range.lowerBound]).italic()
             }
