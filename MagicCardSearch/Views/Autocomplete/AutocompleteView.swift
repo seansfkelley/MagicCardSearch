@@ -84,19 +84,21 @@ struct AutocompleteView: View {
     var body: some View {
         List {
             if let filter = inputText.toSearchFilter().value {
-                VerbatimRowView(
+                BasicRowView(
                     filter: filter,
-                    onTap: addTopLevelFilter
-                )
+                    matchRange: nil,
+                    systemImageName: "magnifyingglass",
+                ) { addTopLevelFilter($0) }
             }
 
             ForEach(suggestions, id: \.self) { suggestion in
                 switch suggestion {
                 case .pinned(let suggestion):
-                    PinnedRowView(
-                        suggestion: suggestion,
-                        onTap: addScopedFilter
-                    )
+                    BasicRowView(
+                        filter: suggestion.filter,
+                        matchRange: suggestion.matchRange,
+                        systemImageName: "pin.fill",
+                    ) { addScopedFilter($0) }
                     .swipeActions(edge: .leading, allowsFullSwipe: true) {
                         Button {
                             provider.pinnedFilterProvider.unpin(filter: suggestion.filter)
@@ -110,10 +112,11 @@ struct AutocompleteView: View {
                     }
                     .listRowInsets(.vertical, 0)
                 case .history(let suggestion):
-                    HistoryRowView(
-                        suggestion: suggestion,
-                        onTap: addScopedFilter
-                    )
+                    BasicRowView(
+                        filter: suggestion.filter,
+                        matchRange: suggestion.matchRange,
+                        systemImageName: "clock.arrow.circlepath",
+                    ) { addScopedFilter($0) }
                     .swipeActions(edge: .leading, allowsFullSwipe: true) {
                         pinSwipeAction(for: suggestion.filter)
                     }
@@ -137,10 +140,11 @@ struct AutocompleteView: View {
                     .listRowInsets(.vertical, 0)
 
                 case .enumeration(let suggestion):
-                    EnumerationRowView(
-                        suggestion: suggestion,
-                        onTap: addScopedFilter
-                    )
+                    BasicRowView(
+                        filter: suggestion.filter,
+                        matchRange: suggestion.matchRange,
+                        systemImageName: "list.bullet.circle",
+                    ) { addScopedFilter($0) }
                     .swipeActions(edge: .leading, allowsFullSwipe: true) {
                         pinSwipeAction(for: suggestion.filter)
                     }
@@ -154,10 +158,11 @@ struct AutocompleteView: View {
                     .listRowInsets(.vertical, 0)
                 
                 case .name(let suggestion):
-                    NameRowView(
-                        suggestion: suggestion,
-                        onTap: addScopedFilter
-                    )
+                    BasicRowView(
+                        filter: suggestion.filter,
+                        matchRange: suggestion.matchRange,
+                        systemImageName: "textformat.abc",
+                    ) { addScopedFilter($0) }
                     .listRowInsets(.vertical, 0)
                 }
             }

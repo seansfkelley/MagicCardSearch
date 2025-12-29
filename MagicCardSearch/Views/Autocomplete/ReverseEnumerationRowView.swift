@@ -115,4 +115,3 @@ private struct ComparisonGridPicker: View {
         .frame(minWidth: comparisonKinds == .all ? 180 : 100)
     }
 }
-
