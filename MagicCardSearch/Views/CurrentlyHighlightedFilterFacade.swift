@@ -12,8 +12,8 @@ struct CurrentlyHighlightedFilterFacade {
     let inputText: String
     let inputSelection: TextSelection?
     
-    var currentFilter: String {
-        if let range = currentFilterRange {
+    var text: String {
+        if let range = range {
             String(inputText[range])
         } else {
             // TODO: Should this be nil?
@@ -21,7 +21,7 @@ struct CurrentlyHighlightedFilterFacade {
         }
     }
     
-    var currentFilterRange: Range<String.Index>? {
+    var range: Range<String.Index>? {
         let allFilterRanges = PlausibleFilterRanges.from(inputText).ranges
 
         guard !allFilterRanges.isEmpty else {

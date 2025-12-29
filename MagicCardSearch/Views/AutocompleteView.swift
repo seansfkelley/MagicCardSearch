@@ -8,25 +8,47 @@
 import SwiftUI
 
 struct AutocompleteView: View {
-    enum AcceptedSuggestion {
-        case search([SearchFilter])
-        case topLevelFilter(SearchFilter)
-        case scopedFilter(SearchFilter)
-        case scopedString(String)
-    }
+    @Environment(\.dismiss) private var dismiss
 
-    let allText: String
-    let filterText: String
-    let provider: CombinedSuggestionProvider
+    @Binding var inputText: String
+    @Binding var inputSelection: TextSelection?
+    @Binding var filters: [SearchFilter]
+    @Binding var suggestionLoadingState: DebouncedLoadingState
     let searchHistoryTracker: SearchHistoryTracker
-    let filters: [SearchFilter]
-    let onSuggestionTap: (AcceptedSuggestion) -> Void
-    
+
+    @State private var provider: CombinedSuggestionProvider
     @State private var suggestions: [Suggestion] = []
     @State private var nonce: Int = 0
-    
+
+    private var currentFilter: CurrentlyHighlightedFilterFacade {
+        CurrentlyHighlightedFilterFacade(inputText: inputText, inputSelection: inputSelection)
+    }
+
+    init(
+        inputText: Binding<String>,
+        inputSelection: Binding<TextSelection?>,
+        filters: Binding<[SearchFilter]>,
+        suggestionLoadingState: Binding<DebouncedLoadingState>,
+        searchHistoryTracker: SearchHistoryTracker
+    ) {
+        self._inputText = inputText
+        self._inputSelection = inputSelection
+        self._filters = filters
+        self._suggestionLoadingState = suggestionLoadingState
+        self.searchHistoryTracker = searchHistoryTracker
+        
+        _provider = State(initialValue: CombinedSuggestionProvider(
+            pinnedFilter: PinnedFilterSuggestionProvider(),
+            history: HistorySuggestionProvider(with: searchHistoryTracker),
+            filterType: FilterTypeSuggestionProvider(),
+            enumeration: EnumerationSuggestionProvider(),
+            reverseEnumeration: ReverseEnumerationSuggestionProvider(),
+            name: NameSuggestionProvider(debounce: .milliseconds(500))
+        ))
+    }
+
     private var searchSuggestionKey: SearchSuggestionKey {
-        SearchSuggestionKey(inputText: filterText, filterCount: filters.count, nonce: nonce)
+        SearchSuggestionKey(inputText: inputText, filterCount: filters.count, nonce: nonce)
     }
     
     private struct SearchSuggestionKey: Equatable {
@@ -61,7 +83,7 @@ struct AutocompleteView: View {
 
     var body: some View {
         List {
-            if let filter = allText.toSearchFilter().value {
+            if let filter = inputText.toSearchFilter().value {
                 verbatimRow(filter)
             }
 
@@ -116,16 +138,52 @@ struct AutocompleteView: View {
         }
         .listStyle(.plain)
         .task(id: searchSuggestionKey) {
-            for await newSuggestions in provider.getSuggestions(for: filterText, existingFilters: Set(filters)) {
+            for await newSuggestions in provider.getSuggestions(for: currentFilter.inputText, existingFilters: Set(filters)) {
                 suggestions = newSuggestions
             }
         }
     }
+
+    private func setEntireSearch(to search: [SearchFilter]) {
+        filters = search
+        inputText = ""
+        inputSelection = TextSelection(insertionPoint: inputText.endIndex)
+        // TODO: The below, yes?
+        dismiss()
+    }
     
+    private func addTopLevelFilter(_ filter: SearchFilter) {
+        filters.append(filter)
+        inputText = ""
+        inputSelection = TextSelection(insertionPoint: inputText.endIndex)
+    }
+    
+    private func addScopedFilter(_ filter: SearchFilter) {
+        if let range = currentFilter.range, range != inputText.range {
+            let filterString = filter.description
+            inputText.replaceSubrange(range, with: filterString)
+            inputSelection = TextSelection(insertionPoint: inputText.index(range.lowerBound, offsetBy: filterString.count))
+        } else {
+            filters.append(filter)
+            inputText = ""
+            inputSelection = TextSelection(insertionPoint: inputText.endIndex)
+        }
+    }
+    
+    private func setScopedString(_ string: String) {
+        if let range = currentFilter.range {
+            inputText.replaceSubrange(range, with: string)
+            inputSelection = TextSelection(insertionPoint: inputText.index(range.lowerBound, offsetBy: string.count))
+        } else {
+            inputText = string
+            inputSelection = TextSelection(insertionPoint: inputText.endIndex)
+        }
+    }
+
     @ViewBuilder
     private func verbatimRow(_ filter: SearchFilter) -> some View {
         Button {
-            onSuggestionTap(.topLevelFilter(filter))
+            addTopLevelFilter(filter)
         } label: {
             HStack(spacing: 12) {
                 Image(systemName: "magnifyingglass")
@@ -155,7 +213,7 @@ struct AutocompleteView: View {
     
     private func pinnedRow(_ suggestion: PinnedFilterSuggestion) -> some View {
         return Button {
-            onSuggestionTap(.scopedFilter(suggestion.filter))
+            addScopedFilter(suggestion.filter)
         } label: {
             HStack(spacing: 12) {
                 Image(systemName: "pin.fill")
@@ -173,7 +231,7 @@ struct AutocompleteView: View {
 
     private func historyRow(_ suggestion: HistorySuggestion) -> some View {
         return Button {
-            onSuggestionTap(.scopedFilter(suggestion.filter))
+            addScopedFilter(suggestion.filter)
         } label: {
             HStack(spacing: 12) {
                 Image(systemName: "clock.arrow.circlepath")
@@ -199,14 +257,14 @@ struct AutocompleteView: View {
                 labelRange: suggestion.matchRange,
                 options: suggestion.comparisonKinds == .all ? orderedAllComparisons : orderedEqualityComparison,
             ) { comparison in
-                onSuggestionTap(.scopedString("\(suggestion.filterType)\(comparison.rawValue)"))
+                setScopedString("\(suggestion.filterType)\(comparison.rawValue)")
             }
         }
     }
     
     private func enumerationRow(_ suggestion: EnumerationSuggestion) -> some View {
         Button {
-            onSuggestionTap(.scopedFilter(suggestion.filter))
+            addScopedFilter(suggestion.filter)
         } label: {
             HStack(spacing: 12) {
                 Image(systemName: "list.bullet.circle")
@@ -228,13 +286,13 @@ struct AutocompleteView: View {
     private func reverseEnumerationRow(_ suggestion: ReverseEnumerationSuggestion) -> some View {
         ReverseEnumerationRowView(
             suggestion: suggestion,
-            onSuggestionTap: onSuggestionTap
+            scopedFilter: addScopedFilter
         )
     }
     
     private func nameRow(_ suggestion: NameSuggestion) -> some View {
         Button {
-            onSuggestionTap(.scopedFilter(suggestion.filter))
+            addScopedFilter(suggestion.filter)
         } label: {
             HStack(spacing: 12) {
                 Image(systemName: "textformat.abc")
@@ -256,7 +314,7 @@ struct AutocompleteView: View {
 
 private struct ReverseEnumerationRowView: View {
     let suggestion: ReverseEnumerationSuggestion
-    let onSuggestionTap: (AutocompleteView.AcceptedSuggestion) -> Void
+    let scopedFilter: (SearchFilter) -> Void
     
     @State private var showingPopover = false
 
@@ -267,12 +325,12 @@ private struct ReverseEnumerationRowView: View {
 
     var body: some View {
         Button {
-            onSuggestionTap(.scopedFilter(.basic(
+            scopedFilter(.basic(
                 suggestion.negated,
                 suggestion.canonicalFilterName,
                 .including,
                 suggestion.value
-            )))
+            ))
         } label: {
             HStack(spacing: 12) {
                 Image(systemName: "line.3.horizontal.decrease.circle")
@@ -300,12 +358,12 @@ private struct ReverseEnumerationRowView: View {
                     .popover(isPresented: $showingPopover) {
                         ComparisonGridPicker(comparisonKinds: filter.comparisonKinds) { comparison in
                             showingPopover = false
-                            onSuggestionTap(.scopedFilter(.basic(
+                            scopedFilter(.basic(
                                 suggestion.negated,
                                 suggestion.canonicalFilterName,
                                 comparison,
                                 suggestion.value
-                            )))
+                            ))
                         }
                         .presentationCompactAdaptation(.popover)
                     }

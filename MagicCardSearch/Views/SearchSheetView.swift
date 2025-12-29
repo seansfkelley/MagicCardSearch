@@ -17,50 +17,17 @@ struct SearchSheetView: View {
     let onSubmit: () -> Void
 
     @Environment(\.dismiss) private var dismiss
-    @State private var provider: CombinedSuggestionProvider
+    @State private var suggestionLoadingState = DebouncedLoadingState()
     @State private var showSyntaxReference = false
-
-    init(
-        inputText: Binding<String>,
-        inputSelection: Binding<TextSelection?>,
-        filters: Binding<[SearchFilter]>,
-        warnings: [String],
-        searchHistoryTracker: SearchHistoryTracker,
-        onClearAll: @escaping () -> Void,
-        onSubmit: @escaping () -> Void
-    ) {
-        _inputText = inputText
-        _inputSelection = inputSelection
-        _filters = filters
-        self.warnings = warnings
-        self.searchHistoryTracker = searchHistoryTracker
-        self.onClearAll = onClearAll
-        self.onSubmit = onSubmit
-
-        // This is why we have to have a custom initializer. :/
-        _provider = State(initialValue: CombinedSuggestionProvider(
-            pinnedFilter: PinnedFilterSuggestionProvider(),
-            history: HistorySuggestionProvider(with: searchHistoryTracker),
-            filterType: FilterTypeSuggestionProvider(),
-            enumeration: EnumerationSuggestionProvider(),
-            reverseEnumeration: ReverseEnumerationSuggestionProvider(),
-            name: NameSuggestionProvider(debounce: .milliseconds(500))
-        ))
-    }
-
-    private var filterFacade: CurrentlyHighlightedFilterFacade {
-        CurrentlyHighlightedFilterFacade(inputText: inputText, inputSelection: inputSelection)
-    }
 
     var body: some View {
         NavigationStack {
             AutocompleteView(
-                allText: inputText,
-                filterText: filterFacade.currentFilter,
-                provider: provider,
+                inputText: $inputText,
+                inputSelection: $inputSelection,
+                filters: $filters,
+                suggestionLoadingState: $suggestionLoadingState,
                 searchHistoryTracker: searchHistoryTracker,
-                filters: filters,
-                onSuggestionTap: handleSuggestionTap,
             )
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -95,7 +62,7 @@ struct SearchSheetView: View {
                     warnings: warnings,
                     inputText: $inputText,
                     inputSelection: $inputSelection,
-                    isAutocompleteLoading: provider.loadingState.isLoadingDebounced,
+                    isAutocompleteLoading: suggestionLoadingState.isLoadingDebounced,
                     searchHistoryTracker: searchHistoryTracker,
                     onFilterEdit: handleFilterEdit,
                     onClearAll: onClearAll,
@@ -113,39 +80,5 @@ struct SearchSheetView: View {
     private func handleFilterEdit(_ filter: SearchFilter) {
         inputText = filter.description
         inputSelection = TextSelection(range: filter.suggestedEditingRange)
-    }
-
-    private func handleSuggestionTap(_ suggestion: AutocompleteView.AcceptedSuggestion) {
-        switch suggestion {
-        case .search(let search):
-            filters = search
-            inputText = ""
-            inputSelection = TextSelection(insertionPoint: inputText.endIndex)
-            // TODO: The below, yes?
-            dismiss()
-            onSubmit()
-        case .topLevelFilter(let filter):
-            filters.append(filter)
-            inputText = ""
-            inputSelection = TextSelection(insertionPoint: inputText.endIndex)
-        case .scopedFilter(let filter):
-            if let range = filterFacade.currentFilterRange, range != inputText.range {
-                let filterString = filter.description
-                inputText.replaceSubrange(range, with: filterString)
-                inputSelection = TextSelection(insertionPoint: inputText.index(range.lowerBound, offsetBy: filterString.count))
-            } else {
-                filters.append(filter)
-                inputText = ""
-                inputSelection = TextSelection(insertionPoint: inputText.endIndex)
-            }
-        case .scopedString(let string):
-            if let range = filterFacade.currentFilterRange {
-                inputText.replaceSubrange(range, with: string)
-                inputSelection = TextSelection(insertionPoint: inputText.index(range.lowerBound, offsetBy: string.count))
-            } else {
-                inputText = string
-                inputSelection = TextSelection(insertionPoint: inputText.endIndex)
-            }
-        }
     }
 }
