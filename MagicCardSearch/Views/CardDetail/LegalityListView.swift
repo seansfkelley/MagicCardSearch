@@ -187,7 +187,7 @@ private struct LegalityEditView: View {
         self._workingDividerIndex = State(wrappedValue: configuration.dividerIndex)
     }
     
-    private var listItems: [LegalityListItem] {
+    private func listItems() -> [LegalityListItem] {
         var items: [LegalityListItem] = []
         
         for (index, format) in workingFormatOrder.enumerated() {
@@ -207,7 +207,7 @@ private struct LegalityEditView: View {
     var body: some View {
         NavigationStack {
             List {
-                ForEach(listItems, id: \.self) { item in
+                ForEach(listItems(), id: \.self) { item in
                     switch item {
                     case .format(let format):
                         Text(format.label).font(.body)
@@ -248,47 +248,10 @@ private struct LegalityEditView: View {
     }
     
     private func handleMove(from source: IndexSet, to destination: Int) {
-        guard let sourceIndex = source.first else { return }
-        
-        let items = listItems
-        let movingItem = items[sourceIndex]
-        
-        switch movingItem {
-        case .format:
-            let formatSourceIndex = formatIndex(at: sourceIndex, in: items)
-            var formatDestIndex = formatIndex(at: destination, in: items)
-            
-            if sourceIndex < destination {
-                formatDestIndex = formatIndex(at: destination - 1, in: items)
-            }
-            
-            workingFormatOrder.move(fromOffsets: IndexSet([formatSourceIndex]), toOffset: formatDestIndex)
-            
-            if formatSourceIndex < workingDividerIndex && formatDestIndex >= workingDividerIndex {
-                workingDividerIndex -= 1
-            } else if formatSourceIndex >= workingDividerIndex && formatDestIndex < workingDividerIndex {
-                workingDividerIndex += 1
-            }
-            
-        case .divider:
-            var newDividerIndex = formatIndex(at: destination, in: items)
-            
-            if sourceIndex < destination {
-                newDividerIndex = formatIndex(at: destination - 1, in: items)
-            }
-            
-            workingDividerIndex = newDividerIndex
-        }
-    }
-    
-    private func formatIndex(at listIndex: Int, in items: [LegalityListItem]) -> Int {
-        var formatCount = 0
-        for i in 0..<min(listIndex, items.count) {
-            if case .format = items[i] {
-                formatCount += 1
-            }
-        }
-        return formatCount
+        var items = listItems()
+        items.move(fromOffsets: source, toOffset: destination)
+        workingFormatOrder = items.compactMap { if case .format(let format) = $0 { format } else { nil } }
+        workingDividerIndex = items.firstIndex(of: .divider)!
     }
     
     private enum LegalityListItem: Equatable, Hashable {
