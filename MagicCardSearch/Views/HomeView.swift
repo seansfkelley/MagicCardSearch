@@ -147,13 +147,16 @@ struct HomeView: View {
                     Button {
                         onSearchSelected(example.filters)
                     } label: {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(example.title)
-                                .font(.body.weight(.semibold))
-                                .foregroundStyle(.primary)
-                            Text(example.filters.map { $0.description }.joined(separator: " "))
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
+                        HStack {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(example.title)
+                                    .font(.body.weight(.semibold))
+                                    .foregroundStyle(.primary)
+                                Text(example.filters.map { $0.description }.joined(separator: " "))
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                            Spacer()
                         }
                         .padding(.horizontal)
                         .contentShape(Rectangle())
