@@ -255,35 +255,25 @@ private struct LegalityEditView: View {
         
         switch movingItem {
         case .format:
-            // Moving a format - need to adjust for divider position
             let formatSourceIndex = formatIndex(at: sourceIndex, in: items)
             var formatDestIndex = formatIndex(at: destination, in: items)
             
-            // If we're moving past the divider, adjust the destination
             if sourceIndex < destination {
-                // Moving down - destination already accounts for removal
                 formatDestIndex = formatIndex(at: destination - 1, in: items)
             }
             
-            // Move the format
             workingFormatOrder.move(fromOffsets: IndexSet([formatSourceIndex]), toOffset: formatDestIndex)
             
-            // Adjust divider index if needed
             if formatSourceIndex < workingDividerIndex && formatDestIndex >= workingDividerIndex {
-                // Moved from above to below divider
                 workingDividerIndex -= 1
             } else if formatSourceIndex >= workingDividerIndex && formatDestIndex < workingDividerIndex {
-                // Moved from below to above divider
                 workingDividerIndex += 1
             }
             
         case .divider:
-            // Moving the divider - update its position
             var newDividerIndex = formatIndex(at: destination, in: items)
             
-            // Adjust for the current direction of movement
             if sourceIndex < destination {
-                // Moving down - the destination index accounts for divider removal
                 newDividerIndex = formatIndex(at: destination - 1, in: items)
             }
             
@@ -291,7 +281,6 @@ private struct LegalityEditView: View {
         }
     }
     
-    // Helper to find the format index (excluding divider) at a given list position
     private func formatIndex(at listIndex: Int, in items: [LegalityListItem]) -> Int {
         var formatCount = 0
         for i in 0..<min(listIndex, items.count) {
