@@ -84,55 +84,81 @@ struct AutocompleteView: View {
     var body: some View {
         List {
             if let filter = inputText.toSearchFilter().value {
-                verbatimRow(filter)
+                VerbatimRowView(
+                    filter: filter,
+                    onTap: addTopLevelFilter
+                )
             }
 
             ForEach(suggestions, id: \.self) { suggestion in
                 switch suggestion {
                 case .pinned(let suggestion):
-                    pinnedRow(suggestion)
-                        .swipeActions(edge: .leading, allowsFullSwipe: true) {
-                            Button {
-                                provider.pinnedFilterProvider.unpin(filter: suggestion.filter)
-                                // If unpinning, keep the filter around in case you want to re-pin it.
-                                searchHistoryTracker.recordUsage(of: suggestion.filter)
-                                nonce += 1
-                            } label: {
-                                Label("Unpin", systemImage: "pin.slash")
-                            }
-                            .tint(.orange)
+                    PinnedRowView(
+                        suggestion: suggestion,
+                        onTap: addScopedFilter
+                    )
+                    .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                        Button {
+                            provider.pinnedFilterProvider.unpin(filter: suggestion.filter)
+                            // If unpinning, keep the filter around in case you want to re-pin it.
+                            searchHistoryTracker.recordUsage(of: suggestion.filter)
+                            nonce += 1
+                        } label: {
+                            Label("Unpin", systemImage: "pin.slash")
                         }
-                        .listRowInsets(.vertical, 0)
+                        .tint(.orange)
+                    }
+                    .listRowInsets(.vertical, 0)
                 case .history(let suggestion):
-                    historyRow(suggestion)
-                        .swipeActions(edge: .leading, allowsFullSwipe: true) {
-                            pinSwipeAction(for: suggestion.filter)
+                    HistoryRowView(
+                        suggestion: suggestion,
+                        onTap: addScopedFilter
+                    )
+                    .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                        pinSwipeAction(for: suggestion.filter)
+                    }
+                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                        Button(role: .destructive) {
+                            searchHistoryTracker.deleteUsage(of: suggestion.filter)
+                            nonce += 1
+                        } label: {
+                            Label("Delete", systemImage: "trash")
                         }
-                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                            Button(role: .destructive) {
-                                searchHistoryTracker.deleteUsage(of: suggestion.filter)
-                                nonce += 1
-                            } label: {
-                                Label("Delete", systemImage: "trash")
-                            }
-                        }
-                        .listRowInsets(.vertical, 0)
+                    }
+                    .listRowInsets(.vertical, 0)
 
                 case .filter(let suggestion):
-                    filterTypeRow(suggestion)
-                        .listRowInsets(.vertical, 0)
+                    FilterTypeRowView(
+                        suggestion: suggestion,
+                        orderedAllComparisons: orderedAllComparisons,
+                        orderedEqualityComparison: orderedEqualityComparison,
+                        onSelect: setScopedString
+                    )
+                    .listRowInsets(.vertical, 0)
 
                 case .enumeration(let suggestion):
-                    enumerationRow(suggestion)
-                        .listRowInsets(.vertical, 0)
+                    EnumerationRowView(
+                        suggestion: suggestion,
+                        onTap: addScopedFilter
+                    )
+                    .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                        pinSwipeAction(for: suggestion.filter)
+                    }
+                    .listRowInsets(.vertical, 0)
                 
                 case .reverseEnumeration(let suggestion):
-                    reverseEnumerationRow(suggestion)
-                        .listRowInsets(.vertical, 0)
+                    ReverseEnumerationRowView(
+                        suggestion: suggestion,
+                        onSelect: addScopedFilter
+                    )
+                    .listRowInsets(.vertical, 0)
                 
                 case .name(let suggestion):
-                    nameRow(suggestion)
-                        .listRowInsets(.vertical, 0)
+                    NameRowView(
+                        suggestion: suggestion,
+                        onTap: addScopedFilter
+                    )
+                    .listRowInsets(.vertical, 0)
                 }
             }
         }
@@ -181,9 +207,26 @@ struct AutocompleteView: View {
     }
 
     @ViewBuilder
-    private func verbatimRow(_ filter: SearchFilter) -> some View {
+    private func pinSwipeAction(for filter: SearchFilter) -> some View {
         Button {
-            addTopLevelFilter(filter)
+            provider.pinnedFilterProvider.pin(filter: filter)
+            nonce += 1
+        } label: {
+            Label("Pin", systemImage: "pin")
+        }
+        .tint(.orange)
+    }
+}
+
+// MARK: - Verbatim Row
+
+private struct VerbatimRowView: View {
+    let filter: SearchFilter
+    let onTap: (SearchFilter) -> Void
+    
+    var body: some View {
+        Button {
+            onTap(filter)
         } label: {
             HStack(spacing: 12) {
                 Image(systemName: "magnifyingglass")
@@ -197,23 +240,18 @@ struct AutocompleteView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .listRowInsets(.vertical, 0)
     }
+}
+
+// MARK: - Pinned Row
+
+private struct PinnedRowView: View {
+    let suggestion: PinnedFilterSuggestion
+    let onTap: (SearchFilter) -> Void
     
-    @ViewBuilder
-    private func pinSwipeAction(for filter: SearchFilter) -> some View {
+    var body: some View {
         Button {
-            provider.pinnedFilterProvider.pin(filter: filter)
-            nonce += 1
-        } label: {
-            Label("Pin", systemImage: "pin")
-        }
-        .tint(.orange)
-    }
-    
-    private func pinnedRow(_ suggestion: PinnedFilterSuggestion) -> some View {
-        return Button {
-            addScopedFilter(suggestion.filter)
+            onTap(suggestion.filter)
         } label: {
             HStack(spacing: 12) {
                 Image(systemName: "pin.fill")
@@ -228,10 +266,17 @@ struct AutocompleteView: View {
         }
         .buttonStyle(.plain)
     }
+}
 
-    private func historyRow(_ suggestion: HistorySuggestion) -> some View {
-        return Button {
-            addScopedFilter(suggestion.filter)
+// MARK: - History Row
+
+private struct HistoryRowView: View {
+    let suggestion: HistorySuggestion
+    let onTap: (SearchFilter) -> Void
+    
+    var body: some View {
+        Button {
+            onTap(suggestion.filter)
         } label: {
             HStack(spacing: 12) {
                 Image(systemName: "clock.arrow.circlepath")
@@ -246,8 +291,17 @@ struct AutocompleteView: View {
         }
         .buttonStyle(.plain)
     }
+}
 
-    private func filterTypeRow(_ suggestion: FilterTypeSuggestion) -> some View {
+// MARK: - Filter Type Row
+
+private struct FilterTypeRowView: View {
+    let suggestion: FilterTypeSuggestion
+    let orderedAllComparisons: [Comparison]
+    let orderedEqualityComparison: [Comparison]
+    let onSelect: (String) -> Void
+    
+    var body: some View {
         HStack(spacing: 12) {
             Image(systemName: "line.3.horizontal.decrease.circle")
                 .foregroundStyle(.secondary)
@@ -255,44 +309,48 @@ struct AutocompleteView: View {
             HorizontallyScrollablePillSelector(
                 label: suggestion.filterType,
                 labelRange: suggestion.matchRange,
-                options: suggestion.comparisonKinds == .all ? orderedAllComparisons : orderedEqualityComparison,
+                options: suggestion.comparisonKinds == .all ? orderedAllComparisons : orderedEqualityComparison
             ) { comparison in
-                setScopedString("\(suggestion.filterType)\(comparison.rawValue)")
+                onSelect("\(suggestion.filterType)\(comparison.rawValue)")
             }
         }
     }
-    
-    private func enumerationRow(_ suggestion: EnumerationSuggestion) -> some View {
+}
+
+// MARK: - Enumeration Row
+
+private struct EnumerationRowView: View {
+    let suggestion: EnumerationSuggestion
+    let onTap: (SearchFilter) -> Void
+
+    var body: some View {
         Button {
-            addScopedFilter(suggestion.filter)
+            onTap(suggestion.filter)
         } label: {
             HStack(spacing: 12) {
                 Image(systemName: "list.bullet.circle")
                     .foregroundStyle(.secondary)
                 HighlightedText(
                     text: suggestion.filter.description,
-                    highlightRange: suggestion.matchRange,
+                    highlightRange: suggestion.matchRange
                 )
                 Spacer(minLength: 0)
             }
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .swipeActions(edge: .leading, allowsFullSwipe: true) {
-            pinSwipeAction(for: suggestion.filter)
-        }
     }
+}
+
+// MARK: - Name Row
+
+private struct NameRowView: View {
+    let suggestion: NameSuggestion
+    let onTap: (SearchFilter) -> Void
     
-    private func reverseEnumerationRow(_ suggestion: ReverseEnumerationSuggestion) -> some View {
-        ReverseEnumerationRowView(
-            suggestion: suggestion,
-            scopedFilter: addScopedFilter
-        )
-    }
-    
-    private func nameRow(_ suggestion: NameSuggestion) -> some View {
+    var body: some View {
         Button {
-            addScopedFilter(suggestion.filter)
+            onTap(suggestion.filter)
         } label: {
             HStack(spacing: 12) {
                 Image(systemName: "textformat.abc")
@@ -314,7 +372,7 @@ struct AutocompleteView: View {
 
 private struct ReverseEnumerationRowView: View {
     let suggestion: ReverseEnumerationSuggestion
-    let scopedFilter: (SearchFilter) -> Void
+    let onSelect: (SearchFilter) -> Void
     
     @State private var showingPopover = false
 
@@ -325,7 +383,7 @@ private struct ReverseEnumerationRowView: View {
 
     var body: some View {
         Button {
-            scopedFilter(.basic(
+            onSelect(.basic(
                 suggestion.negated,
                 suggestion.canonicalFilterName,
                 .including,
@@ -358,7 +416,7 @@ private struct ReverseEnumerationRowView: View {
                     .popover(isPresented: $showingPopover) {
                         ComparisonGridPicker(comparisonKinds: filter.comparisonKinds) { comparison in
                             showingPopover = false
-                            scopedFilter(.basic(
+                            onSelect(.basic(
                                 suggestion.negated,
                                 suggestion.canonicalFilterName,
                                 comparison,
