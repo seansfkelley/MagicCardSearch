@@ -11,6 +11,7 @@
 		210115BE2EEF9543000D6D32 /* NukeUI in Frameworks */ = {isa = PBXBuildFile; productRef = 210115BD2EEF9543000D6D32 /* NukeUI */; };
 		21058ADE2EF36FC700F093EF /* InMemoryLogging in Frameworks */ = {isa = PBXBuildFile; productRef = 21058ADD2EF36FC700F093EF /* InMemoryLogging */; };
 		21058AE02EF36FC700F093EF /* Logging in Frameworks */ = {isa = PBXBuildFile; productRef = 21058ADF2EF36FC700F093EF /* Logging */; };
+		210BA21F2F02E7C20038FD7C /* SQLite in Frameworks */ = {isa = PBXBuildFile; productRef = 210BA21E2F02E7C20038FD7C /* SQLite */; };
 		210E13AA2EFC66C4009D9FE0 /* FocusOnAppear in Frameworks */ = {isa = PBXBuildFile; productRef = 210E13A92EFC66C4009D9FE0 /* FocusOnAppear */; };
 		210E14922EFDE5FB009D9FE0 /* SwiftUIIntrospect in Frameworks */ = {isa = PBXBuildFile; productRef = 210E14912EFDE5FB009D9FE0 /* SwiftUIIntrospect */; };
 		21332B992EF5D04100C80208 /* Algorithms in Frameworks */ = {isa = PBXBuildFile; productRef = 21332B982EF5D04100C80208 /* Algorithms */; };
@@ -128,6 +129,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				210BA21F2F02E7C20038FD7C /* SQLite in Frameworks */,
 				210115BE2EEF9543000D6D32 /* NukeUI in Frameworks */,
 				213F299A2EE9285400E058DB /* SVGKitSwift in Frameworks */,
 				21058AE02EF36FC700F093EF /* Logging in Frameworks */,
@@ -245,6 +247,7 @@
 				21332B982EF5D04100C80208 /* Algorithms */,
 				210E13A92EFC66C4009D9FE0 /* FocusOnAppear */,
 				210E14912EFDE5FB009D9FE0 /* SwiftUIIntrospect */,
+				210BA21E2F02E7C20038FD7C /* SQLite */,
 			);
 			productName = MagicCardSearch;
 			productReference = 2137B5AD2EE139C60066BF7E /* MagicCardSearch.app */;
@@ -342,6 +345,7 @@
 				21332B972EF5D04100C80208 /* XCRemoteSwiftPackageReference "swift-algorithms" */,
 				210E13A82EFC66C4009D9FE0 /* XCRemoteSwiftPackageReference "FocusOnAppear" */,
 				210E14902EFDE5FB009D9FE0 /* XCRemoteSwiftPackageReference "swiftui-introspect" */,
+				210BA21D2F02E7C20038FD7C /* XCRemoteSwiftPackageReference "SQLite" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 2137B5AE2EE139C60066BF7E /* Products */;
@@ -826,6 +830,14 @@
 				minimumVersion = 1.8.0;
 			};
 		};
+		210BA21D2F02E7C20038FD7C /* XCRemoteSwiftPackageReference "SQLite" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/stephencelis/SQLite.swift";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.15.4;
+			};
+		};
 		210E13A82EFC66C4009D9FE0 /* XCRemoteSwiftPackageReference "FocusOnAppear" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/seansfkelley/FocusOnAppear";
@@ -896,6 +908,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 21058ADC2EF36FC700F093EF /* XCRemoteSwiftPackageReference "swift-log" */;
 			productName = Logging;
+		};
+		210BA21E2F02E7C20038FD7C /* SQLite */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 210BA21D2F02E7C20038FD7C /* XCRemoteSwiftPackageReference "SQLite" */;
+			productName = SQLite;
 		};
 		210E13A92EFC66C4009D9FE0 /* FocusOnAppear */ = {
 			isa = XCSwiftPackageProductDependency;
