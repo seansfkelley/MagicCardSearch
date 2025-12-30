@@ -1,242 +1,177 @@
 //
-//  SearchHistoryTrackerTests.swift
+//  FilterHistoryTests.swift
 //  MagicCardSearch
 //
-//  Created by Sean Kelley on 2025-12-19.
+//  Created by Sean Kelley on 2025-12-29.
 //
 
 import Testing
 import Foundation
 @testable import MagicCardSearch
 
-@Suite
+// Serialized because these are flaky when run in parallel for reasons I cannot determine and is
+// concerning, because it's all in-memory SQLite.
+@Suite(.serialized)
 class FilterHistoryTests {
     // MARK: - Filter Entry Tests
 
     @Test("records usage of a single filter")
-    func recordFilterUsage() {
-        let tracker = SearchHistoryTracker(persistenceKey: UUID().uuidString)
+    func recordFilterUsage() throws {
+        let db = try SQLiteDatabase.initialize()
         let colorFilter = SearchFilter.basic(false, "color", .equal, "red")
 
-        tracker.recordUsage(of: colorFilter)
+        try db.filterHistory.recordUsage(of: colorFilter)
 
-        #expect(tracker.filterEntries.count == 1)
-        #expect(tracker.filterEntries[colorFilter] != nil)
+        let entries = try db.filterHistory.allFiltersChronologically
+        try #require(entries.count == 1)
+        #expect(entries[0].filter == colorFilter)
     }
 
     @Test("updates last used date when recording usage of an existing filter")
-    func updateExistingFilter() {
-        let tracker = SearchHistoryTracker(persistenceKey: UUID().uuidString)
+    func updateExistingFilter() throws {
+        let db = try SQLiteDatabase.initialize()
         let colorFilter = SearchFilter.basic(false, "color", .equal, "red")
 
-        tracker.recordUsage(of: colorFilter)
-        let firstDate = tracker.filterEntries[colorFilter]?.lastUsedDate
+        let firstDate = Date(timeIntervalSinceReferenceDate: 1000)
+        let secondDate = Date(timeIntervalSinceReferenceDate: 1060) // 60 seconds later
 
-        // Small delay to ensure different timestamps
-        Thread.sleep(forTimeInterval: 0.01)
+        try db.filterHistory.recordUsage(of: colorFilter, at: firstDate)
+        let entries1 = try db.filterHistory.allFiltersChronologically
 
-        tracker.recordUsage(of: colorFilter)
-        let secondDate = tracker.filterEntries[colorFilter]?.lastUsedDate
+        try #require(entries1.count == 1)
+        #expect(entries1[0].lastUsedAt == firstDate)
 
-        #expect(firstDate != nil)
-        #expect(secondDate != nil)
-        #expect(secondDate! > firstDate!)
+        try db.filterHistory.recordUsage(of: colorFilter, at: secondDate)
+        let entries2 = try db.filterHistory.allFiltersChronologically
+
+        try #require(entries2.count == 1)
+        #expect(entries2[0].lastUsedAt == secondDate)
     }
 
     @Test("deletes a filter from history")
-    func deleteFilter() {
-        let tracker = SearchHistoryTracker(persistenceKey: UUID().uuidString)
+    func deleteFilter() throws {
+        let db = try SQLiteDatabase.initialize()
         let colorFilter = SearchFilter.basic(false, "color", .equal, "red")
         let oracleFilter = SearchFilter.basic(false, "oracle", .including, "flying")
 
-        tracker.recordUsage(of: colorFilter)
-        tracker.recordUsage(of: oracleFilter)
+        try db.filterHistory.recordUsage(of: colorFilter)
+        try db.filterHistory.recordUsage(of: oracleFilter)
 
-        #expect(tracker.filterEntries.count == 2)
+        var entries = try db.filterHistory.allFiltersChronologically
+        #expect(entries.count == 2)
 
-        tracker.deleteUsage(of: colorFilter)
+        try db.filterHistory.deleteUsage(of: colorFilter)
 
-        #expect(tracker.filterEntries.count == 1)
-        #expect(tracker.filterEntries[colorFilter] == nil)
-        #expect(tracker.filterEntries[oracleFilter] != nil)
+        entries = try db.filterHistory.allFiltersChronologically
+        try #require(entries.count == 1)
+        #expect(entries[0].filter == oracleFilter)
     }
 
     @Test("does nothing when deleting a nonexistent filter")
-    func deleteNonexistentFilter() {
-        let tracker = SearchHistoryTracker(persistenceKey: UUID().uuidString)
+    func deleteNonexistentFilter() throws {
+        let db = try SQLiteDatabase.initialize()
         let colorFilter = SearchFilter.basic(false, "color", .equal, "red")
         let oracleFilter = SearchFilter.basic(false, "oracle", .including, "flying")
 
-        tracker.recordUsage(of: colorFilter)
+        try db.filterHistory.recordUsage(of: colorFilter)
 
-        tracker.deleteUsage(of: oracleFilter)
+        try db.filterHistory.deleteUsage(of: oracleFilter)
 
-        #expect(tracker.filterEntries.count == 1)
-        #expect(tracker.filterEntries[colorFilter] != nil)
+        let entries = try db.filterHistory.allFiltersChronologically
+        try #require(entries.count == 1)
+        #expect(entries[0].filter == colorFilter)
     }
 
     @Test("sorted filter history returns entries in reverse chronological order")
-    func sortedFilterHistory() {
-        let tracker = SearchHistoryTracker(persistenceKey: UUID().uuidString)
+    func sortedFilterHistory() throws {
+        let db = try SQLiteDatabase.initialize()
         let colorFilter = SearchFilter.basic(false, "color", .equal, "red")
         let oracleFilter = SearchFilter.basic(false, "oracle", .including, "flying")
         let setFilter = SearchFilter.basic(false, "set", .equal, "ody")
 
-        tracker.recordUsage(of: colorFilter)
-        Thread.sleep(forTimeInterval: 0.01)
-        tracker.recordUsage(of: oracleFilter)
-        Thread.sleep(forTimeInterval: 0.01)
-        tracker.recordUsage(of: setFilter)
+        let firstDate = Date(timeIntervalSinceReferenceDate: 1000)
+        let secondDate = Date(timeIntervalSinceReferenceDate: 1120) // 2 minutes later
+        let thirdDate = Date(timeIntervalSinceReferenceDate: 1240) // 4 minutes from start
 
-        let sorted = tracker.sortedFilterEntries
+        try db.filterHistory.recordUsage(of: colorFilter, at: firstDate)
+        try db.filterHistory.recordUsage(of: setFilter, at: thirdDate)
+        // Out of order!
+        try db.filterHistory.recordUsage(of: oracleFilter, at: secondDate)
 
-        #expect(sorted.count == 3)
+        let sorted = try db.filterHistory.allFiltersChronologically
+
+        try #require(sorted.count == 3)
         #expect(sorted[0].filter == setFilter)
         #expect(sorted[1].filter == oracleFilter)
         #expect(sorted[2].filter == colorFilter)
     }
 
-    // MARK: - Complete Search Entry Tests
-
-    @Test("records usage of a complete search")
-    func recordCompleteSearch() {
-        let tracker = SearchHistoryTracker(persistenceKey: UUID().uuidString)
-        let filters = [
-            SearchFilter.basic(false, "color", .equal, "red"),
-            SearchFilter.basic(false, "oracle", .including, "flying"),
-        ]
-
-        tracker.recordSearch(with: filters)
-
-        #expect(tracker.completeSearchEntries.count == 1)
-        #expect(tracker.completeSearchEntries[0].filters == filters)
-    }
-
-    @Test("moves existing complete search to front when recorded again")
-    func recordExistingCompleteSearch() {
-        let tracker = SearchHistoryTracker(persistenceKey: UUID().uuidString)
-        let firstSearch = [SearchFilter.basic(false, "color", .equal, "red")]
-        let secondSearch = [SearchFilter.basic(false, "oracle", .including, "flying")]
-
-        tracker.recordSearch(with: firstSearch)
-        tracker.recordSearch(with: secondSearch)
-
-        #expect(tracker.completeSearchEntries.count == 2)
-        #expect(tracker.completeSearchEntries[0].filters == secondSearch)
-
-        tracker.recordSearch(with: firstSearch)
-
-        #expect(tracker.completeSearchEntries.count == 2)
-        #expect(tracker.completeSearchEntries[0].filters == firstSearch)
-        #expect(tracker.completeSearchEntries[1].filters == secondSearch)
-    }
-
-    @Test("deletes a complete search from history")
-    func deleteCompleteSearch() {
-        let tracker = SearchHistoryTracker(persistenceKey: UUID().uuidString)
-        let firstSearch = [SearchFilter.basic(false, "color", .equal, "red")]
-        let secondSearch = [SearchFilter.basic(false, "oracle", .including, "flying")]
-
-        tracker.recordSearch(with: firstSearch)
-        tracker.recordSearch(with: secondSearch)
-
-        #expect(tracker.completeSearchEntries.count == 2)
-
-        tracker.deleteSearch(with: firstSearch)
-
-        #expect(tracker.completeSearchEntries.count == 1)
-        #expect(tracker.completeSearchEntries[0].filters == secondSearch)
-    }
-
-    @Test("does nothing when deleting a nonexistent complete search")
-    func deleteNonexistentCompleteSearch() {
-        let tracker = SearchHistoryTracker(persistenceKey: UUID().uuidString)
-        let firstSearch = [SearchFilter.basic(false, "color", .equal, "red")]
-        let secondSearch = [SearchFilter.basic(false, "oracle", .including, "flying")]
-
-        tracker.recordSearch(with: firstSearch)
-        tracker.deleteSearch(with: secondSearch)
-
-        #expect(tracker.completeSearchEntries.count == 1)
-        #expect(tracker.completeSearchEntries[0].filters == firstSearch)
-    }
-
     // MARK: - Garbage Collection Tests
 
     @Test("garbage collection removes filters beyond hard limit")
-    func garbageCollectHardLimit() {
-        let tracker = SearchHistoryTracker(
-            hardLimit: 2,
-            softLimit: 1,
-            persistenceKey: UUID().uuidString
-        )
+    func garbageCollectHardLimit() throws {
+        let db = try SQLiteDatabase.initialize()
 
         let colorFilter = SearchFilter.basic(false, "color", .equal, "red")
         let oracleFilter = SearchFilter.basic(false, "oracle", .including, "flying")
         let setFilter = SearchFilter.basic(false, "set", .equal, "ody")
 
-        tracker.recordUsage(of: colorFilter)
-        Thread.sleep(forTimeInterval: 0.01)
-        tracker.recordUsage(of: oracleFilter)
-        Thread.sleep(forTimeInterval: 0.01)
-        tracker.recordUsage(of: setFilter)
+        let firstDate = Date(timeIntervalSinceReferenceDate: 1000)
+        let secondDate = Date(timeIntervalSinceReferenceDate: 1090) // 90 seconds later
+        let thirdDate = Date(timeIntervalSinceReferenceDate: 1180) // 3 minutes from start
 
-        #expect(tracker.filterEntries.count == 3)
+        try db.filterHistory.recordUsage(of: colorFilter, at: firstDate)
+        try db.filterHistory.recordUsage(of: setFilter, at: thirdDate)
+        // Out of order!
+        try db.filterHistory.recordUsage(of: oracleFilter, at: secondDate)
 
-        tracker.maybeGarbageCollectHistory()
+        var entries = try db.filterHistory.allFiltersChronologically
+        #expect(entries.count == 3)
 
-        // Should trim down to softLimit (1)
-        #expect(tracker.filterEntries.count == 1)
-        // Should keep the most recent one
-        #expect(tracker.filterEntries[setFilter] != nil)
+        try db.filterHistory.garbageCollect(hardLimit: 2, softLimit: 1, cutoffDate: Date(timeIntervalSinceReferenceDate: 0))
+
+        entries = try db.filterHistory.allFiltersChronologically
+        try #require(entries.count == 1)
+        #expect(entries[0].filter == setFilter)
     }
 
     @Test("garbage collection preserves filters below hard limit")
-    func garbageCollectBelowHardLimit() {
-        let tracker = SearchHistoryTracker(
-            hardLimit: 10,
-            softLimit: 5,
-            persistenceKey: UUID().uuidString
-        )
+    func garbageCollectBelowHardLimit() throws {
+        let db = try SQLiteDatabase.initialize()
 
         let colorFilter = SearchFilter.basic(false, "color", .equal, "red")
         let oracleFilter = SearchFilter.basic(false, "oracle", .including, "flying")
 
-        tracker.recordUsage(of: colorFilter)
-        tracker.recordUsage(of: oracleFilter)
+        try db.filterHistory.recordUsage(of: colorFilter)
+        try db.filterHistory.recordUsage(of: oracleFilter)
 
-        #expect(tracker.filterEntries.count == 2)
+        var entries = try db.filterHistory.allFiltersChronologically
+        #expect(entries.count == 2)
 
-        tracker.maybeGarbageCollectHistory()
+        try db.filterHistory.garbageCollect(hardLimit: 10, softLimit: 5, cutoffDate: Date(timeIntervalSinceReferenceDate: 0))
 
-        #expect(tracker.filterEntries.count == 2)
+        entries = try db.filterHistory.allFiltersChronologically
+        #expect(entries.count == 2)
     }
 
-    @Test("garbage collection removes complete searches beyond hard limit")
-    func garbageCollectCompleteSearchesHardLimit() {
-        let tracker = SearchHistoryTracker(
-            hardLimit: 2,
-            softLimit: 1,
-            persistenceKey: UUID().uuidString
-        )
+    @Test("garbage collection removes old filters")
+    func garbageCollectOldFilters() throws {
+        let db = try SQLiteDatabase.initialize()
+        let colorFilter = SearchFilter.basic(false, "color", .equal, "red")
+        let oracleFilter = SearchFilter.basic(false, "oracle", .including, "flying")
 
-        let firstSearch = [SearchFilter.basic(false, "color", .equal, "red")]
-        let secondSearch = [SearchFilter.basic(false, "oracle", .including, "flying")]
-        let thirdSearch = [SearchFilter.basic(false, "set", .equal, "ody")]
+        let date = Date(timeIntervalSinceReferenceDate: 1000)
 
-        tracker.recordSearch(with: firstSearch)
-        Thread.sleep(forTimeInterval: 0.01)
-        tracker.recordSearch(with: secondSearch)
-        Thread.sleep(forTimeInterval: 0.01)
-        tracker.recordSearch(with: thirdSearch)
+        try db.filterHistory.recordUsage(of: colorFilter, at: date)
+        try db.filterHistory.recordUsage(of: oracleFilter, at: date)
 
-        #expect(tracker.completeSearchEntries.count == 3)
+        var entries = try db.filterHistory.allFiltersChronologically
+        #expect(entries.count == 2)
 
-        tracker.maybeGarbageCollectHistory()
+        // Garbage collect with cutoff date right now should delete everything.
+        try db.filterHistory.garbageCollect(cutoffDate: Date())
 
-        // Should trim down to softLimit (1)
-        #expect(tracker.completeSearchEntries.count == 1)
-        // Should keep the most recent one
-        #expect(tracker.completeSearchEntries[0].filters == thirdSearch)
+        entries = try db.filterHistory.allFiltersChronologically
+        #expect(entries.isEmpty)
     }
 }

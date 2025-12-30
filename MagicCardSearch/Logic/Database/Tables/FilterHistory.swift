@@ -27,16 +27,18 @@ struct FilterHistory {
     private let lastUsedAt = Expression<Date>("last_used_at")
     private let filter = Expression<String>("filter")
 
+    private static let defaultMaxAgeInDays = 90
+
     internal init(db: Connection) {
         self.db = db
     }
 
-    func recordUsage(of searchFilter: SearchFilter) throws {
+    func recordUsage(of searchFilter: SearchFilter, at date: Date = Date()) throws {
         let filterString = String(data: try JSONEncoder().encode(searchFilter), encoding: .utf8)!
         
         try db.run(
             table.upsert(
-                lastUsedAt <- Date(),
+                lastUsedAt <- date,
                 filter <- filterString,
                 onConflictOf: filter,
             ),
@@ -55,9 +57,11 @@ struct FilterHistory {
         }
     }
 
-    func garbageCollect(hardLimit: Int = 1000, softLimit: Int = 500, maxAgeInDays: Int = 90) throws {
-        let cutoffDate = Date().addingTimeInterval(TimeInterval(-maxAgeInDays * 24 * 60 * 60))
-        
+    func garbageCollect(
+        hardLimit: Int = 1000,
+        softLimit: Int = 500,
+        cutoffDate: Date = Date().addingTimeInterval(TimeInterval(-Self.defaultMaxAgeInDays * 24 * 60 * 60)),
+    ) throws {
         try db.run(table.filter(lastUsedAt < cutoffDate).delete())
         
         let count = try db.scalar(table.count)
