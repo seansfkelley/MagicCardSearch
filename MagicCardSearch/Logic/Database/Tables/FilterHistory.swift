@@ -34,14 +34,48 @@ struct FilterHistory {
     func recordUsage(of searchFilter: SearchFilter) throws {
         let filterString = String(data: try JSONEncoder().encode(searchFilter), encoding: .utf8)!
         
-        try db.run(table.upsert(
-            lastUsedAt <- Date(),
-            filter <- filterString,
-            onConflictOf: filter
-        ))
+        try db.run(
+            table.upsert(
+                lastUsedAt <- Date(),
+                filter <- filterString,
+                onConflictOf: filter,
+            ),
+        )
+    }
+
+    func deleteUsage(of searchFilter: SearchFilter) throws {
+        let filterString = String(data: try JSONEncoder().encode(searchFilter), encoding: .utf8)!
+        
+        try db.run(table.filter(filter == filterString).delete())
+    }
+
+    var allFiltersChronologically: [Row] {
+        get throws {
+            try db.prepareRowIterator(table.order(lastUsedAt.desc)).map { try $0.decode() }
+        }
+    }
+
+    func garbageCollect(hardLimit: Int = 1000, softLimit: Int = 500, maxAgeInDays: Int = 90) throws {
+        let cutoffDate = Date().addingTimeInterval(TimeInterval(-maxAgeInDays * 24 * 60 * 60))
+        
+        try db.run(table.filter(lastUsedAt < cutoffDate).delete())
+        
+        let count = try db.scalar(table.count)
+        if count > hardLimit {
+            // Can't do NOT IN with the query builder, alas.
+            let sql = """
+                DELETE FROM filter_history
+                WHERE id NOT IN (
+                    SELECT id FROM filter_history
+                    ORDER BY last_used_at DESC
+                    LIMIT ?
+                )
+                """
+            try db.run(sql, softLimit)
+        }
     }
 
     internal func test_getAll() throws -> [Row] {
-        try db.prepare(table).map { try $0.decode() }
+        try db.prepareRowIterator(table).map { try $0.decode() }
     }
 }
