@@ -19,7 +19,7 @@ struct Migrate20251229Initial: DatabaseMigration {
 
             try db.run(filterHistory.create(ifNotExists: true) { table in
                 table.column(id, primaryKey: .autoincrement)
-                table.column(lastUsedAt, defaultValue: Date())
+                table.column(lastUsedAt)
                 table.column(filter, unique: true)
             })
         }
@@ -32,7 +32,7 @@ struct Migrate20251229Initial: DatabaseMigration {
 
             try db.run(searchHistory.create(ifNotExists: true) { table in
                 table.column(id, primaryKey: .autoincrement)
-                table.column(lastUsedAt, defaultValue: Date())
+                table.column(lastUsedAt)
                 table.column(search)
             })
         }
@@ -45,7 +45,7 @@ struct Migrate20251229Initial: DatabaseMigration {
 
             try db.run(pinnedFilters.create(ifNotExists: true) { table in
                 table.column(id, primaryKey: .autoincrement)
-                table.column(pinnedAt, defaultValue: Date())
+                table.column(pinnedAt)
                 table.column(filter)
             })
         }
@@ -58,7 +58,7 @@ struct Migrate20251229Initial: DatabaseMigration {
 
             try db.run(pinnedSearches.create(ifNotExists: true) { table in
                 table.column(id, primaryKey: .autoincrement)
-                table.column(pinnedAt, defaultValue: Date())
+                table.column(pinnedAt)
                 table.column(search)
             })
         }
