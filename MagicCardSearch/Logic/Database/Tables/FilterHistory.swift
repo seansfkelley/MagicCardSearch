@@ -29,13 +29,22 @@ struct FilterHistory {
 
     private static let defaultMaxAgeInDays = 90
 
+    private static let encoder = {
+        let encoder = JSONEncoder()
+        // FIXME: Unique'ing on the JSON column is super fragile. Tests used to flake without this
+        // line, and it would only take one case of accidentally relying on SQLite.swift's
+        // auto-serialization of Codable types, which would not use this encoder, to insert duplicates.
+        encoder.outputFormatting = [.sortedKeys]
+        return encoder
+    }()
+
     internal init(db: Connection) {
         self.db = db
     }
 
     func recordUsage(of searchFilter: SearchFilter, at date: Date = Date()) throws {
-        let filterString = String(data: try JSONEncoder().encode(searchFilter), encoding: .utf8)!
-        
+        let filterString = String(data: try Self.encoder.encode(searchFilter), encoding: .utf8)!
+
         try db.run(
             table.upsert(
                 lastUsedAt <- date,
@@ -46,8 +55,8 @@ struct FilterHistory {
     }
 
     func deleteUsage(of searchFilter: SearchFilter) throws {
-        let filterString = String(data: try JSONEncoder().encode(searchFilter), encoding: .utf8)!
-        
+        let filterString = String(data: try Self.encoder.encode(searchFilter), encoding: .utf8)!
+
         try db.run(table.filter(filter == filterString).delete())
     }
 

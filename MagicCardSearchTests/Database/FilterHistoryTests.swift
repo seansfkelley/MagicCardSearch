@@ -9,9 +9,7 @@ import Testing
 import Foundation
 @testable import MagicCardSearch
 
-// Serialized because these are flaky when run in parallel for reasons I cannot determine and is
-// concerning, because it's all in-memory SQLite.
-@Suite(.serialized)
+@Suite
 class FilterHistoryTests {
     // MARK: - Filter Entry Tests
 
