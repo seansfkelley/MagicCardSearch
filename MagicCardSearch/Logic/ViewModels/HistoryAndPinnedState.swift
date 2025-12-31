@@ -46,8 +46,7 @@ class HistoryAndPinnedState {
 
     public func getLatestSearches(count: Int) -> [SearchHistoryStore.Row] {
         do {
-            // TODO: Does Swift get bitchy if this array isn't long enough?
-            return try Array(searchHistory.allSearchesChronologically[...count])
+            return try Array(searchHistory.allSearchesChronologically.prefix(count))
         } catch {
             logger.error("error while retrieving latest searches", metadata: [
                 "error": "\(error)",
