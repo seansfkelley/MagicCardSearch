@@ -117,10 +117,6 @@ class PinnedFilterSuggestionProvider {
         savePinnedFilters()
     }
     
-    func isPinned(_ filter: SearchFilter) -> Bool {
-        return pinnedFiltersByFilter[filter] != nil
-    }
-    
     func delete(filter: SearchFilter) {
         pinnedFiltersByFilter.removeValue(forKey: filter)
         savePinnedFilters()

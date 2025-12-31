@@ -46,7 +46,7 @@ struct Migrate20251229Initial: DatabaseMigration {
             try db.run(pinnedFilters.create(ifNotExists: true) { table in
                 table.column(id, primaryKey: .autoincrement)
                 table.column(pinnedAt)
-                table.column(filter)
+                table.column(filter, unique: true)
             })
         }
 
@@ -59,7 +59,7 @@ struct Migrate20251229Initial: DatabaseMigration {
             try db.run(pinnedSearches.create(ifNotExists: true) { table in
                 table.column(id, primaryKey: .autoincrement)
                 table.column(pinnedAt)
-                table.column(search)
+                table.column(search, unique: true)
             })
         }
     }

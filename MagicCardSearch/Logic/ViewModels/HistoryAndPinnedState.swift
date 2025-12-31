@@ -13,12 +13,14 @@ private let logger = Logger(label: "HistoryAndPinnedState")
 class HistoryAndPinnedState {
     private let filterHistory: FilterHistoryStore
     private let searchHistory: SearchHistoryStore
+    private let pinnedFilter: PinnedFilterStore
 
     private(set) var lastError: Error?
 
-    init(filterHistory: FilterHistoryStore, searchHistory: SearchHistoryStore) {
+    init(filterHistory: FilterHistoryStore, searchHistory: SearchHistoryStore, pinnedFilter: PinnedFilterStore) {
         self.filterHistory = filterHistory
         self.searchHistory = searchHistory
+        self.pinnedFilter = pinnedFilter
     }
 
     // MARK: - Filter-only Methods
@@ -32,17 +34,21 @@ class HistoryAndPinnedState {
     public func delete(filter: SearchFilter) {
         perform("deleting filter") {
             try filterHistory.deleteUsage(of: filter)
+            try pinnedFilter.unpin(filter)
         }
     }
 
     public func pin(filter: SearchFilter) {
-        // TODO
+        perform("pinning filter") {
+            try pinnedFilter.pin(filter)
+        }
     }
 
     public func unpin(filter: SearchFilter) {
         perform("unpinning filter") {
             // Keep it around near the top since you just modified it.
             try filterHistory.recordUsage(of: filter)
+            try pinnedFilter.unpin(filter)
         }
     }
 

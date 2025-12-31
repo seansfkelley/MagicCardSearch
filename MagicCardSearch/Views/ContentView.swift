@@ -44,6 +44,7 @@ struct ContentView: View {
         historyAndPinnedState = HistoryAndPinnedState(
             filterHistory: db.filterHistory,
             searchHistory: db.searchHistory,
+            pinnedFilter: db.pinnedFilters,
         )
     }
 
