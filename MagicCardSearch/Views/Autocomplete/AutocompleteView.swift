@@ -194,8 +194,7 @@ struct AutocompleteView: View {
     @ViewBuilder
     private func pinSwipeAction(for filter: SearchFilter) -> some View {
         Button {
-            // FIXME
-//            provider.pinnedFilterProvider.pin(filter: filter)
+            historyAndPinnedState.pin(filter: filter)
             nonce += 1
         } label: {
             Label("Pin", systemImage: "pin")

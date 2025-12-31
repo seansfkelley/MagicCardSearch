@@ -219,8 +219,7 @@ struct ContentView: View {
             nil,
         )
 
-        // FIXME
-//        searchState.recordSearch(with: searchFilters)
+        historyAndPinnedState.record(search: searchFilters)
 
         searchTask = Task {
             do {
