@@ -16,6 +16,8 @@ enum MainContentType {
 
 struct ContentView: View {
     private let searchState: SearchState
+    private let historyAndPinnedState: HistoryAndPinnedState
+
     @State private var searchFilters: [SearchFilter] = []
     @State private var inputText: String = ""
     @State private var inputSelection: TextSelection?
@@ -39,6 +41,10 @@ struct ContentView: View {
             filterHistory: db.filterHistory,
             searchHistory: db.searchHistory,
         )
+        historyAndPinnedState = HistoryAndPinnedState(
+            filterHistory: db.filterHistory,
+            searchHistory: db.searchHistory,
+        )
     }
 
     var body: some View {
@@ -52,7 +58,10 @@ struct ContentView: View {
                 
                 switch mainContentType {
                 case .home:
-                    HomeView(searchState: searchState) { filters in
+                    HomeView(
+                        searchState: searchState,
+                        historyAndPinnedState: historyAndPinnedState,
+                    ) { filters in
                         searchFilters = filters
                         startNewSearch()
                     }
@@ -164,6 +173,7 @@ struct ContentView: View {
                 filters: $searchFilters,
                 warnings: searchResultsState.current.latestValue?.warnings ?? [],
                 searchState: searchState,
+                historyAndPinnedState: historyAndPinnedState,
                 onClearAll: handleClearAll,
             ) {
                 startNewSearch()

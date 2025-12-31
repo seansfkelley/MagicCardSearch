@@ -15,6 +15,7 @@ struct AutocompleteView: View {
     @Binding var filters: [SearchFilter]
     @Binding var suggestionLoadingState: DebouncedLoadingState
     let searchState: SearchState
+    let historyAndPinnedState: HistoryAndPinnedState
     let performSearch: () -> Void
 
     @State private var suggestions: [Suggestion] = []
@@ -78,9 +79,7 @@ struct AutocompleteView: View {
                     ) { addScopedFilter($0) }
                     .swipeActions(edge: .leading, allowsFullSwipe: true) {
                         Button {
-                            // FIXME
-//                            provider.pinnedFilterProvider.unpin(filter: suggestion.filter)
-                            searchState.unpin(filter: suggestion.filter)
+                            historyAndPinnedState.unpin(filter: suggestion.filter)
                             nonce += 1
                         } label: {
                             Label("Unpin", systemImage: "pin.slash")
@@ -99,7 +98,7 @@ struct AutocompleteView: View {
                     }
                     .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                         Button(role: .destructive) {
-                            searchState.delete(filter: suggestion.filter)
+                            historyAndPinnedState.delete(filter: suggestion.filter)
                             nonce += 1
                         } label: {
                             Label("Delete", systemImage: "trash")

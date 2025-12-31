@@ -12,6 +12,7 @@ struct SearchSheetView: View {
     @Binding var filters: [SearchFilter]
     let warnings: [String]
     let searchState: SearchState
+    let historyAndPinnedState: HistoryAndPinnedState
 
     let onClearAll: () -> Void
     let onSubmit: () -> Void
@@ -28,6 +29,7 @@ struct SearchSheetView: View {
                 filters: $filters,
                 suggestionLoadingState: $suggestionLoadingState,
                 searchState: searchState,
+                historyAndPinnedState: historyAndPinnedState,
             ) {
                 dismiss()
                 onSubmit()

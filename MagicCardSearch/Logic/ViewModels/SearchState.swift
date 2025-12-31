@@ -35,40 +35,4 @@ class SearchState {
         self.filterHistory = filterHistory
         self.searchHistory = searchHistory
     }
-
-    public func delete(filter: SearchFilter) {
-        do {
-            try filterHistory.deleteUsage(of: filter)
-        } catch {
-            logger.error("error while deleting filter", metadata: [
-                "error": "\(error)",
-            ])
-            searchError = error
-        }
-    }
-
-    public func unpin(filter: SearchFilter) {
-        do {
-            // Keep it around near the top since you just modified it.
-            try filterHistory.recordUsage(of: filter)
-        } catch {
-            logger.error("error while unpinning filter", metadata: [
-                "error": "\(error)",
-            ])
-            searchError = error
-        }
-    }
-
-    public func getLatestSearches(count: Int) -> [SearchHistoryStore.Row] {
-        do {
-            // TODO: Does Swift get bitchy if this array isn't long enough?
-            return try Array(searchHistory.allSearchesChronologically[...count])
-        } catch {
-            logger.error("error while retrieving latest searches", metadata: [
-                "error": "\(error)",
-            ])
-            searchError = error
-            return []
-        }
-    }
 }
