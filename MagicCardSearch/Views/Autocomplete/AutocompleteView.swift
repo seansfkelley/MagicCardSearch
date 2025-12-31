@@ -17,37 +17,11 @@ struct AutocompleteView: View {
     let searchState: SearchState
     let performSearch: () -> Void
 
-    @State private var provider: CombinedSuggestionProvider
     @State private var suggestions: [Suggestion] = []
     @State private var nonce: Int = 0
 
     private var currentFilter: CurrentlyHighlightedFilterFacade {
         CurrentlyHighlightedFilterFacade(inputText: inputText, inputSelection: inputSelection)
-    }
-
-    init(
-        inputText: Binding<String>,
-        inputSelection: Binding<TextSelection?>,
-        filters: Binding<[SearchFilter]>,
-        suggestionLoadingState: Binding<DebouncedLoadingState>,
-        searchState: SearchState,
-        performSearch: @escaping () -> Void,
-    ) {
-        self._inputText = inputText
-        self._inputSelection = inputSelection
-        self._filters = filters
-        self._suggestionLoadingState = suggestionLoadingState
-        self.searchState = searchState
-        self.performSearch = performSearch
-
-        _provider = State(initialValue: CombinedSuggestionProvider(
-            pinnedFilter: PinnedFilterSuggestionProvider(),
-            history: HistorySuggestionProvider(with: searchHistoryTracker),
-            filterType: FilterTypeSuggestionProvider(),
-            enumeration: EnumerationSuggestionProvider(),
-            reverseEnumeration: ReverseEnumerationSuggestionProvider(),
-            name: NameSuggestionProvider(debounce: .milliseconds(500))
-        ))
     }
 
     private var searchSuggestionKey: SearchSuggestionKey {
@@ -104,7 +78,8 @@ struct AutocompleteView: View {
                     ) { addScopedFilter($0) }
                     .swipeActions(edge: .leading, allowsFullSwipe: true) {
                         Button {
-                            provider.pinnedFilterProvider.unpin(filter: suggestion.filter)
+                            // FIXME
+//                            provider.pinnedFilterProvider.unpin(filter: suggestion.filter)
                             searchState.unpin(filter: suggestion.filter)
                             nonce += 1
                         } label: {
@@ -176,7 +151,7 @@ struct AutocompleteView: View {
         }
         .listStyle(.plain)
         .task(id: searchSuggestionKey) {
-            for await newSuggestions in provider.getSuggestions(for: currentFilter.inputText, existingFilters: Set(filters)) {
+            for await newSuggestions in searchState.suggestionProvider.getSuggestions(for: currentFilter.inputText, existingFilters: Set(filters)) {
                 suggestions = newSuggestions
             }
         }
@@ -220,7 +195,8 @@ struct AutocompleteView: View {
     @ViewBuilder
     private func pinSwipeAction(for filter: SearchFilter) -> some View {
         Button {
-            provider.pinnedFilterProvider.pin(filter: filter)
+            // FIXME
+//            provider.pinnedFilterProvider.pin(filter: filter)
             nonce += 1
         } label: {
             Label("Pin", systemImage: "pin")

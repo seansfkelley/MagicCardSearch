@@ -28,7 +28,7 @@ private extension View {
 }
 
 struct HomeView: View {
-    let searchHistoryTracker: SearchHistoryTracker
+    let searchState: SearchState
     let onSearchSelected: ([SearchFilter]) -> Void
     
     @State private var cardFlipStates: [UUID: Bool] = [:]
@@ -39,108 +39,111 @@ struct HomeView: View {
     
     var body: some View {
         List {
-            Section {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 12) {
-                        switch featuredState.current {
-                        case .loading(nil, _), .unloaded:
-                            ForEach(0..<15, id: \.self) { _ in
-                                CardPlaceholderView(name: nil, cornerRadius: 8, withSpinner: true)
-                                    .frame(width: featuredWidth, height: featuredWidth / Card.aspectRatio)
-                            }
-                        case .loading(let results?, _), .loaded(let results, _), .errored(let results?, _):
-                            ForEach(Array(results.cards.enumerated()), id: \.element.id) { index, card in
-                                Button {
-                                    selectedCardIndex = index
-                                } label: {
-                                    CardView(
-                                        card: card,
-                                        quality: .small,
-                                        isFlipped: Binding(
-                                            get: { cardFlipStates[card.id] ?? false },
-                                            set: { cardFlipStates[card.id] = $0 }
-                                        ),
-                                        cornerRadius: 8,
-                                    )
-                                    .frame(width: featuredWidth)
-                                }
-                                .buttonStyle(.plain)
-                                .onAppear {
-                                    if index == results.cards.count - 3 {
-                                        featuredState.loadNextPageIfNeeded()
-                                    }
-                                }
-                            }
-                            
-                            if case .loading = featuredState.current, results.nextPageUrl != nil {
-                                ProgressView()
-                                    .frame(width: featuredWidth, height: featuredWidth / Card.aspectRatio)
-                            }
-                        case .errored(nil, let error):
-                            ContentUnavailableView(
-                                "Unable to Load Spoilers",
-                                systemImage: "exclamationmark.triangle",
-                                description: Text(error.description),
-                            )
-                            .frame(width: featuredWidth * 2, height: featuredWidth / Card.aspectRatio)
-                        }
-                    }
-                    .padding(.horizontal)
-                }
-            } header: {
-                HStack {
-                    Text("Recent Spoilers")
-                    
-                    Spacer()
-                    
-                    Button(action: {
-                        onSearchSelected([
-                            SearchFilter.basic(false, "date", .greaterThanOrEqual, "today"),
-                            SearchFilter.basic(false, "order", .including, SortMode.spoiled.rawValue),
-                            SearchFilter.basic(false, "dir", .including, SortDirection.desc.rawValue),
-                            SearchFilter.basic(false, "unique", .including, UniqueMode.prints.rawValue),
-                        ])
-                    }) {
-                        Text("View All")
-                    }
-                }
-                .padding(.horizontal)
-            }
-            .listRowInsets(.horizontal, 0)
-            .listSectionMargins(.horizontal, 0)
-            
-            if !searchHistoryTracker.completeSearchEntries.isEmpty {
-                Section {
-                    ForEach(searchHistoryTracker.completeSearchEntries.prefix(10), id: \.lastUsedDate) { entry in
-                        Button {
-                            onSearchSelected(entry.filters)
-                        } label: {
-                            HStack {
-                                Text(entry.filters.map { $0.description }.joined(separator: " "))
-                                    .font(.body)
-                                    .foregroundStyle(.primary)
-                                    .lineLimit(2)
-                                Spacer()
-                            }
-                            .padding(.horizontal)
-                            .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                            Button(role: .destructive) {
-                                searchHistoryTracker.deleteSearch(with: entry.filters)
-                            } label: {
-                                Label("Delete", systemImage: "trash")
-                            }
-                        }
-                    }
-                } header: {
-                    Text("Recent Searches")
-                        .padding(.horizontal)
-                }
-                .listRowInsets(.horizontal, 0)
-                .listSectionMargins(.horizontal, 0)
-            }
+//            Section {
+//                ScrollView(.horizontal, showsIndicators: false) {
+//                    HStack(spacing: 12) {
+//                        switch featuredState.current {
+//                        case .loading(nil, _), .unloaded:
+//                            ForEach(0..<15, id: \.self) { _ in
+//                                CardPlaceholderView(name: nil, cornerRadius: 8, withSpinner: true)
+//                                    .frame(width: featuredWidth, height: featuredWidth / Card.aspectRatio)
+//                            }
+//                        case .loading(let results?, _), .loaded(let results, _), .errored(let results?, _):
+//                            ForEach(Array(results.cards.enumerated()), id: \.element.id) { index, card in
+//                                Button {
+//                                    selectedCardIndex = index
+//                                } label: {
+//                                    CardView(
+//                                        card: card,
+//                                        quality: .small,
+//                                        isFlipped: Binding(
+//                                            get: { cardFlipStates[card.id] ?? false },
+//                                            set: { cardFlipStates[card.id] = $0 }
+//                                        ),
+//                                        cornerRadius: 8,
+//                                    )
+//                                    .frame(width: featuredWidth)
+//                                }
+//                                .buttonStyle(.plain)
+//                                .onAppear {
+//                                    if index == results.cards.count - 3 {
+//                                        featuredState.loadNextPageIfNeeded()
+//                                    }
+//                                }
+//                            }
+//                            
+//                            if case .loading = featuredState.current, results.nextPageUrl != nil {
+//                                ProgressView()
+//                                    .frame(width: featuredWidth, height: featuredWidth / Card.aspectRatio)
+//                            }
+//                        case .errored(nil, let error):
+//                            ContentUnavailableView(
+//                                "Unable to Load Spoilers",
+//                                systemImage: "exclamationmark.triangle",
+//                                description: Text(error.description),
+//                            )
+//                            .frame(width: featuredWidth * 2, height: featuredWidth / Card.aspectRatio)
+//                        }
+//                    }
+//                    .padding(.horizontal)
+//                }
+//            } header: {
+//                HStack {
+//                    Text("Recent Spoilers")
+//                    
+//                    Spacer()
+//                    
+//                    Button(action: {
+//                        onSearchSelected([
+//                            .basic(false, "date", .greaterThanOrEqual, "today"),
+//                            .basic(false, "order", .including, .spoiled.rawValue),
+//                            .basic(false, "dir", .including, .desc.rawValue),
+//                            .basic(false, "unique", .including, .prints.rawValue),
+//                        ])
+//                    }) {
+//                        Text("View All")
+//                    }
+//                }
+//                .padding(.horizontal)
+//            }
+//            .listRowInsets(.horizontal, 0)
+//            .listSectionMargins(.horizontal, 0)
+
+//            let recentSearches = searchState.getLatestSearches(count: 10)
+//
+//            if !recentSearches.isEmpty {
+//                Section {
+//                    ForEach(recentSearches, id: \.lastUsedAt) { entry in
+//                        Button {
+//                            onSearchSelected(entry.search)
+//                        } label: {
+//                            HStack {
+//                                Text(entry.search.map { $0.description }.joined(separator: " "))
+//                                    .font(.body)
+//                                    .foregroundStyle(.primary)
+//                                    .lineLimit(2)
+//                                Spacer()
+//                            }
+//                            .padding(.horizontal)
+//                            .contentShape(Rectangle())
+//                        }
+//                        .buttonStyle(.plain)
+//                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+//                            Button(role: .destructive) {
+//                                // FIXME
+////                                searchHistoryTracker.deleteSearch(with: entry.filters)
+//                            } label: {
+//                                Label("Delete", systemImage: "trash")
+//                            }
+//                        }
+//                    }
+//                } header: {
+//                    Text("Recent Searches")
+//                        .padding(.horizontal)
+//                }
+//                .listRowInsets(.horizontal, 0)
+//                .listSectionMargins(.horizontal, 0)
+//            }
             
             Section {
                 ForEach(ExampleSearch.dailyExamples, id: \.title) { example in

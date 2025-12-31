@@ -15,7 +15,7 @@ enum MainContentType {
 }
 
 struct ContentView: View {
-    private let searchHistoryTracker = SearchHistoryTracker()
+    private let searchState: SearchState
     @State private var searchFilters: [SearchFilter] = []
     @State private var inputText: String = ""
     @State private var inputSelection: TextSelection?
@@ -31,7 +31,16 @@ struct ContentView: View {
     @State private var isSearchSheetVisible: Bool = false
 
     private let searchService = CardSearchService()
-    
+
+    init() {
+        // TODO: This try!... what do we do if we fail?
+        let db = try! SQLiteDatabase.initialize(.filename("MagicCardSearch.db"))
+        searchState = SearchState(
+            filterHistory: db.filterHistory,
+            searchHistory: db.searchHistory,
+        )
+    }
+
     var body: some View {
         NavigationStack {
             ZStack {
@@ -43,7 +52,7 @@ struct ContentView: View {
                 
                 switch mainContentType {
                 case .home:
-                    HomeView(searchHistoryTracker: searchHistoryTracker) { filters in
+                    HomeView(searchState: searchState) { filters in
                         searchFilters = filters
                         startNewSearch()
                     }
@@ -154,7 +163,7 @@ struct ContentView: View {
                 inputSelection: $inputSelection,
                 filters: $searchFilters,
                 warnings: searchResultsState.current.latestValue?.warnings ?? [],
-                searchHistoryTracker: searchHistoryTracker,
+                searchState: searchState,
                 onClearAll: handleClearAll,
             ) {
                 startNewSearch()
@@ -200,7 +209,8 @@ struct ContentView: View {
             nil,
         )
 
-        searchHistoryTracker.recordSearch(with: searchFilters)
+        // FIXME
+//        searchState.recordSearch(with: searchFilters)
 
         searchTask = Task {
             do {

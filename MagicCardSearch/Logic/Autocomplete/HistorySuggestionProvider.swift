@@ -19,12 +19,14 @@ struct HistorySuggestion: Equatable, Hashable, Sendable, ScorableSuggestion {
 class HistorySuggestionProvider {
     // MARK: - Properties
 
-    private let searchHistoryTracker: SearchHistoryTracker
+    private let filterHistoryStore: FilterHistoryStore
+    private let searchHistoryStore: SearchHistoryStore
     
     // MARK: - Initialization
 
-    init(with tracker: SearchHistoryTracker) {
-        self.searchHistoryTracker = tracker
+    init(filterHistoryStore: FilterHistoryStore, searchHistoryStore: SearchHistoryStore) {
+        self.filterHistoryStore = filterHistoryStore
+        self.searchHistoryStore = searchHistoryStore
     }
 
     // MARK: - Public Methods
@@ -35,12 +37,16 @@ class HistorySuggestionProvider {
         }
         
         // TODO: Seems like someone else should be running this, not us.
-        searchHistoryTracker.maybeGarbageCollectHistory()
+        try? filterHistoryStore.garbageCollect()
         
         let trimmedSearchTerm = searchTerm.trimmingCharacters(in: .whitespaces)
         
+        guard let allFilters = try? filterHistoryStore.allFiltersChronologically else {
+            return []
+        }
+        
         return Array(
-            searchHistoryTracker.sortedFilterEntries
+            allFilters
                 .lazy
                 .filter { !excludedFilters.contains($0.filter) }
                 .compactMap { entry in

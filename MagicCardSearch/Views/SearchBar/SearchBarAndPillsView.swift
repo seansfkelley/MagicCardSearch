@@ -12,7 +12,7 @@ struct SearchBarAndPillsView: View {
     @Binding var inputText: String
     @Binding var inputSelection: TextSelection?
     let isAutocompleteLoading: Bool
-    let searchHistoryTracker: SearchHistoryTracker
+    let searchState: SearchState
     let onFilterEdit: (SearchFilter) -> Void
     let onClearAll: () -> Void
     let onSubmit: () -> Void
@@ -72,7 +72,7 @@ struct SearchBarAndPillsView: View {
                     inputText: $inputText,
                     inputSelection: $inputSelection,
                     isAutocompleteLoading: isAutocompleteLoading,
-                    searchHistoryTracker: searchHistoryTracker,
+                    searchState: searchState,
                     onSubmit: onSubmit,
                 )
             }

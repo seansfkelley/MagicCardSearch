@@ -11,7 +11,7 @@ struct SearchSheetView: View {
     @Binding var inputSelection: TextSelection?
     @Binding var filters: [SearchFilter]
     let warnings: [String]
-    let searchHistoryTracker: SearchHistoryTracker
+    let searchState: SearchState
 
     let onClearAll: () -> Void
     let onSubmit: () -> Void
@@ -27,7 +27,7 @@ struct SearchSheetView: View {
                 inputSelection: $inputSelection,
                 filters: $filters,
                 suggestionLoadingState: $suggestionLoadingState,
-                searchHistoryTracker: searchHistoryTracker,
+                searchState: searchState,
             ) {
                 dismiss()
                 onSubmit()
@@ -66,7 +66,7 @@ struct SearchSheetView: View {
                     inputText: $inputText,
                     inputSelection: $inputSelection,
                     isAutocompleteLoading: suggestionLoadingState.isLoadingDebounced,
-                    searchHistoryTracker: searchHistoryTracker,
+                    searchState: searchState,
                     onFilterEdit: handleFilterEdit,
                     onClearAll: onClearAll,
                 ) {

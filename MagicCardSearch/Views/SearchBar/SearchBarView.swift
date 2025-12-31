@@ -14,7 +14,7 @@ struct SearchBarView: View {
     @Binding var inputText: String
     @Binding var inputSelection: TextSelection?
     let isAutocompleteLoading: Bool
-    let searchHistoryTracker: SearchHistoryTracker
+    let searchState: SearchState
     let onSubmit: () -> Void
 
     @State private var showSymbolPicker = false

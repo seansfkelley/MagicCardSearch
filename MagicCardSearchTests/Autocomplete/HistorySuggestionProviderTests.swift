@@ -12,16 +12,19 @@ import Foundation
 @Suite
 class HistorySuggestionProviderTests {
     var provider: HistorySuggestionProvider
-    var tracker: SearchHistoryTracker
+    var db: SQLiteDatabase
 
-    init() {
-        tracker = SearchHistoryTracker(persistenceKey: UUID().uuidString)
-        provider = HistorySuggestionProvider(with: tracker)
+    init() throws {
+        db = try SQLiteDatabase.initialize()
+        provider = HistorySuggestionProvider(
+            filterHistoryStore: db.filterHistory,
+            searchHistoryStore: db.searchHistory
+        )
     }
 
     private func recordUsages(of filters: [SearchFilter]) {
         for filter in filters {
-//            tracker.recordUsage(of: filter)
+            try? db.filterHistory.recordUsage(of: filter)
         }
     }
 
@@ -42,46 +45,6 @@ class HistorySuggestionProviderTests {
         let suggestions = provider.getSuggestions(for: "", excluding: Set(), limit: 1)
         // Prefers the latter, because it was recorded later.
         #expect(suggestions == [.init(filter: oracleFilter, matchRange: nil, prefixKind: .none, suggestionLength: 13)])
-    }
-
-    @Test("should not delete any filters if the soft limit but not the hard limit is reached")
-    func testSoftLimit() {
-        tracker = SearchHistoryTracker(
-            hardLimit: 2,
-            softLimit: 1,
-            persistenceKey: UUID().uuidString
-        )
-        provider = HistorySuggestionProvider(with: tracker)
-
-        let colorFilter = SearchFilter.basic(false, "color", .equal, "red")
-        let oracleFilter = SearchFilter.basic(false, "oracle", .including, "flying")
-        recordUsages(of: [colorFilter, oracleFilter])
-
-        let suggestions = provider.getSuggestions(for: "", excluding: Set(), limit: 10)
-        #expect(suggestions == [
-            .init(filter: oracleFilter, matchRange: nil, prefixKind: .none, suggestionLength: 13),
-            .init(filter: colorFilter, matchRange: nil, prefixKind: .none, suggestionLength: 9),
-        ])
-    }
-
-    @Test("deletes the oldest filters beyond the soft limit if the hard limit is reached")
-    func testHardLimit() {
-        tracker = SearchHistoryTracker(
-            hardLimit: 2,
-            softLimit: 1,
-            persistenceKey: UUID().uuidString
-        )
-        provider = HistorySuggestionProvider(with: tracker)
-
-        let colorFilter = SearchFilter.basic(false, "color", .equal, "red")
-        let oracleFilter = SearchFilter.basic(false, "oracle", .including, "flying")
-        let setFilter = SearchFilter.basic(false, "set", .equal, "ody")
-        recordUsages(of: [colorFilter, oracleFilter, setFilter])
-
-        let suggestions = provider.getSuggestions(for: "", excluding: Set(), limit: 10)
-        #expect(suggestions == [
-            .init(filter: setFilter, matchRange: nil, prefixKind: .none, suggestionLength: 7),
-        ])
     }
 
     @Test("returns any filters whose string representation has any substring match")
@@ -122,12 +85,12 @@ class HistorySuggestionProviderTests {
     }
 
     @Test("does nothing if deleting a filter that does not exist")
-    func deleteNonexistent() {
+    func deleteNonexistent() throws {
         let colorFilter = SearchFilter.basic(false, "color", .equal, "red")
         let oracleFilter = SearchFilter.basic(false, "oracle", .including, "flying")
         recordUsages(of: [colorFilter])
 
-//        tracker.deleteUsage(of: oracleFilter)
+        try db.filterHistory.deleteUsage(of: oracleFilter)
 
         let suggestions = provider.getSuggestions(for: "", excluding: Set(), limit: 10)
         #expect(suggestions == [.init(filter: colorFilter, matchRange: nil, prefixKind: .none, suggestionLength: 9)])
