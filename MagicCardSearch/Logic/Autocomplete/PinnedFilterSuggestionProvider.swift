@@ -15,26 +15,15 @@ struct PinnedFilterSuggestion: Equatable, Hashable, Sendable, ScorableSuggestion
     let suggestionLength: Int
 }
 
-struct PinnedFilterEntry: Codable {
-    let filter: SearchFilter
-    let pinnedDate: Date
-    let lastUsedDate: Date
-}
-
-@Observable
 class PinnedFilterSuggestionProvider {
     // MARK: - Properties
     
-    private(set) var pinnedFiltersByFilter: [SearchFilter: PinnedFilterEntry] = [:]
-    
-    // TODO: Is this really the right way to do persistence? Should I dependecy-inject it?
-    private let persistenceKey: String
+    private let store: PinnedFilterStore
     
     // MARK: - Initialization
     
-    init(persistenceKey: String = "pinnedFilters") {
-        self.persistenceKey = persistenceKey
-        loadPinnedFilters()
+    init(store: PinnedFilterStore) {
+        self.store = store
     }
     
     // MARK: - Public Methods
@@ -42,20 +31,18 @@ class PinnedFilterSuggestionProvider {
     func getSuggestions(for partial: PartialSearchFilter, excluding excludedFilters: Set<SearchFilter>) -> [PinnedFilterSuggestion] {
         let searchTerm = partial.description.trimmingCharacters(in: .whitespaces)
         
-        return pinnedFiltersByFilter
-            .values
-            .sorted(using: [
-                KeyPathComparator(\.pinnedDate, order: .reverse),
-                KeyPathComparator(\.lastUsedDate, order: .reverse),
-                KeyPathComparator(\.filter.description, comparator: .localizedStandard),
-            ])
+        guard let pinnedRows = try? store.allPinnedFiltersChronologically else {
+            return []
+        }
+        
+        return pinnedRows
             .filter { !excludedFilters.contains($0.filter) }
-            .compactMap { entry in
-                let filterText = entry.filter.description
+            .compactMap { row in
+                let filterText = row.filter.description
 
                 if searchTerm.isEmpty {
                     return PinnedFilterSuggestion(
-                        filter: entry.filter,
+                        filter: row.filter,
                         matchRange: nil,
                         // TODO: Would .actual produce better results?
                         prefixKind: .none,
@@ -65,7 +52,7 @@ class PinnedFilterSuggestionProvider {
                 
                 if let range = filterText.range(of: searchTerm, options: .caseInsensitive) {
                     return PinnedFilterSuggestion(
-                        filter: entry.filter,
+                        filter: row.filter,
                         matchRange: range,
                         prefixKind: range.lowerBound == filterText.startIndex ? .actual : .none,
                         suggestionLength: filterText.count,
@@ -74,79 +61,5 @@ class PinnedFilterSuggestionProvider {
                 
                 return nil
             }
-    }
-    
-    func pin(filter: SearchFilter) {
-        let now = Date.now
-        
-        // If already pinned, update the lastUsedDate but keep the original pinnedDate
-        if let existing = pinnedFiltersByFilter[filter] {
-            let entry = PinnedFilterEntry(
-                filter: filter,
-                pinnedDate: existing.pinnedDate,
-                lastUsedDate: now
-            )
-            pinnedFiltersByFilter[filter] = entry
-        } else {
-            // New pin
-            let entry = PinnedFilterEntry(
-                filter: filter,
-                pinnedDate: now,
-                lastUsedDate: now
-            )
-            pinnedFiltersByFilter[filter] = entry
-        }
-        
-        savePinnedFilters()
-    }
-    
-    func unpin(filter: SearchFilter) {
-        pinnedFiltersByFilter.removeValue(forKey: filter)
-        savePinnedFilters()
-    }
-    
-    func recordUsage(of filter: SearchFilter) {
-        guard var entry = pinnedFiltersByFilter[filter] else { return }
-        
-        entry = PinnedFilterEntry(
-            filter: entry.filter,
-            pinnedDate: entry.pinnedDate,
-            lastUsedDate: Date.now
-        )
-        pinnedFiltersByFilter[filter] = entry
-        savePinnedFilters()
-    }
-    
-    func delete(filter: SearchFilter) {
-        pinnedFiltersByFilter.removeValue(forKey: filter)
-        savePinnedFilters()
-    }
-    
-    // MARK: - Persistence
-    
-    private func savePinnedFilters() {
-        do {
-            let encoder = JSONEncoder()
-            encoder.dateEncodingStrategy = .iso8601
-            let data = try encoder.encode(pinnedFiltersByFilter)
-            UserDefaults.standard.set(data, forKey: persistenceKey)
-        } catch {
-            print("Failed to save pinned filters: \(error)")
-        }
-    }
-    
-    private func loadPinnedFilters() {
-        guard let data = UserDefaults.standard.data(forKey: persistenceKey) else {
-            return
-        }
-        
-        do {
-            let decoder = JSONDecoder()
-            decoder.dateDecodingStrategy = .iso8601
-            pinnedFiltersByFilter = try decoder.decode([SearchFilter: PinnedFilterEntry].self, from: data)
-        } catch {
-            print("Failed to load pinned filters: \(error)")
-            pinnedFiltersByFilter = [:]
-        }
     }
 }

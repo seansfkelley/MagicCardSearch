@@ -40,6 +40,7 @@ struct ContentView: View {
         searchState = SearchState(
             filterHistory: db.filterHistory,
             searchHistory: db.searchHistory,
+            pinnedFilter: db.pinnedFilters
         )
         historyAndPinnedState = HistoryAndPinnedState(
             filterHistory: db.filterHistory,
