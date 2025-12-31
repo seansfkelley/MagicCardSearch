@@ -15,7 +15,7 @@ struct SQLiteDatabase {
     }
 
     private let connection: Connection
-    public let filterHistory: FilterHistory
+    public let filterHistory: FilterHistoryStore
 
     private init(_ connection: Connection) {
         self.connection = connection

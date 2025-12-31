@@ -7,7 +7,7 @@
 import SQLite
 import Foundation
 
-struct FilterHistory {
+struct FilterHistoryStore {
     struct Row: Codable {
         let id: Int
         let lastUsedAt: Date

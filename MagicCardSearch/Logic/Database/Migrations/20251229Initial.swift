@@ -33,7 +33,7 @@ struct Migrate20251229Initial: DatabaseMigration {
             try db.run(searchHistory.create(ifNotExists: true) { table in
                 table.column(id, primaryKey: .autoincrement)
                 table.column(lastUsedAt)
-                table.column(search)
+                table.column(search, unique: true)
             })
         }
 

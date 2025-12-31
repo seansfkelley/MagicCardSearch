@@ -71,30 +71,6 @@ class SearchHistoryTracker {
 
     // MARK: - Public Methods
 
-    func recordUsage(of filter: SearchFilter) {
-        withSideEffects {
-            func recursivelyRecordDisjunctions(_ disjunction: SearchFilter.Disjunction) {
-                for disjunctionClause in disjunction.clauses {
-                    for conjunctionClause in disjunctionClause.clauses {
-                        switch conjunctionClause {
-                        case .filter(let filter): recordUsage(of: filter)
-                        case .disjunction(let disjunction): recursivelyRecordDisjunctions(disjunction)
-                        }
-                    }
-                }
-            }
-
-            if case .disjunction(let disjunction) = filter {
-                recursivelyRecordDisjunctions(disjunction)
-            }
-
-            filterEntries[filter] = FilterEntry(
-                filter: filter,
-                lastUsedDate: Date(),
-            )
-        }
-    }
-
     func recordSearch(with filters: [SearchFilter]) {
         withSideEffects {
             if let existingIndex = completeSearchEntries.firstIndex(where: { $0.filters == filters }) {
@@ -110,17 +86,12 @@ class SearchHistoryTracker {
             )
 
             for filter in filters {
-                recordUsage(of: filter)
+                // TODO: SQLite.
+//                recordUsage(of: filter)
             }
         }
     }
 
-    func deleteUsage(of filter: SearchFilter) {
-        withSideEffects {
-            filterEntries.removeValue(forKey: filter)
-        }
-    }
-    
     func deleteSearch(with filters: [SearchFilter]) {
         if let index = completeSearchEntries.firstIndex(where: { $0.filters == filters }) {
             withSideEffects {
