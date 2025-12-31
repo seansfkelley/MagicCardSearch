@@ -106,7 +106,7 @@ struct AutocompleteView: View {
                         Button {
                             provider.pinnedFilterProvider.unpin(filter: suggestion.filter)
                             // If unpinning, keep the filter around in case you want to re-pin it.
-                            searchHistoryTracker.recordUsage(of: suggestion.filter)
+//                            searchHistoryTracker.recordUsage(of: suggestion.filter)
                             nonce += 1
                         } label: {
                             Label("Unpin", systemImage: "pin.slash")
@@ -125,7 +125,7 @@ struct AutocompleteView: View {
                     }
                     .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                         Button(role: .destructive) {
-                            searchHistoryTracker.deleteUsage(of: suggestion.filter)
+//                            searchHistoryTracker.deleteUsage(of: suggestion.filter)
                             nonce += 1
                         } label: {
                             Label("Delete", systemImage: "trash")

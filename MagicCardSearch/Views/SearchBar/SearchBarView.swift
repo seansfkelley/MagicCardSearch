@@ -122,7 +122,7 @@ struct SearchBarView: View {
             }
         case .parsed(let filter):
             filters.append(filter)
-            searchHistoryTracker.recordUsage(of: filter)
+//            searchHistoryTracker.recordUsage(of: filter)
             inputText = ""
         case .empty:
             break

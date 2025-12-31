@@ -60,7 +60,7 @@ struct SearchHistoryStore {
         try db.run(table.filter(search == searchString).delete())
     }
 
-    var allSearchedChronologically: [Row] {
+    var allSearchesChronologically: [Row] {
         get throws {
             try db.prepareRowIterator(table.order(lastUsedAt.desc)).map { try $0.decode() }
         }
