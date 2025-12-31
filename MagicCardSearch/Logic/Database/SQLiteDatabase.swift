@@ -16,10 +16,12 @@ struct SQLiteDatabase {
 
     private let connection: Connection
     public let filterHistory: FilterHistoryStore
+    public let searchHistory: SearchHistoryStore
 
     private init(_ connection: Connection) {
         self.connection = connection
         self.filterHistory = .init(db: connection)
+        self.searchHistory = .init(db: connection)
     }
 
     var userVersion: Int32? { connection.userVersion }
