@@ -10,7 +10,7 @@ import Foundation
 @testable import MagicCardSearch
 
 @Suite
-class FilterHistoryTests {
+class FilterHistoryStoreTests {
     // MARK: - Filter Entry Tests
 
     @Test("records usage of a single filter")
