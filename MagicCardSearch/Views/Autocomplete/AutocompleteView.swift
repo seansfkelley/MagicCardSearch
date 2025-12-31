@@ -14,7 +14,7 @@ struct AutocompleteView: View {
     @Binding var inputSelection: TextSelection?
     @Binding var filters: [SearchFilter]
     @Binding var suggestionLoadingState: DebouncedLoadingState
-    let searchHistoryTracker: SearchHistoryTracker
+    let searchState: SearchState
     let performSearch: () -> Void
 
     @State private var provider: CombinedSuggestionProvider
@@ -30,14 +30,14 @@ struct AutocompleteView: View {
         inputSelection: Binding<TextSelection?>,
         filters: Binding<[SearchFilter]>,
         suggestionLoadingState: Binding<DebouncedLoadingState>,
-        searchHistoryTracker: SearchHistoryTracker,
+        searchState: SearchState,
         performSearch: @escaping () -> Void,
     ) {
         self._inputText = inputText
         self._inputSelection = inputSelection
         self._filters = filters
         self._suggestionLoadingState = suggestionLoadingState
-        self.searchHistoryTracker = searchHistoryTracker
+        self.searchState = searchState
         self.performSearch = performSearch
 
         _provider = State(initialValue: CombinedSuggestionProvider(
@@ -105,8 +105,7 @@ struct AutocompleteView: View {
                     .swipeActions(edge: .leading, allowsFullSwipe: true) {
                         Button {
                             provider.pinnedFilterProvider.unpin(filter: suggestion.filter)
-                            // If unpinning, keep the filter around in case you want to re-pin it.
-//                            searchHistoryTracker.recordUsage(of: suggestion.filter)
+                            searchState.unpin(filter: suggestion.filter)
                             nonce += 1
                         } label: {
                             Label("Unpin", systemImage: "pin.slash")
@@ -125,7 +124,7 @@ struct AutocompleteView: View {
                     }
                     .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                         Button(role: .destructive) {
-//                            searchHistoryTracker.deleteUsage(of: suggestion.filter)
+                            searchState.delete(filter: suggestion.filter)
                             nonce += 1
                         } label: {
                             Label("Delete", systemImage: "trash")
