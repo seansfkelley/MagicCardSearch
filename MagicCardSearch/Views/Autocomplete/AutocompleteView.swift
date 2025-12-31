@@ -86,6 +86,14 @@ struct AutocompleteView: View {
                         }
                         .tint(.orange)
                     }
+                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                        Button(role: .destructive) {
+                            historyAndPinnedState.delete(filter: suggestion.filter)
+                            nonce += 1
+                        } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
+                    }
                     .listRowInsets(.vertical, 0)
                 case .history(let suggestion):
                     BasicRowView(
