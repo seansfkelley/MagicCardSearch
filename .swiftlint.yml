@@ -61,6 +61,7 @@ attributes:
   attributes_with_arguments_always_on_line_above: true
   always_on_same_line:
     - "@Environment"
+    - "@Dependency"
 
 type_body_length:
   warning: 300

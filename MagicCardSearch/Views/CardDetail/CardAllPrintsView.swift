@@ -6,7 +6,7 @@
 //
 import ScryfallKit
 import SwiftUI
-import SwiftData
+import SQLiteData
 import NukeUI
 
 struct CardAllPrintsView: View {
@@ -19,8 +19,8 @@ struct CardAllPrintsView: View {
     @State private var printFilterSettings = PrintFilterSettings()
     
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.modelContext) private var modelContext
-    @Query private var bookmarks: [BookmarkedCard]
+    @Dependency(\.defaultDatabase) var database
+    @FetchAll private var bookmarks: [BookmarkedCard]
 
     // MARK: - Filter Settings
     
@@ -144,7 +144,11 @@ struct CardAllPrintsView: View {
                 if let currentCard, let bookmark = bookmarks.first(where: { $0.id == currentCard.id }) {
                     ToolbarItem(placement: .topBarTrailing) {
                         Button {
-                            modelContext.delete(bookmark)
+                            withErrorReporting {
+                              try database.write { db in
+                                  try BookmarkedCard.delete(bookmark).execute(db)
+                              }
+                            }
                         } label: {
                             Image(systemName: "bookmark.fill")
                         }
@@ -152,7 +156,14 @@ struct CardAllPrintsView: View {
                 } else if let currentCard {
                     ToolbarItem(placement: .topBarTrailing) {
                         Button {
-                            modelContext.insert(BookmarkedCard(from: currentCard))
+                            withErrorReporting {
+                              try database.write { db in
+                                  try BookmarkedCard.insert {
+                                      BookmarkedCard.from(card: currentCard)
+                                  }
+                                  .execute(db)
+                              }
+                            }
                         } label: {
                             Image(systemName: "bookmark")
                         }

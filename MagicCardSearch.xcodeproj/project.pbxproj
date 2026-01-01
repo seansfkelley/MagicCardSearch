@@ -16,6 +16,8 @@
 		210E14922EFDE5FB009D9FE0 /* SwiftUIIntrospect in Frameworks */ = {isa = PBXBuildFile; productRef = 210E14912EFDE5FB009D9FE0 /* SwiftUIIntrospect */; };
 		21332B992EF5D04100C80208 /* Algorithms in Frameworks */ = {isa = PBXBuildFile; productRef = 21332B982EF5D04100C80208 /* Algorithms */; };
 		213F299A2EE9285400E058DB /* SVGKitSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 213F29992EE9285400E058DB /* SVGKitSwift */; };
+		21874B3A2F07045300E07D9A /* SQLiteData in Frameworks */ = {isa = PBXBuildFile; productRef = 21874B392F07045300E07D9A /* SQLiteData */; };
+		21874B3C2F07045300E07D9A /* SQLiteDataTestSupport in Frameworks */ = {isa = PBXBuildFile; productRef = 21874B3B2F07045300E07D9A /* SQLiteDataTestSupport */; };
 		21A856BD2EE3AAE400E72541 /* ScryfallKit in Frameworks */ = {isa = PBXBuildFile; productRef = 21A856BC2EE3AAE400E72541 /* ScryfallKit */; };
 /* End PBXBuildFile section */
 
@@ -138,6 +140,7 @@
 				21332B992EF5D04100C80208 /* Algorithms in Frameworks */,
 				21A856BD2EE3AAE400E72541 /* ScryfallKit in Frameworks */,
 				21058ADE2EF36FC700F093EF /* InMemoryLogging in Frameworks */,
+				21874B3A2F07045300E07D9A /* SQLiteData in Frameworks */,
 				210115BC2EEF9543000D6D32 /* Nuke in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -146,6 +149,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				21874B3C2F07045300E07D9A /* SQLiteDataTestSupport in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -248,6 +252,7 @@
 				210E13A92EFC66C4009D9FE0 /* FocusOnAppear */,
 				210E14912EFDE5FB009D9FE0 /* SwiftUIIntrospect */,
 				210BA21E2F02E7C20038FD7C /* SQLite */,
+				21874B392F07045300E07D9A /* SQLiteData */,
 			);
 			productName = MagicCardSearch;
 			productReference = 2137B5AD2EE139C60066BF7E /* MagicCardSearch.app */;
@@ -272,6 +277,7 @@
 			);
 			name = MagicCardSearchTests;
 			packageProductDependencies = (
+				21874B3B2F07045300E07D9A /* SQLiteDataTestSupport */,
 			);
 			productName = MagicCardSearchTests;
 			productReference = 2137B5BA2EE139C70066BF7E /* MagicCardSearchTests.xctest */;
@@ -346,6 +352,7 @@
 				210E13A82EFC66C4009D9FE0 /* XCRemoteSwiftPackageReference "FocusOnAppear" */,
 				210E14902EFDE5FB009D9FE0 /* XCRemoteSwiftPackageReference "swiftui-introspect" */,
 				210BA21D2F02E7C20038FD7C /* XCRemoteSwiftPackageReference "SQLite" */,
+				21874B382F07045300E07D9A /* XCRemoteSwiftPackageReference "sqlite-data" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 2137B5AE2EE139C60066BF7E /* Products */;
@@ -870,6 +877,14 @@
 				kind = branch;
 			};
 		};
+		21874B382F07045300E07D9A /* XCRemoteSwiftPackageReference "sqlite-data" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/pointfreeco/sqlite-data";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.4.2;
+			};
+		};
 		21A5FCA72EE9E7FA0034E695 /* XCRemoteSwiftPackageReference "SwiftLintPlugins" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/SimplyDanny/SwiftLintPlugins";
@@ -933,6 +948,16 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 213F29982EE9285400E058DB /* XCRemoteSwiftPackageReference "SVGKit" */;
 			productName = SVGKitSwift;
+		};
+		21874B392F07045300E07D9A /* SQLiteData */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 21874B382F07045300E07D9A /* XCRemoteSwiftPackageReference "sqlite-data" */;
+			productName = SQLiteData;
+		};
+		21874B3B2F07045300E07D9A /* SQLiteDataTestSupport */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 21874B382F07045300E07D9A /* XCRemoteSwiftPackageReference "sqlite-data" */;
+			productName = SQLiteDataTestSupport;
 		};
 		21A5FCA82EE9E81E0034E695 /* SwiftLintBuildToolPlugin */ = {
 			isa = XCSwiftPackageProductDependency;

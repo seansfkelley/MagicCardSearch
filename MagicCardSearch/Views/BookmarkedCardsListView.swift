@@ -7,8 +7,9 @@
 
 import SwiftUI
 import ScryfallKit
-import SwiftData
+import SQLiteData
 import NukeUI
+import GRDB
 
 struct BookmarkedCardsListView: View {
     @Environment(\.dismiss) private var dismiss
@@ -16,8 +17,8 @@ struct BookmarkedCardsListView: View {
     @State private var selectedCards: Set<UUID> = []
     @State private var detailSheetState: SheetState?
     
-    @Environment(\.modelContext) private var modelContext
-    @Query private var allBookmarks: [BookmarkedCard]
+    @Dependency(\.defaultDatabase) var database
+    @FetchAll private var allBookmarks: [BookmarkedCard]
     @AppStorage("bookmarkedCardsSortOption")
     private var sortMode: BookmarkSortMode = .name
 
@@ -64,7 +65,11 @@ struct BookmarkedCardsListView: View {
                                 .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                                     Button(role: .destructive) {
                                         withAnimation {
-                                            modelContext.delete(bookmark)
+                                            withErrorReporting {
+                                              try database.write { db in
+                                                  try BookmarkedCard.delete(bookmark).execute(db)
+                                              }
+                                            }
                                         }
                                     } label: {
                                         Label("Delete", systemImage: "trash")
@@ -122,7 +127,11 @@ struct BookmarkedCardsListView: View {
 
                         Button(role: .destructive) {
                             withAnimation {
-                                try? modelContext.delete(model: BookmarkedCard.self, where: #Predicate { selectedCards.contains($0.id) })
+                                withErrorReporting {
+                                    try database.write { db in
+                                        try BookmarkedCard.where { selectedCards.contains($0.id) }.delete().execute(db)
+                                    }
+                                }
                                 selectedCards.removeAll()
                                 editMode = .inactive
                             }
@@ -213,9 +222,9 @@ private struct BookmarkedCardDetailNavigator: View {
     let initialIndex: Int
 
     @State private var cardFlipStates: [UUID: Bool] = [:]
-    
-    @Environment(\.modelContext) private var modelContext
-    @Query private var allBookmarks: [BookmarkedCard]
+
+    @Dependency(\.defaultDatabase) var database
+    @FetchAll private var allBookmarks: [BookmarkedCard]
 
     private let cardSearchService = CardSearchService()
     
@@ -246,7 +255,11 @@ private struct BookmarkedCardDetailNavigator: View {
             if let bookmark = allBookmarks.first(where: { $0.id == card.id }) {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
-                        modelContext.delete(bookmark)
+                        withErrorReporting {
+                          try database.write { db in
+                              try BookmarkedCard.delete(bookmark).execute(db)
+                          }
+                        }
                     } label: {
                         Image(systemName: "bookmark.fill")
                     }
@@ -254,7 +267,14 @@ private struct BookmarkedCardDetailNavigator: View {
             } else {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
-                        modelContext.insert(BookmarkedCard(from: card))
+                        withErrorReporting {
+                            try database.write { db in
+                                try BookmarkedCard.insert {
+                                    BookmarkedCard.from(card: card)
+                                }
+                                .execute(db)
+                            }
+                        }
                     } label: {
                         Image(systemName: "bookmark")
                     }

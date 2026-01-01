@@ -5,7 +5,7 @@
 //  Created by Sean Kelley on 2025-12-05.
 //
 import SwiftUI
-import SwiftData
+import SQLiteData
 import ScryfallKit
 
 struct SearchResultsDetailNavigator: View {
@@ -13,8 +13,8 @@ struct SearchResultsDetailNavigator: View {
     let initialIndex: Int
     @Binding var cardFlipStates: [UUID: Bool]
 
-    @Environment(\.modelContext) private var modelContext
-    @Query private var bookmarks: [BookmarkedCard]
+    @Dependency(\.defaultDatabase) var database
+    @FetchAll private var bookmarks: [BookmarkedCard]
 
     var body: some View {
         LazyPagingDetailNavigator(
@@ -44,7 +44,11 @@ struct SearchResultsDetailNavigator: View {
             if let bookmark = bookmarks.first(where: { $0.id == card.id }) {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
-                        modelContext.delete(bookmark)
+                        withErrorReporting {
+                          try database.write { db in
+                              try BookmarkedCard.delete(bookmark).execute(db)
+                          }
+                        }
                     } label: {
                         Image(systemName: "bookmark.fill")
                     }
@@ -52,7 +56,14 @@ struct SearchResultsDetailNavigator: View {
             } else {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
-                        modelContext.insert(BookmarkedCard(from: card))
+                        withErrorReporting {
+                            try database.write { db in
+                                try BookmarkedCard.insert {
+                                    BookmarkedCard.from(card: card)
+                                }
+                                .execute(db)
+                            }
+                        }
                     } label: {
                         Image(systemName: "bookmark")
                     }

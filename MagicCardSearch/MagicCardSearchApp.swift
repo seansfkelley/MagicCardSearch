@@ -5,12 +5,16 @@
 //  Created by Sean Kelley on 2025-12-03.
 //
 import SwiftUI
-import SwiftData
+import SQLiteData
 import Logging
 
 @main
 struct MagicCardSearchApp: App {
     init() {
+        prepareDependencies {
+            $0.defaultDatabase = try! appDatabase()
+        }
+
         LoggingSystem.bootstrap { label in
             var handler = CompactLogHandler(label: label)
             handler.logLevel = .info
@@ -25,7 +29,6 @@ struct MagicCardSearchApp: App {
                     await ScryfallCatalogs.initialize()
                 }
         }
-        .modelContainer(for: BookmarkedCard.self, isAutosaveEnabled: true)
     }
 }
 
