@@ -18,12 +18,14 @@ struct SQLiteDatabase {
     public let filterHistory: FilterHistoryStore
     public let searchHistory: SearchHistoryStore
     public let pinnedFilters: PinnedFilterStore
+    public let bookmarks: BookmarkedCardStore
 
     private init(_ connection: Connection) {
         self.connection = connection
         self.filterHistory = .init(db: connection)
         self.searchHistory = .init(db: connection)
         self.pinnedFilters = .init(db: connection)
+        self.bookmarks = .init(db: connection)
     }
 
     var userVersion: Int32? { connection.userVersion }

@@ -9,38 +9,6 @@ import Foundation
 
 // MARK: - Sort Option
 
-enum BookmarkedCardSortOption: String, CaseIterable, Identifiable {
-    case name
-    case dateAddedNewest
-    case dateAddedOldest
-    case releaseDateNewest
-    case releaseDateOldest
-    
-    var id: String { rawValue }
-    
-    var displayName: String {
-        switch self {
-        case .name:
-            return "Name"
-        case .releaseDateNewest, .releaseDateOldest:
-            return "Release Date"
-        case .dateAddedNewest, .dateAddedOldest:
-            return "Date Added"
-        }
-    }
-    
-    var subtitle: String? {
-        switch self {
-        case .name:
-            return nil
-        case .releaseDateNewest, .dateAddedNewest:
-            return "Newest First"
-        case .releaseDateOldest, .dateAddedOldest:
-            return "Oldest First"
-        }
-    }
-}
-
 @MainActor
 class BookmarkedCardListManager: ObservableObject {
     static let shared = BookmarkedCardListManager()
