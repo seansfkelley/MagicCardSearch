@@ -44,7 +44,7 @@ func appDatabase() throws -> any DatabaseWriter {
         }
     }
     migrator.registerMigration("add filter history") { db in
-        try db.create(table: "filterHistoryEntrys") { t in
+        try db.create(table: "filterHistoryEntries") { t in
             t.autoIncrementedPrimaryKey("id")
             t.column("lastUsedAt", .datetime).notNull()
             t.column("filter", .jsonText).notNull().unique(onConflict: .replace)

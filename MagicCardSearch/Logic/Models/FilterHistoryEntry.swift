@@ -8,11 +8,17 @@ import Foundation
 import SQLiteData
 
 @Table
-struct FilterHistoryEntry {
-    let id: Int64
+struct FilterHistoryEntry: Identifiable {
+    let id: Int64?
     let lastUsedAt: Date
     @Column(as: SearchFilterRepresentation.self)
     let filter: SearchFilter
+
+    init(filter: SearchFilter, at date: Date = .init()) {
+        self.id = nil
+        self.lastUsedAt = date
+        self.filter = filter
+    }
 }
 
 public struct SearchFilterRepresentation: Codable, QueryRepresentable, QueryBindable, QueryDecodable {

@@ -4,8 +4,8 @@
 //
 //  Created by Sean Kelley on 2025-12-07.
 //
-
 import Foundation
+import SQLiteData
 import Observation
 
 struct HistorySuggestion: Equatable, Hashable, Sendable, ScorableSuggestion {
@@ -19,13 +19,13 @@ struct HistorySuggestion: Equatable, Hashable, Sendable, ScorableSuggestion {
 class HistorySuggestionProvider {
     // MARK: - Properties
 
-    private let filterHistoryStore: FilterHistoryStore
+    @ObservationIgnored @FetchAll private var filterHistoryEntries: [FilterHistoryEntry]
+
     private let searchHistoryStore: SearchHistoryStore
     
     // MARK: - Initialization
 
-    init(filterHistoryStore: FilterHistoryStore, searchHistoryStore: SearchHistoryStore) {
-        self.filterHistoryStore = filterHistoryStore
+    init(searchHistoryStore: SearchHistoryStore) {
         self.searchHistoryStore = searchHistoryStore
     }
 
@@ -36,17 +36,10 @@ class HistorySuggestionProvider {
             return []
         }
         
-        // TODO: Seems like someone else should be running this, not us.
-        try? filterHistoryStore.garbageCollect()
-        
         let trimmedSearchTerm = searchTerm.trimmingCharacters(in: .whitespaces)
-        
-        guard let allFilters = try? filterHistoryStore.allFiltersChronologically else {
-            return []
-        }
-        
+
         return Array(
-            allFilters
+            filterHistoryEntries
                 .lazy
                 .filter { !excludedFilters.contains($0.filter) }
                 .compactMap { entry in

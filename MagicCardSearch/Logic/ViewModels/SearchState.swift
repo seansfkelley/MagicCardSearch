@@ -7,6 +7,7 @@
 import SwiftUI
 import Logging
 import ScryfallKit
+import SQLiteData
 
 private let logger = Logger(label: "SearchState")
 
@@ -14,6 +15,8 @@ private let logger = Logger(label: "SearchState")
 @MainActor
 @Observable
 class SearchState {
+    @ObservationIgnored @Dependency(\.defaultDatabase) var database
+
     public var searchText: String = ""
     public var searchSelection: TextSelection?
     public var filters: [SearchFilter] = []
@@ -26,15 +29,13 @@ class SearchState {
     }
 
     private let scryfall = ScryfallClient(networkLogLevel: .minimal)
-    private let filterHistory: FilterHistoryStore
     private let searchHistory: SearchHistoryStore
     private let pinnedFilter: PinnedFilterStore
 
-    init(filterHistory: FilterHistoryStore, searchHistory: SearchHistoryStore, pinnedFilter: PinnedFilterStore) {
+    init(searchHistory: SearchHistoryStore, pinnedFilter: PinnedFilterStore) {
         self.suggestionProvider = CombinedSuggestionProvider(
             pinnedFilter: PinnedFilterSuggestionProvider(store: pinnedFilter),
             history: HistorySuggestionProvider(
-                filterHistoryStore: filterHistory,
                 searchHistoryStore: searchHistory,
             ),
             filterType: FilterTypeSuggestionProvider(),
@@ -42,7 +43,6 @@ class SearchState {
             reverseEnumeration: ReverseEnumerationSuggestionProvider(),
             name: NameSuggestionProvider(debounce: .milliseconds(500))
         )
-        self.filterHistory = filterHistory
         self.searchHistory = searchHistory
         self.pinnedFilter = pinnedFilter
     }
@@ -72,6 +72,14 @@ class SearchState {
 
         do {
             try searchHistory.recordSearch(with: filters)
+            try database.write { db in
+                try FilterHistoryEntry.insert {
+                    for filter in filters {
+                        FilterHistoryEntry(filter: filter)
+                    }
+                }
+                .execute(db)
+            }
         } catch {
             logger.error("error while recording search", metadata: [
                 "filters": "\(filters)",

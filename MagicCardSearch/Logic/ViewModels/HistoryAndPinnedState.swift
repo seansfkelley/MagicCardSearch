@@ -5,20 +5,21 @@
 //  Created by Sean Kelley on 2025-12-31.
 //
 import Logging
+import SQLiteData
 
 private let logger = Logger(label: "HistoryAndPinnedState")
 
 // TODO: Remove this decorator once I have disentagled a bunch of the state management.
 @MainActor
 class HistoryAndPinnedState {
-    private let filterHistory: FilterHistoryStore
+    @Dependency(\.defaultDatabase) var database
+
     private let searchHistory: SearchHistoryStore
     private let pinnedFilter: PinnedFilterStore
 
     private(set) var lastError: Error?
 
-    init(filterHistory: FilterHistoryStore, searchHistory: SearchHistoryStore, pinnedFilter: PinnedFilterStore) {
-        self.filterHistory = filterHistory
+    init(searchHistory: SearchHistoryStore, pinnedFilter: PinnedFilterStore) {
         self.searchHistory = searchHistory
         self.pinnedFilter = pinnedFilter
     }
@@ -27,13 +28,17 @@ class HistoryAndPinnedState {
 
     public func record(filter: SearchFilter) {
         perform("recording filter") {
-            try filterHistory.recordUsage(of: filter)
+            try database.write { db in
+                try FilterHistoryEntry.insert { FilterHistoryEntry(filter: filter) }.execute(db)
+            }
         }
     }
 
     public func delete(filter: SearchFilter) {
         perform("deleting filter") {
-            try filterHistory.deleteUsage(of: filter)
+            try database.write { db in
+                try FilterHistoryEntry.delete().where { $0.filter == SearchFilterRepresentation(queryOutput: filter) }.execute(db)
+            }
             try pinnedFilter.unpin(filter)
         }
     }
@@ -47,7 +52,9 @@ class HistoryAndPinnedState {
     public func unpin(filter: SearchFilter) {
         perform("unpinning filter") {
             // Keep it around near the top since you just modified it.
-            try filterHistory.recordUsage(of: filter)
+            try database.write { db in
+                try FilterHistoryEntry.insert { FilterHistoryEntry(filter: filter) }.execute(db)
+            }
             try pinnedFilter.unpin(filter)
         }
     }
@@ -60,7 +67,9 @@ class HistoryAndPinnedState {
 
             for filter in search {
                 // TODO: Should this recursively add the sub-filters?
-                try filterHistory.recordUsage(of: filter)
+                try database.write { db in
+                    try FilterHistoryEntry.insert { FilterHistoryEntry(filter: filter) }.execute(db)
+                }
             }
         }
     }
