@@ -77,6 +77,57 @@ class ScryfallObjectList<T: Codable & Sendable> {
         }
     }
 
+    func loadAllRemainingPages() {
+        if case .loading = value {
+            logger.debug("declining to load all remaining pages: already loading")
+            return
+        }
+
+        if case .loaded(let list, _) = value, list.nextPage == nil {
+            logger.debug("declining to load all remaining pages: already at the end of the list")
+            return
+        }
+
+        logger.info("loading all remaining pages", metadata: [
+            "fromPage": "\(nextPage)",
+        ])
+
+        task?.cancel()
+        value = .loading(value.latestValue, nil)
+
+        task = Task {
+            var currentData = self.value.latestValue ?? .empty()
+            var shouldContinue = true
+
+            while shouldContinue && !Task.isCancelled {
+                do {
+                    let result = try await self.fetcher(self.nextPage)
+                    guard !Task.isCancelled else { return }
+
+                    logger.debug("successfully fetched page", metadata: [
+                        "page": "\(nextPage)",
+                    ])
+
+                    currentData = self.append(currentData, result)
+                    self.nextPage += 1
+                    shouldContinue = result.hasMore ?? false
+                } catch {
+                    logger.error("error fetching page, stopping", metadata: [
+                        "page": "\(nextPage)",
+                        "error": "\(error)",
+                    ])
+                    self.value = .errored(currentData, SearchErrorState(from: error))
+                    return
+                }
+            }
+
+            if !Task.isCancelled {
+                logger.info("successfully loaded all remaining pages")
+                self.value = .loaded(currentData, nil)
+            }
+        }
+    }
+
     private func append(_ first: ObjectList<T>?, _ second: ObjectList<T>) -> ObjectList<T> {
         guard let first else { return second }
 
