@@ -10,6 +10,39 @@ import SwiftUI
 
 private let logger = Logger(label: "CardDetailView")
 
+protocol CardDetailDisplayable {
+    var name: String { get }
+    var typeLine: String? { get }
+    var oracleText: String? { get }
+    var flavorText: String? { get }
+    var colorIndicator: [Card.Color]? { get }
+    var power: String? { get }
+    var toughness: String? { get }
+    var loyalty: String? { get }
+    var defense: String? { get }
+    var artist: String? { get }
+    var imageUris: Card.ImageUris? { get }
+
+    // Properties that have differing types in ScryfallKit so need another name.
+    var displayableManaCost: String { get }
+}
+
+// MARK: - Card.Face Conformance
+
+extension Card.Face: CardDetailDisplayable {
+    var displayableManaCost: String {
+        return manaCost
+    }
+}
+
+// MARK: - Card Conformance
+
+extension Card: CardDetailDisplayable {
+    var displayableManaCost: String {
+        return manaCost ?? ""
+    }
+}
+
 struct CardDetailView: View {
     let card: Card
     @Binding var isFlipped: Bool
@@ -146,7 +179,7 @@ struct CardDetailView: View {
     
     // swiftlint:disable function_body_length
     @ViewBuilder
-    private func cardFaceDetailsView(face: CardFaceDisplayable, showArtist: Bool = true) -> some View {
+    private func cardFaceDetailsView(face: CardDetailDisplayable, showArtist: Bool = true) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .top) {
                 Text(face.name)

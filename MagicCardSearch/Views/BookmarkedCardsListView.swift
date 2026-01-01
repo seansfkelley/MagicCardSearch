@@ -277,26 +277,14 @@ private struct BookmarkedCardRowView: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            Group {
-                if let imageUrl = card.smallImageUrl, let url = URL(string: imageUrl) {
-                    LazyImage(url: url) { state in
-                        if let image = state.image {
-                            image
-                                .resizable()
-                                .aspectRatio(contentMode: .fill)
-                                .frame(width: 60, height: 84)
-                                .clipShape(RoundedRectangle(cornerRadius: 6))
-                        } else if state.error != nil {
-                            imagePlaceholder
-                        } else {
-                            ProgressView()
-                                .frame(width: 60, height: 84)
-                        }
-                    }
-                } else {
-                    imagePlaceholder
-                }
-            }
+            CardView(
+                card: card,
+                quality: .small,
+                isFlipped: .constant(false),
+                cornerRadius: 6,
+                showFlipButton: false
+            )
+            .frame(width: 60)
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(card.name)
@@ -335,17 +323,6 @@ private struct BookmarkedCardRowView: View {
             Spacer(minLength: 0)
         }
         .padding(.vertical, 2)
-    }
-
-    private var imagePlaceholder: some View {
-        RoundedRectangle(cornerRadius: 6)
-            .fill(Color.gray.opacity(0.2))
-            .frame(width: 60, height: 84)
-            .overlay(
-                Image(systemName: "photo")
-                    .font(.title3)
-                    .foregroundStyle(.secondary)
-            )
     }
 }
 

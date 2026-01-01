@@ -8,39 +8,36 @@ import SwiftUI
 import ScryfallKit
 import NukeUI
 
-/// Protocol for types that can be displayed as a card face
+protocol CardDisplayable {
+    var frontFace: CardFaceDisplayable { get }
+    var backFace: CardFaceDisplayable? { get }
+}
+
+extension Card: CardDisplayable {
+    var frontFace: CardFaceDisplayable {
+        if layout.isDoubleFaced, let faces = cardFaces, faces.count >= 1 {
+            faces[0]
+        } else {
+            self
+        }
+    }
+    var backFace: CardFaceDisplayable? {
+        if layout.isDoubleFaced, let faces = cardFaces, faces.count >= 2 {
+            faces[1]
+        } else {
+            nil
+        }
+    }
+}
+
 protocol CardFaceDisplayable {
     var name: String { get }
-    var typeLine: String? { get }
-    var oracleText: String? { get }
-    var flavorText: String? { get }
-    var colorIndicator: [Card.Color]? { get }
-    var power: String? { get }
-    var toughness: String? { get }
-    var loyalty: String? { get }
-    var defense: String? { get }
-    var artist: String? { get }
     var imageUris: Card.ImageUris? { get }
-    
-    // Properties that have differing types in ScryfallKit so need another name.
-    var displayableManaCost: String { get }
 }
 
-// MARK: - Card.Face Conformance
-
-extension Card.Face: CardFaceDisplayable {
-    var displayableManaCost: String {
-        return manaCost
-    }
-}
-
-// MARK: - Card Conformance
-
-extension Card: CardFaceDisplayable {
-    var displayableManaCost: String {
-        return manaCost ?? ""
-    }
-}
+extension Card: CardFaceDisplayable {}
+extension Card.Face: CardFaceDisplayable {}
+extension BookmarkableCardFace: CardFaceDisplayable {}
 
 // MARK: - Image Quality
 
@@ -63,14 +60,14 @@ enum CardImageQuality {
 }
 
 struct CardView: View {
-    let card: Card
+    let card: CardDisplayable
     let quality: CardImageQuality
     @Binding var isFlipped: Bool
     let cornerRadius: CGFloat
     let showFlipButton: Bool
 
     init(
-        card: Card,
+        card: CardDisplayable,
         quality: CardImageQuality,
         isFlipped: Binding<Bool>,
         cornerRadius: CGFloat,
@@ -85,10 +82,10 @@ struct CardView: View {
 
     var body: some View {
         Group {
-            if let faces = card.cardFaces, card.layout.isDoubleFaced && faces.count >= 2 {
+            if let backFace = card.backFace {
                 FlippableCardFaceView(
-                    frontFace: faces[0],
-                    backFace: faces[1],
+                    frontFace: card.frontFace,
+                    backFace: backFace,
                     quality: quality,
                     isShowingBackFace: $isFlipped,
                     cornerRadius: cornerRadius,
@@ -96,7 +93,7 @@ struct CardView: View {
                 )
             } else {
                 CardFaceView(
-                    face: card,
+                    face: card.frontFace,
                     quality: quality,
                     cornerRadius: cornerRadius,
                 )

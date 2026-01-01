@@ -32,13 +32,4 @@ extension Card {
             return nil
         }
     }
-    
-    var primaryImageUris: Card.ImageUris? {
-        if layout.isDoubleFaced {
-            if let faces = cardFaces, !faces.isEmpty {
-                return faces[0].imageUris
-            }
-        }
-        return imageUris
-    }
 }
