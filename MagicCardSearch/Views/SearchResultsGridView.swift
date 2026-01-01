@@ -70,7 +70,7 @@ struct SearchResultsGridView: View {
             } else if let results = list.value.latestValue, !results.data.isEmpty {
                 ScrollView {
                     VStack(spacing: 0) {
-                        Text("\(results.totalCards) \(results.totalCards == 1 ? "result" : "results")")
+                        Text("\(results.totalCards ?? 0) \((results.totalCards ?? 0 == 1) ? "result" : "results")")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                             .padding(.vertical, 20)

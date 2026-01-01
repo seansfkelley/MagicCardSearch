@@ -67,6 +67,22 @@ class ScryfallObjectList<T: Codable & Sendable> {
                 ])
                 self.nextPage += 1
                 self.value = .loaded(self.append(self.value.latestValue, result), nil)
+            } catch let error as ScryfallKitError {
+                // When searching for cards, a 404 means "no results found", not an actual error.
+                // Note that this condition assumes that we will never get legit 404s. This should
+                // be fine since we only use a small number of fixed URLs, but of course it's not
+                // foolproof if Scryfall makes breaking changes.
+                if case .scryfallError(let error) = error, error.status == 404 {
+                    logger.debug("intercepted Scryfall 404 and set to empty instead")
+                    // Appending empty is another way of saying to mark is as having no more pages, etc.
+                    self.value = .loaded(append(self.value.latestValue, .empty()), nil)
+                } else {
+                    logger.error("error fetching next page", metadata: [
+                        "page": "\(nextPage)",
+                        "error": "\(error)",
+                    ])
+                    self.value = .errored(self.value.latestValue, SearchErrorState(from: error))
+                }
             } catch {
                 logger.error("error fetching next page", metadata: [
                     "page": "\(nextPage)",

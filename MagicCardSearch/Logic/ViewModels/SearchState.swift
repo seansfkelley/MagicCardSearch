@@ -80,7 +80,7 @@ class SearchState {
         }
 
         let query = filters.map { $0.description }.joined(separator: " ")
-        results = .init() { [weak self] page async throws in
+        results = .init { [weak self] page async throws in
             guard let self else { return .empty() }
 
             return try await scryfall.searchCards(
@@ -91,5 +91,7 @@ class SearchState {
                 page: page,
             )
         }
+
+        _ = results!.loadNextPage()
     }
 }
