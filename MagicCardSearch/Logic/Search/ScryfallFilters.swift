@@ -33,6 +33,8 @@ struct ScryfallFilterType: Sendable {
 }
 
 private let scryfallColorAliases = [
+    // basics
+    "white", "blue", "black", "red", "green", "{w}", "{u}", "{b}", "{r}", "{g}",
     // guild
     "azorius", "dimir", "rakdos", "golgari", "boros", "simic", "selesnya", "orzhov", "izzet", "gruul",
     // shard
