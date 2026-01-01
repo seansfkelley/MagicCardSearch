@@ -8,15 +8,15 @@ import Foundation
 import SQLiteData
 
 @Table
-struct FilterHistoryEntry: Identifiable {
+struct SearchHistoryEntry: Identifiable {
     let id: Int64?
     let lastUsedAt: Date
-    @Column(as: SearchFilter.StableJSONRepresentation.self)
-    let filter: SearchFilter
+    @Column(as: [SearchFilter].StableJSONRepresentation.self)
+    let filters: [SearchFilter]
 
-    init(filter: SearchFilter, at date: Date = .init()) {
+    init(filters: [SearchFilter], at date: Date = .init()) {
         self.id = nil
         self.lastUsedAt = date
-        self.filter = filter
+        self.filters = filters
     }
 }

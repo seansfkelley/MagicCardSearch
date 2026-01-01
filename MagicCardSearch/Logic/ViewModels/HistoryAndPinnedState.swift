@@ -37,7 +37,7 @@ class HistoryAndPinnedState {
     public func delete(filter: SearchFilter) {
         perform("deleting filter") {
             try database.write { db in
-                try FilterHistoryEntry.delete().where { $0.filter == SearchFilterRepresentation(queryOutput: filter) }.execute(db)
+                try FilterHistoryEntry.delete().where { $0.filter == SearchFilter.StableJSONRepresentation(queryOutput: filter) }.execute(db)
             }
             try pinnedFilter.unpin(filter)
         }

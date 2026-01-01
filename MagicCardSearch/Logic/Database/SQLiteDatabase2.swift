@@ -50,6 +50,13 @@ func appDatabase() throws -> any DatabaseWriter {
             t.column("filter", .jsonText).notNull().unique(onConflict: .replace)
         }
     }
+    migrator.registerMigration("add search history") { db in
+        try db.create(table: "searchHistoryEntries") { t in
+            t.autoIncrementedPrimaryKey("id")
+            t.column("lastUsedAt", .datetime).notNull()
+            t.column("filters", .jsonText).notNull().unique(onConflict: .replace)
+        }
+    }
     try migrator.migrate(database)
     return database
 }
