@@ -13,4 +13,5 @@ protocol DatabaseMigration: Sendable {
 
 let orderedMigrations: [DatabaseMigration] = [
     Migrate20251229Initial(),
+    Migrate20251231AddBookmarks(),
 ]
