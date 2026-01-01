@@ -16,14 +16,14 @@ struct BookmarkedCardsListView: View {
     @State private var selectedCards: Set<UUID> = []
     @State private var detailSheetState: SheetState?
     @AppStorage("bookmarkedCardsSortOption")
-    private var sortOption: BookmarkedCardSortOption = .name
-    
+    private var sortMode: BookmarkSortMode = .name
+
     private var isEditing: Bool {
         return editMode == .active
     }
     
     private var sortedCards: [BookmarkedCard] {
-        listManager.sortedCards(by: sortOption)
+        listManager.sortedCards(by: sortMode)
     }
 
     var body: some View {
@@ -132,19 +132,19 @@ struct BookmarkedCardsListView: View {
                 } else {
                     ToolbarItem(placement: .topBarTrailing) {
                         Menu {
-                            Picker("Sort Order", selection: $sortOption) {
-                                ForEach(BookmarkedCardSortOption.allCases) { option in
+                            Picker("Sort Order", selection: $sortMode) {
+                                ForEach(BookmarkSortMode.allCases) { mode in
                                     Button(action: {}) {
-                                        if let subtitle = option.subtitle {
-                                            Text(option.displayName)
+                                        if let subtitle = mode.subtitle {
+                                            Text(mode.displayName)
                                             Text(subtitle)
                                                 .font(.caption)
                                                 .foregroundStyle(.secondary)
                                         } else {
-                                            Text(option.displayName)
+                                            Text(mode.displayName)
                                         }
                                     }
-                                    .tag(option)
+                                    .tag(mode)
                                 }
                             }
                             .pickerStyle(.inline)

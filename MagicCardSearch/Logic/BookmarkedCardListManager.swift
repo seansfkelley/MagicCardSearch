@@ -72,7 +72,7 @@ class BookmarkedCardListManager: ObservableObject {
         cardIds.contains(cardId)
     }
     
-    func sortedCards(by option: BookmarkedCardSortOption) -> [BookmarkedCard] {
+    func sortedCards(by option: BookmarkSortMode) -> [BookmarkedCard] {
         switch option {
         case .name:
             return cards.sorted(using: [

@@ -18,7 +18,7 @@ struct SQLiteDatabase {
     public let filterHistory: FilterHistoryStore
     public let searchHistory: SearchHistoryStore
     public let pinnedFilters: PinnedFilterStore
-    public let bookmarks: BookmarkedCardStore
+    public let bookmarks: BookmarksStore
 
     private init(_ connection: Connection) {
         self.connection = connection

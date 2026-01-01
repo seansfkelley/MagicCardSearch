@@ -8,7 +8,7 @@ import SQLite
 import Foundation
 import ScryfallKit
 
-enum BookmarkedCardSortOption: String, CaseIterable, Identifiable {
+enum BookmarkSortMode: String, CaseIterable, Identifiable {
     case name
     case dateAddedNewest
     case dateAddedOldest
@@ -40,7 +40,7 @@ enum BookmarkedCardSortOption: String, CaseIterable, Identifiable {
     }
 }
 
-struct BookmarkedCardStore {
+struct BookmarksStore {
     struct Row: Codable, Identifiable {
         let id: UUID
         let name: String
@@ -100,7 +100,7 @@ struct BookmarkedCardStore {
         try db.pluck(table.filter(id == cardId)) != nil
     }
 
-    func allBookmarks(sortedBy sort: BookmarkedCardSortOption) throws -> [Row] {
+    func allBookmarks(sortedBy sort: BookmarkSortMode) throws -> [Row] {
         let query: Table
         
         switch sort {
