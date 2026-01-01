@@ -24,13 +24,13 @@ private func hourlyRotatingRandomFlavorText() -> String {
 }
 
 struct SearchResultsGridView: View {
-    let state: ScryfallSearchResultsList
-    
+    let list: ScryfallObjectList<Card>
+
     @State private var selectedCardIndex: Int?
     @State private var cardFlipStates: [UUID: Bool] = [:]
-    
+
     private let spacing: CGFloat = 4
-    
+
     private let columns = [
         GridItem(.flexible(), spacing: 0),
         GridItem(.flexible(), spacing: 0),
@@ -39,7 +39,7 @@ struct SearchResultsGridView: View {
     var body: some View {
         ZStack {
             // TODO: Clean this up.
-            if case .unloaded = state.current {
+            if case .unloaded = list.value {
                 VStack(alignment: .center) {
                     Spacer()
                     Text(hourlyRotatingRandomFlavorText())
@@ -50,33 +50,33 @@ struct SearchResultsGridView: View {
                         .padding(.horizontal)
                     Spacer()
                 }
-            } else if case .errored(let searchResults, let error) = state.current, searchResults?.cards.isEmpty ?? true {
+            } else if case .errored(let results, let error) = list.value, results?.data.isEmpty ?? true {
                 ContentUnavailableView {
                     Label(error.title, systemImage: error.iconName)
                 } description: {
                     Text(error.description)
                 }
-            } else if case .errored(nil, let error) = state.current {
+            } else if case .errored(nil, let error) = list.value {
                 ContentUnavailableView {
                     Label(error.title, systemImage: error.iconName)
                 } description: {
                     Text(error.description)
                 }
-            } else if case .loaded(let searchResults, _) = state.current, searchResults.cards.isEmpty {
+            } else if case .loaded(let results, _) = list.value, results.data.isEmpty {
                 ContentUnavailableView(
                     "No Results",
                     systemImage: "circle.slash",
                 )
-            } else if let searchResults = state.current.latestValue, !searchResults.cards.isEmpty {
+            } else if let results = list.value.latestValue, !results.data.isEmpty {
                 ScrollView {
                     VStack(spacing: 0) {
-                        Text("\(searchResults.totalCount) \(searchResults.totalCount == 1 ? "result" : "results")")
+                        Text("\(results.totalCards) \(results.totalCards == 1 ? "result" : "results")")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                             .padding(.vertical, 20)
 
                         LazyVGrid(columns: columns, spacing: spacing) {
-                            ForEach(Array(searchResults.cards.enumerated()), id: \.element.id) { index, card in
+                            ForEach(Array(results.data.enumerated()), id: \.element.id) { index, card in
                                 CardView(
                                     card: card,
                                     quality: .normal,
@@ -90,15 +90,15 @@ struct SearchResultsGridView: View {
                                     selectedCardIndex = index
                                 }
                                 .onAppear {
-                                    if index == searchResults.cards.count - 4 {
-                                        state.loadNextPageIfNeeded()
+                                    if index == results.data.count - 4 {
+                                        list.loadNextPage()
                                     }
                                 }
                                 .padding(.horizontal, spacing / 2)
                             }
                         }
 
-                        if searchResults.nextPageUrl != nil || state.current.isLoadingNextPage || state.current.nextPageError != nil {
+                        if (results.hasMore ?? false) || list.value.isLoadingNextPage || list.value.nextPageError != nil {
                             paginationStatusView
                                 .padding(.horizontal)
                                 .padding(.vertical, 20)
@@ -108,7 +108,7 @@ struct SearchResultsGridView: View {
                 }
             }
 
-            if state.current.isInitiallyLoading {
+            if list.value.isInitiallyLoading {
                 Color.black.opacity(0.3)
                     .ignoresSafeArea()
                     .transition(.opacity)
@@ -119,7 +119,7 @@ struct SearchResultsGridView: View {
                     .tint(.white)
             }
         }
-        .animation(.easeInOut(duration: 0.2), value: state.current.isInitiallyLoading)
+        .animation(.easeInOut(duration: 0.2), value: list.value.isInitiallyLoading)
         .sheet(
             item: Binding(
                 get: { selectedCardIndex.map { IdentifiableIndex(index: $0) } },
@@ -127,7 +127,7 @@ struct SearchResultsGridView: View {
             )
         ) { identifier in
             SearchResultsDetailNavigator(
-                state: state,
+                list: list,
                 initialIndex: identifier.index,
                 cardFlipStates: $cardFlipStates
             )
@@ -136,7 +136,7 @@ struct SearchResultsGridView: View {
 
     @ViewBuilder private var paginationStatusView: some View {
         VStack(spacing: 16) {
-            if state.current.isLoadingNextPage {
+            if list.value.isLoadingNextPage {
                 VStack(spacing: 12) {
                     ProgressView()
                         .scaleEffect(1.2)
@@ -146,7 +146,7 @@ struct SearchResultsGridView: View {
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 30)
-            } else if let error = state.current.nextPageError {
+            } else if let error = list.value.nextPageError {
                 VStack(spacing: 16) {
                     Image(systemName: error.iconName)
                         .font(.system(size: 40))
@@ -162,7 +162,7 @@ struct SearchResultsGridView: View {
                     }
 
                     Button("Retry") {
-                        state.retryNextPage()
+                        list.loadNextPage()
                     }
                     .buttonStyle(.borderedProminent)
                 }
@@ -171,18 +171,4 @@ struct SearchResultsGridView: View {
             }
         }
     }
-}
-
-// MARK: - Preview
-
-#Preview {
-    struct PreviewWrapper: View {
-        let state = ScryfallSearchResultsList()
-
-        var body: some View {
-            SearchResultsGridView(state: state)
-        }
-    }
-
-    return PreviewWrapper()
 }

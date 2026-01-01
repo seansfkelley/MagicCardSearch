@@ -18,12 +18,6 @@ struct ContentView: View {
     private let searchState: SearchState
     private let historyAndPinnedState: HistoryAndPinnedState
 
-    @State private var searchFilters: [SearchFilter] = []
-    @State private var inputText: String = ""
-    @State private var inputSelection: TextSelection?
-    @State private var searchResultsState = ScryfallSearchResultsList()
-    @State private var searchTask: Task<Void, Never>?
-
     @State private var showDisplaySheet = false
     @State private var showBookmarkedCardList = false
     @State private var searchConfig = SearchConfiguration.load()
@@ -68,19 +62,19 @@ struct ContentView: View {
                         startNewSearch()
                     }
                 case .results:
-                    SearchResultsGridView(state: searchResultsState)
+                    SearchResultsGridView(list: searchState.results)
                 }
             }
             .contentShape(Rectangle())
             .safeAreaInset(edge: .bottom) {
                 FakeSearchBarButtonView(
-                    filters: searchFilters,
-                    warnings: searchResultsState.current.latestValue?.warnings ?? [],
+                    filters: searchState.filters,
+                    warnings: searchState.results.latestValue?.warnings ?? [],
                     onClearAll: handleClearAll,
                 ) {
                     isSearchSheetVisible = true
                     // Awkward, but seems to be the best way to negatively match only one case?
-                    guard case .unloaded = searchResultsState.current else {
+                    guard case .unloaded = searchState.results else {
                         mainContentType = .results
                         return
                     }
@@ -186,56 +180,13 @@ struct ContentView: View {
     // MARK: - Helper Methods
 
     private func handleClearAll() {
-        searchFilters.removeAll()
-        inputText = ""
-        inputSelection = nil
-        searchResultsState.current = .unloaded
+        searchState.clearAll()
         isSearchSheetVisible = true
-
         // Don't change the main view until the search begins!
     }
 
-    private func startNewSearch(keepingCurrentResults: Bool = false) {
+    private func startNewSearch() {
         mainContentType = .results
-        
-        searchTask?.cancel()
-        
-        logger.info("Starting new search", metadata: [
-            "keepingCurrentResults": "\(keepingCurrentResults)",
-            "filters": "\(searchFilters)",
-            "configuration": "\(searchConfig)",
-        ])
-        
-        guard !searchFilters.isEmpty else {
-            logger.info("No search filters; skipping to empty result")
-            searchResultsState.current = .unloaded
-            searchTask = nil
-            return
-        }
-
-        searchResultsState.current = .loading(
-            // TODO: The following. The main search grid view does not blank out interaction because
-            // it's being too clever.
-            // keepingCurrentResults ? searchResultsState.results.latestValue : nil,
-            nil,
-            nil,
-        )
-
-        historyAndPinnedState.record(search: searchFilters)
-
-        searchTask = Task {
-            do {
-                let searchResults = try await searchService.search(
-                    filters: searchFilters,
-                    config: searchConfig
-                )
-                searchResultsState.current = .loaded(searchResults, nil)
-            } catch {
-                if !Task.isCancelled {
-                    print("Search error: \(error)")
-                    searchResultsState.current = .errored(nil, SearchErrorState(from: error))
-                }
-            }
-        }
+        searchState.performSearch(withConfiguration: searchConfig)
     }
 }

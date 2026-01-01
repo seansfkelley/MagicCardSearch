@@ -6,17 +6,20 @@
 //
 import ScryfallKit
 import Logging
+import SwiftUI
 
 private let logger = Logger(label: "ScryfallObjectList")
 
+@MainActor
+@Observable
 class ScryfallObjectList<T: Codable & Sendable> {
     public private(set) var value: LoadableResult<ObjectList<T>, SearchErrorState> = .unloaded
 
-    private var fetcher: (Int) async throws -> ObjectList<T>
+    private var fetcher: @Sendable (Int) async throws -> ObjectList<T>
     private var nextPage = 1
-    private var task: Task<Void, Never>?
+    nonisolated(unsafe) private var task: Task<Void, Never>?
 
-    init(_ fetcher: @escaping (Int) async throws -> ObjectList<T>) {
+    init(_ fetcher: @escaping @Sendable (Int) async throws -> ObjectList<T>) {
         self.fetcher = fetcher
     }
 
@@ -50,14 +53,14 @@ class ScryfallObjectList<T: Codable & Sendable> {
                 logger.debug("successfully fetched next page", metadata: [
                     "page": "\(nextPage)",
                 ])
-                nextPage += 1
-                value = .loaded(append(value.latestValue, result), nil)
+                self.nextPage += 1
+                self.value = .loaded(self.append(self.value.latestValue, result), nil)
             } catch {
                 logger.error("error fetching next page", metadata: [
                     "page": "\(nextPage)",
                     "error": "\(error)",
                 ])
-                value = .errored(value.latestValue, SearchErrorState(from: error))
+                self.value = .errored(self.value.latestValue, SearchErrorState(from: error))
             }
         }
     }
@@ -74,14 +77,13 @@ class ScryfallObjectList<T: Codable & Sendable> {
         )
     }
 
-
     deinit {
         task?.cancel()
     }
 }
 
-extension ObjectList {
-    public static func empty() -> ObjectList<T> {
+public extension ObjectList {
+    static func empty() -> ObjectList<T> {
         ObjectList<T>(data: [], hasMore: false, nextPage: nil, totalCards: 0, warnings: [])
     }
 }

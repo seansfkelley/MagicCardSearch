@@ -8,61 +8,27 @@ import SwiftUI
 import ScryfallKit
 
 struct SearchResultsDetailNavigator: View {
-    let state: ScryfallSearchResultsList
+    let list: ScryfallObjectList<Card>
     let initialIndex: Int
     @Binding var cardFlipStates: [UUID: Bool]
     
     @ObservedObject private var listManager = BookmarkedCardListManager.shared
     
-    init(
-        state: ScryfallSearchResultsList,
-        initialIndex: Int,
-        cardFlipStates: Binding<[UUID: Bool]>
-    ) {
-        self.state = state
-        self.initialIndex = initialIndex
-        self._cardFlipStates = cardFlipStates
-    }
-    
-    private var results: LoadableResult<SearchResults, SearchErrorState> {
-        state.current
-    }
-    
-    private var cards: [Card] {
-        results.latestValue?.cards ?? []
-    }
-    
-    private var totalCount: Int {
-        results.latestValue?.totalCount ?? 0
-    }
-    
-    private var hasMorePages: Bool {
-        results.latestValue?.nextPageUrl != nil
-    }
-    
-    private var isLoadingNextPage: Bool {
-        results.isLoadingNextPage
-    }
-    
-    private var nextPageError: SearchErrorState? {
-        results.nextPageError
-    }
-    
     var body: some View {
         LazyPagingDetailNavigator(
-            items: cards,
+            items: list.value.latestValue?.data ?? [],
             initialIndex: initialIndex,
-            totalCount: totalCount,
-            hasMorePages: hasMorePages,
-            isLoadingNextPage: isLoadingNextPage,
-            nextPageError: nextPageError,
+            totalCount: list.value.latestValue?.totalCards ?? 0,
+            hasMorePages: list.value.latestValue?.hasMore ?? false,
+            isLoadingNextPage: list.value.isLoadingNextPage,
+            nextPageError: list.value.nextPageError,
             loadDistance: 1,
             loader: { $0 },
             onNearEnd: {
-                state.loadNextPageIfNeeded()
+                list.loadNextPage()
             },
             onRetryNextPage: {
-                state.retryNextPage()
+                list.loadNextPage()
             }
         ) { card in
             CardDetailView(
