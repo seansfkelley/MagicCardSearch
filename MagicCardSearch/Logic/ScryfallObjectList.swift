@@ -39,15 +39,15 @@ class ScryfallObjectList<T: Codable & Sendable> {
         }
     }
 
-    func loadNextPage() {
+    func loadNextPage() -> Task<Void, Never> {
         if case .loading = value {
             logger.debug("declining to load next page: already loading")
-            return
+            return Task {}
         }
 
         if case .loaded(let list, _) = value, list.nextPage == nil {
             logger.debug("declining to load next page: already at the end of the list")
-            return
+            return Task {}
         }
 
         logger.info("loading next page", metadata: [
@@ -75,17 +75,19 @@ class ScryfallObjectList<T: Codable & Sendable> {
                 self.value = .errored(self.value.latestValue, SearchErrorState(from: error))
             }
         }
+
+        return task!
     }
 
-    func loadAllRemainingPages() {
+    func loadAllRemainingPages() -> Task<Void, Never> {
         if case .loading = value {
             logger.debug("declining to load all remaining pages: already loading")
-            return
+            return Task {}
         }
 
         if case .loaded(let list, _) = value, list.nextPage == nil {
             logger.debug("declining to load all remaining pages: already at the end of the list")
-            return
+            return Task {}
         }
 
         logger.info("loading all remaining pages", metadata: [
@@ -126,6 +128,8 @@ class ScryfallObjectList<T: Codable & Sendable> {
                 self.value = .loaded(currentData, nil)
             }
         }
+
+        return task!
     }
 
     private func append(_ first: ObjectList<T>?, _ second: ObjectList<T>) -> ObjectList<T> {

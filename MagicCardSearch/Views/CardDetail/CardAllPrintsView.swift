@@ -12,14 +12,12 @@ struct CardAllPrintsView: View {
     let oracleId: String
     let initialCardId: UUID
 
-    @State private var loadState: LoadableResult<[Card], Error> = .unloaded
+    @State private var objectList: ScryfallObjectList<Card> = .empty()
     @State private var currentIndex: Int = 0
     @State private var showFilterPopover = false
     @State private var printFilterSettings = PrintFilterSettings()
     @ObservedObject private var listManager = BookmarkedCardListManager.shared
     @Environment(\.dismiss) private var dismiss
-
-    private let cardSearchService = CardSearchService()
 
     // MARK: - Filter Settings
     
@@ -35,8 +33,7 @@ struct CardAllPrintsView: View {
     }
     
     private var currentPrints: [Card] {
-        // TODO: Do we want to lie like this?
-        loadState.latestValue ?? []
+        objectList.value.latestValue?.data ?? []
     }
     
     private var currentCard: Card? {
@@ -49,9 +46,10 @@ struct CardAllPrintsView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                if case .unloaded = loadState {
+                if case .unloaded = objectList.value {
                     EmptyView()
-                } else if let cards = loadState.latestValue {
+                } else if let objectListData = objectList.value.latestValue {
+                    let cards = objectListData.data
                     if cards.isEmpty {
                         if printFilterSettings.isDefault {
                             ContentUnavailableView(
@@ -83,7 +81,7 @@ struct CardAllPrintsView: View {
                             currentIndex: $currentIndex
                         )
                     }
-                } else if let error = loadState.latestError {
+                } else if let error = objectList.value.latestError {
                     ContentUnavailableView {
                         Label("Failed to load prints", systemImage: "exclamationmark.triangle")
                     } description: {
@@ -91,14 +89,14 @@ struct CardAllPrintsView: View {
                     } actions: {
                         Button("Try Again") {
                             Task {
-                                await loadPrints()
+                                await reloadAllPrints()
                             }
                         }
                         .buttonStyle(.borderedProminent)
                     }
                 }
                 
-                if case .loading = loadState {
+                if case .loading = objectList.value {
                     VStack {
                         Spacer()
                         HStack {
@@ -163,49 +161,38 @@ struct CardAllPrintsView: View {
             }
         }
         .task {
-            await loadPrints()
+            await reloadAllPrints()
         }
         .onChange(of: printFilterSettings) {
             Task {
-                await loadPrints()
+                await reloadAllPrints()
             }
         }
     }
 
-    private func loadPrints() async {
-        let targetCardId = if case .unloaded = loadState {
+    private func reloadAllPrints() async {
+        let searchQuery = printFilterSettings.toQueryFor(oracleId: oracleId)
+        let targetCardId = if case .unloaded = objectList.value {
             initialCardId
         } else {
             currentPrints[safe: currentIndex]?.id
         }
 
-        do {
-            let searchQuery = printFilterSettings.toQueryFor(oracleId: oracleId)
-            
-            loadState = .loading(loadState.latestValue, loadState.latestError)
-            
-            let rawPrints = try await cardSearchService.searchByRawQuery(searchQuery)
-            
-            let newPrints = rawPrints.sorted(using: [
-                KeyPathComparator(\.releasedAtAsDate, order: .reverse),
-                KeyPathComparator(\.set, order: .forward),
-                KeyPathComparator(\.collectorNumber, comparator: .localizedStandard),
-            ])
-            
-            loadState = .loaded(newPrints, nil)
-            
-            if let targetCardId,
-               let index = newPrints.firstIndex( where: { $0.id == targetCardId }) {
-                currentIndex = index
-            } else if !newPrints.isEmpty {
-                // Keep the index where it is in case the user unsets the filter immediately.
-                currentIndex = 0
-            }
-            
-            print("Loaded \(newPrints.count) prints for query: \(searchQuery)")
-        } catch {
-            print("Error loading prints: \(error)")
-            loadState = .errored(nil, error)
+        let client = ScryfallClient(networkLogLevel: .minimal)
+        objectList = ScryfallObjectList { page in
+            try await client.searchCards(
+                query: searchQuery,
+                page: page,
+            )
+        }
+        
+        await objectList.loadAllRemainingPages().value
+        
+        if let targetCardId,
+           let index = currentPrints.firstIndex(where: { $0.id == targetCardId }) {
+            currentIndex = index
+        } else if !currentPrints.isEmpty {
+            currentIndex = 0
         }
     }
 }
