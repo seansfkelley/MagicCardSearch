@@ -7,29 +7,33 @@
 
 import SwiftUI
 import ScryfallKit
+import SwiftData
 import NukeUI
 
 struct BookmarkedCardsListView: View {
-    @ObservedObject var listManager = BookmarkedCardListManager.shared
     @Environment(\.dismiss) private var dismiss
     @State private var editMode: EditMode = .inactive
     @State private var selectedCards: Set<UUID> = []
     @State private var detailSheetState: SheetState?
+    
+    @Environment(\.modelContext) private var modelContext
+    @Query private var allBookmarks: [BookmarkedCard]
     @AppStorage("bookmarkedCardsSortOption")
     private var sortMode: BookmarkSortMode = .name
 
+    private var bookmarks: [BookmarkedCard] {
+        // I guess you can't dynamically update the sort on a @Query, so just do it ourselves.
+        allBookmarks.sorted(using: sortMode.sortDescriptors)
+    }
+
     private var isEditing: Bool {
         return editMode == .active
-    }
-    
-    private var sortedCards: [BookmarkedCard] {
-        listManager.sortedCards(by: sortMode)
     }
 
     var body: some View {
         NavigationStack {
             Group {
-                if listManager.cards.isEmpty {
+                if bookmarks.isEmpty {
                     VStack(spacing: 16) {
                         Image(systemName: "bookmark.slash")
                             .font(.system(size: 60))
@@ -48,19 +52,19 @@ struct BookmarkedCardsListView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
                     List(selection: $selectedCards) {
-                        ForEach(Array(sortedCards.enumerated()), id: \.element.id) { index, card in
-                            CardListRow(card: card)
+                        ForEach(Array(bookmarks.enumerated()), id: \.element.id) { index, bookmark in
+                            BookmarkedCardRowView(card: bookmark)
                                 .contentShape(Rectangle())
                                 .onTapGesture {
                                     if !isEditing {
-                                        detailSheetState = SheetState(index: index, cards: sortedCards)
+                                        detailSheetState = SheetState(index: index, cards: bookmarks)
                                     }
                                 }
-                                .tag(card.id)
+                                .tag(bookmark.id)
                                 .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                                     Button(role: .destructive) {
                                         withAnimation {
-                                            listManager.removeCard(withId: card.id)
+                                            modelContext.delete(bookmark)
                                         }
                                     } label: {
                                         Label("Delete", systemImage: "trash")
@@ -96,7 +100,7 @@ struct BookmarkedCardsListView: View {
                     }
                     
                     ToolbarItemGroup(placement: .bottomBar) {
-                        if selectedCards.count == listManager.cards.count {
+                        if selectedCards.count == bookmarks.count {
                             Button {
                                 withAnimation {
                                     selectedCards.removeAll()
@@ -107,7 +111,7 @@ struct BookmarkedCardsListView: View {
                         } else {
                             Button {
                                 withAnimation {
-                                    selectedCards = Set(listManager.cards.map(\.id))
+                                    selectedCards = Set(bookmarks.map(\.id))
                                 }
                             } label: {
                                 Text("Select All")
@@ -118,9 +122,7 @@ struct BookmarkedCardsListView: View {
 
                         Button(role: .destructive) {
                             withAnimation {
-                                for cardId in selectedCards {
-                                    listManager.removeCard(withId: cardId)
-                                }
+                                try? modelContext.delete(model: BookmarkedCard.self, where: #Predicate { selectedCards.contains($0.id) })
                                 selectedCards.removeAll()
                                 editMode = .inactive
                             }
@@ -151,7 +153,7 @@ struct BookmarkedCardsListView: View {
                         } label: {
                             Image(systemName: "arrow.up.arrow.down")
                         }
-                        .disabled(listManager.cards.isEmpty)
+                        .disabled(bookmarks.isEmpty)
                     }
                     
                     ToolbarItem(placement: .topBarTrailing) {
@@ -162,7 +164,7 @@ struct BookmarkedCardsListView: View {
                         } label: {
                             Image(systemName: "checklist")
                         }
-                        .disabled(listManager.cards.isEmpty)
+                        .disabled(bookmarks.isEmpty)
                     }
                     
                     ToolbarItem(placement: .topBarTrailing) {
@@ -171,15 +173,15 @@ struct BookmarkedCardsListView: View {
                         ) {
                             Image(systemName: "square.and.arrow.up")
                         }
-                        .disabled(listManager.cards.isEmpty)
+                        .disabled(bookmarks.isEmpty)
                     }
                 }
             }
         }
         .sheet(item: $detailSheetState) { state in
             BookmarkedCardDetailNavigator(
-                cards: state.cards,
-                initialIndex: state.index
+                initialBookmarks: state.cards,
+                initialIndex: state.index,
             )
         }
     }
@@ -200,26 +202,28 @@ struct BookmarkedCardsListView: View {
     // MARK: - Shareable Text
 
     private var shareableText: String {
-        sortedCards.map { "1 \($0.name) (\($0.setCode.uppercased()))" }.joined(separator: "\n")
+        bookmarks.map { "1 \($0.name) (\($0.setCode.uppercased()))" }.joined(separator: "\n")
     }
 }
 
 // MARK: - Card Detail Navigator From List
 
 private struct BookmarkedCardDetailNavigator: View {
-    let cards: [BookmarkedCard]
+    let initialBookmarks: [BookmarkedCard]
     let initialIndex: Int
-    
+
     @State private var cardFlipStates: [UUID: Bool] = [:]
-    @ObservedObject private var listManager = BookmarkedCardListManager.shared
     
+    @Environment(\.modelContext) private var modelContext
+    @Query private var allBookmarks: [BookmarkedCard]
+
     private let cardSearchService = CardSearchService()
     
     var body: some View {
         LazyPagingDetailNavigator(
-            items: cards,
+            items: initialBookmarks,
             initialIndex: initialIndex,
-            totalCount: cards.count,
+            totalCount: initialBookmarks.count,
             hasMorePages: false,
             isLoadingNextPage: false,
             nextPageError: nil,
@@ -237,15 +241,23 @@ private struct BookmarkedCardDetailNavigator: View {
                 )
             )
         } toolbarContent: { card in
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    let listItem = BookmarkedCard(from: card)
-                    listManager.toggleCard(listItem)
-                } label: {
-                    Image(
-                        systemName: listManager.contains(cardWithId: card.id)
-                            ? "bookmark.fill" : "bookmark"
-                    )
+            // n.b. we have to use allBookmarks here, not initialBookmarks, so we are reactive to
+            // any changes that this detail view causes.
+            if let bookmark = allBookmarks.first(where: { $0.id == card.id }) {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        modelContext.delete(bookmark)
+                    } label: {
+                        Image(systemName: "bookmark.fill")
+                    }
+                }
+            } else {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        modelContext.insert(BookmarkedCard(from: card))
+                    } label: {
+                        Image(systemName: "bookmark")
+                    }
                 }
             }
 
@@ -260,12 +272,11 @@ private struct BookmarkedCardDetailNavigator: View {
 
 // MARK: - Card List Row
 
-private struct CardListRow: View {
+private struct BookmarkedCardRowView: View {
     let card: BookmarkedCard
 
     var body: some View {
         HStack(spacing: 10) {
-            // Card Image
             Group {
                 if let imageUrl = card.smallImageUrl, let url = URL(string: imageUrl) {
                     LazyImage(url: url) { state in
@@ -287,7 +298,6 @@ private struct CardListRow: View {
                 }
             }
 
-            // Card Info
             VStack(alignment: .leading, spacing: 4) {
                 Text(card.name)
                     .font(.body)

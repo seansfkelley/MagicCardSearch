@@ -5,15 +5,17 @@
 //  Created by Sean Kelley on 2025-12-05.
 //
 import SwiftUI
+import SwiftData
 import ScryfallKit
 
 struct SearchResultsDetailNavigator: View {
     let list: ScryfallObjectList<Card>
     let initialIndex: Int
     @Binding var cardFlipStates: [UUID: Bool]
-    
-    @ObservedObject private var listManager = BookmarkedCardListManager.shared
-    
+
+    @Environment(\.modelContext) private var modelContext
+    @Query private var bookmarks: [BookmarkedCard]
+
     var body: some View {
         LazyPagingDetailNavigator(
             items: list.value.latestValue?.data ?? [],
@@ -25,10 +27,10 @@ struct SearchResultsDetailNavigator: View {
             loadDistance: 1,
             loader: { $0 },
             onNearEnd: {
-                list.loadNextPage()
+                _ = list.loadNextPage()
             },
             onRetryNextPage: {
-                list.loadNextPage()
+                _ = list.loadNextPage()
             }
         ) { card in
             CardDetailView(
@@ -39,15 +41,21 @@ struct SearchResultsDetailNavigator: View {
                 )
             )
         } toolbarContent: { card in
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    let listItem = BookmarkedCard(from: card)
-                    listManager.toggleCard(listItem)
-                } label: {
-                    Image(
-                        systemName: listManager.contains(cardWithId: card.id)
-                            ? "bookmark.fill" : "bookmark"
-                    )
+            if let bookmark = bookmarks.first(where: { $0.id == card.id }) {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        modelContext.delete(bookmark)
+                    } label: {
+                        Image(systemName: "bookmark.fill")
+                    }
+                }
+            } else {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        modelContext.insert(BookmarkedCard(from: card))
+                    } label: {
+                        Image(systemName: "bookmark")
+                    }
                 }
             }
 

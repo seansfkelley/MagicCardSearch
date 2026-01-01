@@ -58,9 +58,7 @@ struct PinnedFilterStore {
 
     var allPinnedFiltersChronologically: [Row] {
         get throws {
-            try db.prepareRowIterator(
-                table.order(pinnedAt.desc)
-            ).map { try $0.decode() }
+            try db.prepareRowIterator(table.order(pinnedAt.desc)).map { try $0.decode() }
         }
     }
 

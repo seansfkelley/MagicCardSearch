@@ -6,6 +6,7 @@
 //
 import ScryfallKit
 import SwiftUI
+import SwiftData
 import NukeUI
 
 struct CardAllPrintsView: View {
@@ -16,8 +17,10 @@ struct CardAllPrintsView: View {
     @State private var currentIndex: Int = 0
     @State private var showFilterPopover = false
     @State private var printFilterSettings = PrintFilterSettings()
-    @ObservedObject private var listManager = BookmarkedCardListManager.shared
+    
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
+    @Query private var bookmarks: [BookmarkedCard]
 
     // MARK: - Filter Settings
     
@@ -138,19 +141,29 @@ struct CardAllPrintsView: View {
                     }
                 }
                 
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        if let card = currentCard {
-                            let listItem = BookmarkedCard(from: card)
-                            listManager.toggleCard(listItem)
+                if let currentCard, let bookmark = bookmarks.first(where: { $0.id == currentCard.id }) {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            modelContext.delete(bookmark)
+                        } label: {
+                            Image(systemName: "bookmark.fill")
                         }
-                    } label: {
-                        Image(
-                            systemName: currentCard.flatMap { listManager.contains(cardWithId: $0.id) } ?? false
-                                ? "bookmark.fill" : "bookmark"
-                        )
                     }
-                    .disabled(currentCard == nil)
+                } else if let currentCard {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            modelContext.insert(BookmarkedCard(from: currentCard))
+                        } label: {
+                            Image(systemName: "bookmark")
+                        }
+                    }
+                } else {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {} label: {
+                            Image(systemName: "bookmark")
+                        }
+                        .disabled(true)
+                    }
                 }
 
                 if let url = scryfallSearchUrl {

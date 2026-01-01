@@ -8,17 +8,18 @@
 import SwiftUI
 import ScryfallKit
 
-protocol Nameable: Identifiable {
+protocol Nameable {
     var name: String { get }
 }
 
-// MARK: - Card Conformance
+// MARK: - Conformances
 
 extension Card: Nameable {}
+extension BookmarkedCard: Nameable {}
 
 /// A generic lazy-loading detail navigator that supports paging through items with automatic loading
 /// of items within a specified range of the current position.
-struct LazyPagingDetailNavigator<ItemReference: Nameable, Item: Identifiable, Content: View, Toolbar: ToolbarContent>: View where ItemReference.ID == Item.ID {
+struct LazyPagingDetailNavigator<ItemReference: Nameable & Identifiable, Item: Identifiable, Content: View, Toolbar: ToolbarContent>: View where ItemReference.ID == Item.ID {
     // MARK: - Types
     
     enum LoadingState {

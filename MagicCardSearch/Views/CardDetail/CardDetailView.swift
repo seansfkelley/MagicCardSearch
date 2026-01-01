@@ -17,7 +17,6 @@ struct CardDetailView: View {
     @State private var relatedCardToShow: Card?
     @State private var isLoadingRelatedCard = false
     @State private var rulingsResult: LoadableResult<[Card.Ruling], Error> = .unloaded
-    @ObservedObject private var listManager = BookmarkedCardListManager.shared
     private let cardSearchService = CardSearchService()
     private let rulingsService = RulingsService.shared
 
