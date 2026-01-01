@@ -27,6 +27,18 @@ class ScryfallObjectList<T: Codable & Sendable> {
         ScryfallObjectList { _ in .empty() }
     }
 
+    func clearWarnings() {
+        value = value.mapValue { list in
+            ObjectList(
+                data: list.data,
+                hasMore: list.hasMore,
+                nextPage: list.nextPage,
+                totalCards: list.totalCards,
+                warnings: [],
+            )
+        }
+    }
+
     func loadNextPage() {
         if case .loading = value {
             logger.debug("declining to load next page: already loading")

@@ -6,6 +6,7 @@
 //
 import SwiftUI
 import Logging
+import ScryfallKit
 
 private let logger = Logger(label: "ContentView")
 
@@ -15,7 +16,7 @@ enum MainContentType {
 }
 
 struct ContentView: View {
-    private let searchState: SearchState
+    @State private var searchState: SearchState
     private let historyAndPinnedState: HistoryAndPinnedState
 
     @State private var showDisplaySheet = false
@@ -67,12 +68,12 @@ struct ContentView: View {
             .safeAreaInset(edge: .bottom) {
                 FakeSearchBarButtonView(
                     filters: searchState.filters,
-                    warnings: searchState.results.value.latestValue?.warnings ?? [],
+                    warnings: searchState.results?.value.latestValue?.warnings ?? [],
                     onClearAll: handleClearAll,
                 ) {
                     isSearchSheetVisible = true
                     // Awkward, but seems to be the best way to negatively match only one case?
-                    guard case .unloaded = searchState.results.value else {
+                    guard case .unloaded = searchState.results?.value else {
                         mainContentType = .results
                         return
                     }
@@ -134,15 +135,7 @@ struct ContentView: View {
             startNewSearch()
         }
         .onChange(of: searchState.filters) {
-            // Clear warnings when filters change by resetting to unloaded or keeping existing results
-            if case .loaded(let results, _) = searchResultsState.current {
-                searchState.value = .loaded(SearchResults(
-                    cards: searchResults.cards,
-                    totalCount: searchResults.totalCount,
-                    nextPageUrl: searchResults.nextPageUrl,
-                    warnings: [],
-                ), nil)
-            }
+            searchState.results?.clearWarnings()
         }
         .sheet(isPresented: $showDisplaySheet, onDismiss: {
             if let pending = pendingSearchConfig, pending != searchConfig {
@@ -162,11 +155,7 @@ struct ContentView: View {
         }
         .sheet(isPresented: $isSearchSheetVisible) {
             SearchSheetView(
-                inputText: $inputText,
-                inputSelection: $inputSelection,
-                filters: $searchFilters,
-                warnings: searchResultsState.current.latestValue?.warnings ?? [],
-                searchState: searchState,
+                searchState: $searchState,
                 historyAndPinnedState: historyAndPinnedState,
                 onClearAll: handleClearAll,
             ) {

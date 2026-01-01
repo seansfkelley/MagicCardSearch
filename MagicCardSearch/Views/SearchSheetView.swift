@@ -7,13 +7,8 @@
 import SwiftUI
 
 struct SearchSheetView: View {
-    @Binding var inputText: String
-    @Binding var inputSelection: TextSelection?
-    @Binding var filters: [SearchFilter]
-    let warnings: [String]
-    let searchState: SearchState
+    @Binding var searchState: SearchState
     let historyAndPinnedState: HistoryAndPinnedState
-
     let onClearAll: () -> Void
     let onSubmit: () -> Void
 
@@ -24,11 +19,8 @@ struct SearchSheetView: View {
     var body: some View {
         NavigationStack {
             AutocompleteView(
-                inputText: $inputText,
-                inputSelection: $inputSelection,
-                filters: $filters,
+                searchState: $searchState,
                 suggestionLoadingState: $suggestionLoadingState,
-                searchState: searchState,
                 historyAndPinnedState: historyAndPinnedState,
             ) {
                 dismiss()
@@ -63,12 +55,8 @@ struct SearchSheetView: View {
             }
             .safeAreaInset(edge: .bottom) {
                 SearchBarAndPillsView(
-                    filters: $filters,
-                    warnings: warnings,
-                    inputText: $inputText,
-                    inputSelection: $inputSelection,
+                    searchState: $searchState,
                     isAutocompleteLoading: suggestionLoadingState.isLoadingDebounced,
-                    searchState: searchState,
                     onFilterEdit: handleFilterEdit,
                     onClearAll: onClearAll,
                 ) {
@@ -83,7 +71,7 @@ struct SearchSheetView: View {
     }
 
     private func handleFilterEdit(_ filter: SearchFilter) {
-        inputText = filter.description
-        inputSelection = TextSelection(range: filter.suggestedEditingRange)
+        searchState.searchText = filter.description
+        searchState.searchSelection = TextSelection(range: filter.suggestedEditingRange)
     }
 }

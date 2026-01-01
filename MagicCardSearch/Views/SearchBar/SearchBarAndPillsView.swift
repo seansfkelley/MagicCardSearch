@@ -7,12 +7,8 @@
 import SwiftUI
 
 struct SearchBarAndPillsView: View {
-    @Binding var filters: [SearchFilter]
-    let warnings: [String]
-    @Binding var inputText: String
-    @Binding var inputSelection: TextSelection?
+    @Binding var searchState: SearchState
     let isAutocompleteLoading: Bool
-    let searchState: SearchState
     let onFilterEdit: (SearchFilter) -> Void
     let onClearAll: () -> Void
     let onSubmit: () -> Void
@@ -26,12 +22,12 @@ struct SearchBarAndPillsView: View {
         VStack(spacing: 0) {
             HStack(alignment: .bottom) {
                 WarningsPillView(
-                    warnings: warnings,
+                    warnings: searchState.results?.value.latestValue?.warnings ?? [],
                     mode: .pill,
                     isExpanded: $showWarningsPopover
                 )
                 Spacer()
-                if !filters.isEmpty {
+                if !searchState.filters.isEmpty {
                     Button(role: .destructive, action: onClearAll) {
                         Text("Clear all")
                             .font(.subheadline)
@@ -45,9 +41,9 @@ struct SearchBarAndPillsView: View {
             .padding(.bottom, 8)
 
             VStack(spacing: 0) {
-                if !filters.isEmpty {
+                if !searchState.filters.isEmpty {
                     ReflowingFilterPillsView(
-                        filters: $filters,
+                        filters: $searchState.filters,
                         maxRows: maxPillRows,
                         onEdit: onFilterEdit
                     )
@@ -68,9 +64,9 @@ struct SearchBarAndPillsView: View {
                 }
 
                 SearchBarView(
-                    filters: $filters,
-                    inputText: $inputText,
-                    inputSelection: $inputSelection,
+                    filters: $searchState.filters,
+                    inputText: $searchState.searchText,
+                    inputSelection: $searchState.searchSelection,
                     isAutocompleteLoading: isAutocompleteLoading,
                     searchState: searchState,
                     onSubmit: onSubmit,

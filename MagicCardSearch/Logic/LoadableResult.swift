@@ -18,7 +18,7 @@ enum LoadableResult<T, E: Error> {
         case .errored(let value, _): value
         }
     }
-    
+
     var latestError: E? {
         return switch self {
         case .unloaded: nil
@@ -27,7 +27,16 @@ enum LoadableResult<T, E: Error> {
         case .errored(_, let error): error
         }
     }
-    
+
+    func mapValue<U>(_ transform: (T) -> U) -> LoadableResult<U, E> {
+        return switch self {
+        case .unloaded: .unloaded
+        case .loading(let value, let error): .loading(value.map(transform), error)
+        case .loaded(let value, let error): .loaded(transform(value), error)
+        case .errored(let value, let error): .errored(value.map(transform), error)
+        }
+    }
+
     func asLoading(keepingData: Bool = true, keepingError: Bool = false) -> LoadableResult<T, E> {
         .loading(keepingData ? latestValue : nil, keepingError ? latestError : nil)
     }

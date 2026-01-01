@@ -10,23 +10,16 @@ import SwiftUI
 struct AutocompleteView: View {
     @Environment(\.dismiss) private var dismiss
 
-    @Binding var inputText: String
-    @Binding var inputSelection: TextSelection?
-    @Binding var filters: [SearchFilter]
+    @Binding var searchState: SearchState
     @Binding var suggestionLoadingState: DebouncedLoadingState
-    let searchState: SearchState
     let historyAndPinnedState: HistoryAndPinnedState
     let performSearch: () -> Void
 
     @State private var suggestions: [Suggestion] = []
     @State private var nonce: Int = 0
 
-    private var currentFilter: CurrentlyHighlightedFilterFacade {
-        CurrentlyHighlightedFilterFacade(inputText: inputText, inputSelection: inputSelection)
-    }
-
     private var searchSuggestionKey: SearchSuggestionKey {
-        SearchSuggestionKey(inputText: inputText, filterCount: filters.count, nonce: nonce)
+        SearchSuggestionKey(inputText: searchState.searchText, filterCount: searchState.filters.count, nonce: nonce)
     }
     
     private struct SearchSuggestionKey: Equatable {
@@ -61,7 +54,7 @@ struct AutocompleteView: View {
 
     var body: some View {
         List {
-            if let filter = inputText.toSearchFilter().value {
+            if let filter = searchState.searchText.toSearchFilter().value {
                 BasicRowView(
                     filter: filter,
                     matchRange: nil,
@@ -158,44 +151,47 @@ struct AutocompleteView: View {
         }
         .listStyle(.plain)
         .task(id: searchSuggestionKey) {
-            for await newSuggestions in searchState.suggestionProvider.getSuggestions(for: currentFilter.inputText, existingFilters: Set(filters)) {
+            for await newSuggestions in searchState.suggestionProvider.getSuggestions(
+                for: searchState.selectedFilter.text,
+                existingFilters: Set(searchState.filters),
+            ) {
                 suggestions = newSuggestions
             }
         }
     }
 
     private func setEntireSearch(to search: [SearchFilter]) {
-        filters = search
-        inputText = ""
-        inputSelection = TextSelection(insertionPoint: inputText.endIndex)
+        searchState.filters = search
+        searchState.searchText = ""
+        searchState.searchSelection = TextSelection(insertionPoint: "".endIndex)
         performSearch()
     }
     
     private func addTopLevelFilter(_ filter: SearchFilter) {
-        filters.append(filter)
-        inputText = ""
-        inputSelection = TextSelection(insertionPoint: inputText.endIndex)
+        searchState.filters.append(filter)
+        searchState.searchText = ""
+        searchState.searchSelection = TextSelection(insertionPoint: "".endIndex)
     }
     
     private func addScopedFilter(_ filter: SearchFilter) {
-        if let range = currentFilter.range, range != inputText.range {
+        if let range = searchState.selectedFilter.range, range != searchState.searchText.range {
             let filterString = filter.description
-            inputText.replaceSubrange(range, with: filterString)
-            inputSelection = TextSelection(insertionPoint: inputText.index(range.lowerBound, offsetBy: filterString.count))
+            searchState.searchText.replaceSubrange(range, with: filterString)
+            searchState.searchSelection = TextSelection(insertionPoint: searchState.searchText.index(range.lowerBound, offsetBy: filterString.count))
         } else {
-            filters.append(filter)
-            inputText = ""
-            inputSelection = TextSelection(insertionPoint: inputText.endIndex)
+            searchState.filters.append(filter)
+            searchState.searchText = ""
+            searchState.searchSelection = TextSelection(insertionPoint: "".endIndex)
         }
     }
     
     private func setScopedString(_ string: String) {
-        if let range = currentFilter.range {
-            inputText.replaceSubrange(range, with: string)
-            inputSelection = TextSelection(insertionPoint: inputText.index(range.lowerBound, offsetBy: string.count))
+        if let range = searchState.selectedFilter.range {
+            searchState.searchText.replaceSubrange(range, with: string)
+            searchState.searchSelection = TextSelection(insertionPoint: searchState.searchText.index(range.lowerBound, offsetBy: string.count))
         } else {
-            inputText = string
-            inputSelection = TextSelection(insertionPoint: inputText.endIndex)
+            searchState.searchText = string
+            searchState.searchSelection = TextSelection(insertionPoint: string.endIndex)
         }
     }
 

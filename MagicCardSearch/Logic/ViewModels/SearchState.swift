@@ -18,15 +18,20 @@ class SearchState {
     public var searchSelection: TextSelection?
     public var filters: [SearchFilter] = []
     public private(set) var results: ScryfallObjectList<Card>?
+    // TODO: This should eventually be private and only expose the suggestions themselves.
+    public let suggestionProvider: CombinedSuggestionProvider
+
+    public var selectedFilter: CurrentlyHighlightedFilterFacade {
+        CurrentlyHighlightedFilterFacade(inputText: searchText, inputSelection: searchSelection)
+    }
 
     private let scryfall = ScryfallClient(networkLogLevel: .minimal)
     private let filterHistory: FilterHistoryStore
     private let searchHistory: SearchHistoryStore
     private let pinnedFilter: PinnedFilterStore
 
-    // TODO: This should eventually be private and instead we expose the suggestions themselves.
-    public var suggestionProvider: CombinedSuggestionProvider {
-        CombinedSuggestionProvider(
+    init(filterHistory: FilterHistoryStore, searchHistory: SearchHistoryStore, pinnedFilter: PinnedFilterStore) {
+        self.suggestionProvider = CombinedSuggestionProvider(
             pinnedFilter: PinnedFilterSuggestionProvider(store: pinnedFilter),
             history: HistorySuggestionProvider(
                 filterHistoryStore: filterHistory,
@@ -37,9 +42,6 @@ class SearchState {
             reverseEnumeration: ReverseEnumerationSuggestionProvider(),
             name: NameSuggestionProvider(debounce: .milliseconds(500))
         )
-    }
-
-    init(filterHistory: FilterHistoryStore, searchHistory: SearchHistoryStore, pinnedFilter: PinnedFilterStore) {
         self.filterHistory = filterHistory
         self.searchHistory = searchHistory
         self.pinnedFilter = pinnedFilter
@@ -50,6 +52,10 @@ class SearchState {
         searchSelection = nil
         filters = []
         results = nil
+    }
+
+    public func clearWarnings() {
+        results?.clearWarnings()
     }
 
     public func performSearch(withConfiguration config: SearchConfiguration) {
