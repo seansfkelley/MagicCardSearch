@@ -31,7 +31,7 @@ func appDatabase() throws -> any DatabaseWriter {
     #endif
     migrator.registerMigration("add bookmarks") { db in
         try db.create(table: "bookmarkedCards") { t in
-            t.column("id", .text).notNull(onConflict: .ignore)
+            t.column("id", .text).notNull(onConflict: .replace)
             t.column("name", .text).notNull()
             t.column("typeLine", .text)
             t.column("frontCardFace", .jsonText).notNull()
@@ -41,6 +41,13 @@ func appDatabase() throws -> any DatabaseWriter {
             t.column("collectorNumber", .text).notNull()
             t.column("releasedAt", .datetime).notNull()
             t.column("bookmarkedAt", .datetime).notNull()
+        }
+    }
+    migrator.registerMigration("add filter history") { db in
+        try db.create(table: "filterHistoryEntrys") { t in
+            t.autoIncrementedPrimaryKey("id")
+            t.column("lastUsedAt", .datetime).notNull()
+            t.column("filter", .jsonText).notNull().unique(onConflict: .replace)
         }
     }
     try migrator.migrate(database)

@@ -7,7 +7,7 @@ private func isScryfallFilter(_ filter: String) -> Bool {
     scryfallFilterByType[filter.lowercased()] != nil
 }
 
-enum SearchFilter: SearchFilterContent {
+public enum SearchFilter: SearchFilterContent {
     case name(Name)
     case basic(Basic)
     case regex(Regex)
@@ -22,7 +22,7 @@ enum SearchFilter: SearchFilterContent {
         }
     }
 
-    var description: String { content.description }
+    public var description: String { content.description }
     var suggestedEditingRange: Range<String.Index> { content.suggestedEditingRange }
     var isKnownFilterType: Bool { content.isKnownFilterType }
 
@@ -42,7 +42,7 @@ enum SearchFilter: SearchFilterContent {
         .disjunction(Disjunction(negated, clauses))
     }
 
-    struct Name: SearchFilterContent {
+    public struct Name: SearchFilterContent {
         let negated: Bool
         let isExact: Bool
         let name: String
@@ -53,7 +53,7 @@ enum SearchFilter: SearchFilterContent {
             self.name = name
         }
 
-        var description: String {
+        public var description: String {
             var prefix = ""
             var suffix = ""
             if negated {
@@ -82,7 +82,7 @@ enum SearchFilter: SearchFilterContent {
         var isKnownFilterType: Bool { true }
     }
 
-    struct Regex: SearchFilterContent {
+    public struct Regex: SearchFilterContent {
         let negated: Bool
         let filter: String
         let comparison: Comparison
@@ -95,7 +95,7 @@ enum SearchFilter: SearchFilterContent {
             self.regex = regex
         }
 
-        var description: String {
+        public var description: String {
             "\(negated ? "-" : "")\(filter)\(comparison)/\(regex)/"
         }
 
@@ -111,7 +111,7 @@ enum SearchFilter: SearchFilterContent {
         var isKnownFilterType: Bool { isScryfallFilter(filter) }
     }
 
-    struct Basic: SearchFilterContent {
+    public struct Basic: SearchFilterContent {
         let negated: Bool
         let filter: String
         let comparison: Comparison
@@ -124,7 +124,7 @@ enum SearchFilter: SearchFilterContent {
             self.query = query
         }
 
-        var description: String {
+        public var description: String {
             return if query.contains(" ") {
                 "\(negated ? "-" : "")\(filter)\(comparison)\"\(query)\""
             } else {
@@ -145,11 +145,11 @@ enum SearchFilter: SearchFilterContent {
         var isKnownFilterType: Bool { isScryfallFilter(filter) }
     }
 
-    struct Disjunction: SearchFilterContent {
+    public struct Disjunction: SearchFilterContent {
         let negated: Bool
         let clauses: [Conjunction]
 
-        var description: String {
+        public var description: String {
             descriptionWithContext(needsParentheses: true)
         }
 
