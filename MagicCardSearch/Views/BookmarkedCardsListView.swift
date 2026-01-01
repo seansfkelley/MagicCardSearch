@@ -18,14 +18,9 @@ struct BookmarkedCardsListView: View {
     @State private var detailSheetState: SheetState?
     
     @Dependency(\.defaultDatabase) var database
-    @FetchAll private var allBookmarks: [BookmarkedCard]
+    @State @FetchAll private var bookmarks: [BookmarkedCard] = [] // Needs a default because of @State.
     @AppStorage("bookmarkedCardsSortOption")
     private var sortMode: BookmarkSortMode = .name
-
-    private var bookmarks: [BookmarkedCard] {
-        // I guess you can't dynamically update the sort on a @Query, so just do it ourselves.
-        allBookmarks.sorted(using: sortMode.sortDescriptors)
-    }
 
     private var isEditing: Bool {
         return editMode == .active
@@ -193,8 +188,63 @@ struct BookmarkedCardsListView: View {
                 initialIndex: state.index,
             )
         }
+        .task(id: sortMode) {
+            _ = await withErrorReporting {
+                try await $bookmarks.wrappedValue.load(ordering())
+            }
+        }
     }
-    
+
+    // This was the only way to appease the compiler.
+    private func ordering() -> SelectOf<BookmarkedCard> {
+        switch sortMode {
+        case .name:
+            BookmarkedCard.order {
+                (
+                    $0.name.asc(),
+                    $0.setCode.asc(),
+                    $0.collectorNumber.asc(),
+                )
+            }
+        case .releaseDateNewest:
+            BookmarkedCard.order {
+                (
+                    $0.releasedAt.desc(),
+                    $0.name.asc(),
+                    $0.setCode.asc(),
+                    $0.collectorNumber.asc()
+                )
+            }
+        case .releaseDateOldest:
+            BookmarkedCard.order {
+                (
+                    $0.releasedAt.asc(),
+                    $0.name.asc(),
+                    $0.setCode.asc(),
+                    $0.collectorNumber.asc()
+                )
+            }
+        case .dateAddedNewest:
+            BookmarkedCard.order {
+                (
+                    $0.bookmarkedAt.desc(),
+                    $0.name.asc(),
+                    $0.setCode.asc(),
+                    $0.collectorNumber.asc()
+                )
+            }
+        case .dateAddedOldest:
+            BookmarkedCard.order {
+                (
+                    $0.bookmarkedAt.asc(),
+                    $0.name.asc(),
+                    $0.setCode.asc(),
+                    $0.collectorNumber.asc()
+                )
+            }
+        }
+    }
+
     struct SheetState: Identifiable {
         let id: UUID
         let index: Int
@@ -344,14 +394,4 @@ private struct BookmarkedCardRowView: View {
         }
         .padding(.vertical, 2)
     }
-}
-
-// MARK: - Preview
-
-#Preview("With Cards") {
-    BookmarkedCardsListView()
-}
-
-#Preview("Empty State") {
-    BookmarkedCardsListView()
 }

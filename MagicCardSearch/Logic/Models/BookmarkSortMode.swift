@@ -36,43 +36,4 @@ enum BookmarkSortMode: String, CaseIterable, Identifiable {
             return "Oldest First"
         }
     }
-
-    var sortDescriptors: [SortDescriptor<BookmarkedCard>] {
-        switch self {
-        case .name:
-            [
-                SortDescriptor(\.name),
-                SortDescriptor(\.setCode),
-                SortDescriptor(\.collectorNumber),
-            ]
-        case .releaseDateNewest:
-            [
-                SortDescriptor(\.releasedAt, order: .reverse),
-                SortDescriptor(\.name),
-                SortDescriptor(\.setCode),
-                SortDescriptor(\.collectorNumber),
-            ]
-        case .releaseDateOldest:
-            [
-                SortDescriptor(\.releasedAt),
-                SortDescriptor(\.name),
-                SortDescriptor(\.setCode),
-                SortDescriptor(\.collectorNumber),
-            ]
-        case .dateAddedNewest:
-            [
-                SortDescriptor(\.bookmarkedAt, order: .reverse),
-                SortDescriptor(\.name),
-                SortDescriptor(\.setCode),
-                SortDescriptor(\.collectorNumber),
-            ]
-        case .dateAddedOldest:
-            [
-                SortDescriptor(\.bookmarkedAt),
-                SortDescriptor(\.name),
-                SortDescriptor(\.setCode),
-                SortDescriptor(\.collectorNumber),
-            ]
-        }
-    }
 }
