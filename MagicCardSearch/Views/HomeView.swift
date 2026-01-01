@@ -4,7 +4,6 @@
 //
 //  Created by Sean Kelley on 2025-12-18.
 //
-
 import SwiftUI
 import ScryfallKit
 import Logging
@@ -28,156 +27,26 @@ private extension View {
 }
 
 struct HomeView: View {
-    let searchState: SearchState
     let historyAndPinnedState: HistoryAndPinnedState
     let onSearchSelected: ([SearchFilter]) -> Void
     
     @State private var cardFlipStates: [UUID: Bool] = [:]
     @State private var selectedCardIndex: Int?
     
-    private let featuredState = FeaturedCardsState.shared
-    private let featuredWidth: CGFloat = 120
-    
+    private let featuredList = FeaturedCardsObjectList.shared
+    private let featuredCardWidth: CGFloat = 120
+
     var body: some View {
         List {
-            Section {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 12) {
-                        switch featuredState.current {
-                        case .loading(nil, _), .unloaded:
-                            ForEach(0..<15, id: \.self) { _ in
-                                CardPlaceholderView(name: nil, cornerRadius: 8, withSpinner: true)
-                                    .frame(width: featuredWidth, height: featuredWidth / Card.aspectRatio)
-                            }
-                        case .loading(let results?, _), .loaded(let results, _), .errored(let results?, _):
-                            ForEach(Array(results.cards.enumerated()), id: \.element.id) { index, card in
-                                Button {
-                                    selectedCardIndex = index
-                                } label: {
-                                    CardView(
-                                        card: card,
-                                        quality: .small,
-                                        isFlipped: Binding(
-                                            get: { cardFlipStates[card.id] ?? false },
-                                            set: { cardFlipStates[card.id] = $0 }
-                                        ),
-                                        cornerRadius: 8,
-                                    )
-                                    .frame(width: featuredWidth)
-                                }
-                                .buttonStyle(.plain)
-                                .onAppear {
-                                    if index == results.cards.count - 3 {
-                                        featuredState.loadNextPageIfNeeded()
-                                    }
-                                }
-                            }
-                            
-                            if case .loading = featuredState.current, results.nextPageUrl != nil {
-                                ProgressView()
-                                    .frame(width: featuredWidth, height: featuredWidth / Card.aspectRatio)
-                            }
-                        case .errored(nil, let error):
-                            ContentUnavailableView(
-                                "Unable to Load Spoilers",
-                                systemImage: "exclamationmark.triangle",
-                                description: Text(error.description),
-                            )
-                            .frame(width: featuredWidth * 2, height: featuredWidth / Card.aspectRatio)
-                        }
-                    }
-                    .padding(.horizontal)
-                }
-            } header: {
-                HStack {
-                    Text("Recent Spoilers")
-                    
-                    Spacer()
-                    
-                    Button(action: {
-                        onSearchSelected([
-                            .basic(false, "date", .greaterThanOrEqual, "today"),
-                            .basic(false, "order", .including, SortMode.spoiled.rawValue),
-                            .basic(false, "dir", .including, SortDirection.desc.rawValue),
-                            .basic(false, "unique", .including, UniqueMode.prints.rawValue),
-                        ])
-                    }) {
-                        Text("View All")
-                    }
-                }
-                .padding(.horizontal)
-            }
-            .listRowInsets(.horizontal, 0)
-            .listSectionMargins(.horizontal, 0)
-
-            let recentSearches = historyAndPinnedState.getLatestSearches(count: 10)
-
-            if !recentSearches.isEmpty {
-                Section {
-                    ForEach(recentSearches, id: \.lastUsedAt) { entry in
-                        Button {
-                            onSearchSelected(entry.search)
-                        } label: {
-                            HStack {
-                                Text(entry.search.map { $0.description }.joined(separator: " "))
-                                    .font(.body)
-                                    .foregroundStyle(.primary)
-                                    .lineLimit(2)
-                                Spacer()
-                            }
-                            .padding(.horizontal)
-                            .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                            Button(role: .destructive) {
-                                historyAndPinnedState.delete(search: entry.search)
-                            } label: {
-                                Label("Delete", systemImage: "trash")
-                            }
-                        }
-                    }
-                } header: {
-                    Text("Recent Searches")
-                        .padding(.horizontal)
-                }
-                .listRowInsets(.horizontal, 0)
-                .listSectionMargins(.horizontal, 0)
-            }
-            
-            Section {
-                ForEach(ExampleSearch.dailyExamples, id: \.title) { example in
-                    Button {
-                        onSearchSelected(example.filters)
-                    } label: {
-                        HStack {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(example.title)
-                                    .font(.body.weight(.semibold))
-                                    .foregroundStyle(.primary)
-                                Text(example.filters.map { $0.description }.joined(separator: " "))
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                            Spacer()
-                        }
-                        .padding(.horizontal)
-                        .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                }
-            } header: {
-                Text("Need Inspiration?")
-                    .padding(.horizontal)
-            }
-            .listRowInsets(.horizontal, 0)
-            .listSectionMargins(.horizontal, 0)
+            featuredCardsSection()
+            recentSearchesSection()
+            examplesSection()
         }
         .task {
             if isRunningTests() {
                 logger.info("Skipping featured card load in test environment")
             } else {
-                await loadFeaturedCards()
+                FeaturedCardsObjectList.shared.loadNextPage()
             }
         }
         .sheet(
@@ -187,169 +56,173 @@ struct HomeView: View {
             )
         ) { identifier in
             SearchResultsDetailNavigator(
-                state: featuredState,
+                list: FeaturedCardsObjectList.shared,
                 initialIndex: identifier.index,
                 cardFlipStates: $cardFlipStates
             )
         }
     }
-    
-    private func loadFeaturedCards() async {
-        guard case .unloaded = featuredState.current else {
-            return
+
+    @ViewBuilder
+    // swiftlint:disable:next function_body_length
+    private func featuredCardsSection() -> some View {
+        Section {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 12) {
+                    switch FeaturedCardsObjectList.shared.value {
+                    case .loading(nil, _), .unloaded:
+                        ForEach(0..<15, id: \.self) { _ in
+                            CardPlaceholderView(name: nil, cornerRadius: 8, withSpinner: true)
+                                .frame(width: featuredCardWidth, height: featuredCardWidth / Card.aspectRatio)
+                        }
+                    case .loading(let results?, _), .loaded(let results, _), .errored(let results?, _):
+                        ForEach(Array(results.data.enumerated()), id: \.element.id) { index, card in
+                            Button {
+                                selectedCardIndex = index
+                            } label: {
+                                CardView(
+                                    card: card,
+                                    quality: .small,
+                                    isFlipped: Binding(
+                                        get: { cardFlipStates[card.id] ?? false },
+                                        set: { cardFlipStates[card.id] = $0 }
+                                    ),
+                                    cornerRadius: 8,
+                                )
+                                .frame(width: featuredCardWidth)
+                            }
+                            .buttonStyle(.plain)
+                            .onAppear {
+                                if index == results.data.count - 3 {
+                                    featuredList.loadNextPage()
+                                }
+                            }
+                        }
+
+                        if case .loading = featuredList.value, results.hasMore ?? false {
+                            ProgressView()
+                                .frame(width: featuredCardWidth, height: featuredCardWidth / Card.aspectRatio)
+                        }
+                    case .errored(nil, let error):
+                        ContentUnavailableView(
+                            "Unable to Load Spoilers",
+                            systemImage: "exclamationmark.triangle",
+                            description: Text(error.description),
+                        )
+                        .frame(width: featuredCardWidth * 2, height: featuredCardWidth / Card.aspectRatio)
+                    }
+                }
+                .padding(.horizontal)
+            }
+        } header: {
+            HStack {
+                Text("Recent Spoilers")
+
+                Spacer()
+
+                Button(action: {
+                    onSearchSelected([
+                        .basic(false, "date", .greaterThanOrEqual, "today"),
+                        .basic(false, "order", .including, SortMode.spoiled.rawValue),
+                        .basic(false, "dir", .including, SortDirection.desc.rawValue),
+                        .basic(false, "unique", .including, UniqueMode.prints.rawValue),
+                    ])
+                }) {
+                    Text("View All")
+                }
+            }
+            .padding(.horizontal)
         }
-        
-        featuredState.current = .loading(nil, nil)
-        
-        let searchService = CardSearchService()
-        
-        do {
-            let searchResults = try await searchService.search(
-                filters: [
-                    SearchFilter.basic(false, "date", .greaterThanOrEqual, "today"),
-                ],
-                config: SearchConfiguration(
-                    uniqueMode: .prints,
-                    sortField: .spoiled,
-                    sortOrder: .descending
-                ),
-            )
-            featuredState.current = .loaded(searchResults, nil)
-        } catch {
-            print("Search error: \(error)")
-            featuredState.current = .errored(featuredState.current.latestValue, SearchErrorState(from: error))
+        .listRowInsets(.horizontal, 0)
+        .listSectionMargins(.horizontal, 0)
+    }
+
+    @ViewBuilder
+    private func recentSearchesSection() -> some View {
+        let recentSearches = historyAndPinnedState.getLatestSearches(count: 10)
+
+        if !recentSearches.isEmpty {
+            Section {
+                ForEach(recentSearches, id: \.lastUsedAt) { entry in
+                    Button {
+                        onSearchSelected(entry.search)
+                    } label: {
+                        HStack {
+                            Text(entry.search.map { $0.description }.joined(separator: " "))
+                                .font(.body)
+                                .foregroundStyle(.primary)
+                                .lineLimit(2)
+                            Spacer()
+                        }
+                        .padding(.horizontal)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                        Button(role: .destructive) {
+                            historyAndPinnedState.delete(search: entry.search)
+                        } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
+                    }
+                }
+            } header: {
+                Text("Recent Searches")
+                    .padding(.horizontal)
+            }
+            .listRowInsets(.horizontal, 0)
+            .listSectionMargins(.horizontal, 0)
         }
+    }
+
+    @ViewBuilder
+    private func examplesSection() -> some View{
+        Section {
+            ForEach(ExampleSearch.dailyExamples, id: \.title) { example in
+                Button {
+                    onSearchSelected(example.filters)
+                } label: {
+                    HStack {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(example.title)
+                                .font(.body.weight(.semibold))
+                                .foregroundStyle(.primary)
+                            Text(example.filters.map { $0.description }.joined(separator: " "))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                    }
+                    .padding(.horizontal)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
+        } header: {
+            Text("Need Inspiration?")
+                .padding(.horizontal)
+        }
+        .listRowInsets(.horizontal, 0)
+        .listSectionMargins(.horizontal, 0)
     }
 }
 // MARK: - Featured Cards State
 
 @MainActor
 @Observable
-private class FeaturedCardsState: ScryfallSearchResultsList {
-    static let shared = FeaturedCardsState()
+private class FeaturedCardsObjectList: ScryfallObjectList<Card> {
+    private static let scryfall = ScryfallClient(networkLogLevel: .minimal)
+
+    static let shared = FeaturedCardsObjectList { page async throws in
+        return try await scryfall.searchCards(
+            query: "date>=today",
+            unique: .prints,
+            order: .spoiled,
+            sortDirection: .desc,
+            page: page,
+        )
+    }
 }
 // MARK: - Example Search
 
-struct ExampleSearch: Hashable {
-    let title: String
-    let filters: [SearchFilter]
-    
-    private static let examples: [ExampleSearch] = [
-        .init(title: "Modern-Legal U/R Pingers", filters: [
-            .basic(false, "color", .lessThanOrEqual, "ur"),
-            .basic(false, "function", .including, "pinger"),
-            .basic(false, "format", .including, "modern"),
-        ]),
-        .init(title: "Biggest Dragons", filters: [
-            .basic(false, "type", .including, "dragon"),
-            .basic(false, "order", .including, "power"),
-            .basic(false, "dir", .including, "desc"),
-        ]),
-        .init(title: "Most Devoted Green Permanents", filters: [
-            .basic(false, "devotion", .greaterThanOrEqual, "gggg"),
-            .basic(false, "order", .including, "manavalue"),
-            .basic(false, "dir", .including, "desc"),
-        ]),
-        .init(title: "All Non-basic-land Textless Cards", filters: [
-            .basic(false, "is", .including, "textless"),
-            .basic(true, "type", .including, "basic"),
-        ]),
-        .init(title: "Five-color Artifacts", filters: [
-            .basic(false, "type", .including, "artifact"),
-            .basic(false, "id", .equal, "5"),
-        ]),
-        .init(title: "Real Cards with Funny Rulings", filters: [
-            .basic(false, "function", .including, "fun-ruling"),
-            .basic(true, "is", .including, "funny"),
-        ]),
-        .init(title: "Future Sight Frames", filters: [
-            .basic(false, "frame", .including, "future"),
-        ]),
-        .init(title: "Cheap, Top-heavy Red Creatures", filters: [
-            .basic(false, "power", .greaterThan, "toughness"),
-            .basic(false, "color", .equal, "red"),
-            .basic(false, "manavalue", .lessThanOrEqual, "2"),
-        ]),
-        .init(title: "White Self-sacrifice", filters: [
-            .basic(false, "color", .including, "white"),
-            .regex(false, "oracle", .including, "^sacrifice ~"),
-        ]),
-        .init(title: "Most Expensive 1-Drops in Standard", filters: [
-            .basic(false, "manavalue", .equal, "1"),
-            .basic(false, "format", .including, "standard"),
-            .basic(false, "order", .including, "usd"),
-            .basic(false, "dir", .including, "desc"),
-        ]),
-        .init(title: "Best Boros Combat Tricks", filters: [
-            .basic(false, "color", .lessThanOrEqual, "boros"),
-            .basic(false, "function", .including, "combat-trick"),
-            .basic(false, "order", .including, "edhrec"),
-            .basic(false, "dir", .including, "asc"),
-        ]),
-        .init(title: "Best Orzhov Commanders", filters: [
-            .basic(false, "id", .equal, "orzhov"),
-            .basic(false, "type", .including, "legendary"),
-            .basic(false, "type", .including, "creature"),
-            .basic(false, "format", .including, "commander"),
-            .basic(false, "order", .including, "edhrec"),
-            .basic(false, "dir", .including, "asc"),
-        ]),
-        .init(title: "Muraganda Petroglyphs \"Synergy\"", filters: [
-            .basic(false, "type", .including, "creature"),
-            .basic(false, "is", .including, "vanilla"),
-            .basic(true, "is", .including, "token"),
-        ]),
-        .init(title: "Morphling and Friends", filters: [
-            .regex(false, "name", .including, "^[^\\s]+ling$"),
-            .basic(false, "type", .including, "shapeshifter"),
-        ]),
-        .init(title: "Stained Glass", filters: [
-            .basic(false, "art", .including, "stained-glass"),
-        ]),
-        .init(title: "Green Can Do Anything", filters: [
-            .basic(false, "color", .including, "green"),
-            .basic(false, "function", .including, "color-break"),
-        ]),
-        .init(title: "Dog Tongues", filters: [
-            .basic(false, "art", .including, "dog"),
-            .basic(false, "art", .including, "tongue-sticking-out"),
-        ]),
-        .init(title: "Most Color-committed Cards", filters: [
-            .basic(false, "color", .equal, "1"),
-            .basic(true, "mana", .including, "{1}"),
-            .basic(true, "is", .including, "hybrid"),
-            .basic(false, "manavalue", .greaterThanOrEqual, "4"),
-        ]),
-        .init(title: "Most Reprinted Cards", filters: [
-            .basic(false, "prints", .greaterThan, "30"),
-        ]),
-        .init(title: "John Avon's Landscapes", filters: [
-            .basic(false, "artist", .including, "John Avon"),
-            .basic(false, "type", .including, "land"),
-            .basic(false, "unique", .including, "art"),
-        ]),
-    ]
-    
-    private static func hourlySeed() -> Int {
-        let components = Calendar.current.dateComponents([.month, .day, .hour], from: Date())
-        return (components.month ?? 0) * 97 + (components.day ?? 0) * 31 + (components.hour ?? 0)
-    }
-    
-    static var dailyExamples: [ExampleSearch] {
-        // Swift doesn't have seedable RNGs in the standard library, so just bang together a one-off
-        // calculation for our purposes. This is so it doesn't change every. single. time. it renders.
-        let seed = hourlySeed()
 
-        var chosenExamples: [ExampleSearch] = []
-        for i in [7, 37, 89] {
-            for j in 0..<examples.count {
-                let example = examples[(seed * i + j) % examples.count]
-                if !chosenExamples.contains(example) {
-                    chosenExamples.append(example)
-                    break
-                }
-            }
-        }
-        return chosenExamples
-    }
-}

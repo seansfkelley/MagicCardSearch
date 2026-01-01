@@ -54,27 +54,25 @@ struct ContentView: View {
                 
                 switch mainContentType {
                 case .home:
-                    HomeView(
-                        searchState: searchState,
-                        historyAndPinnedState: historyAndPinnedState,
+                    HomeView(historyAndPinnedState: historyAndPinnedState,
                     ) { filters in
-                        searchFilters = filters
+                        searchState.filters = filters
                         startNewSearch()
                     }
                 case .results:
-                    SearchResultsGridView(list: searchState.results)
+                    SearchResultsGridView(list: searchState.results ?? .empty())
                 }
             }
             .contentShape(Rectangle())
             .safeAreaInset(edge: .bottom) {
                 FakeSearchBarButtonView(
                     filters: searchState.filters,
-                    warnings: searchState.results.latestValue?.warnings ?? [],
+                    warnings: searchState.results.value.latestValue?.warnings ?? [],
                     onClearAll: handleClearAll,
                 ) {
                     isSearchSheetVisible = true
                     // Awkward, but seems to be the best way to negatively match only one case?
-                    guard case .unloaded = searchState.results else {
+                    guard case .unloaded = searchState.results.value else {
                         mainContentType = .results
                         return
                     }
@@ -120,7 +118,7 @@ struct ContentView: View {
                     ToolbarItem(placement: .topBarTrailing) {
                         ShareLink(
                             item: CardSearchService
-                                .buildSearchURL(filters: searchFilters, config: searchConfig, forAPI: false) ?? URL(
+                                .buildSearchURL(filters: searchState.filters, config: searchConfig, forAPI: false) ?? URL(
                                     string: "https://scryfall.com"
                                 )!
                         ) {
@@ -133,12 +131,12 @@ struct ContentView: View {
             .navigationBarTitleDisplayMode(.inline)
         }
         .onChange(of: searchConfig) {
-            startNewSearch(keepingCurrentResults: true)
+            startNewSearch()
         }
-        .onChange(of: searchFilters) {
+        .onChange(of: searchState.filters) {
             // Clear warnings when filters change by resetting to unloaded or keeping existing results
-            if case .loaded(let searchResults, _) = searchResultsState.current {
-                searchResultsState.current = .loaded(SearchResults(
+            if case .loaded(let results, _) = searchResultsState.current {
+                searchState.value = .loaded(SearchResults(
                     cards: searchResults.cards,
                     totalCount: searchResults.totalCount,
                     nextPageUrl: searchResults.nextPageUrl,
