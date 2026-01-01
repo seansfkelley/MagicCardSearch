@@ -11,13 +11,28 @@ struct Migrate20251231AddBookmarks: DatabaseMigration {
     let version: Int32 = 2
 
     func migrate(db: Connection) throws {
-        let filterHistory = Table("bookmarks")
-        do {
-            let id = Expression<Int>("id")
+        let bookmarks = Table("bookmarks")
 
-            try db.run(filterHistory.create(ifNotExists: true) { table in
-                table.column(id, primaryKey: .autoincrement)
-            })
-        }
+        let id = Expression<UUID>("id")
+        let name = Expression<String>("name")
+        let typeLine = Expression<String?>("type_line")
+        let smallImageUrl = Expression<String?>("small_image_url")
+        let setCode = Expression<String>("set_code")
+        let setName = Expression<String>("set_name")
+        let collectorNumber = Expression<String>("collector_number")
+        let releasedAt = Expression<Date?>("released_at")
+        let bookmarkedAt = Expression<Date>("bookmarked_at")
+
+        try db.run(bookmarks.create(ifNotExists: true) { table in
+            table.column(id, primaryKey: true)
+            table.column(name)
+            table.column(typeLine)
+            table.column(smallImageUrl)
+            table.column(setCode)
+            table.column(setName)
+            table.column(collectorNumber)
+            table.column(releasedAt)
+            table.column(bookmarkedAt)
+        })
     }
 }
