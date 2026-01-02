@@ -16,8 +16,8 @@ enum MainContentType {
 }
 
 struct ContentView: View {
-    @State private var searchState: SearchState
-    private let historyAndPinnedState: HistoryAndPinnedState
+    @State private var searchState = SearchState()
+    private let historyAndPinnedState = HistoryAndPinnedState()
 
     @State private var showDisplaySheet = false
     @State private var showBookmarkedCardList = false
@@ -28,17 +28,6 @@ struct ContentView: View {
     @State private var isSearchSheetVisible: Bool = false
 
     private let searchService = CardSearchService()
-
-    init() {
-        // TODO: This try!... what do we do if we fail?
-        let db = try! SQLiteDatabase.initialize(.filename("MagicCardSearch.db"))
-        searchState = SearchState(
-            pinnedFilter: db.pinnedFilters
-        )
-        historyAndPinnedState = HistoryAndPinnedState(
-            pinnedFilter: db.pinnedFilters,
-        )
-    }
 
     var body: some View {
         NavigationStack {

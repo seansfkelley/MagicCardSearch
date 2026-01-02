@@ -4,9 +4,9 @@
 //
 //  Created by Sean Kelley on 2025-12-18.
 //
-
 import Foundation
 import Observation
+import SQLiteData
 
 struct PinnedFilterSuggestion: Equatable, Hashable, Sendable, ScorableSuggestion {
     let filter: SearchFilter
@@ -17,25 +17,15 @@ struct PinnedFilterSuggestion: Equatable, Hashable, Sendable, ScorableSuggestion
 
 class PinnedFilterSuggestionProvider {
     // MARK: - Properties
-    
-    private let store: PinnedFilterStore
-    
-    // MARK: - Initialization
-    
-    init(store: PinnedFilterStore) {
-        self.store = store
-    }
-    
+
+    @ObservationIgnored @FetchAll private var pinnedFilters: [PinnedFilterEntry]
+
     // MARK: - Public Methods
     
     func getSuggestions(for partial: PartialSearchFilter, excluding excludedFilters: Set<SearchFilter>) -> [PinnedFilterSuggestion] {
         let searchTerm = partial.description.trimmingCharacters(in: .whitespaces)
         
-        guard let pinnedRows = try? store.allPinnedFiltersChronologically else {
-            return []
-        }
-        
-        return pinnedRows
+        return pinnedFilters
             .filter { !excludedFilters.contains($0.filter) }
             .compactMap { row in
                 let filterText = row.filter.description

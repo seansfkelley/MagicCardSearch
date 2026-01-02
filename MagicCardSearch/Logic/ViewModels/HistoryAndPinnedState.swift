@@ -9,33 +9,37 @@ import SQLiteData
 
 private let logger = Logger(label: "HistoryAndPinnedState")
 
-// TODO: Remove this decorator once I have disentagled a bunch of the state management.
 @MainActor
 class HistoryAndPinnedState {
     @Dependency(\.defaultDatabase) var database
 
-    private let pinnedFilter: PinnedFilterStore
-
     private(set) var lastError: Error?
-
-    init(pinnedFilter: PinnedFilterStore) {
-        self.pinnedFilter = pinnedFilter
-    }
 
     // MARK: - Filter-only Methods
 
     public func delete(filter: SearchFilter) {
         perform("deleting filter") {
             try database.write { db in
-                try FilterHistoryEntry.delete().where { $0.filter == SearchFilter.StableJSONRepresentation(queryOutput: filter) }.execute(db)
+                try FilterHistoryEntry
+                    .delete()
+                    .where { $0.filter == SearchFilter.StableJSONRepresentation(queryOutput: filter) }
+                    .execute(db)
+
+                try PinnedFilterEntry
+                    .delete()
+                    .where { $0.filter == SearchFilter.StableJSONRepresentation(queryOutput: filter) }
+                    .execute(db)
             }
-            try pinnedFilter.unpin(filter)
         }
     }
 
     public func pin(filter: SearchFilter) {
         perform("pinning filter") {
-            try pinnedFilter.pin(filter)
+            try database.write { db in
+                try PinnedFilterEntry
+                    .insert { PinnedFilterEntry(filter: filter) }
+                    .execute(db)
+            }
         }
     }
 
@@ -43,9 +47,15 @@ class HistoryAndPinnedState {
         perform("unpinning filter") {
             // Keep it around near the top since you just modified it.
             try database.write { db in
-                try FilterHistoryEntry.insert { FilterHistoryEntry(filter: filter) }.execute(db)
+                try FilterHistoryEntry
+                    .insert { FilterHistoryEntry(filter: filter) }
+                    .execute(db)
+
+                try PinnedFilterEntry
+                    .delete()
+                    .where { $0.filter == SearchFilter.StableJSONRepresentation(queryOutput: filter) }
+                    .execute(db)
             }
-            try pinnedFilter.unpin(filter)
         }
     }
 
@@ -54,7 +64,10 @@ class HistoryAndPinnedState {
     public func delete(search: [SearchFilter]) {
         perform("deleting search") {
             try database.write { db in
-                try SearchHistoryEntry.delete().where { $0.filters == [SearchFilter].StableJSONRepresentation(queryOutput: search) }.execute(db)
+                try SearchHistoryEntry
+                    .delete()
+                    .where { $0.filters == [SearchFilter].StableJSONRepresentation(queryOutput: search) }
+                    .execute(db)
             }
         }
     }
