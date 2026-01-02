@@ -13,87 +13,67 @@ private let logger = Logger(label: "HistoryAndPinnedState")
 class HistoryAndPinnedState {
     @Dependency(\.defaultDatabase) var database
 
-    private(set) var lastError: Error?
+    public private(set) var lastError: Error?
 
     // MARK: - Filter-only Methods
 
     public func delete(filter: SearchFilter) {
-        perform("deleting filter") {
-            try database.write { db in
-                try FilterHistoryEntry
-                    .delete()
-                    .where { $0.filter == SearchFilter.StableJSONRepresentation(queryOutput: filter) }
-                    .execute(db)
+        write("deleting filter") { db in
+            try FilterHistoryEntry
+                .delete()
+                .where { $0.filter == SearchFilter.StableJSONRepresentation(queryOutput: filter) }
+                .execute(db)
 
-                try PinnedFilterEntry
-                    .delete()
-                    .where { $0.filter == SearchFilter.StableJSONRepresentation(queryOutput: filter) }
-                    .execute(db)
-            }
+            try PinnedFilterEntry
+                .delete()
+                .where { $0.filter == SearchFilter.StableJSONRepresentation(queryOutput: filter) }
+                .execute(db)
         }
     }
 
     public func pin(filter: SearchFilter) {
-        perform("pinning filter") {
-            try database.write { db in
-                try PinnedFilterEntry
-                    .insert { PinnedFilterEntry(filter: filter) }
-                    .execute(db)
-            }
+        write("pinning filter") { db in
+            try PinnedFilterEntry
+                .insert { PinnedFilterEntry(filter: filter) }
+                .execute(db)
         }
     }
 
     public func unpin(filter: SearchFilter) {
-        perform("unpinning filter") {
+        write("unpinning filter") { db in
             // Keep it around near the top since you just modified it.
-            try database.write { db in
-                try FilterHistoryEntry
-                    .insert { FilterHistoryEntry(filter: filter) }
-                    .execute(db)
+            try FilterHistoryEntry
+                .insert { FilterHistoryEntry(filter: filter) }
+                .execute(db)
 
-                try PinnedFilterEntry
-                    .delete()
-                    .where { $0.filter == SearchFilter.StableJSONRepresentation(queryOutput: filter) }
-                    .execute(db)
-            }
+            try PinnedFilterEntry
+                .delete()
+                .where { $0.filter == SearchFilter.StableJSONRepresentation(queryOutput: filter) }
+                .execute(db)
         }
     }
 
     // MARK: - Search Methods
 
     public func delete(search: [SearchFilter]) {
-        perform("deleting search") {
-            try database.write { db in
-                try SearchHistoryEntry
-                    .delete()
-                    .where { $0.filters == [SearchFilter].StableJSONRepresentation(queryOutput: search) }
-                    .execute(db)
-            }
+        write("deleting search") { db in
+            try SearchHistoryEntry
+                .delete()
+                .where { $0.filters == [SearchFilter].StableJSONRepresentation(queryOutput: search) }
+                .execute(db)
         }
     }
 
     // MARK: - Private Methods
 
-    private func perform(_ operation: String, _ block: () throws -> Void) {
+    private func write(_ operation: String, _ block: (Database) throws -> Void) {
         do {
-            try block()
+            try database.write(block)
         } catch {
             logger.error("error while \(operation)", metadata: [
                 "error": "\(error)",
             ])
             lastError = error
-        }
-    }
-
-    private func perform<T>(_ operation: String, defaultValue: T, _ block: () throws -> T) -> T {
-        do {
-            return try block()
-        } catch {
-            logger.error("error while \(operation)", metadata: [
-                "error": "\(error)",
-            ])
-            lastError = error
-            return defaultValue
         }
     }
 }
