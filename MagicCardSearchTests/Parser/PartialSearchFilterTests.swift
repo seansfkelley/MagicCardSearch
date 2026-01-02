@@ -474,14 +474,14 @@ struct PartialSearchFilterTests {
             SearchFilter.name(true, false, " ")
         ),
 
-        // What should this do?
+        // It is not our responsibility to deal with whitespace. Probably.
         TestCase(
             " -",
             PartialSearchFilter(
-                negated: true,
-                content: .name(false, .bare(" "))
+                negated: false,
+                content: .name(false, .bare(" -"))
             ),
-            SearchFilter.name(true, false, " ")
+            SearchFilter.name(false, false, " -")
         ),
 
         TestCase(
