@@ -14,25 +14,15 @@ private let logger = Logger(label: "HistoryAndPinnedState")
 class HistoryAndPinnedState {
     @Dependency(\.defaultDatabase) var database
 
-    private let searchHistory: SearchHistoryStore
     private let pinnedFilter: PinnedFilterStore
 
     private(set) var lastError: Error?
 
-    init(searchHistory: SearchHistoryStore, pinnedFilter: PinnedFilterStore) {
-        self.searchHistory = searchHistory
+    init(pinnedFilter: PinnedFilterStore) {
         self.pinnedFilter = pinnedFilter
     }
 
     // MARK: - Filter-only Methods
-
-    public func record(filter: SearchFilter) {
-        perform("recording filter") {
-            try database.write { db in
-                try FilterHistoryEntry.insert { FilterHistoryEntry(filter: filter) }.execute(db)
-            }
-        }
-    }
 
     public func delete(filter: SearchFilter) {
         perform("deleting filter") {
@@ -61,28 +51,11 @@ class HistoryAndPinnedState {
 
     // MARK: - Search Methods
 
-    public func record(search: [SearchFilter]) {
-        perform("recording search") {
-            try searchHistory.recordSearch(with: search)
-
-            for filter in search {
-                // TODO: Should this recursively add the sub-filters?
-                try database.write { db in
-                    try FilterHistoryEntry.insert { FilterHistoryEntry(filter: filter) }.execute(db)
-                }
-            }
-        }
-    }
-
     public func delete(search: [SearchFilter]) {
         perform("deleting search") {
-            try searchHistory.deleteSearch(with: search)
-        }
-    }
-
-    public func getLatestSearches(count: Int) -> [SearchHistoryStore.Row] {
-        perform("retrieving latest searches", defaultValue: []) {
-            try Array(searchHistory.allSearchesChronologically.prefix(count))
+            try database.write { db in
+                try SearchHistoryEntry.delete().where { $0.filters == [SearchFilter].StableJSONRepresentation(queryOutput: search) }.execute(db)
+            }
         }
     }
 

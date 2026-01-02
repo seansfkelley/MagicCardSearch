@@ -29,21 +29,17 @@ class SearchState {
     }
 
     private let scryfall = ScryfallClient(networkLogLevel: .minimal)
-    private let searchHistory: SearchHistoryStore
     private let pinnedFilter: PinnedFilterStore
 
-    init(searchHistory: SearchHistoryStore, pinnedFilter: PinnedFilterStore) {
+    init(pinnedFilter: PinnedFilterStore) {
         self.suggestionProvider = CombinedSuggestionProvider(
             pinnedFilter: PinnedFilterSuggestionProvider(store: pinnedFilter),
-            history: HistorySuggestionProvider(
-                searchHistoryStore: searchHistory,
-            ),
+            history: HistorySuggestionProvider(),
             filterType: FilterTypeSuggestionProvider(),
             enumeration: EnumerationSuggestionProvider(),
             reverseEnumeration: ReverseEnumerationSuggestionProvider(),
             name: NameSuggestionProvider(debounce: .milliseconds(500))
         )
-        self.searchHistory = searchHistory
         self.pinnedFilter = pinnedFilter
     }
 
@@ -71,8 +67,9 @@ class SearchState {
         }
 
         do {
-            try searchHistory.recordSearch(with: filters)
             try database.write { db in
+                try SearchHistoryEntry.insert { SearchHistoryEntry(filters: filters) }.execute(db)
+
                 try FilterHistoryEntry.insert {
                     for filter in filters {
                         FilterHistoryEntry(filter: filter)

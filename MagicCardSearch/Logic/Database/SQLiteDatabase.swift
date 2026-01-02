@@ -15,12 +15,10 @@ struct SQLiteDatabase {
     }
 
     private let connection: Connection
-    public let searchHistory: SearchHistoryStore
     public let pinnedFilters: PinnedFilterStore
 
     private init(_ connection: Connection) {
         self.connection = connection
-        self.searchHistory = .init(db: connection)
         self.pinnedFilters = .init(db: connection)
     }
 

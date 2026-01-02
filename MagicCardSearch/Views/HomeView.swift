@@ -7,6 +7,7 @@
 import SwiftUI
 import ScryfallKit
 import Logging
+import SQLiteData
 
 private let logger = Logger(label: "HomeView")
 
@@ -27,6 +28,9 @@ private extension View {
 }
 
 struct HomeView: View {
+    @FetchAll(SearchHistoryEntry.order { $0.lastUsedAt.desc() }.limit(10))
+    var recentSearches
+
     let historyAndPinnedState: HistoryAndPinnedState
     let onSearchSelected: ([SearchFilter]) -> Void
     
@@ -139,16 +143,14 @@ struct HomeView: View {
 
     @ViewBuilder
     private func recentSearchesSection() -> some View {
-        let recentSearches = historyAndPinnedState.getLatestSearches(count: 10)
-
         if !recentSearches.isEmpty {
             Section {
                 ForEach(recentSearches, id: \.lastUsedAt) { entry in
                     Button {
-                        onSearchSelected(entry.search)
+                        onSearchSelected(entry.filters)
                     } label: {
                         HStack {
-                            Text(entry.search.map { $0.description }.joined(separator: " "))
+                            Text(entry.filters.map { $0.description }.joined(separator: " "))
                                 .font(.body)
                                 .foregroundStyle(.primary)
                                 .lineLimit(2)
@@ -160,7 +162,7 @@ struct HomeView: View {
                     .buttonStyle(.plain)
                     .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                         Button(role: .destructive) {
-                            historyAndPinnedState.delete(search: entry.search)
+                            historyAndPinnedState.delete(search: entry.filters)
                         } label: {
                             Label("Delete", systemImage: "trash")
                         }

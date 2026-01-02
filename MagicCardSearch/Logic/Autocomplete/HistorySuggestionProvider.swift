@@ -20,14 +20,7 @@ class HistorySuggestionProvider {
     // MARK: - Properties
 
     @ObservationIgnored @FetchAll private var filterHistoryEntries: [FilterHistoryEntry]
-
-    private let searchHistoryStore: SearchHistoryStore
-    
-    // MARK: - Initialization
-
-    init(searchHistoryStore: SearchHistoryStore) {
-        self.searchHistoryStore = searchHistoryStore
-    }
+    @ObservationIgnored @FetchAll private var searchHistoryEntries: [SearchHistoryEntry]
 
     // MARK: - Public Methods
 

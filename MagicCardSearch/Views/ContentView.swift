@@ -33,11 +33,9 @@ struct ContentView: View {
         // TODO: This try!... what do we do if we fail?
         let db = try! SQLiteDatabase.initialize(.filename("MagicCardSearch.db"))
         searchState = SearchState(
-            searchHistory: db.searchHistory,
             pinnedFilter: db.pinnedFilters
         )
         historyAndPinnedState = HistoryAndPinnedState(
-            searchHistory: db.searchHistory,
             pinnedFilter: db.pinnedFilters,
         )
     }
