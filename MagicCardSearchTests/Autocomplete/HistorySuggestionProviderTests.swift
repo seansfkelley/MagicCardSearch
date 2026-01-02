@@ -21,13 +21,18 @@ class HistorySuggestionProviderTests {
         provider = HistorySuggestionProvider()
     }
 
-    private func recordUsages(of filters: [SearchFilter]) {
+    private func record(filter: SearchFilter, atOffset interval: TimeInterval) {
         try? database.write { db in
-            for filter in filters {
-                try FilterHistoryEntry.insert { FilterHistoryEntry(filter: filter) }.execute(db)
-            }
+            try FilterHistoryEntry
+                .insert { FilterHistoryEntry(
+                    filter: filter,
+                    at: Date(timeIntervalSinceReferenceDate: interval),
+                ) }
+                .execute(db)
         }
+    }
 
+    private func wait() {
         // Allow triggers to fire and for the provider's queries to refresh themselves. In a real
         // app it really doesn't matter that there is this reactive delay, but in tests we go too
         // fast!
@@ -46,7 +51,11 @@ class HistorySuggestionProviderTests {
     func emptySearchText() {
         let colorFilter = SearchFilter.basic(false, "color", .equal, "red")
         let oracleFilter = SearchFilter.basic(false, "oracle", .including, "flying")
-        recordUsages(of: [colorFilter, oracleFilter])
+
+        record(filter: colorFilter, atOffset: 0)
+        record(filter: oracleFilter, atOffset: 1000)
+
+        wait()
 
         let suggestions = provider.getSuggestions(for: "", excluding: Set(), limit: 1)
         // Prefers the latter, because it was recorded later.
