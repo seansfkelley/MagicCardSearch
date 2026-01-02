@@ -12,8 +12,9 @@ import ScryfallKit
 private let logger = Logger(label: "HistoryAndPinnedState")
 
 @MainActor
-class BookmarkedCardsState {
-    @Dependency(\.defaultDatabase) var database
+@Observable
+class BookmarkedCardsStore {
+    @ObservationIgnored @Dependency(\.defaultDatabase) var database
 
     public private(set) var lastError: Error?
 

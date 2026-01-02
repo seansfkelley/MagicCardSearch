@@ -15,8 +15,6 @@ private let logger = Logger(label: "SearchState")
 @MainActor
 @Observable
 class SearchState {
-    @ObservationIgnored @Dependency(\.defaultDatabase) var database
-
     public var searchText: String = ""
     public var searchSelection: TextSelection?
     public var filters: [SearchFilter] = []
@@ -36,6 +34,11 @@ class SearchState {
     }
 
     private let scryfall = ScryfallClient(networkLogLevel: .minimal)
+    private let historyAndPinnedStore: HistoryAndPinnedStore
+
+    public init(historyAndPinnedStore: HistoryAndPinnedStore) {
+        self.historyAndPinnedStore = historyAndPinnedStore
+    }
 
     public func clearAll() {
         searchText = ""
@@ -60,23 +63,7 @@ class SearchState {
             return
         }
 
-        do {
-            try database.write { db in
-                try SearchHistoryEntry.insert { SearchHistoryEntry(filters: filters) }.execute(db)
-
-                try FilterHistoryEntry.insert {
-                    for filter in filters {
-                        FilterHistoryEntry(filter: filter)
-                    }
-                }
-                .execute(db)
-            }
-        } catch {
-            logger.error("error while recording search", metadata: [
-                "filters": "\(filters)",
-                "error": "\(error)",
-            ])
-        }
+        historyAndPinnedStore.record(search: filters)
 
         let query = filters.map { $0.description }.joined(separator: " ")
         results = .init { [weak self] page async throws in

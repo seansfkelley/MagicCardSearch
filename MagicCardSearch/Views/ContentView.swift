@@ -16,8 +16,8 @@ enum MainContentType {
 }
 
 struct ContentView: View {
+    @Environment(historyAndPinnedStore.self) private var historyAndPinnedState
     @State private var searchState = SearchState()
-    private let historyAndPinnedState = HistoryAndPinnedState()
 
     @State private var showDisplaySheet = false
     @State private var showBookmarkedCardList = false

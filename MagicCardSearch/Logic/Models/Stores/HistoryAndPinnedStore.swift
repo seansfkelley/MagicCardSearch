@@ -6,12 +6,14 @@
 //
 import Logging
 import SQLiteData
+import Observation
 
 private let logger = Logger(label: "HistoryAndPinnedState")
 
 @MainActor
-class HistoryAndPinnedState {
-    @Dependency(\.defaultDatabase) var database
+@Observable
+class HistoryAndPinnedStore {
+    @ObservationIgnored @Dependency(\.defaultDatabase) var database
 
     public private(set) var lastError: Error?
 
@@ -54,6 +56,21 @@ class HistoryAndPinnedState {
     }
 
     // MARK: - Search Methods
+
+    public func record(search: [SearchFilter]) {
+        write("recording search") { db in
+            try SearchHistoryEntry
+                .insert { SearchHistoryEntry(filters: search) }
+                .execute(db)
+
+            try FilterHistoryEntry.insert {
+                for filter in search {
+                    FilterHistoryEntry(filter: filter)
+                }
+            }
+            .execute(db)
+        }
+    }
 
     public func delete(search: [SearchFilter]) {
         write("deleting search") { db in

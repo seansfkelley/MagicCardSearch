@@ -10,6 +10,9 @@ import Logging
 
 @main
 struct MagicCardSearchApp: App {
+    @State private var bookmarkedCardsStore = BookmarkedCardsStore()
+    @State private var historyAndPinnedStore = HistoryAndPinnedStore()
+
     init() {
         prepareDependencies {
             $0.defaultDatabase = try! appDatabase()
@@ -25,6 +28,8 @@ struct MagicCardSearchApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .environment(bookmarkedCardsStore)
+                .environment(historyAndPinnedStore)
                 .task {
                     await ScryfallCatalogs.initialize()
                 }

@@ -12,7 +12,6 @@ struct AutocompleteView: View {
 
     @Binding var searchState: SearchState
     @Binding var suggestionLoadingState: DebouncedLoadingState
-    let historyAndPinnedState: HistoryAndPinnedState
     let performSearch: () -> Void
 
     @State private var suggestions: [Suggestion] = []
