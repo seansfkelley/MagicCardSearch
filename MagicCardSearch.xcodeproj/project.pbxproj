@@ -13,10 +13,12 @@
 		21058AE02EF36FC700F093EF /* Logging in Frameworks */ = {isa = PBXBuildFile; productRef = 21058ADF2EF36FC700F093EF /* Logging */; };
 		210E13AA2EFC66C4009D9FE0 /* FocusOnAppear in Frameworks */ = {isa = PBXBuildFile; productRef = 210E13A92EFC66C4009D9FE0 /* FocusOnAppear */; };
 		210E14922EFDE5FB009D9FE0 /* SwiftUIIntrospect in Frameworks */ = {isa = PBXBuildFile; productRef = 210E14912EFDE5FB009D9FE0 /* SwiftUIIntrospect */; };
+		210E24582F0858DC008C05C1 /* Dependencies in Frameworks */ = {isa = PBXBuildFile; productRef = 210E24572F0858DC008C05C1 /* Dependencies */; };
+		210E245A2F0858DC008C05C1 /* DependenciesMacros in Frameworks */ = {isa = PBXBuildFile; productRef = 210E24592F0858DC008C05C1 /* DependenciesMacros */; };
+		210E245C2F0858DC008C05C1 /* DependenciesTestSupport in Frameworks */ = {isa = PBXBuildFile; productRef = 210E245B2F0858DC008C05C1 /* DependenciesTestSupport */; };
 		21332B992EF5D04100C80208 /* Algorithms in Frameworks */ = {isa = PBXBuildFile; productRef = 21332B982EF5D04100C80208 /* Algorithms */; };
 		213F299A2EE9285400E058DB /* SVGKitSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 213F29992EE9285400E058DB /* SVGKitSwift */; };
 		21874B3A2F07045300E07D9A /* SQLiteData in Frameworks */ = {isa = PBXBuildFile; productRef = 21874B392F07045300E07D9A /* SQLiteData */; };
-		21874B3C2F07045300E07D9A /* SQLiteDataTestSupport in Frameworks */ = {isa = PBXBuildFile; productRef = 21874B3B2F07045300E07D9A /* SQLiteDataTestSupport */; };
 		21A856BD2EE3AAE400E72541 /* ScryfallKit in Frameworks */ = {isa = PBXBuildFile; productRef = 21A856BC2EE3AAE400E72541 /* ScryfallKit */; };
 /* End PBXBuildFile section */
 
@@ -132,12 +134,14 @@
 			files = (
 				210115BE2EEF9543000D6D32 /* NukeUI in Frameworks */,
 				213F299A2EE9285400E058DB /* SVGKitSwift in Frameworks */,
+				210E245A2F0858DC008C05C1 /* DependenciesMacros in Frameworks */,
 				21058AE02EF36FC700F093EF /* Logging in Frameworks */,
 				210E14922EFDE5FB009D9FE0 /* SwiftUIIntrospect in Frameworks */,
 				210E13AA2EFC66C4009D9FE0 /* FocusOnAppear in Frameworks */,
 				21332B992EF5D04100C80208 /* Algorithms in Frameworks */,
 				21A856BD2EE3AAE400E72541 /* ScryfallKit in Frameworks */,
 				21058ADE2EF36FC700F093EF /* InMemoryLogging in Frameworks */,
+				210E24582F0858DC008C05C1 /* Dependencies in Frameworks */,
 				21874B3A2F07045300E07D9A /* SQLiteData in Frameworks */,
 				210115BC2EEF9543000D6D32 /* Nuke in Frameworks */,
 			);
@@ -147,7 +151,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				21874B3C2F07045300E07D9A /* SQLiteDataTestSupport in Frameworks */,
+				210E245C2F0858DC008C05C1 /* DependenciesTestSupport in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -250,6 +254,8 @@
 				210E13A92EFC66C4009D9FE0 /* FocusOnAppear */,
 				210E14912EFDE5FB009D9FE0 /* SwiftUIIntrospect */,
 				21874B392F07045300E07D9A /* SQLiteData */,
+				210E24572F0858DC008C05C1 /* Dependencies */,
+				210E24592F0858DC008C05C1 /* DependenciesMacros */,
 			);
 			productName = MagicCardSearch;
 			productReference = 2137B5AD2EE139C60066BF7E /* MagicCardSearch.app */;
@@ -274,7 +280,7 @@
 			);
 			name = MagicCardSearchTests;
 			packageProductDependencies = (
-				21874B3B2F07045300E07D9A /* SQLiteDataTestSupport */,
+				210E245B2F0858DC008C05C1 /* DependenciesTestSupport */,
 			);
 			productName = MagicCardSearchTests;
 			productReference = 2137B5BA2EE139C70066BF7E /* MagicCardSearchTests.xctest */;
@@ -349,6 +355,7 @@
 				210E13A82EFC66C4009D9FE0 /* XCRemoteSwiftPackageReference "FocusOnAppear" */,
 				210E14902EFDE5FB009D9FE0 /* XCRemoteSwiftPackageReference "swiftui-introspect" */,
 				21874B382F07045300E07D9A /* XCRemoteSwiftPackageReference "sqlite-data" */,
+				210E24562F0858DC008C05C1 /* XCRemoteSwiftPackageReference "swift-dependencies" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 2137B5AE2EE139C60066BF7E /* Products */;
@@ -849,6 +856,14 @@
 				minimumVersion = 26.0.0;
 			};
 		};
+		210E24562F0858DC008C05C1 /* XCRemoteSwiftPackageReference "swift-dependencies" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/pointfreeco/swift-dependencies";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.10.0;
+			};
+		};
 		21332B972EF5D04100C80208 /* XCRemoteSwiftPackageReference "swift-algorithms" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/apple/swift-algorithms.git";
@@ -922,6 +937,21 @@
 			package = 210E14902EFDE5FB009D9FE0 /* XCRemoteSwiftPackageReference "swiftui-introspect" */;
 			productName = SwiftUIIntrospect;
 		};
+		210E24572F0858DC008C05C1 /* Dependencies */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 210E24562F0858DC008C05C1 /* XCRemoteSwiftPackageReference "swift-dependencies" */;
+			productName = Dependencies;
+		};
+		210E24592F0858DC008C05C1 /* DependenciesMacros */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 210E24562F0858DC008C05C1 /* XCRemoteSwiftPackageReference "swift-dependencies" */;
+			productName = DependenciesMacros;
+		};
+		210E245B2F0858DC008C05C1 /* DependenciesTestSupport */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 210E24562F0858DC008C05C1 /* XCRemoteSwiftPackageReference "swift-dependencies" */;
+			productName = DependenciesTestSupport;
+		};
 		21332B982EF5D04100C80208 /* Algorithms */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 21332B972EF5D04100C80208 /* XCRemoteSwiftPackageReference "swift-algorithms" */;
@@ -936,11 +966,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 21874B382F07045300E07D9A /* XCRemoteSwiftPackageReference "sqlite-data" */;
 			productName = SQLiteData;
-		};
-		21874B3B2F07045300E07D9A /* SQLiteDataTestSupport */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 21874B382F07045300E07D9A /* XCRemoteSwiftPackageReference "sqlite-data" */;
-			productName = SQLiteDataTestSupport;
 		};
 		21A5FCA82EE9E81E0034E695 /* SwiftLintBuildToolPlugin */ = {
 			isa = XCSwiftPackageProductDependency;

@@ -31,7 +31,7 @@ class HistorySuggestionProvider {
         
         let trimmedSearchTerm = searchTerm.trimmingCharacters(in: .whitespaces)
 
-        return Array(
+        let results = Array(
             filterHistoryEntries
                 .lazy
                 .filter { !excludedFilters.contains($0.filter) }
@@ -61,5 +61,7 @@ class HistorySuggestionProvider {
                 }
                 .prefix(limit)
         )
+
+        return results
     }
 }

@@ -8,35 +8,35 @@
 import Testing
 import Foundation
 import SQLiteData
+import DependenciesTestSupport
 @testable import MagicCardSearch
 
-@Suite
+@Suite(.dependency(\.defaultDatabase, try appDatabase()))
 @MainActor
 class HistorySuggestionProviderTests {
-    var database: any DatabaseWriter
+    @Dependency(\.defaultDatabase) var database
     var provider: HistorySuggestionProvider
 
     init() throws {
-        database = try appDatabase()
         provider = HistorySuggestionProvider()
-        prepareDependencies {
-            $0.defaultDatabase = database
-        }
     }
 
     private func recordUsages(of filters: [SearchFilter]) {
-        for filter in filters {
-            try? database.write { db in
-                try FilterHistoryEntry
-                    .insert { FilterHistoryEntry(filter: filter) }
-                    .execute(db)
+        try? database.write { db in
+            for filter in filters {
+                try FilterHistoryEntry.insert { FilterHistoryEntry(filter: filter) }.execute(db)
             }
         }
+
+        // Allow triggers to fire and for the provider's queries to refresh themselves. In a real
+        // app it really doesn't matter that there is this reactive delay, but in tests we go too
+        // fast!
+        Thread.sleep(forTimeInterval: 0.1)
     }
 
     // MARK: - Basic Functionality Tests
 
-    @Test("empty provider returns no suggestions")
+    @Test("returns no results with no history recorded")
     func emptySuggestions() {
         let suggestions = provider.getSuggestions(for: "", excluding: Set(), limit: 10)
         #expect(suggestions.isEmpty)

@@ -7,17 +7,16 @@
 import Testing
 import Foundation
 import SQLiteData
-import Dependencies
+import DependenciesTestSupport
 @testable import MagicCardSearch
 
-@Suite
+@Suite(.dependency(\.defaultDatabase, try appDatabase()))
 @MainActor
 class HistoryAndPinnedStoreTests {
-    var store: HistoryAndPinnedStore
-    var database: any DatabaseWriter
+    @Dependency(\.defaultDatabase) var database
+    var store: HistoryAndPinnedStore!
 
     init() throws {
-        database = try appDatabase()
         store = HistoryAndPinnedStore(database: database)
     }
     
@@ -26,10 +25,7 @@ class HistoryAndPinnedStoreTests {
     private var allSearchHistory: [SearchHistoryEntry] {
         get throws {
             try database.read { db in
-                try SearchHistoryEntry.fetchAll(db)
-                // FIXME: the compact .order(\.lastUsedAt) causes keypath-demangling runtime errors
-                // and the below causes seg faults. Like, what?
-//                try SearchHistoryEntry.order { $0.lastUsedAt.asc() }.fetchAll(db)
+                try SearchHistoryEntry.order { $0.lastUsedAt.desc() }.fetchAll(db)
             }
         }
     }
@@ -37,8 +33,7 @@ class HistoryAndPinnedStoreTests {
     private var allFilterHistory: [FilterHistoryEntry] {
         get throws {
             try database.read { db in
-                try FilterHistoryEntry.fetchAll(db)
-//                try FilterHistoryEntry.order { $0.lastUsedAt.asc() }.fetchAll(db)
+                try FilterHistoryEntry.order { $0.lastUsedAt.desc() }.fetchAll(db)
             }
         }
     }
@@ -46,8 +41,7 @@ class HistoryAndPinnedStoreTests {
     private var allPinnedFilters: [PinnedFilterEntry] {
         get throws {
             try database.read { db in
-                try PinnedFilterEntry.fetchAll(db)
-//                try PinnedFilterEntry.order { $0.pinnedAt.asc() }.fetchAll(db)
+                try PinnedFilterEntry.order { $0.pinnedAt.desc() }.fetchAll(db)
             }
         }
     }
@@ -94,7 +88,7 @@ class HistoryAndPinnedStoreTests {
         let entries2 = try allFilterHistory
         try #require(entries2.count == 3)
         
-        #expect(entries2.map(\.filter) == [uniqueFilter2, sharedFilter, uniqueFilter1])
+        #expect(entries2.map(\.filter) == [sharedFilter, uniqueFilter2, uniqueFilter1])
         #expect(entries2.map(\.lastUsedAt) == [date2, date2, date1])
     }
 
