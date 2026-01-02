@@ -1,68 +1,69 @@
 //
-//  SQLiteDatabase.swift
+//  SQLiteDatabase2.swift
 //  MagicCardSearch
 //
-//  Created by Sean Kelley on 2025-12-29.
+//  Created by Sean Kelley on 2026-01-01.
 //
-import SQLite
-import Foundation
+import OSLog
+import SQLiteData
 
-struct SQLiteDatabase {
-    enum Location {
-        case memory
-        case filename(String)
-        case path(String)
-    }
+private let logger = Logger(subsystem: "MagicCardApp", category: "Database")
 
-    private let connection: Connection
-    public let pinnedFilters: PinnedFilterStore
-
-    private init(_ connection: Connection) {
-        self.connection = connection
-        self.pinnedFilters = .init(db: connection)
-    }
-
-    var userVersion: Int32? { connection.userVersion }
-
-    public static func initialize(_ location: Location = .memory) throws -> SQLiteDatabase {
-        let connection = switch location {
-        case .memory:
-            try Connection(.inMemory)
-        case .filename(let filename):
-            try {
-                let documentsPath = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-                let path = documentsPath.appendingPathComponent(filename).path
-                let connection = try Connection(path)
-                try executeFileBackedPragmas(connection)
-                return connection
-            }()
-        case .path(let path):
-            try {
-                let connection = try Connection(path)
-                try executeFileBackedPragmas(connection)
-                return connection
-            }()
-        }
-
-        let db = SQLiteDatabase(connection)
-        try db.applyMigrations()
-        return db
-    }
-
-    private static func executeFileBackedPragmas(_ connection: Connection) throws {
-        // Aggressively keep things in memory so I can avoid writing my own memory caching and just bang on SQLite.
-        try connection.execute("PRAGMA temp_store = MEMORY;")
-        try connection.execute("PRAGMA cache_size = -20000;")
-        try connection.execute("PRAGMA mmap_size  = 268435456;")
-    }
-
-    fileprivate func applyMigrations() throws {
-        let index = Int(connection.userVersion ?? 0)
-        for migration in orderedMigrations[index...] {
-            try connection.transaction {
-                try migration.migrate(db: connection)
-                connection.userVersion = migration.version
+func appDatabase() throws -> any DatabaseWriter {
+    @Dependency(\.context) var context
+    var configuration = Configuration()
+    #if DEBUG
+        configuration.prepareDatabase { db in
+            db.trace(options: .profile) {
+                if context == .preview {
+                    print("\($0.expandedDescription)")
+                } else {
+                    logger.debug("\($0.expandedDescription)")
+                }
             }
         }
+    #endif
+    let database = try defaultDatabase(configuration: configuration)
+    logger.info("open '\(database.path)'")
+    var migrator = DatabaseMigrator()
+    #if DEBUG
+        migrator.eraseDatabaseOnSchemaChange = true
+    #endif
+    migrator.registerMigration("add bookmarks") { db in
+        try db.create(table: "bookmarkedCards") { t in
+            t.column("id", .text).notNull(onConflict: .replace)
+            t.column("name", .text).notNull()
+            t.column("typeLine", .text)
+            t.column("frontCardFace", .jsonText).notNull()
+            t.column("backCardFace", .jsonText)
+            t.column("setCode", .text).notNull()
+            t.column("setName", .text).notNull()
+            t.column("collectorNumber", .text).notNull()
+            t.column("releasedAt", .datetime).notNull()
+            t.column("bookmarkedAt", .datetime).notNull()
+        }
     }
+    migrator.registerMigration("add filter history") { db in
+        try db.create(table: "filterHistoryEntries") { t in
+            t.autoIncrementedPrimaryKey("id")
+            t.column("lastUsedAt", .datetime).notNull()
+            t.column("filter", .jsonText).notNull().unique(onConflict: .replace)
+        }
+    }
+    migrator.registerMigration("add search history") { db in
+        try db.create(table: "searchHistoryEntries") { t in
+            t.autoIncrementedPrimaryKey("id")
+            t.column("lastUsedAt", .datetime).notNull()
+            t.column("filters", .jsonText).notNull().unique(onConflict: .replace)
+        }
+    }
+    migrator.registerMigration("add pinned filters") { db in
+        try db.create(table: "pinnedFilterEntries") { t in
+            t.autoIncrementedPrimaryKey("id")
+            t.column("pinnedAt", .datetime).notNull()
+            t.column("filter", .jsonText).notNull().unique(onConflict: .replace)
+        }
+    }
+    try migrator.migrate(database)
+    return database
 }
