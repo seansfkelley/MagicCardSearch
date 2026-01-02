@@ -42,7 +42,7 @@ struct SearchBarView: View {
                 textView.smartInsertDeleteType = .no
             }
             .onSubmit {
-                createNewFilterFromSearch(fallbackToNameFilter: true)
+                tryCreateNewFilterFromSearch(fallbackToNameFilter: true)
                 onSubmit()
             }
             .focusOnAppear(config: .init(
@@ -84,11 +84,28 @@ struct SearchBarView: View {
                 showSymbolPicker = false
             }
 
-            if Self.didAppendClosingCharacter(previous, current, inputSelection) {
-                createNewFilterFromSearch()
-            } else if let (newText, newSelection) = removeAutoinsertedWhitespace(current, inputSelection), newText != inputText {
+            if Self.didAppend(characterFrom: [" "], to: previous, toCreate: current, withSelection: inputSelection) {
+                let partial = PartialSearchFilter.from(inputText)
+                if case .name(let isExact, let term) = partial.content, case .bare(let content) = term {
+                    inputText = PartialSearchFilter(
+                        negated: partial.negated,
+                        content: .name(isExact, .unterminated(.doubleQuote, content)),
+                    )
+                    .description
+                    inputSelection = TextSelection(insertionPoint: inputText.endIndex)
+                    return
+                }
+            }
+
+            if Self.didAppend(characterFrom: [" ", "'", "\"", ")", "/"], to: previous, toCreate: current, withSelection: inputSelection) {
+                tryCreateNewFilterFromSearch()
+                return
+            }
+
+            if let (newText, newSelection) = removeAutoinsertedWhitespace(current, inputSelection), newText != inputText {
                 inputText = newText
                 inputSelection = newSelection
+                return
             }
         }
         .onChange(of: filters) {
@@ -96,12 +113,17 @@ struct SearchBarView: View {
         }
     }
 
-    private static func didAppendClosingCharacter(_ previous: String, _ current: String, _ selection: TextSelection?) -> Bool {
+    private static func didAppend(
+        characterFrom characters: Set<Character>,
+        to previous: String,
+        toCreate current: String,
+        withSelection selection: TextSelection?,
+    ) -> Bool {
         guard current.count > previous.count else {
             return false
         }
 
-        guard current.firstMatch(of: /[ '"\)\/]$/) != nil else {
+        guard let lastCharacter = current.last, characters.contains(lastCharacter) else {
             return false
         }
 
@@ -119,7 +141,7 @@ struct SearchBarView: View {
         }
     }
 
-    private func createNewFilterFromSearch(fallbackToNameFilter: Bool = false) {
+    private func tryCreateNewFilterFromSearch(fallbackToNameFilter: Bool = false) {
         let filter = inputText.toSearchFilter()
         switch filter {
         case .fallback(let filter):
@@ -129,7 +151,6 @@ struct SearchBarView: View {
             }
         case .parsed(let filter):
             filters.append(filter)
-//            searchHistoryTracker.recordUsage(of: filter)
             inputText = ""
         case .empty:
             break

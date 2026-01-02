@@ -448,12 +448,40 @@ struct PartialSearchFilterTests {
         ),
 
         TestCase(
+            " ",
+            PartialSearchFilter(
+                negated: false,
+                content: .name(false, .bare(" "))
+            ),
+            SearchFilter.name(false, false, " ")
+        ),
+
+        TestCase(
             "-",
             PartialSearchFilter(
                 negated: true,
                 content: .name(false, .bare(""))
             ),
             SearchFilter.name(true, false, "")
+        ),
+
+        TestCase(
+            "- ",
+            PartialSearchFilter(
+                negated: true,
+                content: .name(false, .bare(" "))
+            ),
+            SearchFilter.name(true, false, " ")
+        ),
+
+        // What should this do?
+        TestCase(
+            " -",
+            PartialSearchFilter(
+                negated: true,
+                content: .name(false, .bare(" "))
+            ),
+            SearchFilter.name(true, false, " ")
         ),
 
         TestCase(
