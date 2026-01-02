@@ -24,10 +24,12 @@ class HistorySuggestionProviderTests {
     private func record(filter: SearchFilter, atOffset interval: TimeInterval) {
         try? database.write { db in
             try FilterHistoryEntry
-                .insert { FilterHistoryEntry(
-                    filter: filter,
-                    at: Date(timeIntervalSinceReferenceDate: interval),
-                ) }
+                .insert {
+                    FilterHistoryEntry(
+                        filter: filter,
+                        at: Date(timeIntervalSinceReferenceDate: interval),
+                    )
+                }
                 .execute(db)
         }
     }
@@ -67,7 +69,12 @@ class HistorySuggestionProviderTests {
         let colorFilter = SearchFilter.basic(false, "color", .equal, "red")
         let oracleFilter = SearchFilter.basic(false, "oracle", .including, "flying")
         let setFilter = SearchFilter.basic(false, "set", .equal, "odyssey")
-        recordUsages(of: [colorFilter, oracleFilter, setFilter])
+        
+        record(filter: colorFilter, atOffset: 0)
+        record(filter: oracleFilter, atOffset: 1000)
+        record(filter: setFilter, atOffset: 2000)
+        
+        wait()
 
         let suggestions = provider.getSuggestions(for: "y", excluding: Set(), limit: 10)
         #expect(suggestions == [
@@ -81,7 +88,12 @@ class HistorySuggestionProviderTests {
         let colorFilter = SearchFilter.basic(false, "color", .equal, "red")
         let oracleFilter = SearchFilter.basic(false, "oracle", .including, "flying")
         let setFilter = SearchFilter.basic(false, "set", .equal, "ody")
-        recordUsages(of: [colorFilter, oracleFilter, setFilter])
+        
+        record(filter: colorFilter, atOffset: 0)
+        record(filter: oracleFilter, atOffset: 1000)
+        record(filter: setFilter, atOffset: 2000)
+        
+        wait()
 
         let suggestions = provider.getSuggestions(for: "y", excluding: Set([oracleFilter]), limit: 10)
         #expect(suggestions == [
@@ -93,7 +105,11 @@ class HistorySuggestionProviderTests {
     func noSubstringMatch() {
         let colorFilter = SearchFilter.basic(false, "color", .equal, "red")
         let oracleFilter = SearchFilter.basic(false, "oracle", .including, "flying")
-        recordUsages(of: [colorFilter, oracleFilter])
+        
+        record(filter: colorFilter, atOffset: 0)
+        record(filter: oracleFilter, atOffset: 1000)
+        
+        wait()
 
         let suggestions = provider.getSuggestions(for: "xyz", excluding: Set(), limit: 10)
         #expect(suggestions.isEmpty)

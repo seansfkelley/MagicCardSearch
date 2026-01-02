@@ -19,8 +19,13 @@ struct HistorySuggestion: Equatable, Hashable, Sendable, ScorableSuggestion {
 class HistorySuggestionProvider {
     // MARK: - Properties
 
-    @ObservationIgnored @FetchAll private var filterHistoryEntries: [FilterHistoryEntry]
-    @ObservationIgnored @FetchAll private var searchHistoryEntries: [SearchHistoryEntry]
+    @ObservationIgnored
+    @FetchAll(FilterHistoryEntry.order { $0.lastUsedAt.desc() })
+    private var filterHistoryEntries
+
+    @ObservationIgnored
+    @FetchAll(SearchHistoryEntry.order { $0.lastUsedAt.desc() })
+    private var searchHistoryEntries
 
     // MARK: - Public Methods
 
@@ -31,7 +36,7 @@ class HistorySuggestionProvider {
         
         let trimmedSearchTerm = searchTerm.trimmingCharacters(in: .whitespaces)
 
-        let results = Array(
+        return Array(
             filterHistoryEntries
                 .lazy
                 .filter { !excludedFilters.contains($0.filter) }
@@ -61,7 +66,5 @@ class HistorySuggestionProvider {
                 }
                 .prefix(limit)
         )
-
-        return results
     }
 }
