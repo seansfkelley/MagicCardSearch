@@ -42,7 +42,11 @@ struct SearchBarView: View {
                 textView.smartInsertDeleteType = .no
             }
             .onSubmit {
-                tryCreateNewFilterFromSearch(fallbackToNameFilter: true)
+                if let filter = inputText.toSearchFilter().value {
+                    filters.append(filter)
+                    inputText = ""
+                    inputSelection = TextSelection(insertionPoint: inputText.endIndex)
+                }
                 onSubmit()
             }
             .focusOnAppear(config: .init(
@@ -98,7 +102,11 @@ struct SearchBarView: View {
             }
 
             if Self.didAppend(characterFrom: [" ", "'", "\"", ")", "/"], to: previous, toCreate: current, withSelection: inputSelection) {
-                tryCreateNewFilterFromSearch()
+                if case .valid(let filter) = inputText.toSearchFilter() {
+                    filters.append(filter)
+                    inputText = ""
+                    inputSelection = TextSelection(insertionPoint: inputText.endIndex)
+                }
                 return
             }
 
@@ -138,22 +146,6 @@ struct SearchBarView: View {
             // A cursor at a single point without a selection is still represented as a non-nil
             // zero-length range, so I guess this branch is only hit if you're not focused on it?
             true
-        }
-    }
-
-    private func tryCreateNewFilterFromSearch(fallbackToNameFilter: Bool = false) {
-        let filter = inputText.toSearchFilter()
-        switch filter {
-        case .fallback(let filter):
-            if fallbackToNameFilter {
-                // swiftlint:disable:next fallthrough
-                fallthrough
-            }
-        case .parsed(let filter):
-            filters.append(filter)
-            inputText = ""
-        case .empty:
-            break
         }
     }
 

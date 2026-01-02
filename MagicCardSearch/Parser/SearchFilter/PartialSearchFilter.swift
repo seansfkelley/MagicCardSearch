@@ -76,10 +76,10 @@ struct PartialSearchFilter: Equatable, CustomStringConvertible {
             }
         }
     
-        func toComplete() -> String? {
+        func toComplete(autoterminateQuotes: Bool = false) -> String? {
             switch self {
             case .bare(let content): content
-            case .unterminated: nil
+            case .unterminated(_, let content): autoterminateQuotes ? content : nil
             case .balanced(_, let content): content
             }
         }
@@ -104,16 +104,16 @@ struct PartialSearchFilter: Equatable, CustomStringConvertible {
         "\(negated ? "-" : "")\(content)"
     }
     
-    func toComplete() -> SearchFilter? {
+    func toComplete(autoterminateQuotes: Bool = false) -> SearchFilter? {
         switch content {
         case .name(let exact, let term):
-            if let completeTerm = term.toComplete() {
+            if let completeTerm = term.toComplete(autoterminateQuotes: autoterminateQuotes) {
                 return SearchFilter.name(negated, exact, completeTerm)
             } else {
                 return nil
             }
         case .filter(let field, let comparison, let term):
-            if let completeTerm = term.toComplete(), let completeComparison = comparison.toComplete() {
+            if let completeTerm = term.toComplete(autoterminateQuotes: autoterminateQuotes), let completeComparison = comparison.toComplete() {
                 return switch term.quotingType {
                 case .singleQuote, .doubleQuote:
                     SearchFilter.basic(negated, field, completeComparison, completeTerm)

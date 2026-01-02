@@ -6,13 +6,15 @@
 //
 enum ParsedFilter {
     case empty
-    case parsed(SearchFilter)
+    case valid(SearchFilter)
+    case autoterminated(SearchFilter)
     case fallback(SearchFilter)
 
     public var value: SearchFilter? {
         switch self {
         case .empty: nil
-        case .parsed(let filter): filter
+        case .valid(let filter): filter
+        case .autoterminated(let filter): filter
         case .fallback(let filter): filter
         }
     }
@@ -29,16 +31,21 @@ extension String {
         //
         // TODO: The parenthesized parser is a superset of PartialSearchFilter. This control flow
         // should be cleaned up to not require a regex.
-        return if (try? /^-?\(/.prefixMatch(in: trimmed)) != nil {
-            if let disjunction = ParenthesizedDisjunction.tryParse(trimmed), let filter = disjunction.toSearchFilter() {
-                .parsed(.disjunction(filter))
+        if (try? /^-?\(/.prefixMatch(in: trimmed)) != nil {
+            return if let disjunction = ParenthesizedDisjunction.tryParse(trimmed), let filter = disjunction.toSearchFilter() {
+                .valid(.disjunction(filter))
             } else {
                 .fallback(.name(false, false, trimmed))
             }
-        } else if let filter = PartialSearchFilter.from(trimmed).toComplete() {
-            .parsed(filter)
-        } else {
-            .fallback(.name(false, false, trimmed))
         }
+
+        let partial = PartialSearchFilter.from(trimmed)
+        if let filter = partial.toComplete() {
+            return .valid(filter)
+        } else if let filter = partial.toComplete(autoterminateQuotes: true) {
+            return .autoterminated(filter)
+        }
+
+        return .fallback(.name(false, false, trimmed))
     }
 }
