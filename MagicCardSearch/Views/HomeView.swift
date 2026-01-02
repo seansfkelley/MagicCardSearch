@@ -28,10 +28,11 @@ private extension View {
 }
 
 struct HomeView: View {
+    @Environment(HistoryAndPinnedStore.self) private var historyAndPinnedStore
+    
     @FetchAll(SearchHistoryEntry.order { $0.lastUsedAt.desc() }.limit(10))
     var recentSearches
 
-    let historyAndPinnedState: HistoryAndPinnedState
     let onSearchSelected: ([SearchFilter]) -> Void
     
     @State private var cardFlipStates: [UUID: Bool] = [:]
@@ -162,7 +163,7 @@ struct HomeView: View {
                     .buttonStyle(.plain)
                     .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                         Button(role: .destructive) {
-                            historyAndPinnedState.delete(search: entry.filters)
+                            historyAndPinnedStore.delete(search: entry.filters)
                         } label: {
                             Label("Delete", systemImage: "trash")
                         }

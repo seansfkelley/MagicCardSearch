@@ -17,7 +17,7 @@ struct BookmarkedCardsListView: View {
     @State private var selectedCards: Set<UUID> = []
     @State private var detailSheetState: SheetState?
     
-    @Dependency(\.defaultDatabase) var database
+    @Environment(BookmarkedCardsStore.self) private var bookmarkedCardsStore
     @State @FetchAll private var bookmarks: [BookmarkedCard] = [] // Needs a default because of @State.
     @AppStorage("bookmarkedCardsSortOption")
     private var sortMode: BookmarkSortMode = .name
@@ -60,11 +60,7 @@ struct BookmarkedCardsListView: View {
                                 .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                                     Button(role: .destructive) {
                                         withAnimation {
-                                            withErrorReporting {
-                                              try database.write { db in
-                                                  try BookmarkedCard.delete(bookmark).execute(db)
-                                              }
-                                            }
+                                            bookmarkedCardsStore.unbookmark(id: bookmark.id)
                                         }
                                     } label: {
                                         Label("Delete", systemImage: "trash")
@@ -122,11 +118,7 @@ struct BookmarkedCardsListView: View {
 
                         Button(role: .destructive) {
                             withAnimation {
-                                withErrorReporting {
-                                    try database.write { db in
-                                        try BookmarkedCard.where { selectedCards.contains($0.id) }.delete().execute(db)
-                                    }
-                                }
+                                bookmarkedCardsStore.unbookmark(ids: selectedCards)
                                 selectedCards.removeAll()
                                 editMode = .inactive
                             }
@@ -273,9 +265,8 @@ private struct BookmarkedCardDetailNavigator: View {
 
     @State private var cardFlipStates: [UUID: Bool] = [:]
 
-    @Dependency(\.defaultDatabase) var database
     @FetchAll private var allBookmarks: [BookmarkedCard]
-
+    @Environment(BookmarkedCardsStore.self) private var bookmarkedCardsStore
     private let cardSearchService = CardSearchService()
     
     var body: some View {
@@ -305,11 +296,7 @@ private struct BookmarkedCardDetailNavigator: View {
             if let bookmark = allBookmarks.first(where: { $0.id == card.id }) {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
-                        withErrorReporting {
-                          try database.write { db in
-                              try BookmarkedCard.delete(bookmark).execute(db)
-                          }
-                        }
+                        bookmarkedCardsStore.unbookmark(id: bookmark.id)
                     } label: {
                         Image(systemName: "bookmark.fill")
                     }
@@ -317,14 +304,7 @@ private struct BookmarkedCardDetailNavigator: View {
             } else {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
-                        withErrorReporting {
-                            try database.write { db in
-                                try BookmarkedCard.insert {
-                                    BookmarkedCard.from(card: card)
-                                }
-                                .execute(db)
-                            }
-                        }
+                        bookmarkedCardsStore.bookmark(card: card)
                     } label: {
                         Image(systemName: "bookmark")
                     }

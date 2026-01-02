@@ -16,8 +16,7 @@ enum MainContentType {
 }
 
 struct ContentView: View {
-    @Environment(historyAndPinnedStore.self) private var historyAndPinnedState
-    @State private var searchState = SearchState()
+    @Binding var searchState: SearchState
 
     @State private var showDisplaySheet = false
     @State private var showBookmarkedCardList = false
@@ -40,8 +39,7 @@ struct ContentView: View {
                 
                 switch mainContentType {
                 case .home:
-                    HomeView(historyAndPinnedState: historyAndPinnedState,
-                    ) { filters in
+                    HomeView { filters in
                         searchState.filters = filters
                         startNewSearch()
                     }
@@ -141,7 +139,6 @@ struct ContentView: View {
         .sheet(isPresented: $isSearchSheetVisible) {
             SearchSheetView(
                 searchState: $searchState,
-                historyAndPinnedState: historyAndPinnedState,
                 onClearAll: handleClearAll,
             ) {
                 startNewSearch()

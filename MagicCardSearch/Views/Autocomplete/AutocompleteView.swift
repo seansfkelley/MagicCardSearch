@@ -9,6 +9,7 @@ import SwiftUI
 
 struct AutocompleteView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(HistoryAndPinnedStore.self) private var historyAndPinnedStore
 
     @Binding var searchState: SearchState
     @Binding var suggestionLoadingState: DebouncedLoadingState
@@ -71,7 +72,7 @@ struct AutocompleteView: View {
                     ) { addScopedFilter($0) }
                     .swipeActions(edge: .leading, allowsFullSwipe: true) {
                         Button {
-                            historyAndPinnedState.unpin(filter: suggestion.filter)
+                            historyAndPinnedStore.unpin(filter: suggestion.filter)
                             nonce += 1
                         } label: {
                             Label("Unpin", systemImage: "pin.slash")
@@ -80,7 +81,7 @@ struct AutocompleteView: View {
                     }
                     .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                         Button(role: .destructive) {
-                            historyAndPinnedState.delete(filter: suggestion.filter)
+                            historyAndPinnedStore.delete(filter: suggestion.filter)
                             nonce += 1
                         } label: {
                             Label("Delete", systemImage: "trash")
@@ -98,7 +99,7 @@ struct AutocompleteView: View {
                     }
                     .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                         Button(role: .destructive) {
-                            historyAndPinnedState.delete(filter: suggestion.filter)
+                            historyAndPinnedStore.delete(filter: suggestion.filter)
                             nonce += 1
                         } label: {
                             Label("Delete", systemImage: "trash")
@@ -197,7 +198,7 @@ struct AutocompleteView: View {
     @ViewBuilder
     private func pinSwipeAction(for filter: SearchFilter) -> some View {
         Button {
-            historyAndPinnedState.pin(filter: filter)
+            historyAndPinnedStore.pin(filter: filter)
             nonce += 1
         } label: {
             Label("Pin", systemImage: "pin")

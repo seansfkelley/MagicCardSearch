@@ -7,12 +7,12 @@
 import SwiftUI
 
 struct SearchSheetView: View {
+    @Environment(\.dismiss) private var dismiss
+    
     @Binding var searchState: SearchState
-    let historyAndPinnedState: HistoryAndPinnedState
     let onClearAll: () -> Void
     let onSubmit: () -> Void
 
-    @Environment(\.dismiss) private var dismiss
     @State private var suggestionLoadingState = DebouncedLoadingState()
     @State private var showSyntaxReference = false
 
@@ -21,7 +21,6 @@ struct SearchSheetView: View {
             AutocompleteView(
                 searchState: $searchState,
                 suggestionLoadingState: $suggestionLoadingState,
-                historyAndPinnedState: historyAndPinnedState,
             ) {
                 dismiss()
                 onSubmit()

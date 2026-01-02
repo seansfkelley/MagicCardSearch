@@ -10,8 +10,9 @@ import Logging
 
 @main
 struct MagicCardSearchApp: App {
-    @State private var bookmarkedCardsStore = BookmarkedCardsStore()
-    @State private var historyAndPinnedStore = HistoryAndPinnedStore()
+    private var bookmarkedCardsStore = BookmarkedCardsStore()
+    private var historyAndPinnedStore = HistoryAndPinnedStore()
+    @State private var searchState: SearchState
 
     init() {
         prepareDependencies {
@@ -23,11 +24,13 @@ struct MagicCardSearchApp: App {
             handler.logLevel = .info
             return handler
         }
+
+        _searchState = State(initialValue: SearchState(historyAndPinnedStore: historyAndPinnedStore))
     }
     
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            ContentView(searchState: $searchState)
                 .environment(bookmarkedCardsStore)
                 .environment(historyAndPinnedStore)
                 .task {

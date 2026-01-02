@@ -39,6 +39,7 @@ class ScryfallObjectList<T: Codable & Sendable> {
         }
     }
 
+    @discardableResult
     func loadNextPage() -> Task<Void, Never> {
         if case .loading = value {
             logger.debug("declining to load next page: already loading")
@@ -95,6 +96,7 @@ class ScryfallObjectList<T: Codable & Sendable> {
         return task!
     }
 
+    @discardableResult
     func loadAllRemainingPages() -> Task<Void, Never> {
         if case .loading = value {
             logger.debug("declining to load all remaining pages: already loading")

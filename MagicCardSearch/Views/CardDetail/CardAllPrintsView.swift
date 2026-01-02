@@ -19,7 +19,7 @@ struct CardAllPrintsView: View {
     @State private var printFilterSettings = PrintFilterSettings()
     
     @Environment(\.dismiss) private var dismiss
-    @Dependency(\.defaultDatabase) var database
+    @Environment(BookmarkedCardsStore.self) private var bookmarkedCardsStore
     @FetchAll private var bookmarks: [BookmarkedCard]
 
     // MARK: - Filter Settings
@@ -144,11 +144,7 @@ struct CardAllPrintsView: View {
                 if let currentCard, let bookmark = bookmarks.first(where: { $0.id == currentCard.id }) {
                     ToolbarItem(placement: .topBarTrailing) {
                         Button {
-                            withErrorReporting {
-                              try database.write { db in
-                                  try BookmarkedCard.delete(bookmark).execute(db)
-                              }
-                            }
+                            bookmarkedCardsStore.unbookmark(id: bookmark.id)
                         } label: {
                             Image(systemName: "bookmark.fill")
                         }
@@ -156,14 +152,7 @@ struct CardAllPrintsView: View {
                 } else if let currentCard {
                     ToolbarItem(placement: .topBarTrailing) {
                         Button {
-                            withErrorReporting {
-                              try database.write { db in
-                                  try BookmarkedCard.insert {
-                                      BookmarkedCard.from(card: currentCard)
-                                  }
-                                  .execute(db)
-                              }
-                            }
+                            bookmarkedCardsStore.bookmark(card: currentCard)
                         } label: {
                             Image(systemName: "bookmark")
                         }

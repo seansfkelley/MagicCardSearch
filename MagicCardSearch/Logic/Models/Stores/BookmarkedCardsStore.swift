@@ -35,6 +35,17 @@ class BookmarkedCardsStore {
         }
     }
 
+    public func unbookmark(ids: any Collection<UUID>) {
+        guard !ids.isEmpty else { return }
+
+        write("unbookmarking multiple cards") { db in
+            try BookmarkedCard
+                .delete()
+                .where { $0.id.in(Array(ids)) }
+                .execute(db)
+        }
+    }
+
     // MARK: - Private Methods
 
     private func write(_ operation: String, _ block: (Database) throws -> Void) {
