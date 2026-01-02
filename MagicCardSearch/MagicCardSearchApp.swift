@@ -10,13 +10,18 @@ import Logging
 
 @main
 struct MagicCardSearchApp: App {
-    private var bookmarkedCardsStore = BookmarkedCardsStore()
-    private var historyAndPinnedStore = HistoryAndPinnedStore()
+    private var bookmarkedCardsStore: BookmarkedCardsStore
+    private var historyAndPinnedStore: HistoryAndPinnedStore
     @State private var searchState: SearchState
 
     init() {
+        let database = try! appDatabase()
+        bookmarkedCardsStore = .init(database: database)
+        historyAndPinnedStore = .init(database: database)
+        _searchState = State(initialValue: SearchState(historyAndPinnedStore: historyAndPinnedStore))
+
         prepareDependencies {
-            $0.defaultDatabase = try! appDatabase()
+            $0.defaultDatabase = database
         }
 
         LoggingSystem.bootstrap { label in
@@ -24,8 +29,6 @@ struct MagicCardSearchApp: App {
             handler.logLevel = .info
             return handler
         }
-
-        _searchState = State(initialValue: SearchState(historyAndPinnedStore: historyAndPinnedStore))
     }
     
     var body: some Scene {

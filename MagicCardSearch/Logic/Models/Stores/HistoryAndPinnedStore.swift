@@ -4,6 +4,7 @@
 //
 //  Created by Sean Kelley on 2025-12-31.
 //
+import Foundation
 import Logging
 import SQLiteData
 import Observation
@@ -13,9 +14,12 @@ private let logger = Logger(label: "HistoryAndPinnedState")
 @MainActor
 @Observable
 class HistoryAndPinnedStore {
-    @ObservationIgnored @Dependency(\.defaultDatabase) var database
-
     public private(set) var lastError: Error?
+
+    @ObservationIgnored private var database: any DatabaseWriter
+    init(database: any DatabaseWriter) {
+        self.database = database
+    }
 
     // MARK: - Filter-only Methods
 
@@ -33,10 +37,10 @@ class HistoryAndPinnedStore {
         }
     }
 
-    public func pin(filter: SearchFilter) {
+    public func pin(filter: SearchFilter, at date: Date = .init()) {
         write("pinning filter") { db in
             try PinnedFilterEntry
-                .insert { PinnedFilterEntry(filter: filter) }
+                .insert { PinnedFilterEntry(filter: filter, at: date) }
                 .execute(db)
         }
     }
@@ -57,15 +61,15 @@ class HistoryAndPinnedStore {
 
     // MARK: - Search Methods
 
-    public func record(search: [SearchFilter]) {
+    public func record(search: [SearchFilter], at date: Date = .init()) {
         write("recording search") { db in
             try SearchHistoryEntry
-                .insert { SearchHistoryEntry(filters: search) }
+                .insert { SearchHistoryEntry(filters: search, at: date) }
                 .execute(db)
 
             try FilterHistoryEntry.insert {
                 for filter in search {
-                    FilterHistoryEntry(filter: filter)
+                    FilterHistoryEntry(filter: filter, at: date)
                 }
             }
             .execute(db)

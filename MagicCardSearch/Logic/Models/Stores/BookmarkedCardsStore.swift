@@ -14,9 +14,13 @@ private let logger = Logger(label: "HistoryAndPinnedState")
 @MainActor
 @Observable
 class BookmarkedCardsStore {
-    @ObservationIgnored @Dependency(\.defaultDatabase) var database
-
     public private(set) var lastError: Error?
+
+    @ObservationIgnored private var database: any DatabaseWriter
+
+    init(database: any DatabaseWriter) {
+        self.database = database
+    }
 
     public func bookmark(card: Card) {
         write("bookmarking card") { db in

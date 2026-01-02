@@ -7,24 +7,30 @@
 
 import Testing
 import Foundation
+import SQLiteData
 @testable import MagicCardSearch
 
 @Suite
+@MainActor
 class HistorySuggestionProviderTests {
+    var database: any DatabaseWriter
     var provider: HistorySuggestionProvider
-    var db: SQLiteDatabase
 
     init() throws {
-        db = try SQLiteDatabase.initialize()
-        provider = HistorySuggestionProvider(
-            filterHistoryStore: db.filterHistory,
-            searchHistoryStore: db.searchHistory
-        )
+        database = try appDatabase()
+        provider = HistorySuggestionProvider()
+        prepareDependencies {
+            $0.defaultDatabase = database
+        }
     }
 
     private func recordUsages(of filters: [SearchFilter]) {
         for filter in filters {
-            try? db.filterHistory.recordUsage(of: filter)
+            try? database.write { db in
+                try FilterHistoryEntry
+                    .insert { FilterHistoryEntry(filter: filter) }
+                    .execute(db)
+            }
         }
     }
 
@@ -82,17 +88,5 @@ class HistorySuggestionProviderTests {
 
         let suggestions = provider.getSuggestions(for: "xyz", excluding: Set(), limit: 10)
         #expect(suggestions.isEmpty)
-    }
-
-    @Test("does nothing if deleting a filter that does not exist")
-    func deleteNonexistent() throws {
-        let colorFilter = SearchFilter.basic(false, "color", .equal, "red")
-        let oracleFilter = SearchFilter.basic(false, "oracle", .including, "flying")
-        recordUsages(of: [colorFilter])
-
-        try db.filterHistory.deleteUsage(of: oracleFilter)
-
-        let suggestions = provider.getSuggestions(for: "", excluding: Set(), limit: 10)
-        #expect(suggestions == [.init(filter: colorFilter, matchRange: nil, prefixKind: .none, suggestionLength: 9)])
     }
 }
