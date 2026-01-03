@@ -15,58 +15,48 @@ private let oneDay: TimeInterval = 60 * 60 * 24
 private let jsonDecoder = JSONDecoder()
 private let jsonEncoder = JSONEncoder()
 
-/// A property wrapper that manages fetching, parsing, transforming, and caching blob data.
-///
-/// This wrapper encapsulates the pattern of:
-/// - Observing a database blob entry via `@FetchOne`
-/// - Lazily parsing JSON on first access
-/// - Transforming the parsed data
-/// - Caching the result
-/// - Invalidating the cache when the underlying blob changes
 @propertyWrapper
-struct CachedParsedBlob<Payload: Codable, Transformed> {
-    private var blobEntry: BlobEntry?
-    private var cache: Result<Transformed, Error>?
-    private let transform: (Payload) -> Transformed
+class DerivedFromBlob<Value, S: SelectStatement> where S.From.QueryOutput == BlobEntry, S.QueryValue == (), S.Joins == () {
+    @FetchOne private var blob: BlobEntry?
+    private var cache: Result<Value, Error>?
+    private let transform: (Data) throws -> Value
 
-    var wrappedValue: Transformed? {
-        mutating get {
-            if case .success(let transformed) = cache {
-                return transformed
-            }
-            
-            guard let blobEntry else { return nil }
-            
-            do {
-                let parsed = try jsonDecoder.decode(Payload.self, from: blobEntry.value)
-                let result = transform(parsed)
-                cache = .success(result)
-                return result
-            } catch {
-                logger.error("error decoding blob", metadata: [
-                    "key": "\(blobEntry.key)",
-                    "error": "\(error)",
-                ])
-                cache = .failure(error)
-                return nil
-            }
-        }
+    init(_ select: S, transform: @escaping (Data) throws -> Value) {
+        self._blob = FetchOne(wrappedValue: nil, select)
+        self.transform = transform
     }
 
-    init(_ transform: @escaping (Payload) -> Transformed) {
-        self.transform = transform
+    var wrappedValue: Value? {
+        if case .success(let value) = cache { return value }
+
+        guard let blob else {
+            return nil
+        }
+
+        do {
+            let value = try transform(blob.value)
+            cache = .success(value)
+            return value
+        } catch {
+            logger.warning("failed to transform blob", metadata: [
+                "error": "\(error)",
+            ])
+            cache = .failure(error)
+            return nil
+        }
     }
 }
 
+// swiftlint:disable attributes
 @MainActor
 @Observable
 class ScryfallCatalogBlobs {
-    @CachedParsedBlob({ (array: [MTGSet]) in
-        Dictionary(uniqueKeysWithValues: array.map { (SetCode($0.code), $0) })
-    })
     @ObservationIgnored
-    @FetchOne(BlobEntry.where { $0.key == "sets" })
-    public var sets
+    @DerivedFromBlob(BlobEntry.where { $0.key == "sets" }, transform: { data in
+        let parsed = try jsonDecoder.decode([MTGSet].self, from: data)
+        return Dictionary(uniqueKeysWithValues: parsed.map { (SetCode($0.code), $0) })
+    })
+    public var sets: [SetCode: MTGSet]?
 
     private let database: any DatabaseWriter
 
@@ -162,3 +152,4 @@ class ScryfallCatalogBlobs {
         ])
     }
 }
+// swiftlint:enable attributes
