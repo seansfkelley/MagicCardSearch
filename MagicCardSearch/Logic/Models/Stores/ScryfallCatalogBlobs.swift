@@ -15,32 +15,39 @@ private let oneDay: TimeInterval = 60 * 60 * 24
 private let jsonDecoder = JSONDecoder()
 private let jsonEncoder = JSONEncoder()
 
-protocol HasData<Data> {
-    associatedtype Data: Codable
-    var data: Data { get }
-}
-extension ObjectList: HasData {}
-extension Catalog: HasData {}
-
 @MainActor
 @Observable
 class ScryfallCatalogBlobs {
     @ObservationIgnored
-    // TODO: Does this need to be observable for this to work?
     @FetchOne(BlobEntry.where { $0.key == "sets" }) private var setsObject
-    // TODO: Can this be a read-once cache situation?
+
+    private var cachedSets: [SetCode: MTGSet]?
     public var sets: [SetCode: MTGSet]? {
-        guard let array: [MTGSet] = get(setsObject) else { return nil }
-        return Dictionary(uniqueKeysWithValues: array.map { (SetCode($0.code), $0) })
+        if let cachedSets {
+            return cachedSets
+        } else if let array = parse(setsObject, as: [MTGSet].self) {
+            cachedSets = Dictionary(uniqueKeysWithValues: array.map { (SetCode($0.code), $0) })
+            return cachedSets
+        } else {
+            return nil
+        }
     }
 
     private let database: any DatabaseWriter
 
     init(database: DatabaseWriter) {
         self.database = database
+
+        withObservationTracking {
+            _ = self.setsObject
+        } onChange: {
+            Task { @MainActor in
+                print("setsObject: \(String(describing: self.setsObject?.key))")
+            }
+        }
     }
 
-    private func get<T: Codable>(_ entry: BlobEntry?) -> T? {
+    private func parse<T: Codable>(_ entry: BlobEntry?, as: T.Type) -> T? {
         guard let entry else { return nil }
 
         do {
@@ -62,20 +69,20 @@ class ScryfallCatalogBlobs {
 
         let client = ScryfallClient(networkLogLevel: .minimal)
 
-        await fetch("sets", using: client.getSets)
-        await fetch("symbology", using: client.getSymbology)
+        await fetch("sets") { try await client.getSets().data }
+        await fetch("symbology") { try await client.getSymbology().data }
         // TODO: Symbols.
 
         typealias CatalogType = Catalog.`Type`
         for type in CatalogType.allCases {
             await fetch(type.rawValue) {
-                try await client.getCatalog(catalogType: type)
+                try await client.getCatalog(catalogType: type).data
             }
         }
     }
 
     // swiftlint:disable:next function_body_length
-    private func fetch<T: HasData>(_ key: String, using fetcher: () async throws -> T) async {
+    private func fetch<T: Codable>(_ key: String, expiringAfterDays expirationInDays: Int = 30, using fetcher: () async throws -> T) async {
         let existing: BlobEntry?
         do {
             existing = try await database.read { db in
@@ -89,17 +96,23 @@ class ScryfallCatalogBlobs {
             ])
         }
 
-        if let existing, existing.insertedAt >= Date(timeIntervalSinceNow: -30 * oneDay) {
-            do {
-                _ = try jsonDecoder.decode(T.Data.self, from: existing.value)
-                logger.info("not fetching; already have valid blob", metadata: [
+        if let existing {
+            if existing.insertedAt >= Date(timeIntervalSinceNow: -Double(expirationInDays) * oneDay) {
+                do {
+                    _ = try jsonDecoder.decode(T.self, from: existing.value)
+                    logger.info("not fetching; already have valid blob", metadata: [
+                        "key": "\(key)",
+                    ])
+                    return
+                } catch {
+                    logger.warning("blob existed but could not be parsed; will re-fetch", metadata: [
+                        "key": "\(key)",
+                        "error": "\(error)",
+                    ])
+                }
+            } else {
+                logger.info("blob existed but is expired; will re-fetch", metadata: [
                     "key": "\(key)",
-                ])
-                return
-            } catch {
-                logger.warning("blob existed but could not be parsed; will re-fetch", metadata: [
-                    "key": "\(key)",
-                    "error": "\(error)",
                 ])
             }
         }
@@ -116,7 +129,7 @@ class ScryfallCatalogBlobs {
         }
 
         do {
-            let value = try jsonEncoder.encode(result.data)
+            let value = try jsonEncoder.encode(result)
 
             _ = try await database.write { db in
                 try BlobEntry
