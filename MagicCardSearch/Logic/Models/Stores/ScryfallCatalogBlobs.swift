@@ -15,48 +15,105 @@ private let oneDay: TimeInterval = 60 * 60 * 24
 private let jsonDecoder = JSONDecoder()
 private let jsonEncoder = JSONEncoder()
 
-@propertyWrapper
-class DerivedFromBlob<Value, S: SelectStatement> where S.From.QueryOutput == BlobEntry, S.QueryValue == (), S.Joins == () {
-    @FetchOne private var blob: BlobEntry?
-    private var cache: Result<Value, Error>?
-    private let transform: (Data) throws -> Value
-
-    init(_ select: S, transform: @escaping (Data) throws -> Value) {
-        self._blob = FetchOne(wrappedValue: nil, select)
-        self.transform = transform
-    }
-
-    var wrappedValue: Value? {
-        if case .success(let value) = cache { return value }
-
-        guard let blob else {
-            return nil
-        }
-
-        do {
-            let value = try transform(blob.value)
-            cache = .success(value)
-            return value
-        } catch {
-            logger.warning("failed to transform blob", metadata: [
-                "error": "\(error)",
-            ])
-            cache = .failure(error)
-            return nil
-        }
-    }
-}
+private typealias CatalogType = Catalog.`Type`
 
 // swiftlint:disable attributes
 @MainActor
 @Observable
 class ScryfallCatalogBlobs {
     @ObservationIgnored
-    @DerivedFromBlob(BlobEntry.where { $0.key == "sets" }, transform: { data in
+    @TransformedBlob("sets", { data in
         let parsed = try jsonDecoder.decode([MTGSet].self, from: data)
         return Dictionary(uniqueKeysWithValues: parsed.map { (SetCode($0.code), $0) })
     })
     public var sets: [SetCode: MTGSet]?
+
+    @ObservationIgnored
+    @TransformedBlob("symbology", { data in
+        let parsed = try jsonDecoder.decode([Card.Symbol].self, from: data)
+        return Dictionary(uniqueKeysWithValues: parsed.map { (SymbolCode($0.symbol), $0) })
+    })
+    public var symbology: [SymbolCode: Card.Symbol]?
+
+    @ObservationIgnored
+    @TransformedBlob(CatalogType.abilityWords.rawValue)
+    public var abilityWords: [String]?
+
+    @ObservationIgnored
+    @TransformedBlob(CatalogType.artifactTypes.rawValue)
+    public var artifactTypes: [String]?
+
+    @ObservationIgnored
+    @TransformedBlob(CatalogType.artistNames.rawValue)
+    public var artistNames: [String]?
+
+    @ObservationIgnored
+    @TransformedBlob(CatalogType.battleTypes.rawValue)
+    public var battleTypes: [String]?
+
+    @ObservationIgnored
+    @TransformedBlob(CatalogType.cardNames.rawValue)
+    public var cardNames: [String]?
+
+    @ObservationIgnored
+    @TransformedBlob(CatalogType.cardTypes.rawValue)
+    public var cardTypes: [String]?
+
+    @ObservationIgnored
+    @TransformedBlob(CatalogType.creatureTypes.rawValue)
+    public var creatureTypes: [String]?
+
+    @ObservationIgnored
+    @TransformedBlob(CatalogType.enchantmentTypes.rawValue)
+    public var enchantmentTypes: [String]?
+
+    @ObservationIgnored
+    @TransformedBlob(CatalogType.flavorWords.rawValue)
+    public var flavorWords: [String]?
+
+    @ObservationIgnored
+    @TransformedBlob(CatalogType.keywordAbilities.rawValue)
+    public var keywordAbilities: [String]?
+
+    @ObservationIgnored
+    @TransformedBlob(CatalogType.keywordActions.rawValue)
+    public var keywordActions: [String]?
+
+    @ObservationIgnored
+    @TransformedBlob(CatalogType.landTypes.rawValue)
+    public var landTypes: [String]?
+
+    @ObservationIgnored
+    @TransformedBlob(CatalogType.loyalties.rawValue)
+    public var loyalties: [String]?
+
+    @ObservationIgnored
+    @TransformedBlob(CatalogType.planeswalkerTypes.rawValue)
+    public var planeswalkerTypes: [String]?
+
+    @ObservationIgnored
+    @TransformedBlob(CatalogType.powers.rawValue)
+    public var powers: [String]?
+
+    @ObservationIgnored
+    @TransformedBlob(CatalogType.spellTypes.rawValue)
+    public var spellTypes: [String]?
+
+    @ObservationIgnored
+    @TransformedBlob(CatalogType.supertypes.rawValue)
+    public var supertypes: [String]?
+
+    @ObservationIgnored
+    @TransformedBlob(CatalogType.toughnesses.rawValue)
+    public var toughnesses: [String]?
+
+    @ObservationIgnored
+    @TransformedBlob(CatalogType.watermarks.rawValue)
+    public var watermarks: [String]?
+
+    @ObservationIgnored
+    @TransformedBlob(CatalogType.wordBank.rawValue)
+    public var wordBank: [String]?
 
     private let database: any DatabaseWriter
 
@@ -76,7 +133,6 @@ class ScryfallCatalogBlobs {
         await fetch("symbology") { try await client.getSymbology().data }
         // TODO: Symbols.
 
-        typealias CatalogType = Catalog.`Type`
         for type in CatalogType.allCases {
             await fetch(type.rawValue) {
                 try await client.getCatalog(catalogType: type).data
