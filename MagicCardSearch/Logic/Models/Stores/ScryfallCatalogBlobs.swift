@@ -9,7 +9,7 @@ import ScryfallKit
 import Logging
 import SQLiteData
 
-private let logger = Logger(label: "ScryfallCatalogs")
+private let logger = Logger(label: "ScryfallCatalogBlobs")
 
 private let oneDay: TimeInterval = 60 * 60 * 24
 private let jsonDecoder = JSONDecoder()
@@ -23,13 +23,22 @@ extension ObjectList: HasData {}
 extension Catalog: HasData {}
 
 @MainActor
-struct ScryfallCatalogBlobs {
-    @Dependency(\.defaultDatabase) private var database
-
+@Observable
+class ScryfallCatalogBlobs {
+    @ObservationIgnored
     // TODO: Does this need to be observable for this to work?
-    @FetchOne(BlobEntry.where { $0.key == "sets" }) private var sets_
+    @FetchOne(BlobEntry.where { $0.key == "sets" }) private var setsObject
     // TODO: Can this be a read-once cache situation?
-    public var sets: [MTGSet]? { `get`(sets_) }
+    public var sets: [SetCode: MTGSet]? {
+        guard let array: [MTGSet] = get(setsObject) else { return nil }
+        return Dictionary(uniqueKeysWithValues: array.map { (SetCode($0.code), $0) })
+    }
+
+    private let database: any DatabaseWriter
+
+    init(database: DatabaseWriter) {
+        self.database = database
+    }
 
     private func get<T: Codable>(_ entry: BlobEntry?) -> T? {
         guard let entry else { return nil }
@@ -45,31 +54,35 @@ struct ScryfallCatalogBlobs {
         }
     }
 
-    private init() {}
+    public func initialize() async {
+        guard !isRunningTests() else {
+            logger.info("skipping ScryfallCatalogs initialization in test environment")
+            return
+        }
 
-    public static func initialize() async {
-        let catalog = ScryfallCatalogBlobs()
         let client = ScryfallClient(networkLogLevel: .minimal)
 
-        await catalog.fetch("sets", using: client.getSets)
-        await catalog.fetch("symbology", using: client.getSymbology)
+        await fetch("sets", using: client.getSets)
+        await fetch("symbology", using: client.getSymbology)
         // TODO: Symbols.
 
         typealias CatalogType = Catalog.`Type`
         for type in CatalogType.allCases {
-            await catalog.fetch(type.rawValue) {
+            await fetch(type.rawValue) {
                 try await client.getCatalog(catalogType: type)
             }
         }
     }
 
-    fileprivate func fetch<T: HasData>(_ key: String, using fetcher: () async throws -> T) async {
+    // swiftlint:disable:next function_body_length
+    private func fetch<T: HasData>(_ key: String, using fetcher: () async throws -> T) async {
         let existing: BlobEntry?
         do {
             existing = try await database.read { db in
                 try BlobEntry.all.where { $0.key == key }.fetchOne(db)
             }
         } catch {
+            existing = nil
             logger.warning("failed while reading blob from database; will re-fetch", metadata: [
                 "key": "\(key)",
                 "error": "\(error)",
@@ -78,7 +91,7 @@ struct ScryfallCatalogBlobs {
 
         if let existing, existing.insertedAt >= Date(timeIntervalSinceNow: -30 * oneDay) {
             do {
-                _ = try jsonDecoder.decode(Catalog.self, from: existing.value)
+                _ = try jsonDecoder.decode(T.Data.self, from: existing.value)
                 logger.info("not fetching; already have valid blob", metadata: [
                     "key": "\(key)",
                 ])
@@ -121,32 +134,5 @@ struct ScryfallCatalogBlobs {
         logger.info("fetched and cached blob", metadata: [
             "key": "\(key)",
         ])
-    }
-
-    fileprivate func loadSets() async throws {
-        let existing = try await database.read { db in
-            try BlobEntry.all.where { $0.key == "sets" }.fetchOne(db)
-        }
-
-        if let existing, existing.insertedAt >= Date(timeIntervalSinceNow: -30 * oneDay) {
-            do {
-                _ = try jsonDecoder.decode(Catalog.self, from: existing.value)
-                logger.info("not fetching; already have valid blob")
-            } catch {
-                logger.warning("blob existed but could not be parsed; will re-fetch", metadata: [
-                    "error": "\(error)",
-                ])
-            }
-        }
-
-        logger.info("fetching sets...")
-        let sets =
-        if sets.hasMore ?? false {
-            logger.warning("Scryfall unexpectedly reported that there are multiple pages of sets; will not fetch them")
-        }
-        let payload = Catalog.sets(sets.data)
-        _ = try await database.write { db in
-            try BlobEntry(key: payload.key, value: jsonEncoder.encode(payload))
-        }
     }
 }

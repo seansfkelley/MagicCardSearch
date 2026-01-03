@@ -10,6 +10,8 @@ import SVGKit
 import ScryfallKit
 
 struct SetIconView: View {
+    @Environment(ScryfallCatalogBlobs.self) private var scryfallCatalogs
+
     private struct RenderedImageCacheKey: Hashable {
         let setCode: SetCode
         let size: CGFloat
@@ -67,8 +69,8 @@ struct SetIconView: View {
             self.imageResult = .loaded(renderedImage, nil)
             return
         }
-        
-        let set = ScryfallCatalogs.sync?.sets[setCode]
+
+        let set = scryfallCatalogs.sets?[setCode]
         guard let set, let url = URL(string: set.iconSvgUri) else {
             imageResult = .errored(nil, NSError(domain: "SetIconView", code: 1, userInfo: [NSLocalizedDescriptionKey: "Failed to get set metadata"]))
             return

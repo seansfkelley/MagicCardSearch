@@ -12,17 +12,20 @@ import Logging
 struct MagicCardSearchApp: App {
     private var bookmarkedCardsStore: BookmarkedCardsStore
     private var historyAndPinnedStore: HistoryAndPinnedStore
+    private var scryfallCatalogs: ScryfallCatalogBlobs
     @State private var searchState: SearchState
 
     init() {
         let database = try! appDatabase()
-        bookmarkedCardsStore = .init(database: database)
-        historyAndPinnedStore = .init(database: database)
-        _searchState = State(initialValue: SearchState(historyAndPinnedStore: historyAndPinnedStore))
 
         prepareDependencies {
             $0.defaultDatabase = database
         }
+
+        bookmarkedCardsStore = .init(database: database)
+        historyAndPinnedStore = .init(database: database)
+        scryfallCatalogs = .init(database: database)
+        _searchState = State(initialValue: SearchState(historyAndPinnedStore: historyAndPinnedStore))
 
         LoggingSystem.bootstrap { label in
             var handler = CompactLogHandler(label: label)
@@ -36,8 +39,10 @@ struct MagicCardSearchApp: App {
             ContentView(searchState: $searchState)
                 .environment(bookmarkedCardsStore)
                 .environment(historyAndPinnedStore)
+                .environment(scryfallCatalogs)
                 .task {
                     await ScryfallCatalogs.initialize()
+                    await scryfallCatalogs.initialize()
                 }
         }
     }
