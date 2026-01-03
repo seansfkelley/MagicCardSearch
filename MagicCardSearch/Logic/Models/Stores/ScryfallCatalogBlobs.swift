@@ -15,50 +15,63 @@ private let oneDay: TimeInterval = 60 * 60 * 24
 private let jsonDecoder = JSONDecoder()
 private let jsonEncoder = JSONEncoder()
 
+/// A property wrapper that manages fetching, parsing, transforming, and caching blob data.
+///
+/// This wrapper encapsulates the pattern of:
+/// - Observing a database blob entry via `@FetchOne`
+/// - Lazily parsing JSON on first access
+/// - Transforming the parsed data
+/// - Caching the result
+/// - Invalidating the cache when the underlying blob changes
+@propertyWrapper
+struct CachedParsedBlob<Payload: Codable, Transformed> {
+    private var blobEntry: BlobEntry?
+    private var cache: Result<Transformed, Error>?
+    private let transform: (Payload) -> Transformed
+
+    var wrappedValue: Transformed? {
+        mutating get {
+            if case .success(let transformed) = cache {
+                return transformed
+            }
+            
+            guard let blobEntry else { return nil }
+            
+            do {
+                let parsed = try jsonDecoder.decode(Payload.self, from: blobEntry.value)
+                let result = transform(parsed)
+                cache = .success(result)
+                return result
+            } catch {
+                logger.error("error decoding blob", metadata: [
+                    "key": "\(blobEntry.key)",
+                    "error": "\(error)",
+                ])
+                cache = .failure(error)
+                return nil
+            }
+        }
+    }
+
+    init(_ transform: @escaping (Payload) -> Transformed) {
+        self.transform = transform
+    }
+}
+
 @MainActor
 @Observable
 class ScryfallCatalogBlobs {
+    @CachedParsedBlob({ (array: [MTGSet]) in
+        Dictionary(uniqueKeysWithValues: array.map { (SetCode($0.code), $0) })
+    })
     @ObservationIgnored
-    @FetchOne(BlobEntry.where { $0.key == "sets" }) private var setsObject
-
-    private var cachedSets: [SetCode: MTGSet]?
-    public var sets: [SetCode: MTGSet]? {
-        if let cachedSets {
-            return cachedSets
-        } else if let array = parse(setsObject, as: [MTGSet].self) {
-            cachedSets = Dictionary(uniqueKeysWithValues: array.map { (SetCode($0.code), $0) })
-            return cachedSets
-        } else {
-            return nil
-        }
-    }
+    @FetchOne(BlobEntry.where { $0.key == "sets" })
+    public var sets
 
     private let database: any DatabaseWriter
 
     init(database: DatabaseWriter) {
         self.database = database
-
-        withObservationTracking {
-            _ = self.setsObject
-        } onChange: {
-            Task { @MainActor in
-                print("setsObject: \(String(describing: self.setsObject?.key))")
-            }
-        }
-    }
-
-    private func parse<T: Codable>(_ entry: BlobEntry?, as: T.Type) -> T? {
-        guard let entry else { return nil }
-
-        do {
-            return try jsonDecoder.decode(T.self, from: entry.value)
-        } catch {
-            logger.error("error decoding blob", metadata: [
-                "key": "\(entry.key)",
-                "error": "\(error)",
-            ])
-            return nil
-        }
     }
 
     public func initialize() async {
