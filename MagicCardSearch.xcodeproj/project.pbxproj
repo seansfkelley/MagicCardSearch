@@ -111,11 +111,6 @@
 			path = MagicCardSearchUITests;
 			sourceTree = "<group>";
 		};
-		218CC5EF2EEB7D3900EDB315 /* scratch */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = scratch;
-			sourceTree = "<group>";
-		};
 		21D397682EE232F0008B3EFD /* Citron */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
@@ -164,12 +159,11 @@
 		2137B5A42EE139C60066BF7E = {
 			isa = PBXGroup;
 			children = (
-				21B726BD2F0AFCDA00D2F951 /* DECISIONS.md */,
-				218CC5EF2EEB7D3900EDB315 /* scratch */,
-				2118A06C2EECD0580009FA33 /* ImageResources */,
 				21D3976C2EE23306008B3EFD /* README.md */,
+				21B726BD2F0AFCDA00D2F951 /* DECISIONS.md */,
 				211396112EE9E39500093873 /* CLAUDE.md */,
 				21A5FC512EE9E76E0034E695 /* .swiftlint.yml */,
+				2118A06C2EECD0580009FA33 /* ImageResources */,
 				21D397682EE232F0008B3EFD /* Citron */,
 				2137B5AF2EE139C60066BF7E /* MagicCardSearch */,
 				2137B5BD2EE139C70066BF7E /* MagicCardSearchTests */,
@@ -236,7 +230,6 @@
 			fileSystemSynchronizedGroups = (
 				2118A06C2EECD0580009FA33 /* ImageResources */,
 				2137B5AF2EE139C60066BF7E /* MagicCardSearch */,
-				218CC5EF2EEB7D3900EDB315 /* scratch */,
 				21D397682EE232F0008B3EFD /* Citron */,
 			);
 			name = MagicCardSearch;
