@@ -2,6 +2,7 @@ import Foundation
 import ScryfallKit
 import Logging
 import SQLiteData
+import SwiftSoup
 
 private let logger = Logger(label: "ScryfallCatalogs")
 
@@ -32,6 +33,14 @@ class ScryfallCatalogs {
     @ObservationIgnored
     @TransformedBlob("symbolSvgs")
     public var symbolSvgs: [SymbolCode: Data]?
+
+    @ObservationIgnored
+    @TransformedBlob("artTags")
+    public var artTags: [String]?
+
+    @ObservationIgnored
+    @TransformedBlob("oracleTags")
+    public var oracleTags: [String]?
 
     @ObservationIgnored
     @TransformedBlob(CatalogType.abilityWords.rawValue)
@@ -155,6 +164,9 @@ class ScryfallCatalogs {
         if let symbology {
             await fetch("symbolSvgs") { await fetchSymbolSvgs(symbols: symbology) }
         }
+
+        await fetch("artTags") { try await fetchTags(matchingHrefPrefix: "/search?q=art") }
+        await fetch("oracleTags") { try await fetchTags(matchingHrefPrefix: "/search?q=oracletag") }
     }
 
     // swiftlint:disable:next function_body_length
@@ -300,6 +312,37 @@ class ScryfallCatalogs {
         }
 
         return result
+    }
+
+    private func fetchTags(matchingHrefPrefix hrefPrefix: String) async throws -> [String] {
+        let url = URL(string: "https://scryfall.com/docs/tagger-tags")!
+        let (data, response) = try await URLSession.shared.data(from: url)
+        
+        guard let httpResponse = response as? HTTPURLResponse,
+              (200...299).contains(httpResponse.statusCode) else {
+            let statusCode = (response as? HTTPURLResponse)?.statusCode ?? -1
+            throw URLError(
+                .badServerResponse,
+                userInfo: [
+                    NSURLErrorFailingURLErrorKey: url,
+                    NSLocalizedDescriptionKey: "bad server response code=\(statusCode)",
+                ]
+            )
+        }
+        
+        guard let html = String(data: data, encoding: .utf8) else {
+            throw URLError(
+                .cannotDecodeContentData,
+                userInfo: [
+                    NSURLErrorFailingURLErrorKey: url,
+                    NSLocalizedDescriptionKey: "failed to decode HTML as UTF-8",
+                ]
+            )
+        }
+        
+        let document = try SwiftSoup.parse(html)
+        let anchors = try document.select("a[href^=\(hrefPrefix)]")
+        return try anchors.map { try $0.text() }.filter { !$0.isEmpty }.sorted()
     }
 
     // There's got to be a better way to do this...

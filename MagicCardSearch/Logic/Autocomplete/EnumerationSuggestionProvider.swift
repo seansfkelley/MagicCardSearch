@@ -18,6 +18,8 @@ private enum CacheKey: Hashable {
     case keyword
     case watermark
     case artist
+    case artTag
+    case oracleTag
 }
 
 // These are really noisy in the search results and I can't imagine anyone ever wants them.
@@ -117,6 +119,8 @@ struct EnumerationSuggestionProvider {
         case "keyword": .keyword
         case "watermark": .watermark
         case "artist": .artist
+        case "art": .artTag
+        case "function": .oracleTag
         default: nil
         }
     }
@@ -175,7 +179,14 @@ struct EnumerationSuggestionProvider {
 
         case .artist:
             getCatalogData(.artistNames).map { IndexedEnumerationValues($0) }
+
+        case .artTag:
+            scryfallCatalogs.artTags.map { IndexedEnumerationValues($0) }
+
+        case .oracleTag:
+            scryfallCatalogs.oracleTags.map { IndexedEnumerationValues($0) }
         }
+
     }
 
     @MainActor
