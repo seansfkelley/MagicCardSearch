@@ -55,47 +55,7 @@ struct CardTagsSection: View {
                     }
                     .padding(.vertical)
                 } else {
-                    VStack(alignment: .leading, spacing: 0) {
-                        if !artworkTags.isEmpty {
-                            VStack(alignment: .leading, spacing: 0) {
-                                Text("Artwork")
-                                    .font(.subheadline)
-                                    .fontWeight(.semibold)
-                                    .foregroundStyle(.secondary)
-                                    .padding(.horizontal)
-                                    .padding(.top, 12)
-                                    .padding(.bottom, 6)
-
-                                ForEach(artworkTags, id: \.self) { tag in
-                                    Text(tag)
-                                        .font(.body)
-                                        .padding(.horizontal)
-                                        .padding(.vertical, 6)
-                                        .frame(maxWidth: .infinity, alignment: .leading)
-                                }
-                            }
-                        }
-
-                        if !gameplayTags.isEmpty {
-                            VStack(alignment: .leading, spacing: 0) {
-                                Text("Gameplay")
-                                    .font(.subheadline)
-                                    .fontWeight(.semibold)
-                                    .foregroundStyle(.secondary)
-                                    .padding(.horizontal)
-                                    .padding(.top, artworkTags.isEmpty ? 12 : 16)
-                                    .padding(.bottom, 6)
-
-                                ForEach(gameplayTags, id: \.self) { tag in
-                                    Text(tag)
-                                        .font(.body)
-                                        .padding(.horizontal)
-                                        .padding(.vertical, 6)
-                                        .frame(maxWidth: .infinity, alignment: .leading)
-                                }
-                            }
-                        }
-                    }
+                    TagListView(tags: tags.latestValue ?? [])
                 }
             },
             label: {
@@ -158,6 +118,7 @@ struct CardTagsSection: View {
         }
     }
 
+    // swiftlint:disable:next cyclomatic_complexity
     private func scrapeTag(from tagRow: Element) -> ScryfallTag? {
         do {
             guard let anchor = try tagRow.select("a").first() else { return nil }
@@ -190,6 +151,7 @@ struct CardTagsSection: View {
             logger.error("error while trying to scrape Scryfall tag", metadata: [
                 "error": "\(error)",
             ])
+            return nil
         }
     }
 
@@ -202,5 +164,134 @@ struct CardTagsSection: View {
             return nil
         }
         return .relation(relation, oracleId, name)
+    }
+}
+private struct TagListView: View {
+    let tags: [ScryfallTag]
+    
+    private var artworkTags: [String] {
+        tags.compactMap { tag -> String? in
+            if case .artwork(let value) = tag { return value }
+            return nil
+        }
+    }
+    
+    private var gameplayTags: [String] {
+        tags.compactMap { tag -> String? in
+            if case .function(let value) = tag { return value }
+            return nil
+        }
+    }
+    
+    private var relatedCards: [(ScryfallTag.Relationship, UUID, String)] {
+        tags.compactMap { tag -> (ScryfallTag.Relationship, UUID, String)? in
+            if case .relation(let relation, let id, let name) = tag {
+                return (relation, id, name)
+            }
+            return nil
+        }
+    }
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            if !artworkTags.isEmpty {
+                TagSectionView(
+                    title: "Artwork",
+                    tags: artworkTags,
+                    isFirstSection: true
+                )
+            }
+            
+            if !gameplayTags.isEmpty {
+                TagSectionView(
+                    title: "Gameplay",
+                    tags: gameplayTags,
+                    isFirstSection: artworkTags.isEmpty
+                )
+            }
+            
+            if !relatedCards.isEmpty {
+                RelatedCardsSectionView(
+                    relatedCards: relatedCards,
+                    isFirstSection: artworkTags.isEmpty && gameplayTags.isEmpty
+                )
+            }
+        }
+    }
+}
+
+private struct TagSectionView: View {
+    let title: String
+    let tags: [String]
+    let isFirstSection: Bool
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text(title)
+                .font(.subheadline)
+                .fontWeight(.semibold)
+                .foregroundStyle(.secondary)
+                .padding(.horizontal)
+                .padding(.top, isFirstSection ? 12 : 16)
+                .padding(.bottom, 6)
+            
+            ForEach(tags, id: \.self) { tag in
+                Text(tag)
+                    .font(.body)
+                    .padding(.horizontal)
+                    .padding(.vertical, 6)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+    }
+}
+
+private struct RelatedCardsSectionView: View {
+    let relatedCards: [(ScryfallTag.Relationship, UUID, String)]
+    let isFirstSection: Bool
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text("Related Cards")
+                .font(.subheadline)
+                .fontWeight(.semibold)
+                .foregroundStyle(.secondary)
+                .padding(.horizontal)
+                .padding(.top, isFirstSection ? 12 : 16)
+                .padding(.bottom, 6)
+            
+            ForEach(relatedCards, id: \.1) { relation, cardId, cardName in
+                HStack(spacing: 8) {
+                    Image(systemName: relationIcon(for: relation))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    
+                    Text(cardName)
+                        .font(.body)
+                    
+                    Spacer()
+                }
+                .padding(.horizontal)
+                .padding(.vertical, 6)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+    }
+    
+    private func relationIcon(for relationship: ScryfallTag.Relationship) -> String {
+        switch relationship {
+        case .similarTo:
+            return "equal.circle"
+        case .strictlyBetterThan:
+            return "arrow.up.circle"
+        case .strictlyWorseThan:
+            return "arrow.down.circle"
+        case .references:
+            return "link.circle"
+        case .withBody:
+            return "person.circle"
+        case .colorshifted:
+            return "paintpalette"
+        }
     }
 }
