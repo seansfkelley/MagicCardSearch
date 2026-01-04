@@ -23,9 +23,7 @@ struct SymbolView: View {
         let targetSize: CGFloat
     }
     
-    private static var renderedImageCache: any Cache<RenderedImageCacheKey, UIImage> = {
-        return MemoryCache(expiration: .never)
-    }()
+    private static var renderedImageCache = MemoryCache<RenderedImageCacheKey, UIImage>()
     
     private var renderedImageCacheKey: RenderedImageCacheKey {
         RenderedImageCacheKey(symbol: symbol, targetSize: targetSize)

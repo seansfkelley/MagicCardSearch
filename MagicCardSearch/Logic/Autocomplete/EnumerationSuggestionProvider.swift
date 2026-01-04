@@ -23,6 +23,7 @@ private enum CacheKey: Hashable {
     case block
     case keyword
     case watermark
+    case artist
 }
 
 // These are really noisy in the search results and I can't imagine anyone ever wants them.
@@ -33,8 +34,9 @@ private let ignoredSetTypes: Set<MTGSet.`Type`> = [
 
 private let logger = Logger(label: "EnumerationSuggestionProvider")
 
+@MainActor
 struct EnumerationSuggestionProvider {
-    private static let shared = MemoryCache<CacheKey, IndexedEnumerationValues<String>>(expiration: .never)
+    private let cache = MemoryCache<CacheKey, IndexedEnumerationValues<String>>()
 
     let scryfallCatalogs: ScryfallCatalogs
 
@@ -50,22 +52,22 @@ struct EnumerationSuggestionProvider {
         
         let matchingOpts: any Sequence<(String, Bool)>
         if filterType.canonicalName == "type" {
-            let typeOptions = Self.getOptionsFromCache(for: .type)
-            let subtypeOptions = Self.getOptionsFromCache(for: .subtype)
-            
-            let typeMatches = typeOptions.map { matchingOptions(from: $0, searchTerm: value) } ?? []
-            let subtypeMatches = subtypeOptions.map { matchingOptions(from: $0, searchTerm: value) } ?? []
+            let typeOptions = getCachedOptions(for: .type)
+            let subtypeOptions = getCachedOptions(for: .subtype)
+
+            let typeMatches = typeOptions.map { matchOptions($0, against: value) } ?? []
+            let subtypeMatches = subtypeOptions.map { matchOptions($0, against: value) } ?? []
 
             matchingOpts = chain(
                 AnySequence(typeMatches),
                 AnySequence(subtypeMatches),
             )
-        } else if let cacheKey = Self.cacheKey(for: filterType.canonicalName) {
-            matchingOpts = Self.getOptionsFromCache(for: cacheKey).map {
-                matchingOptions(from: $0, searchTerm: value)
+        } else if let cacheKey = Self.filterCacheKey(for: filterType.canonicalName) {
+            matchingOpts = getCachedOptions(for: cacheKey).map {
+                matchOptions($0, against: value)
             } ?? []
         } else if let staticOptions = filterType.enumerationValues {
-            matchingOpts = matchingOptions(from: staticOptions, searchTerm: value)
+            matchingOpts = matchOptions(staticOptions, against: value)
         } else {
             matchingOpts = []
         }
@@ -93,7 +95,7 @@ struct EnumerationSuggestionProvider {
         )
     }
     
-    private func matchingOptions(from options: IndexedEnumerationValues<String>, searchTerm: String) -> any Sequence<(String, Bool)> {
+    private func matchOptions(_ options: IndexedEnumerationValues<String>, against searchTerm: String) -> any Sequence<(String, Bool)> {
         if searchTerm.isEmpty {
             // TODO: Would true produce better results?
             return options.all(sorted: .alphabetically).map { ($0, false) }
@@ -114,28 +116,29 @@ struct EnumerationSuggestionProvider {
     
     // MARK: - Cache Management
     
-    private static func cacheKey(for canonicalName: String) -> CacheKey? {
+    private static func filterCacheKey(for canonicalName: String) -> CacheKey? {
         switch canonicalName {
         case "set": .set
         case "block": .block
         case "keyword": .keyword
         case "watermark": .watermark
+        case "artist": .artist
         default: nil
         }
     }
-    
-    private static func getOptionsFromCache(for key: CacheKey) -> IndexedEnumerationValues<String>? {
-        if let options = shared[key] {
-            return options
+
+    private func getCachedOptions(for key: CacheKey) -> IndexedEnumerationValues<String>? {
+        if let value = cache[key] {
+            return value
+        } else if let value = getOptions(for: key) {
+            cache[key] = value
+            return value
         } else {
-            // Cannot fetch options in a static context without access to scryfallCatalogs instance
-            // This should be populated externally or the method should be instance-based
             return nil
         }
     }
 
-    @MainActor
-    private func fetchOptions(for key: CacheKey) -> IndexedEnumerationValues<String>? {
+    private func getOptions(for key: CacheKey) -> IndexedEnumerationValues<String>? {
         switch key {
         case .type:
             getCatalogData(.supertypes, .cardTypes).map {
@@ -145,7 +148,7 @@ struct EnumerationSuggestionProvider {
             getCatalogData(.artifactTypes, .battleTypes, .creatureTypes, .enchantmentTypes, .landTypes, .planeswalkerTypes, .spellTypes).map {
                 IndexedEnumerationValues($0.map { $0.lowercased() })
             }
-            
+
         case .set:
             scryfallCatalogs.sets.map {
                 IndexedEnumerationValues(
@@ -155,7 +158,7 @@ struct EnumerationSuggestionProvider {
                         .map { $0.replacing(/[^a-zA-Z0-9 ]/, with: "") }
                 )
             }
-            
+
         case .block:
             scryfallCatalogs.sets.map {
                 IndexedEnumerationValues(
@@ -175,6 +178,9 @@ struct EnumerationSuggestionProvider {
             getCatalogData(.watermarks).map {
                 IndexedEnumerationValues($0.map { $0.lowercased() })
             }
+
+        case .artist:
+            getCatalogData(.artistNames).map { IndexedEnumerationValues($0) }
         }
     }
 

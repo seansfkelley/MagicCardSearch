@@ -4,10 +4,12 @@
 //
 //  Created by Sean Kelley on 2025-12-09.
 //
-
 import SwiftUI
 import SVGKit
 import ScryfallKit
+import Logging
+
+private let logger = Logger(label: "SetIconView")
 
 struct SetIconView: View {
     @Environment(ScryfallCatalogs.self) private var scryfallCatalogs
@@ -16,20 +18,11 @@ struct SetIconView: View {
         let setCode: SetCode
         let size: CGFloat
     }
-    
-    private static let svgDataCache: any Cache<SetCode, Data> = {
-        let memoryCache = MemoryCache<SetCode, Data>(expiration: .interval(60 * 60 * 24))
-        return if let diskCache = DiskCache<SetCode, Data>(name: "SetIconSvg", expiration: .interval(60 * 60 * 24 * 30)) {
-            HybridCache(memoryCache: memoryCache, diskCache: diskCache)
-        } else {
-            memoryCache
-        }
-    }()
-    
-    private static var renderedImageCache: any Cache<RenderedImageCacheKey, UIImage> = {
-        return MemoryCache<RenderedImageCacheKey, UIImage>(expiration: .never)
-    }()
-    
+
+    // TODO: Make this a SQLite-backed disk cache too, I guess.
+    private static let svgDataCache = MemoryCache<SetCode, Data>()
+    private static var renderedImageCache = MemoryCache<RenderedImageCacheKey, UIImage>()
+
     let setCode: SetCode
     var size: CGFloat = 32
     
@@ -78,9 +71,12 @@ struct SetIconView: View {
         
         do {
             imageResult = .loading(nil, nil)
-            
-            let svgData = try await Self.svgDataCache.get(forKey: setCode) {
-                print("Requesting icon \(url)")
+
+            let svgData = try await Self.svgDataCache.get(setCode) {
+                logger.info("requesting set icon", metadata: [
+                    "setCode": "\(setCode.normalized)",
+                    "url": "\(url)",
+                ])
                 let (data, _) = try await URLSession.shared.data(from: url)
                 return data
             }
