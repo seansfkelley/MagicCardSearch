@@ -132,7 +132,7 @@ class ReverseEnumerationSuggestionProvider {
     private func getDynamicIndexMembers() -> [String: [ScryfallFilterType]]? {
         var valueToFilters = [String: [ScryfallFilterType]]()
 
-        func addCatalog(_ types: Catalog.`Type`..., to filter: String) -> Bool {
+        func addCatalogs(_ types: Catalog.`Type`..., to filter: String) -> Bool {
             guard let filterType = scryfallFilterByType[filter] else { return true }
             for type in types {
                 guard let values = scryfallCatalogs[type] else { return false }
@@ -143,9 +143,10 @@ class ReverseEnumerationSuggestionProvider {
             return true
         }
 
-        guard addCatalog(.keywordAbilities, to: "keyword") else { return nil }
-        guard addCatalog(.watermarks, to: "watermark") else { return nil }
-        guard addCatalog(.supertypes, .cardTypes, .artifactTypes, .battleTypes, .creatureTypes, .enchantmentTypes, .landTypes, .planeswalkerTypes, .spellTypes, to: "type") else { return nil }
+        guard addCatalogs(.artistNames, to: "artist") else { return nil }
+        guard addCatalogs(.keywordAbilities, to: "keyword") else { return nil }
+        guard addCatalogs(.watermarks, to: "watermark") else { return nil }
+        guard addCatalogs(.supertypes, .cardTypes, .artifactTypes, .battleTypes, .creatureTypes, .enchantmentTypes, .landTypes, .planeswalkerTypes, .spellTypes, to: "type") else { return nil }
 
         guard let sets = (scryfallCatalogs.sets?.values.filter { !ignoredSetTypes.contains($0.setType) }) else { return nil }
 
