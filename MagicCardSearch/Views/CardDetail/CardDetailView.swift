@@ -104,13 +104,11 @@ struct CardDetailView: View {
                         currentCardId: card.id
                     )
                 }
-                
-                if CardPricesSection.hasPrices(card: card) {
-                    Divider().padding(.horizontal)
-                    CardPricesSection(prices: card.prices, purchaseUris: card.purchaseUris)
-                }
 
-                if let allParts = card.allParts, !allParts.isEmpty {
+                Divider().padding(.horizontal)
+                CardTagsSection(setCode: card.set, collectorNumber: card.collectorNumber)
+
+                if let allParts = card.allParts {
                     // Use name, because Scryfall does not report oracle ID, which we would prefer
                     // to use to remove references to myself.
                     let otherParts = allParts.filter { $0.name != card.name }
@@ -126,6 +124,11 @@ struct CardDetailView: View {
                             }
                         }
                     }
+                }
+
+                if CardPricesSection.hasPrices(card: card) {
+                    Divider().padding(.horizontal)
+                    CardPricesSection(prices: card.prices, purchaseUris: card.purchaseUris)
                 }
 
                 if case .unloaded = rulingsResult {
@@ -171,7 +174,6 @@ struct CardDetailView: View {
 
     // MARK: - Card Face Details View
     
-    // swiftlint:disable function_body_length
     @ViewBuilder
     private func cardFaceDetailsView(face: CardDetailDisplayable, showArtist: Bool = true) -> some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -247,7 +249,6 @@ struct CardDetailView: View {
             CardArtistSection(artist: artist)
         }
     }
-    // swiftlint:enable function_body_length
 
     private func loadRelatedCard(id: UUID) async {
         print("Loading related card...")
