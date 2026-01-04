@@ -1,5 +1,13 @@
+import Logging
 import SwiftUI
 import ScryfallKit
+import SwiftSoup
+
+private let logger = Logger(label: "CardTagsSection")
+
+enum TagType {
+    case artwork, function, similar, greater, lesser, references, unknown
+}
 
 struct CardTagsSection: View {
     let setCode: String
@@ -105,6 +113,45 @@ struct CardTagsSection: View {
     
     private func loadTags() {
         tags = .loading(nil, nil)
+
+        Task {
+            let url = URL(string: "https://tagger.scryfall.com/card/\(setCode.lowercased())/\(collectorNumber.lowercased())")!
+
+            do {
+                let (data, response) = try await URLSession.shared.data(from: url)
+
+                guard let httpResponse = response as? HTTPURLResponse,
+                      (200...299).contains(httpResponse.statusCode) else {
+                    let statusCode = (response as? HTTPURLResponse)?.statusCode ?? -1
+                    throw URLError(
+                        .badServerResponse,
+                        userInfo: [
+                            NSURLErrorFailingURLErrorKey: url,
+                            NSLocalizedDescriptionKey: "bad server response code=\(statusCode)",
+                        ]
+                    )
+                }
+
+                guard let html = String(data: data, encoding: .utf8) else {
+                    throw URLError(
+                        .cannotDecodeContentData,
+                        userInfo: [
+                            NSURLErrorFailingURLErrorKey: url,
+                            NSLocalizedDescriptionKey: "failed to decode HTML as UTF-8",
+                        ]
+                    )
+                }
+
+                let document = try SwiftSoup.parse(html)
+
+
+            } catch {
+                logger.error("error while trying to scrape tags", metadata: [
+                    "url": "\(url)",
+                    "error": "\(error)",
+                ])
+            }
+        }
 
         Task {
             try? await Task.sleep(for: .seconds(1.5))
