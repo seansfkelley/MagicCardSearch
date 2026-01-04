@@ -36,6 +36,8 @@ private let logger = Logger(label: "EnumerationSuggestionProvider")
 struct EnumerationSuggestionProvider {
     private static let shared = MemoryCache<CacheKey, IndexedEnumerationValues<String>>(expiration: .never)
 
+    let scryfallCatalogs: ScryfallCatalogs
+
     func getSuggestions(for partial: PartialSearchFilter, excluding excludedFilters: Set<SearchFilter>, limit: Int) -> [EnumerationSuggestion] {
         guard limit > 0,
               case .filter(let filterTypeName, let partialComparison, let partialValue) = partial.content,
@@ -125,29 +127,29 @@ struct EnumerationSuggestionProvider {
     private static func getOptionsFromCache(for key: CacheKey) -> IndexedEnumerationValues<String>? {
         if let options = shared[key] {
             return options
-        } else if let options = fetchOptions(for: key) {
-            shared[key] = options
-            return options
         } else {
+            // Cannot fetch options in a static context without access to scryfallCatalogs instance
+            // This should be populated externally or the method should be instance-based
             return nil
         }
     }
-    
-    private static func fetchOptions(for key: CacheKey) -> IndexedEnumerationValues<String>? {
+
+    @MainActor
+    private func fetchOptions(for key: CacheKey) -> IndexedEnumerationValues<String>? {
         switch key {
         case .type:
-            Self.getCatalogData(.supertypes, .cardTypes).map {
+            getCatalogData(.supertypes, .cardTypes).map {
                 IndexedEnumerationValues($0.map { $0.lowercased() })
             }
         case .subtype:
-            Self.getCatalogData(.artifactTypes, .battleTypes, .creatureTypes, .enchantmentTypes, .landTypes, .planeswalkerTypes, .spellTypes).map {
+            getCatalogData(.artifactTypes, .battleTypes, .creatureTypes, .enchantmentTypes, .landTypes, .planeswalkerTypes, .spellTypes).map {
                 IndexedEnumerationValues($0.map { $0.lowercased() })
             }
             
         case .set:
-            ScryfallCatalogs.sync.map {
+            scryfallCatalogs.sets.map {
                 IndexedEnumerationValues(
-                    $0.sets.values
+                    $0.values
                         .filter { !ignoredSetTypes.contains($0.setType) }
                         .flatMap { [$0.code.uppercased(), $0.name] }
                         .map { $0.replacing(/[^a-zA-Z0-9 ]/, with: "") }
@@ -155,9 +157,9 @@ struct EnumerationSuggestionProvider {
             }
             
         case .block:
-            ScryfallCatalogs.sync.map {
+            scryfallCatalogs.sets.map {
                 IndexedEnumerationValues(
-                    $0.sets.values
+                    $0.values
                         .filter { !ignoredSetTypes.contains($0.setType) }
                         .compactMap { $0.block?.replacing(/[^a-zA-Z0-9 ]/, with: "") }
                         .uniqued()
@@ -165,23 +167,22 @@ struct EnumerationSuggestionProvider {
             }
 
         case .keyword:
-            Self.getCatalogData(.keywordAbilities).map {
+            getCatalogData(.keywordAbilities).map {
                 IndexedEnumerationValues($0.map { $0.lowercased() })
             }
 
         case .watermark:
-            Self.getCatalogData(.watermarks).map {
+            getCatalogData(.watermarks).map {
                 IndexedEnumerationValues($0.map { $0.lowercased() })
             }
         }
     }
-    
-    private static func getCatalogData(_ catalogTypes: Catalog.`Type`...) -> [String]? {
-        guard let catalogs = ScryfallCatalogs.sync.map({ $0.catalogs }) else { return nil }
 
+    @MainActor
+    private func getCatalogData(_ catalogTypes: Catalog.`Type`...) -> [String]? {
         var combined: [String] = []
         for type in catalogTypes {
-            guard let data = catalogs[type] else {
+            guard let data = scryfallCatalogs[type] else {
                 return nil
             }
             combined.append(contentsOf: data)

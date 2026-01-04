@@ -10,6 +10,8 @@ import ScryfallKit
 import SVGKit
 
 struct SymbolView: View {
+    @Environment(ScryfallCatalogs.self) private var scryfallCatalogs
+
     // AFAICT Scryfall's symbology doesn't tell us about this, so we need to hardcode it to know
     // what to do about drop shadows.
     private static let symbolsWithoutBackgrounds = Set([
@@ -47,7 +49,7 @@ struct SymbolView: View {
     }
     
     private var targetSize: CGFloat {
-        symbol.isOversized ?? false ? oversize : size
+        symbol.isOversized ? oversize : size
     }
     
     var body: some View {
@@ -78,7 +80,7 @@ struct SymbolView: View {
             return cachedImage
         }
         
-        guard let svgData = ScryfallCatalogs.sync?.symbolSvg[symbol] else {
+        guard let svgData = scryfallCatalogs.symbolSvgs?[symbol] else {
             return nil
         }
         

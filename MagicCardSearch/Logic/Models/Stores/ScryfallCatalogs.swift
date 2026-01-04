@@ -9,7 +9,7 @@ import ScryfallKit
 import Logging
 import SQLiteData
 
-private let logger = Logger(label: "ScryfallCatalogBlobs")
+private let logger = Logger(label: "ScryfallCatalogs")
 
 private let oneDay: TimeInterval = 60 * 60 * 24
 private let jsonDecoder = JSONDecoder()
@@ -125,7 +125,7 @@ class ScryfallCatalogs {
         self.database = database
     }
 
-    public func initialize() async {
+    public func hydrate() async {
         guard !isRunningTests() else {
             logger.info("skipping ScryfallCatalogs initialization in test environment")
             return
@@ -267,7 +267,7 @@ class ScryfallCatalogs {
                                         "svgUri": "\(svgUri)",
                                         "dataSize": "\(data.count)",
                                     ])
-                                    throw ScryfallMetadataError.errorLoadingData(nil)
+                                    return nil
                                 }
 
                                 if String(data: data, encoding: .utf8) == nil {
@@ -276,12 +276,12 @@ class ScryfallCatalogs {
                                         "svgUri": "\(svgUri)",
                                         "dataSize": "\(data.count)",
                                     ])
-                                    throw ScryfallMetadataError.errorLoadingData(nil)
+                                    return nil
                                 }
 
                                 return (SymbolCode(symbol.symbol), data)
                             } else {
-                                throw ScryfallMetadataError.errorLoadingData(nil)
+                                return nil
                             }
                         } catch {
                             // FIXME: This will be broken until ALL the SVGs expire.
@@ -306,6 +306,32 @@ class ScryfallCatalogs {
         }
 
         return result
+    }
+
+    // There's got to be a better way to do this...
+    subscript(catalogType: Catalog.`Type`) -> [String]? {
+        switch catalogType {
+        case .abilityWords: abilityWords
+        case .artifactTypes: artifactTypes
+        case .artistNames: artistNames
+        case .battleTypes: battleTypes
+        case .cardNames: cardNames
+        case .cardTypes: cardTypes
+        case .creatureTypes: creatureTypes
+        case .enchantmentTypes: enchantmentTypes
+        case .flavorWords: flavorWords
+        case .keywordAbilities: keywordAbilities
+        case .keywordActions: keywordActions
+        case .landTypes: landTypes
+        case .loyalties: loyalties
+        case .planeswalkerTypes: planeswalkerTypes
+        case .powers: powers
+        case .spellTypes: spellTypes
+        case .supertypes: supertypes
+        case .toughnesses: toughnesses
+        case .watermarks: watermarks
+        case .wordBank: wordBank
+        }
     }
 }
 // swiftlint:enable attributes

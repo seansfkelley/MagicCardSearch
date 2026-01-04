@@ -12,7 +12,7 @@ import Logging
 struct MagicCardSearchApp: App {
     private var bookmarkedCardsStore: BookmarkedCardsStore
     private var historyAndPinnedStore: HistoryAndPinnedStore
-    private var scryfallCatalogs: ScryfallCatalogBlobs
+    private var scryfallCatalogs: ScryfallCatalogs
     @State private var searchState: SearchState
 
     init() {
@@ -25,7 +25,12 @@ struct MagicCardSearchApp: App {
         bookmarkedCardsStore = .init(database: database)
         historyAndPinnedStore = .init(database: database)
         scryfallCatalogs = .init(database: database)
-        _searchState = State(initialValue: SearchState(historyAndPinnedStore: historyAndPinnedStore))
+        _searchState = State(
+            initialValue: SearchState(
+                historyAndPinnedStore: historyAndPinnedStore,
+                scryfallCatalogs: scryfallCatalogs,
+            )
+        )
 
         LoggingSystem.bootstrap { label in
             var handler = CompactLogHandler(label: label)
@@ -41,8 +46,7 @@ struct MagicCardSearchApp: App {
                 .environment(historyAndPinnedStore)
                 .environment(scryfallCatalogs)
                 .task {
-                    await ScryfallCatalogs.initialize()
-                    await scryfallCatalogs.initialize()
+                    await scryfallCatalogs.hydrate()
                 }
         }
     }

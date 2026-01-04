@@ -23,9 +23,16 @@ private let ignoredSetTypes: Set<MTGSet.`Type`> = [
     .promo,
 ]
 
-struct ReverseEnumerationSuggestionProvider {
-    private static let cacheLock = NSLock()
-    nonisolated(unsafe) private static var cache: CachedIndex = .unloaded
+@MainActor
+class ReverseEnumerationSuggestionProvider {
+    private let cacheLock = NSLock()
+    private var cache: CachedIndex = .unloaded
+
+    let scryfallCatalogs: ScryfallCatalogs
+
+    init(scryfallCatalogs: ScryfallCatalogs) {
+        self.scryfallCatalogs = scryfallCatalogs
+    }
 
     func getSuggestions(for partial: PartialSearchFilter, limit: Int) -> [ReverseEnumerationSuggestion] {
         guard limit > 0,
@@ -36,7 +43,7 @@ struct ReverseEnumerationSuggestionProvider {
             return []
         }
 
-        let options = Self.getIndex()
+        let options = getIndex()
 
         let prefixMatches = Array(options.matching(prefix: searchTerm, sorted: .byLength))
 
@@ -81,11 +88,11 @@ struct ReverseEnumerationSuggestionProvider {
         )
     }
 
-    static func getIndex() -> IndexedEnumerationValues<(String, [ScryfallFilterType])> {
+    private func getIndex() -> IndexedEnumerationValues<(String, [ScryfallFilterType])> {
         cacheLock.withLock {
             if case .all(let index) = cache {
                 return index
-            } else if let dynamic = Self.getDynamicIndexMembers() {
+            } else if let dynamic = getDynamicIndexMembers() {
                 var valueToFilters = Self.getStaticIndexMembers()
 
                 for (key, value) in dynamic {
@@ -122,26 +129,25 @@ struct ReverseEnumerationSuggestionProvider {
         return valueToFilters
     }
 
-    fileprivate static func getDynamicIndexMembers() -> [String: [ScryfallFilterType]]? {
-        guard let catalogs = ScryfallCatalogs.sync else { return nil }
-
+    private func getDynamicIndexMembers() -> [String: [ScryfallFilterType]]? {
         var valueToFilters = [String: [ScryfallFilterType]]()
 
-        func addCatalog(_ types: Catalog.`Type`..., to filter: String) {
-            guard let filterType = scryfallFilterByType[filter] else { return }
+        func addCatalog(_ types: Catalog.`Type`..., to filter: String) -> Bool {
+            guard let filterType = scryfallFilterByType[filter] else { return true }
             for type in types {
-                guard let values = catalogs.catalogs[type] else { continue }
+                guard let values = scryfallCatalogs[type] else { return false }
                 for value in values {
                     valueToFilters[value.lowercased(), default: []].append(filterType)
                 }
             }
+            return true
         }
 
-        addCatalog(.keywordAbilities, to: "keyword")
-        addCatalog(.watermarks, to: "watermark")
-        addCatalog(.supertypes, .cardTypes, .artifactTypes, .battleTypes, .creatureTypes, .enchantmentTypes, .landTypes, .planeswalkerTypes, .spellTypes, to: "type")
+        guard addCatalog(.keywordAbilities, to: "keyword") else { return nil }
+        guard addCatalog(.watermarks, to: "watermark") else { return nil }
+        guard addCatalog(.supertypes, .cardTypes, .artifactTypes, .battleTypes, .creatureTypes, .enchantmentTypes, .landTypes, .planeswalkerTypes, .spellTypes, to: "type") else { return nil }
 
-        let sets = catalogs.sets.values.filter { !ignoredSetTypes.contains($0.setType) }
+        guard let sets = (scryfallCatalogs.sets?.values.filter { !ignoredSetTypes.contains($0.setType) }) else { return nil }
 
         if let setFilter = scryfallFilterByType["set"] {
             for set in sets {

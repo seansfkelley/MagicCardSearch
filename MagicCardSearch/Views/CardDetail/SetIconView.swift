@@ -10,7 +10,7 @@ import SVGKit
 import ScryfallKit
 
 struct SetIconView: View {
-    @Environment(ScryfallCatalogBlobs.self) private var scryfallCatalogs
+    @Environment(ScryfallCatalogs.self) private var scryfallCatalogs
 
     private struct RenderedImageCacheKey: Hashable {
         let setCode: SetCode

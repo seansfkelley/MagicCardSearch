@@ -11,6 +11,7 @@ struct OracleTextView: View {
     let oracleText: String
     let fontSize: CGFloat
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(ScryfallCatalogs.self) private var scryfallCatalogs
 
     init(_ oracleText: String, fontSize: CGFloat = 17) {
         self.oracleText = oracleText
@@ -91,10 +92,12 @@ struct OracleTextView: View {
     }
 
     // TODO: Can this be done with the TextRenderer protocol or something instead of
-    // rendering it to a temporary image?
+    // rendering it to a temporary image? This also means I have to pass the environment like this,
+    // which is overall pretty sketch.
     private func renderSymbol(_ symbol: SymbolCode) -> Image? {
         let renderer = ImageRenderer(content: SymbolView(symbol, size: fontSize * 0.8)
-            .environment(\.colorScheme, colorScheme))
+            .environment(\.colorScheme, colorScheme)
+            .environment(scryfallCatalogs))
         renderer.scale = 3.0
         if let uiImage = renderer.uiImage {
             return Image(uiImage: uiImage)
