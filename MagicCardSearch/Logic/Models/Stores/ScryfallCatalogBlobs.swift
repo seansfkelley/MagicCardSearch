@@ -36,6 +36,10 @@ class ScryfallCatalogBlobs {
     public var symbology: [SymbolCode: Card.Symbol]?
 
     @ObservationIgnored
+    @TransformedBlob("symbolSvgs")
+    public var symbolSvgs: [SymbolCode: Data]?
+
+    @ObservationIgnored
     @TransformedBlob(CatalogType.abilityWords.rawValue)
     public var abilityWords: [String]?
 
@@ -129,14 +133,33 @@ class ScryfallCatalogBlobs {
 
         let client = ScryfallClient(networkLogLevel: .minimal)
 
-        await fetch("sets") { try await client.getSets().data }
-        await fetch("symbology") { try await client.getSymbology().data }
-        // TODO: Symbols.
-
         for type in CatalogType.allCases {
             await fetch(type.rawValue) {
                 try await client.getCatalog(catalogType: type).data
             }
+        }
+
+        await fetch("sets") { try await client.getSets().data }
+        await fetch("symbology") { try await client.getSymbology().data }
+
+        let symbology: [Card.Symbol]?
+        do {
+            symbology = try await database.read { db in
+                if let blob = try (BlobEntry.where { $0.key == "symbology" }.fetchOne(db)) {
+                    try jsonDecoder.decode([Card.Symbol].self, from: blob.value)
+                } else {
+                    nil
+                }
+            }
+        } catch {
+            symbology = nil
+            logger.warning("failed to load or parse symbology; will not attempt to load SVGs", metadata: [
+                "error": "\(error)",
+            ])
+        }
+
+        if let symbology {
+            await fetch("symbolSvgs") { await fetchSymbolSvgs(symbols: symbology) }
         }
     }
 
@@ -206,6 +229,83 @@ class ScryfallCatalogBlobs {
         logger.info("fetched and cached blob", metadata: [
             "key": "\(key)",
         ])
+    }
+
+    private func fetchSymbolSvgs(symbols: [Card.Symbol]) async -> [SymbolCode: Data] {
+        logger.info("fetching symbol SVGs...", metadata: [
+            "count": "\(symbols.count)",
+        ])
+
+        var result: [SymbolCode: Data] = [:]
+        let batchSize = 10
+        let symbolArray = Array(symbols)
+
+        // n.b. the documentation at https://scryfall.com/docs/api says that the servers at
+        // *.scryfall.io do NOT have rate limits, so we'll just limit ourselves to avoid having
+        // an unreasonable amount of network traffic/async tasks that we have to manage.
+        for batchStart in stride(from: 0, to: symbolArray.count, by: batchSize) {
+            let batchEnd = min(batchStart + batchSize, symbolArray.count)
+            let batch = symbolArray[batchStart..<batchEnd]
+
+            await withTaskGroup(of: (SymbolCode, Data)?.self) { group in
+                for symbol in batch {
+                    group.addTask {
+                        do {
+                            if let svgUri = symbol.svgUri,
+                                let url = URL(string: svgUri) {
+                                logger.debug("fetching symbol SVG", metadata: [
+                                    "symbol": "\(symbol.symbol)",
+                                    "svgUri": "\(svgUri)",
+                                ])
+                                let (data, response) = try await URLSession.shared.data(from: url)
+
+                                guard let httpResponse = response as? HTTPURLResponse,
+                                      (200...299).contains(httpResponse.statusCode),
+                                      !data.isEmpty else {
+                                    logger.error("invalid SVG response", metadata: [
+                                        "symbol": "\(symbol.symbol)",
+                                        "svgUri": "\(svgUri)",
+                                        "dataSize": "\(data.count)",
+                                    ])
+                                    throw ScryfallMetadataError.errorLoadingData(nil)
+                                }
+
+                                if String(data: data, encoding: .utf8) == nil {
+                                    logger.error("SVG data is not valid UTF-8", metadata: [
+                                        "symbol": "\(symbol.symbol)",
+                                        "svgUri": "\(svgUri)",
+                                        "dataSize": "\(data.count)",
+                                    ])
+                                    throw ScryfallMetadataError.errorLoadingData(nil)
+                                }
+
+                                return (SymbolCode(symbol.symbol), data)
+                            } else {
+                                throw ScryfallMetadataError.errorLoadingData(nil)
+                            }
+                        } catch {
+                            // FIXME: This will be broken until ALL the SVGs expire.
+                            logger.warning(
+                                "failed to fetch symbol SVG; this symbol will not render properly",
+                                metadata: [
+                                    "symbolCode": "\(symbol.symbol)",
+                                    "error": "\(error)",
+                                ]
+                            )
+                            return nil
+                        }
+                    }
+                }
+
+                for await fetchedResult in group {
+                    if let (symbolCode, data) = fetchedResult {
+                        result[symbolCode] = data
+                    }
+                }
+            }
+        }
+
+        return result
     }
 }
 // swiftlint:enable attributes
