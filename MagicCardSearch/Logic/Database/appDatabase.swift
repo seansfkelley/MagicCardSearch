@@ -1,9 +1,3 @@
-//
-//  SQLiteDatabase2.swift
-//  MagicCardSearch
-//
-//  Created by Sean Kelley on 2026-01-01.
-//
 import Logging
 import SQLiteData
 

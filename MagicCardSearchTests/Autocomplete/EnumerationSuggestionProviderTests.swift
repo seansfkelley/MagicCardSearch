@@ -1,10 +1,3 @@
-//
-//  EnumerationSuggestionProviderTests.swift
-//  MagicCardSearch
-//
-//  Created by Sean Kelley on 2025-12-11.
-//
-
 import Testing
 @testable import MagicCardSearch
 

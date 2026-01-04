@@ -1,10 +1,3 @@
-//
-//  DebouncedLoadingState.swift
-//  MagicCardSearch
-//
-//  Created by Sean Kelley on 2025-12-14.
-//
-
 import Foundation
 
 struct LoadingState {

@@ -1,10 +1,3 @@
-//
-//  MagicCardSearchUITestsLaunchTests.swift
-//  MagicCardSearchUITests
-//
-//  Created by Sean Kelley on 2025-12-03.
-//
-
 import XCTest
 
 final class MagicCardSearchUITestsLaunchTests: XCTestCase {

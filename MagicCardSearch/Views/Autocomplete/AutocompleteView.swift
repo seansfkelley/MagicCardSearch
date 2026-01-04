@@ -1,10 +1,3 @@
-//
-//  AutocompleteView.swift
-//  MagicCardSearch
-//
-//  Created by Sean Kelley on 2025-12-07.
-//
-
 import SwiftUI
 
 struct AutocompleteView: View {

@@ -1,9 +1,3 @@
-//
-//  ReverseEnumerationSuggestionProvider.swift
-//  MagicCardSearch
-//
-//  Created by Sean Kelley on 2025-12-27.
-//
 import Foundation
 import Algorithms
 import ScryfallKit

@@ -1,9 +1,3 @@
-//
-//  MagicCardSearchApp.swift
-//  MagicCardSearch
-//
-//  Created by Sean Kelley on 2025-12-03.
-//
 import SwiftUI
 import SQLiteData
 import Logging

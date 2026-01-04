@@ -1,7 +1,3 @@
-// SPDX-License-Identifier: MIT
-// Copyright (C) 2017 Roopesh Chander <roop@roopc.net>
-// This file is part of the Citron Lexer Module
-
 import Foundation
 
 public typealias CitronLexerPosition = (tokenPosition: String.Index, linePosition: String.Index, lineNumber: Int)

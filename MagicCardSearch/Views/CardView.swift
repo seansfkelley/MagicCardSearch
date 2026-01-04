@@ -1,9 +1,3 @@
-//
-//  CardResultCell.swift
-//  MagicCardSearch
-//
-//  Created by Sean Kelley on 2025-12-18.
-//
 import SwiftUI
 import ScryfallKit
 import NukeUI

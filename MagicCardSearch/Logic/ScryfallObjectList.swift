@@ -1,9 +1,3 @@
-//
-//  ScryfallObjectList.swift
-//  MagicCardSearch
-//
-//  Created by Sean Kelley on 2025-12-31.
-//
 import ScryfallKit
 import Logging
 import SwiftUI

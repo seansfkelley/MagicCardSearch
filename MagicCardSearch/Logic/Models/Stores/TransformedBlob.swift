@@ -1,9 +1,3 @@
-//
-//  TransformedBlob.swift
-//  MagicCardSearch
-//
-//  Created by Sean Kelley on 2026-01-03.
-//
 import Foundation
 import Logging
 import SQLiteData

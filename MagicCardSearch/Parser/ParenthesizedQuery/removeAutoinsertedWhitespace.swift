@@ -1,9 +1,3 @@
-//
-//  removeAutoinsertedWhitespace.swift
-//  MagicCardSearch
-//
-//  Created by Sean Kelley on 2025-12-23.
-//
 import SwiftUI
 
 func removeAutoinsertedWhitespace(_ current: String) -> String? {

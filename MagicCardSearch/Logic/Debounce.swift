@@ -1,9 +1,3 @@
-//
-//  Debounce.swift
-//  MagicCardSearch
-//
-//  Created by Sean Kelley on 2025-12-12.
-//
 import SwiftUI
 import ScryfallKit
 

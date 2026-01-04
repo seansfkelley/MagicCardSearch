@@ -1,9 +1,3 @@
-//
-//  Card.Color+Sendable.swift
-//  MagicCardSearch
-//
-//  Created by Sean Kelley on 2025-12-11.
-//
 import SwiftUI
 import ScryfallKit
 

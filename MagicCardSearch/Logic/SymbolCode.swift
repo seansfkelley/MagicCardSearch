@@ -1,9 +1,3 @@
-//
-//  SetCode.swift
-//  MagicCardSearch
-//
-//  Created by Sean Kelley on 2026-01-03.
-//
 struct SymbolCode: Equatable, Hashable, Sendable, Codable, CustomStringConvertible {
     let normalized: String
 

@@ -1,9 +1,3 @@
-//
-//  AutcompleteProvider.swift
-//  MagicCardSearch
-//
-//  Created by Sean Kelley on 2025-12-07.
-//
 import Foundation
 import SQLiteData
 import Observation

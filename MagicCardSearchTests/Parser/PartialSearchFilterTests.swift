@@ -1,9 +1,3 @@
-//
-//  PartialSearchFilterTests.swift
-//  MagicCardSearch
-//
-//  Created by Sean Kelley on 2025-12-21.
-//
 import Testing
 @testable import MagicCardSearch
 

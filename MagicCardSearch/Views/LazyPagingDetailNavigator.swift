@@ -1,10 +1,3 @@
-//
-//  LazyLoadingDetailNavigator.swift
-//  MagicCardSearch
-//
-//  Created by Sean Kelley on 2025-12-16.
-//
-
 import SwiftUI
 import ScryfallKit
 

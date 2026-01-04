@@ -1,9 +1,3 @@
-//
-//  PinnedFilterAutocompleteProvider.swift
-//  MagicCardSearch
-//
-//  Created by Sean Kelley on 2025-12-18.
-//
 import Foundation
 import Observation
 import SQLiteData

@@ -1,10 +1,3 @@
-//
-//  MemoryCache.swift
-//  MagicCardSearch
-//
-//  Created by Sean Kelley on 2026-01-03.
-//
-
 import Foundation
 
 final class MemoryCache<Key: Hashable & Sendable, Value: Sendable>: @unchecked Sendable {

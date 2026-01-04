@@ -1,9 +1,3 @@
-//
-//  LoadableResult.swift
-//  MagicCardSearch
-//
-//  Created by Sean Kelley on 2025-12-15.
-//
 enum LoadableResult<T, E: Error> {
     case unloaded
     case loading(T?, E?)

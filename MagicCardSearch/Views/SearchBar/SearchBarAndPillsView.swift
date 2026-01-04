@@ -1,9 +1,3 @@
-//
-//  BottomBarFilterView.swift
-//  MagicCardSearch
-//
-//  Created by Sean Kelley on 2025-12-06.
-//
 import SwiftUI
 
 struct SearchBarAndPillsView: View {

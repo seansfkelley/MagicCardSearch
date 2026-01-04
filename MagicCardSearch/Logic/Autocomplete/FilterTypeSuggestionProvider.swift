@@ -1,9 +1,3 @@
-//
-//  FilterTypeSuggestionProvider.swift
-//  MagicCardSearch
-//
-//  Created by Sean Kelley on 2025-12-11.
-//
 struct FilterTypeSuggestion: Equatable, Hashable, Sendable, ScorableSuggestion {
     let filterType: String
     let matchRange: Range<String.Index>
@@ -12,7 +6,6 @@ struct FilterTypeSuggestion: Equatable, Hashable, Sendable, ScorableSuggestion {
     let suggestionLength: Int
 }
 
-// TODO: Make this even lazier for performance.
 struct FilterTypeSuggestionProvider {
     // swiftlint:disable:next cyclomatic_complexity function_body_length
     func getSuggestions(for partial: PartialSearchFilter, limit: Int) -> [FilterTypeSuggestion] {

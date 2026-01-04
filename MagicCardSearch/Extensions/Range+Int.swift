@@ -1,9 +1,3 @@
-//
-//  Range+Int.swift
-//  MagicCardSearch
-//
-//  Created by Sean Kelley on 2025-12-26.
-//
 extension Range where Bound == Int {
     func toStringIndices(in string: String) -> Range<String.Index>? {
         let lower = string.index(string.startIndex, offsetBy: lowerBound, limitedBy: string.endIndex)

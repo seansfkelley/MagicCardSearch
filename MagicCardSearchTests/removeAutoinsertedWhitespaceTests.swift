@@ -1,9 +1,3 @@
-//
-//  removeAutoinsertedWhitespaceTests.swift
-//  MagicCardSearch
-//
-//  Created by Sean Kelley on 2025-12-23.
-//
 import SwiftUI
 import Testing
 @testable import MagicCardSearch

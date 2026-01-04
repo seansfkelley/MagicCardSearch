@@ -1,10 +1,3 @@
-//
-//  FilterFieldConfiguration.swift
-//  MagicCardSearch
-//
-//  Created by Sean Kelley on 2025-12-05.
-//
-
 import Foundation
 
 // MARK: - Scryfall Filter Type

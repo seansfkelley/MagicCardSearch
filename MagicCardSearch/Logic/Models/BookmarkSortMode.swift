@@ -1,9 +1,3 @@
-//
-//  BookmarkedCardStore.swift
-//  MagicCardSearch
-//
-//  Created by Sean Kelley on 2025-12-31.
-//
 import Foundation
 
 enum BookmarkSortMode: String, CaseIterable, Identifiable {

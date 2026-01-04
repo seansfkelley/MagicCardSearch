@@ -1,10 +1,3 @@
-//
-//  Array+uniquedTests.swift
-//  MagicCardSearch
-//
-//  Created by Sean Kelley on 2025-12-12.
-//
-
 import Testing
 @testable import MagicCardSearch
 

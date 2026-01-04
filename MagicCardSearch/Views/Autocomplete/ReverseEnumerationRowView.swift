@@ -1,9 +1,3 @@
-//
-//  ReverseEnumerationRowView.swift
-//  MagicCardSearch
-//
-//  Created by Sean Kelley on 2025-12-28.
-//
 import SwiftUI
 
 struct ReverseEnumerationRowView: View {

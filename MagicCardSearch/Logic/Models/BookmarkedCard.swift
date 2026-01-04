@@ -1,9 +1,3 @@
-//
-//  BookmarkedCard.swift
-//  MagicCardSearch
-//
-//  Created by Sean Kelley on 2026-01-01.
-//
 import SQLiteData
 import Foundation
 import ScryfallKit

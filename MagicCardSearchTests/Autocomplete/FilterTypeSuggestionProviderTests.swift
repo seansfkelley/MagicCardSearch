@@ -1,10 +1,3 @@
-//
-//  AutocompleteProviderTests.swift
-//  MagicCardSearch
-//
-//  Created by Sean Kelley on 2025-12-10.
-//
-
 import Testing
 @testable import MagicCardSearch
 

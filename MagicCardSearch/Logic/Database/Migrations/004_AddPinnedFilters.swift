@@ -1,9 +1,3 @@
-//
-//  001_AddBookmarks.swift
-//  MagicCardSearch
-//
-//  Created by Sean Kelley on 2026-01-02.
-//
 import GRDB
 
 func migrate_004_AddPinnedFilters(db: Database) throws {

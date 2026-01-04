@@ -1,9 +1,3 @@
-//
-//  NameSuggestionProvider.swift
-//  MagicCardSearch
-//
-//  Created by Sean Kelley on 2025-12-12.
-//
 import ScryfallKit
 
 struct NameSuggestion: Equatable, Hashable, Sendable, ScorableSuggestion {

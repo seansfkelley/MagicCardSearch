@@ -1,9 +1,3 @@
-//
-//  SearchBarLike.swift
-//  MagicCardSearch
-//
-//  Created by Sean Kelley on 2025-12-25.
-//
 import SwiftUI
 
 struct SearchBarLayout<Content: View>: View {

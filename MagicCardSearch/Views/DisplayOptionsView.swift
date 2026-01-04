@@ -1,10 +1,3 @@
-//
-//  DisplaySortSheetView.swift
-//  MagicCardSearch
-//
-//  Created by Sean Kelley on 2025-12-05.
-//
-
 import SwiftUI
 
 struct DisplayOptionsView: View {

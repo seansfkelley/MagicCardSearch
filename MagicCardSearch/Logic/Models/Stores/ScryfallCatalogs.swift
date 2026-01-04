@@ -1,9 +1,3 @@
-//
-//  ScryfallCatalogBlobs.swift
-//  MagicCardSearch
-//
-//  Created by Sean Kelley on 2026-01-02.
-//
 import Foundation
 import ScryfallKit
 import Logging

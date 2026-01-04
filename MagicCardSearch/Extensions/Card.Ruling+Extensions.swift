@@ -1,9 +1,3 @@
-//
-//  Card.Ruling+Extensions.swift
-//  MagicCardSearch
-//
-//  Created by Sean Kelley on 2025-12-10.
-//
 import Foundation
 import ScryfallKit
 

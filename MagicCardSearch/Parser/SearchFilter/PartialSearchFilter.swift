@@ -1,9 +1,3 @@
-//
-//  PartialSearchFilter.swift
-//  MagicCardSearch
-//
-//  Created by Sean Kelley on 2025-12-21.
-//
 import Logging
 
 private let logger = Logger(label: "PartialSearchFilter")

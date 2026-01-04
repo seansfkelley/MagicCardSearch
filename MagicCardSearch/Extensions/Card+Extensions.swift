@@ -1,10 +1,3 @@
-//
-//  Card+Extensions.swift
-//  MagicCardSearch
-//
-//  Extensions to make ScryfallKit's Card easier to work with in views
-//
-
 import Foundation
 import ScryfallKit
 

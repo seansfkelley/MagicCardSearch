@@ -1,9 +1,3 @@
-//
-//  SearchSheetView.swift
-//  MagicCardSearch
-//
-//  Created by Sean Kelley on 2025-12-24.
-//
 import SwiftUI
 
 struct SearchSheetView: View {

@@ -1,15 +1,3 @@
-// SPDX-License-Identifier: MIT
-// Copyright (C) 2017 Roopesh Chander <roop@roopc.net>
-// This file is part of the Citron Parser Module
-
-
-// This file defines the CitronParser protocol. Citron shall
-// auto-generate a class conforming to this protocol based on the input
-// grammar.
-//
-// The CitronParser protocol defined below is compatible with Swift code
-// generated using Citron version 2.x.
-
 public protocol CitronParser: AnyObject {
 
     // Types
@@ -143,7 +131,6 @@ public protocol CitronParser: AnyObject {
     typealias CitronErrorCaptureState = _CitronErrorCaptureState<CitronToken, CitronTokenCode, CitronSymbolCode>
 }
 
-// Error handling
 
 public enum _CitronParserError<Token: Sendable, TokenCode: Sendable>: Error {
     case syntaxErrorAt(token: Token, tokenCode: TokenCode)
@@ -168,7 +155,6 @@ final public class CitronParserUnexpectedEndOfInputError : CitronParserError {
 final public class CitronParserStackOverflowError : CitronParserError {
 }
 
-// Parser actions and states
 
 public enum _CitronParsingAction<StateNumber: BinaryInteger, RuleNumber: BinaryInteger> {
     case SH(StateNumber) // Shift token, then go to state <state>
@@ -183,7 +169,6 @@ public enum _CitronStateOrRule<StateNumber: BinaryInteger, RuleNumber: BinaryInt
     case rule(RuleNumber)
 }
 
-// Error capturing
 
 public enum _CitronErrorCaptureResult<NonTerminalCode, Symbol> {
     case notCaptured
@@ -205,7 +190,6 @@ public enum CitronErrorCaptureResponse<T> {
     case dontCapture
 }
 
-// Parsing interface
 
 public extension CitronParser {
     func consume(token: CitronToken, code tokenCode: CitronTokenCode) throws {
@@ -345,7 +329,6 @@ public extension CitronParser {
     }
 }
 
-// Private methods for error capturing
 
 private extension CitronParser {
     func throwOrSave(_ error: Error, isLexerError: Bool = false) throws {
@@ -537,7 +520,6 @@ private extension CitronParser {
     }
 }
 
-// Private methods
 
 private extension CitronParser {
 
@@ -716,7 +698,6 @@ private extension CitronParser {
     }
 }
 
-// Private helpers
 
 private extension CitronParser {
     func tracePrint(_ msg: String) {

@@ -1,9 +1,3 @@
-//
-//  SearchFilterLexer.swift
-//  MagicCardSearch
-//
-//  Created by Sean Kelley on 2025-12-19.
-//
 struct ParenthesizedQueryTokenContent {
     let content: String
     let range: Range<String.Index>
@@ -18,7 +12,6 @@ internal typealias LexedParenthesizedQueryToken = (
     ParenthesizedQueryParser.CitronToken, ParenthesizedQueryParser.CitronTokenCode
 )
 
-// swiftlint:disable:next function_body_length
 func lexParenthesizedQuery(_ input: String, allowingUnterminatedLiterals: Bool = false) throws -> [LexedParenthesizedQueryToken] {
     guard !input.isEmpty else {
         return []

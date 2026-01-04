@@ -1,10 +1,3 @@
-//
-//  HistorySuggestionProviderTests.swift
-//  MagicCardSearch
-//
-//  Created by Sean Kelley on 2025-12-12.
-//
-
 import Testing
 import Foundation
 import SQLiteData

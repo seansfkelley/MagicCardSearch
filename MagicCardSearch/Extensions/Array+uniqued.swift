@@ -1,9 +1,3 @@
-//
-//  Array+uniqued.swift
-//  MagicCardSearch
-//
-//  Created by Sean Kelley on 2025-12-12.
-//
 extension Array {
     func uniqued<T: Hashable>(by keyPath: KeyPath<Element, T>) -> [Element] {
         var seen = Set<T>()
