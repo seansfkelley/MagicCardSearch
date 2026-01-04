@@ -20,7 +20,7 @@ private typealias CatalogType = Catalog.`Type`
 // swiftlint:disable attributes
 @MainActor
 @Observable
-class ScryfallCatalogBlobs {
+class ScryfallCatalogs {
     @ObservationIgnored
     @TransformedBlob("sets", { data in
         let parsed = try jsonDecoder.decode([MTGSet].self, from: data)
