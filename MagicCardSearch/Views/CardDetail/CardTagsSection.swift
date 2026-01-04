@@ -5,23 +5,26 @@ import SwiftSoup
 
 private let logger = Logger(label: "CardTagsSection")
 
-enum TagType {
-    case artwork, function, similar, greater, lesser, references, unknown
+enum ScryfallTag {
+    enum Relationship {
+        case similarTo, strictlyBetterThan, strictlyWorseThan, references, withBody, colorshifted
+    }
+
+    case artwork(String)
+    case function(String)
+    case relation(Relationship, UUID, String)
 }
 
 struct CardTagsSection: View {
     let setCode: String
     let collectorNumber: String
     @State private var isExpanded = false
-    @State private var tags: LoadableResult<(artwork: [String], gameplay: [String]), Error> = .unloaded
+    @State private var tags: LoadableResult<[ScryfallTag], Error> = .unloaded
 
     var body: some View {
         DisclosureGroup(
             isExpanded: $isExpanded,
             content: {
-                let artworkTags = tags.latestValue?.artwork ?? []
-                let gameplayTags = tags.latestValue?.gameplay ?? []
-
                 if case .loading = tags {
                     ContentUnavailableView {
                         ProgressView()
@@ -42,7 +45,7 @@ struct CardTagsSection: View {
                             .tint(.blue)
                     }
                     .padding(.vertical)
-                } else if artworkTags.isEmpty && gameplayTags.isEmpty {
+                } else if (tags.latestValue ?? []).isEmpty {
                     ContentUnavailableView {
                         Label("No Tags", systemImage: "tag.slash")
                     } description: {
@@ -143,24 +146,61 @@ struct CardTagsSection: View {
                 }
 
                 let document = try SwiftSoup.parse(html)
-
-
+                let tagRows = try document.select(".tag-row")
+                tags = .loaded(tagRows.compactMap(scrapeTag), nil)
             } catch {
                 logger.error("error while trying to scrape tags", metadata: [
                     "url": "\(url)",
                     "error": "\(error)",
                 ])
+                tags = .errored(tags.latestValue, error)
             }
         }
+    }
 
-        Task {
-            try? await Task.sleep(for: .seconds(1.5))
-            
-            await MainActor.run {
-                let artworkTags = ["Dragons", "Mountains", "Fire", "Detailed Background"]
-                let gameplayTags = ["Removal", "Board Wipe", "Red Staple", "Commander"]
-                tags = .loaded((artwork: artworkTags, gameplay: gameplayTags), nil)
+    private func scrapeTag(from tagRow: Element) -> ScryfallTag? {
+        do {
+            guard let anchor = try tagRow.select("a").first() else { return nil }
+            guard let icon = try tagRow.select(".tagging-icon").first() else { return nil }
+
+            let classes = Set(try icon.classNames())
+
+            if classes.contains("value-artwork") {
+                let tag = try anchor.text()
+                return tag.isEmpty ? nil : .artwork(tag)
+            } else if classes.contains("value-card") {
+                let tag = try anchor.text()
+                return tag.isEmpty ? nil : .function(tag)
+            } else if classes.contains("value-referenced-by") {
+                return try scrapeRelatedCard(from: anchor, withRelation: .references)
+            } else if classes.contains("value-similar-to") {
+                return try scrapeRelatedCard(from: anchor, withRelation: .similarTo)
+            } else if classes.contains("value-with-body") {
+                return try scrapeRelatedCard(from: anchor, withRelation: .withBody)
+            } else if classes.contains("value-better-than") {
+                return try scrapeRelatedCard(from: anchor, withRelation: .strictlyBetterThan)
+            } else if classes.contains("value-worse-than") {
+                return try scrapeRelatedCard(from: anchor, withRelation: .strictlyWorseThan)
+            } else if classes.contains("value-colorshifted") {
+                return try scrapeRelatedCard(from: anchor, withRelation: .colorshifted)
+            } else {
+                return nil
             }
+        } catch {
+            logger.error("error while trying to scrape Scryfall tag", metadata: [
+                "error": "\(error)",
+            ])
         }
+    }
+
+    private func scrapeRelatedCard(from anchor: Element, withRelation relation: ScryfallTag.Relationship) throws -> ScryfallTag? {
+        let name = try anchor.text()
+        guard let rawOracleId = anchor.dataset()["hovercard"]?.suffix(from: "oracleid:".endIndex) else {
+            return nil
+        }
+        guard let oracleId = UUID(uuidString: String(rawOracleId)) else {
+            return nil
+        }
+        return .relation(relation, oracleId, name)
     }
 }
