@@ -23,80 +23,33 @@ struct OracleTextView: View {
 
     // swiftlint:disable shorthand_operator
     private func buildLine(_ text: String) -> Text {
+        let builder = TextWithSymbolsBuilder(
+            fontSize: fontSize,
+            colorScheme: colorScheme,
+            scryfallCatalogs: scryfallCatalogs
+        )
+        
         let reminderPattern = #/\([^)]+\)/#
         var result = Text("")
         var lastIndex = text.startIndex
         
         for match in text.matches(of: reminderPattern) {
             if lastIndex < match.range.lowerBound {
-                result = result + buildTextWithSymbols(String(text[lastIndex..<match.range.lowerBound]))
+                result = result + builder.buildText(String(text[lastIndex..<match.range.lowerBound]))
             }
-            result = result + buildTextWithSymbols(String(match.output))
+            result = result + builder.buildText(String(match.output))
                 .font(.system(size: fontSize, design: .serif))
                 .italic()
             lastIndex = match.range.upperBound
         }
         
         if lastIndex < text.endIndex {
-            result = result + buildTextWithSymbols(String(text[lastIndex...]))
+            result = result + builder.buildText(String(text[lastIndex...]))
         }
         
         return result
     }
     // swiftlint:enable shorthand_operator
-
-    private func buildTextWithSymbols(_ text: String) -> Text {
-        guard !text.isEmpty else { return Text("") }
-        
-        let pattern = #/\{[^}]+\}/#
-        var result = Text("")
-        var lastIndex = text.startIndex
-        var wasLastSymbol = false
-        
-        for match in text.matches(of: pattern) {
-            if lastIndex < match.range.lowerBound {
-                let textPart = String(text[lastIndex..<match.range.lowerBound])
-                result = Text("\(result)\(Text(textPart))")
-                wasLastSymbol = false
-            } else if wasLastSymbol {
-                result = Text("\(result)\(Text(" ").font(.system(size: fontSize * 0.3)))")
-            }
-            
-            let symbol = SymbolCode(String(text[match.range]))
-            if let image = renderSymbol(symbol) {
-                let symbolText = Text(image)
-                    // This reduces, but does not elimiate, vertical spacing.
-                    .font(.system(size: 1))
-                    // Multiplicative factors chosen empirically.
-                    .baselineOffset(symbol.isOversized ?? false ? fontSize * -0.15 : fontSize * -0.05)
-                result = Text("\(result)\(symbolText)")
-            }
-            
-            wasLastSymbol = true
-            lastIndex = match.range.upperBound
-        }
-        
-        if lastIndex < text.endIndex {
-            let textPart = String(text[lastIndex...])
-            result = Text("\(result)\(Text(textPart))")
-        }
-        
-        return result
-    }
-
-    // TODO: Can this be done with the TextRenderer protocol or something instead of
-    // rendering it to a temporary image? This also means I have to pass the environment like this,
-    // which is overall pretty sketch.
-    private func renderSymbol(_ symbol: SymbolCode) -> Image? {
-        let renderer = ImageRenderer(content: SymbolView(symbol, size: fontSize * 0.8)
-            .environment(\.colorScheme, colorScheme)
-            .environment(scryfallCatalogs))
-        renderer.scale = 3.0
-        if let uiImage = renderer.uiImage {
-            return Image(uiImage: uiImage)
-        }
-        return nil
-    }
 }
 
 #Preview("Oracle Text Examples") {

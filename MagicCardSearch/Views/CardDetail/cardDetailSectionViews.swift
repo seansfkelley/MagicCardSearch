@@ -198,7 +198,10 @@ struct CardRelatedPartsSection: View {
 struct CardRulingsSection: View {
     let rulings: LoadableResult<[Card.Ruling], Error>
     let onRetry: () -> Void
-    
+
+    @Environment(\.colorScheme) private var colorScheme
+    @Environment(ScryfallCatalogs.self) private var scryfallCatalogs
+
     var body: some View {
         Section {
             VStack(alignment: .leading, spacing: 16) {
@@ -220,10 +223,15 @@ struct CardRulingsSection: View {
                             .tint(.blue)
                     }
                 } else {
+                    let builder = TextWithSymbolsBuilder(
+                        fontSize: 17, // Seems to be the default? I dunno.
+                        colorScheme: colorScheme,
+                        scryfallCatalogs: scryfallCatalogs
+                    )
+
                     ForEach(rulings.latestValue ?? []) { ruling in
                         VStack(alignment: .leading, spacing: 6) {
-                            Text(ruling.comment)
-                                .font(.body)
+                            builder.buildText(ruling.comment)
                                 .fixedSize(horizontal: false, vertical: true)
                                 .textSelection(.enabled)
 
