@@ -9,13 +9,13 @@ struct CardTagsSection: View {
     let setCode: String
     let collectorNumber: String
     @State private var isExpanded = false
-    @State private var tags: LoadableResult<[GraphQlCard], Error> = .unloaded
+    @State private var card: LoadableResult<GraphQlCard, Error> = .unloaded
 
     var body: some View {
         DisclosureGroup(
             isExpanded: $isExpanded,
             content: {
-                if case .loading = tags {
+                if case .loading = card {
                     ContentUnavailableView {
                         ProgressView()
                     } description: {
@@ -24,7 +24,7 @@ struct CardTagsSection: View {
                             .foregroundStyle(.secondary)
                     }
                     .padding(.vertical)
-                } else if case .errored(_, let error) = tags {
+                } else if case .errored(_, let error) = card {
                     ContentUnavailableView {
                         Label("Failed to Load Tags", systemImage: "exclamationmark.triangle")
                     } description: {
@@ -35,7 +35,7 @@ struct CardTagsSection: View {
                             .tint(.blue)
                     }
                     .padding(.vertical)
-                } else if (tags.latestValue ?? []).isEmpty {
+                } else if let cardValue = card.latestValue, cardValue.taggings.isEmpty && cardValue.relationships.isEmpty {
                     ContentUnavailableView {
                         Label("No Tags", systemImage: "tag.slash")
                     } description: {
@@ -44,8 +44,8 @@ struct CardTagsSection: View {
                             .foregroundStyle(.secondary)
                     }
                     .padding(.vertical)
-                } else {
-                    TagListView(tags: tags.latestValue ?? [])
+                } else if let cardValue = card.latestValue {
+                    TagListView(card: cardValue)
                 }
             },
             label: {
@@ -58,14 +58,14 @@ struct CardTagsSection: View {
         .tint(.primary)
         .padding()
         .onChange(of: isExpanded) { _, expanded in
-            if expanded, case .unloaded = tags {
+            if expanded, case .unloaded = card {
                 loadTags()
             }
         }
     }
     
     private func loadTags() {
-        tags = .loading(nil, nil)
+        card = .loading(nil, nil)
 
         Task {
             let url = URL(string: "https://tagger.scryfall.com/card/\(setCode.lowercased())/\(collectorNumber.lowercased())")!
@@ -96,24 +96,34 @@ struct CardTagsSection: View {
                 }
 
                 guard let cookie = httpResponse.value(forHTTPHeaderField: "set-cookie") else {
-                    // TODO: throw
-                    return
+                    throw URLError(
+                        .badServerResponse,
+                        userInfo: [
+                            NSURLErrorFailingURLErrorKey: url,
+                            NSLocalizedDescriptionKey: "Missing set-cookie header in response",
+                        ]
+                    )
                 }
 
                 let document = try SwiftSoup.parse(html)
 
                 guard let csrfToken = try document.select("meta[name=csrf-token]").first()?.attr("content") else {
-                    // TODO: throw
-                    return
+                    throw URLError(
+                        .cannotParseResponse,
+                        userInfo: [
+                            NSURLErrorFailingURLErrorKey: url,
+                            NSLocalizedDescriptionKey: "Missing CSRF token in HTML response",
+                        ]
+                    )
                 }
 
-                _ = try await runGraphQlQuery(cookie: cookie, csrfToken: csrfToken)
+                card = .loaded(try await runGraphQlQuery(cookie: cookie, csrfToken: csrfToken), nil)
             } catch {
                 logger.error("error while trying to scrape tags", metadata: [
                     "url": "\(url)",
                     "error": "\(error)",
                 ])
-                tags = .errored(tags.latestValue, error)
+                card = .errored(card.latestValue, error)
             }
         }
     }
@@ -155,34 +165,24 @@ struct CardTagsSection: View {
         }
         
         let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
         let graphQlResponse = try decoder.decode(GraphQLResponse<FetchCardQuery>.self, from: data)
         return graphQlResponse.data.card
     }
 }
 private struct TagListView: View {
-    let tags: [ScryfallTag]
+    let card: GraphQlCard
     
-    private var artworkTags: [String] {
-        tags.compactMap { tag -> String? in
-            if case .artwork(let value) = tag { return value }
-            return nil
-        }
+    private var artworkTags: [GraphQlCard.Tagging] {
+        card.taggings.filter { $0.tag.namespace == .artwork && $0.tag.status == .goodStanding }
     }
     
-    private var gameplayTags: [String] {
-        tags.compactMap { tag -> String? in
-            if case .function(let value) = tag { return value }
-            return nil
-        }
+    private var gameplayTags: [GraphQlCard.Tagging] {
+        card.taggings.filter { $0.tag.namespace == .card && $0.tag.status == .goodStanding }
     }
     
-    private var relatedCards: [(ScryfallTag.Relationship, UUID, String)] {
-        tags.compactMap { tag -> (ScryfallTag.Relationship, UUID, String)? in
-            if case .relation(let relation, let id, let name) = tag {
-                return (relation, id, name)
-            }
-            return nil
-        }
+    private var relationships: [GraphQlCard.Relationship] {
+        card.relationships.filter { $0.status == .goodStanding }
     }
     
     var body: some View {
@@ -190,7 +190,7 @@ private struct TagListView: View {
             if !artworkTags.isEmpty {
                 TagSectionView(
                     title: "Artwork",
-                    tags: artworkTags,
+                    taggings: artworkTags,
                     isFirstSection: true
                 )
             }
@@ -198,14 +198,14 @@ private struct TagListView: View {
             if !gameplayTags.isEmpty {
                 TagSectionView(
                     title: "Gameplay",
-                    tags: gameplayTags,
+                    taggings: gameplayTags,
                     isFirstSection: artworkTags.isEmpty
                 )
             }
             
-            if !relatedCards.isEmpty {
+            if !relationships.isEmpty {
                 RelatedCardsSectionView(
-                    relatedCards: relatedCards,
+                    relationships: relationships,
                     isFirstSection: artworkTags.isEmpty && gameplayTags.isEmpty
                 )
             }
@@ -215,7 +215,7 @@ private struct TagListView: View {
 
 private struct TagSectionView: View {
     let title: String
-    let tags: [String]
+    let taggings: [GraphQlCard.Tagging]
     let isFirstSection: Bool
     
     var body: some View {
@@ -228,8 +228,8 @@ private struct TagSectionView: View {
                 .padding(.top, isFirstSection ? 12 : 16)
                 .padding(.bottom, 6)
             
-            ForEach(tags, id: \.self) { tag in
-                Text(tag)
+            ForEach(taggings, id: \.tag.slug) { tagging in
+                Text(tagging.tag.name)
                     .font(.body)
                     .padding(.horizontal)
                     .padding(.vertical, 6)
@@ -240,7 +240,7 @@ private struct TagSectionView: View {
 }
 
 private struct RelatedCardsSectionView: View {
-    let relatedCards: [(ScryfallTag.Relationship, UUID, String)]
+    let relationships: [GraphQlCard.Relationship]
     let isFirstSection: Bool
     
     var body: some View {
@@ -253,13 +253,13 @@ private struct RelatedCardsSectionView: View {
                 .padding(.top, isFirstSection ? 12 : 16)
                 .padding(.bottom, 6)
             
-            ForEach(relatedCards, id: \.1) { relation, cardId, cardName in
+            ForEach(relationships, id: \.relatedId) { relationship in
                 HStack(spacing: 8) {
-                    Image(systemName: relationIcon(for: relation))
+                    Image(systemName: relationIcon(for: relationship.classifier))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     
-                    Text(cardName)
+                    Text(relationship.relatedName)
                         .font(.body)
                     
                     Spacer()
@@ -271,26 +271,32 @@ private struct RelatedCardsSectionView: View {
         }
     }
     
-    private func relationIcon(for relationship: ScryfallTag.Relationship) -> String {
-        switch relationship {
-        case .similarTo:
+    private func relationIcon(for classifier: GraphQlCard.Relationship.Classifier) -> String {
+        switch classifier {
+        case .similarTo, .relatedTo, .mirrors:
             return "equal.circle"
-        case .strictlyBetterThan:
+        case .betterThan:
             return "arrow.up.circle"
-        case .strictlyWorseThan:
+        case .worseThan:
             return "arrow.down.circle"
-        case .references:
+        case .referencesTo, .referencedBy:
             return "link.circle"
-        case .withBody:
+        case .withBody, .withoutBody:
             return "person.circle"
         case .colorshifted:
             return "paintpalette"
+        case .depicts, .depictedIn:
+            return "photo.circle"
+        case .comesAfter, .comesBefore:
+            return "arrow.left.arrow.right.circle"
+        case .unknown:
+            return "questionmark.circle"
         }
     }
 }
 
 private struct GraphQlCard: Codable {
-    enum Status: Codable {
+    enum Status: Codable, Equatable {
         case goodStanding // This is the only case we care about.
         case unknown(String)
 
@@ -307,7 +313,7 @@ private struct GraphQlCard: Codable {
     struct Tagging: Codable {
         struct Tag: Codable {
             // swiftlint:disable:next nesting
-            enum Namespace: Codable {
+            enum Namespace: Codable, Equatable {
                 case artwork, card
                 case unknown(String)
                 
@@ -328,7 +334,7 @@ private struct GraphQlCard: Codable {
             let namespace: Namespace
             let description: String?
             let status: Status
-            let ancestorTags: [Tag]
+            let ancestorTags: [Tag]?
         }
 
         let annotation: String?
@@ -340,7 +346,8 @@ private struct GraphQlCard: Codable {
         enum Classifier: Codable {
             case betterThan, colorshifted, comesAfter, comesBefore, depictedIn, depicts, mirrors, referencedBy, referencesTo, relatedTo, similarTo, withBody, withoutBody, worseThan
             case unknown(String)
-            
+
+            // swiftlint:disable:next cyclomatic_complexity
             init(from decoder: Decoder) throws {
                 let container = try decoder.singleValueContainer()
                 let rawValue = try container.decode(String.self)
