@@ -247,16 +247,7 @@ private struct TagSectionView: View {
 
             VStack(spacing: spacing) {
                 ForEach(taggings, id: \.tag.id) { tagging in
-                    HStack(spacing: 8) {
-                        Image(systemName: iconName)
-                            .foregroundStyle(.secondary)
-
-                        Text(tagging.tag.name)
-                            .font(.body)
-
-                        Spacer()
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                    TagRow(tagging: tagging, iconName: iconName)
 
                     if tagging.tag.id != taggings.last?.tag.id {
                         Divider()
@@ -273,7 +264,6 @@ private struct RelatedCardsSectionView: View {
     let relationships: [GraphQlCard.Relationship]
 
     private let spacing: CGFloat = 12
-    private let iconWidth: CGFloat = 20
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -286,19 +276,7 @@ private struct RelatedCardsSectionView: View {
 
             VStack(spacing: spacing) {
                 ForEach(relationships, id: \.id) { relationship in
-                    HStack(spacing: 8) {
-                        if let classifier = relationship.otherClassifier(withOwnId: oracleId) {
-                            Image(systemName: relationIcon(for: classifier))
-                                .foregroundStyle(.secondary)
-                                .frame(width: iconWidth)
-                        }
-                        
-                        Text(relationship.otherName(withOwnId: oracleId) ?? "Unknown")
-                            .font(.body)
-                        
-                        Spacer()
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                    RelationshipRow(relationship: relationship, oracleId: oracleId)
 
                     if relationship.id != relationships.last?.id {
                         Divider()
@@ -309,6 +287,100 @@ private struct RelatedCardsSectionView: View {
         }
     }
 
+    // swiftlint:disable:next cyclomatic_complexity
+    private func relationIcon(for classifier: GraphQlCard.Relationship.Classifier) -> String {
+        switch classifier {
+        case .similarTo, .relatedTo, .mirrors: "equal"
+        case .betterThan: "greaterthan"
+        case .worseThan: "lessthan"
+        case .referencesTo: "arrowshape.turn.up.left"
+        case .referencedBy: "arrowshape.turn.up.right"
+        case .withBody: "person.slash"
+        case .withoutBody: "person"
+        case .colorshifted: "paintpalette"
+        case .depicts, .depictedIn: "photo"
+        case .comesAfter, .comesBefore: "arrow.left.arrow.right.circle"
+        case .unknown: "questionmark.circle"
+        }
+    }
+}
+
+private struct TagRow: View {
+    let tagging: GraphQlCard.Tagging
+    let iconName: String
+    @State private var showAnnotation = false
+    
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: iconName)
+                .foregroundStyle(.secondary)
+
+            Text(tagging.tag.name)
+                .font(.body)
+            
+            if let annotation = tagging.annotation, !annotation.isEmpty {
+                Button {
+                    showAnnotation = true
+                } label: {
+                    Image(systemName: "text.bubble")
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                .popover(isPresented: $showAnnotation) {
+                    Text(annotation)
+                        .font(.callout)
+                        .padding()
+                        .presentationCompactAdaptation(.popover)
+                }
+                .padding(.leading)
+            }
+
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+private struct RelationshipRow: View {
+    let relationship: GraphQlCard.Relationship
+    let oracleId: UUID
+    @State private var showAnnotation = false
+
+    private let iconWidth: CGFloat = 20
+
+    var body: some View {
+        HStack(spacing: 8) {
+            if let classifier = relationship.otherClassifier(withOwnId: oracleId) {
+                Image(systemName: relationIcon(for: classifier))
+                    .foregroundStyle(.secondary)
+                    .frame(width: iconWidth)
+            }
+            
+            Text(relationship.otherName(withOwnId: oracleId) ?? "Unknown")
+                .font(.body)
+            
+            if let annotation = relationship.annotation, !annotation.isEmpty {
+                Button {
+                    showAnnotation = true
+                } label: {
+                    Image(systemName: "text.bubble")
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                .popover(isPresented: $showAnnotation) {
+                    Text(annotation)
+                        .font(.callout)
+                        .padding()
+                        .presentationCompactAdaptation(.popover)
+                }
+                .padding(.leading)
+            }
+            
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+    
     // swiftlint:disable:next cyclomatic_complexity
     private func relationIcon(for classifier: GraphQlCard.Relationship.Classifier) -> String {
         switch classifier {
@@ -405,6 +477,7 @@ private struct GraphQlCard: Codable {
             }
         }
 
+        let annotation: String?
         let createdAt: Date
         let classifier: Classifier
         let classifierInverse: Classifier
