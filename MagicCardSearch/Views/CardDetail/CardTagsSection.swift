@@ -371,23 +371,6 @@ private struct RelatedCardsSectionView: View {
             .padding(.vertical, spacing)
         }
     }
-
-    // swiftlint:disable:next cyclomatic_complexity
-    private func relationIcon(for classifier: GraphQlCard.Relationship.Classifier) -> String {
-        switch classifier {
-        case .similarTo, .relatedTo, .mirrors: "equal"
-        case .betterThan: "greaterthan"
-        case .worseThan: "lessthan"
-        case .referencesTo: "arrowshape.turn.up.left"
-        case .referencedBy: "arrowshape.turn.up.right"
-        case .withBody: "person.slash"
-        case .withoutBody: "person"
-        case .colorshifted: "paintpalette"
-        case .depicts, .depictedIn: "photo"
-        case .comesAfter, .comesBefore: "arrow.left.arrow.right.circle"
-        case .unknown: "questionmark.circle"
-        }
-    }
 }
 
 private struct TagRow: View {
@@ -545,13 +528,13 @@ private struct RelationshipRow: View {
         case .similarTo, .relatedTo, .mirrors: "equal"
         case .betterThan: "greaterthan"
         case .worseThan: "lessthan"
-        case .referencesTo: "arrowshape.turn.up.left"
-        case .referencedBy: "arrowshape.turn.up.right"
+        case .referencesTo: "arrow.turn.up.right"
+        case .referencedBy: "arrow.turn.left.down"
         case .withBody: "person.slash"
         case .withoutBody: "person"
-        case .colorshifted: "paintpalette"
+        case .colorshifted: "circle.lefthalf.filled.inverse"
         case .depicts, .depictedIn: "photo"
-        case .comesAfter, .comesBefore: "arrow.left.arrow.right.circle"
+        case .comesAfter, .comesBefore: "arrow.left.arrow.right"
         case .unknown: "questionmark.circle"
         }
     }
