@@ -346,7 +346,8 @@ private struct TagRow: View {
                                 }
                             )
                     }
-                    .frame(idealWidth: 300, idealHeight: popoverHeight)
+                    .frame(maxWidth: 300)
+                    .frame(idealHeight: popoverHeight)
                     .onPreferenceChange(HeightKey.self) { popoverHeight = $0 }
                     .presentationCompactAdaptation(.popover)
                 }
@@ -431,7 +432,8 @@ private struct RelationshipRow: View {
                                     }
                                 )
                         }
-                        .frame(idealWidth: 300, idealHeight: popoverHeight)
+                        .frame(maxWidth: 300)
+                        .frame(idealHeight: popoverHeight)
                         .onPreferenceChange(HeightKey.self) { popoverHeight = $0 }
                         .presentationCompactAdaptation(.popover)
                     }
