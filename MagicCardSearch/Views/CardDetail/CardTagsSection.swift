@@ -51,16 +51,15 @@ struct CardTagsSection: View {
                     TagListView(
                         card: cardValue,
                         loadingRelationshipId: loadingRelationshipId,
-                        onRelationshipTapped: { relationshipId, foreignKeyId, foreignKey in
-                            Task {
-                                await loadRelatedCard(
-                                    relationshipId: relationshipId,
-                                    foreignKeyId: foreignKeyId,
-                                    foreignKey: foreignKey
-                                )
-                            }
+                    ) { relationshipId, foreignKeyId, foreignKey in
+                        Task {
+                            await loadRelatedCard(
+                                relationshipId: relationshipId,
+                                foreignKeyId: foreignKeyId,
+                                foreignKey: foreignKey
+                            )
                         }
-                    )
+                    }
                 }
             },
             label: {
@@ -171,6 +170,8 @@ struct CardTagsSection: View {
                 try await cardSearchService.fetchCard(byOracleId: foreignKeyId)
             case .illustrationId:
                 try await cardSearchService.fetchCard(byIllustrationId: foreignKeyId)
+            case .printingId:
+                try await cardSearchService.fetchCard(byPrintingId: foreignKeyId)
             case .unknown:
                 nil
             }
@@ -355,13 +356,12 @@ private struct RelatedCardsSectionView: View {
                         relationship: relationship,
                         card: card,
                         isLoading: loadingRelationshipId == relationship.id,
-                        onTap: {
-                            if let otherId = relationship.otherId(as: card),
-                               relationship.foreignKey == .oracleId || relationship.foreignKey == .illustrationId {
-                                onRelationshipTapped(relationship.id, otherId, relationship.foreignKey)
-                            }
+                    ) {
+                        if let otherId = relationship.otherId(as: card),
+                           relationship.foreignKey == .oracleId || relationship.foreignKey == .illustrationId || relationship.foreignKey == .printingId {
+                            onRelationshipTapped(relationship.id, otherId, relationship.foreignKey)
                         }
-                    )
+                    }
 
                     if relationship.id != relationships.last?.id {
                         Divider()
@@ -452,7 +452,7 @@ private struct RelationshipRow: View {
     private let iconWidth: CGFloat = 20
     
     private var canTap: Bool {
-        relationship.foreignKey == .oracleId || relationship.foreignKey == .illustrationId
+        relationship.foreignKey == .oracleId || relationship.foreignKey == .illustrationId || relationship.foreignKey == .printingId
     }
 
     var body: some View {
@@ -533,8 +533,10 @@ private struct RelationshipRow: View {
         case .withBody: "person.slash"
         case .withoutBody: "person"
         case .colorshifted: "circle.lefthalf.filled.inverse"
-        case .depicts, .depictedIn: "photo"
-        case .comesAfter, .comesBefore: "arrow.left.arrow.right"
+        case .depictedIn: "arrow.turn.up.right"
+        case .depicts: "arrow.turn.up.left"
+        case .comesAfter: "clock.arrow.trianglehead.counterclockwise.rotate.90"
+        case .comesBefore: "clock.arrow.trianglehead.counterclockwise.rotate.90"
         case .unknown: "questionmark.circle"
         }
     }
@@ -556,7 +558,7 @@ private struct GraphQlCard: Codable {
     }
 
     enum ForeignKey: Codable, Equatable {
-        case oracleId, illustrationId
+        case oracleId, illustrationId, printingId
         case unknown(String)
 
         init(from decoder: Decoder) throws {
@@ -565,6 +567,7 @@ private struct GraphQlCard: Codable {
             self = switch rawValue {
             case "oracleId": .oracleId
             case "illustrationId": .illustrationId
+            case "printingId": .printingId
             default: .unknown(rawValue)
             }
         }
@@ -574,7 +577,7 @@ private struct GraphQlCard: Codable {
         struct Tag: Codable {
             // swiftlint:disable:next nesting
             enum Namespace: Codable, Equatable {
-                case artwork, card
+                case artwork, card, print
                 case unknown(String)
                 
                 init(from decoder: Decoder) throws {
@@ -583,6 +586,7 @@ private struct GraphQlCard: Codable {
                     self = switch rawValue {
                     case "artwork": .artwork
                     case "card": .card
+                    case "print": .print
                     default: .unknown(rawValue)
                     }
                 }
@@ -701,6 +705,7 @@ private struct GraphQlCard: Codable {
 
     let oracleId: UUID
     let illustrationId: UUID
+    let printingId: UUID
     let taggings: [Tagging]
     let relationships: [Relationship]
 
@@ -708,6 +713,7 @@ private struct GraphQlCard: Codable {
         switch foreignKey {
         case .oracleId: oracleId
         case .illustrationId: illustrationId
+        case .printingId: printingId
         case .unknown: nil
         }
     }
