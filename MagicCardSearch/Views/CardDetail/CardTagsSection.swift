@@ -309,7 +309,8 @@ private struct TagRow: View {
     let tagging: GraphQlCard.Tagging
     let iconName: String
     @State private var showAnnotation = false
-    
+    @State private var popoverHeight: CGFloat = 0
+
     var body: some View {
         HStack(spacing: 8) {
             Image(systemName: iconName)
@@ -327,12 +328,25 @@ private struct TagRow: View {
                 }
                 .buttonStyle(.plain)
                 .popover(isPresented: $showAnnotation) {
-                    Text(annotation)
-                        .font(.callout)
-                        .padding()
-                        .presentationCompactAdaptation(.popover)
+                    VStack {
+                        Text(annotation)
+                            .font(.callout)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .padding()
+                            .background(
+                                GeometryReader { proxy in
+                                    Color.clear.preference(
+                                        key: HeightKey.self,
+                                        value: proxy.size.height,
+                                    )
+                                }
+                            )
+                    }
+                    .frame(idealWidth: 300, idealHeight: popoverHeight)
+                    .onPreferenceChange(HeightKey.self) { popoverHeight = $0 }
+                    .presentationCompactAdaptation(.popover)
                 }
-                .padding(.leading)
+                .padding(.leading, 8)
             }
 
             Spacer()
@@ -341,10 +355,18 @@ private struct TagRow: View {
     }
 }
 
+private struct HeightKey: PreferenceKey {
+    static let defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
+    }
+}
+
 private struct RelationshipRow: View {
     let relationship: GraphQlCard.Relationship
     let oracleId: UUID
     @State private var showAnnotation = false
+    @State private var popoverHeight: CGFloat = 0
 
     private let iconWidth: CGFloat = 20
 
@@ -368,12 +390,25 @@ private struct RelationshipRow: View {
                 }
                 .buttonStyle(.plain)
                 .popover(isPresented: $showAnnotation) {
-                    Text(annotation)
-                        .font(.callout)
-                        .padding()
-                        .presentationCompactAdaptation(.popover)
+                    VStack {
+                        Text(annotation)
+                            .font(.callout)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .padding()
+                            .background(
+                                GeometryReader { proxy in
+                                    Color.clear.preference(
+                                        key: HeightKey.self,
+                                        value: proxy.size.height,
+                                    )
+                                }
+                            )
+                    }
+                    .frame(idealWidth: 300, idealHeight: popoverHeight)
+                    .onPreferenceChange(HeightKey.self) { popoverHeight = $0 }
+                    .presentationCompactAdaptation(.popover)
                 }
-                .padding(.leading)
+                .padding(.leading, 8)
             }
             
             Spacer()
