@@ -268,10 +268,10 @@ private struct CombinedSectionView: View {
     let onRelationshipTapped: (UUID, UUID, TaggerCard.ForeignKey) -> Void
 
     private let spacing: CGFloat = 12
-
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text(title)
+            Text("\(title) (\(tags.count + relationships.count))")
                 .font(.subheadline)
                 .fontWeight(.semibold)
                 .foregroundStyle(.secondary)
@@ -313,7 +313,6 @@ private struct TagRow: View {
     let tagging: TaggerCard.Tagging
     let iconName: String
     @State private var showAnnotation = false
-    @State private var popoverHeight: CGFloat = 0
 
     var body: some View {
         HStack(spacing: 8) {
@@ -332,24 +331,7 @@ private struct TagRow: View {
                 }
                 .buttonStyle(.plain)
                 .popover(isPresented: $showAnnotation) {
-                    VStack {
-                        Text(annotation)
-                            .font(.callout)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .padding()
-                            .background(
-                                GeometryReader { proxy in
-                                    Color.clear.preference(
-                                        key: HeightKey.self,
-                                        value: proxy.size.height,
-                                    )
-                                }
-                            )
-                    }
-                    .frame(maxWidth: 300)
-                    .frame(idealHeight: popoverHeight)
-                    .onPreferenceChange(HeightKey.self) { popoverHeight = $0 }
-                    .presentationCompactAdaptation(.popover)
+                    AnnotationPopover(annotation: annotation)
                 }
                 .padding(.leading, 8)
             }
@@ -371,20 +353,12 @@ private struct TagRow: View {
     }
 }
 
-private struct HeightKey: PreferenceKey {
-    static let defaultValue: CGFloat = 0
-    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
-        value = nextValue()
-    }
-}
-
 private struct RelationshipRow: View {
     let relationship: TaggerCard.Relationship
     let card: TaggerCard
     let isLoading: Bool
     let onTap: () -> Void
     @State private var showAnnotation = false
-    @State private var popoverHeight: CGFloat = 0
 
     private let iconWidth: CGFloat = 20
 
@@ -418,24 +392,7 @@ private struct RelationshipRow: View {
                     }
                     .buttonStyle(.plain)
                     .popover(isPresented: $showAnnotation) {
-                        VStack {
-                            Text(annotation)
-                                .font(.callout)
-                                .fixedSize(horizontal: false, vertical: true)
-                                .padding()
-                                .background(
-                                    GeometryReader { proxy in
-                                        Color.clear.preference(
-                                            key: HeightKey.self,
-                                            value: proxy.size.height,
-                                        )
-                                    }
-                                )
-                        }
-                        .frame(maxWidth: 300)
-                        .frame(idealHeight: popoverHeight)
-                        .onPreferenceChange(HeightKey.self) { popoverHeight = $0 }
-                        .presentationCompactAdaptation(.popover)
+                        AnnotationPopover(annotation: annotation)
                     }
                     .padding(.leading, 8)
                 }
@@ -480,5 +437,38 @@ private struct RelationshipRow: View {
         
         return Image(systemName: symbolName)
             .scaleEffect(x: classifier == .comesBefore ? -1 : 1)
+    }
+}
+
+private struct AnnotationPopover: View {
+    struct HeightKey: PreferenceKey {
+        static let defaultValue: CGFloat = 0
+        static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+            value = nextValue()
+        }
+    }
+
+    let annotation: String
+    @State private var popoverHeight: CGFloat = 0
+
+    var body: some View {
+        VStack {
+            Text(annotation)
+                .font(.callout)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding()
+                .background(
+                    GeometryReader { proxy in
+                        Color.clear.preference(
+                            key: HeightKey.self,
+                            value: proxy.size.height,
+                        )
+                    }
+                )
+        }
+        .frame(maxWidth: 300)
+        .frame(idealHeight: popoverHeight)
+        .onPreferenceChange(HeightKey.self) { popoverHeight = $0 }
+        .presentationCompactAdaptation(.popover)
     }
 }
