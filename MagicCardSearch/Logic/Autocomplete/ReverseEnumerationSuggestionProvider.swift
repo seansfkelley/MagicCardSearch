@@ -30,10 +30,14 @@ class ReverseEnumerationSuggestionProvider {
 
     func getSuggestions(for partial: PartialSearchFilter, limit: Int) -> [ReverseEnumerationSuggestion] {
         guard limit > 0,
-                case .name(let isExact, let partialTerm) = partial.content,
-                !isExact,
-                case .bare(let searchTerm) = partialTerm,
-                searchTerm.count >= 2 else {
+              case .name(let isExact, let partialTerm) = partial.content,
+              !isExact else {
+            return []
+        }
+
+        let searchTerm = partialTerm.incompleteContent
+        
+        guard searchTerm.count >= 2 else {
             return []
         }
 
