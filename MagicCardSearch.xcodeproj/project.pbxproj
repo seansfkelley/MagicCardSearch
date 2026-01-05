@@ -16,6 +16,7 @@
 		213F299A2EE9285400E058DB /* SVGKitSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 213F29992EE9285400E058DB /* SVGKitSwift */; };
 		21874B3A2F07045300E07D9A /* SQLiteData in Frameworks */ = {isa = PBXBuildFile; productRef = 21874B392F07045300E07D9A /* SQLiteData */; };
 		21A856BD2EE3AAE400E72541 /* ScryfallKit in Frameworks */ = {isa = PBXBuildFile; productRef = 21A856BC2EE3AAE400E72541 /* ScryfallKit */; };
+		21B334122F0C53CA0048627E /* CARD_EXAMPLES.md in Resources */ = {isa = PBXBuildFile; fileRef = 21B334112F0C53C50048627E /* CARD_EXAMPLES.md */; };
 		21B726BE2F0AFCDD00D2F951 /* DECISIONS.md in Resources */ = {isa = PBXBuildFile; fileRef = 21B726BD2F0AFCDA00D2F951 /* DECISIONS.md */; };
 		21B726C12F0B101300D2F951 /* SwiftSoup in Frameworks */ = {isa = PBXBuildFile; productRef = 21B726C02F0B101300D2F951 /* SwiftSoup */; };
 /* End PBXBuildFile section */
@@ -50,6 +51,7 @@
 		2137B5BA2EE139C70066BF7E /* MagicCardSearchTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MagicCardSearchTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		2137B5C42EE139C70066BF7E /* MagicCardSearchUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MagicCardSearchUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		21A5FC512EE9E76E0034E695 /* .swiftlint.yml */ = {isa = PBXFileReference; lastKnownFileType = text.yaml; path = .swiftlint.yml; sourceTree = "<group>"; };
+		21B334112F0C53C50048627E /* CARD_EXAMPLES.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = CARD_EXAMPLES.md; sourceTree = "<group>"; };
 		21B726BD2F0AFCDA00D2F951 /* DECISIONS.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = DECISIONS.md; sourceTree = "<group>"; };
 		21D3976C2EE23306008B3EFD /* README.md */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = README.md; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -162,6 +164,7 @@
 				21D3976C2EE23306008B3EFD /* README.md */,
 				21B726BD2F0AFCDA00D2F951 /* DECISIONS.md */,
 				211396112EE9E39500093873 /* CLAUDE.md */,
+				21B334112F0C53C50048627E /* CARD_EXAMPLES.md */,
 				21A5FC512EE9E76E0034E695 /* .swiftlint.yml */,
 				2118A06C2EECD0580009FA33 /* ImageResources */,
 				21D397682EE232F0008B3EFD /* Citron */,
@@ -364,6 +367,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				21B726BE2F0AFCDD00D2F951 /* DECISIONS.md in Resources */,
+				21B334122F0C53CA0048627E /* CARD_EXAMPLES.md in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

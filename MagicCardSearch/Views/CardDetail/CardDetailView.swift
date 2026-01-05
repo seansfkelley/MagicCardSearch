@@ -182,6 +182,7 @@ struct CardDetailView: View {
                     .font(.title2)
                     .fontWeight(.bold)
                     .frame(maxWidth: .infinity, alignment: .leading)
+                    .textSelection(.enabled)
 
                 if !face.displayableManaCost.isEmpty {
                     ManaCostView(face.displayableManaCost, size: 20)
@@ -203,6 +204,7 @@ struct CardDetailView: View {
 
                     Text(typeLine)
                         .font(.body)
+                        .textSelection(.enabled)
                 }
             }
             .padding(.horizontal)
@@ -227,26 +229,31 @@ struct CardDetailView: View {
             .padding(.horizontal)
             .padding(.vertical, 12)
             .frame(maxWidth: .infinity, alignment: .leading)
+            .textSelection(.enabled)
         }
 
         if let power = face.power, let toughness = face.toughness, !power.isEmpty || !toughness.isEmpty {
             Divider().padding(.horizontal)
             CardStatSection(value: "\(power)/\(toughness)")
+                .textSelection(.enabled)
         }
         
         if let loyalty = face.loyalty, !loyalty.isEmpty {
             Divider().padding(.horizontal)
             CardStatSection(value: loyalty, label: "Loyalty")
+                .textSelection(.enabled)
         }
         
         if let defense = face.defense, !defense.isEmpty {
             Divider().padding(.horizontal)
             CardStatSection(value: defense, label: "Defense")
+                .textSelection(.enabled)
         }
 
         if showArtist, let artist = face.artist, !artist.isEmpty {
             Divider().padding(.horizontal)
             CardArtistSection(artist: artist)
+                .textSelection(.enabled)
         }
     }
 

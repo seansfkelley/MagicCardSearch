@@ -225,6 +225,7 @@ struct CardRulingsSection: View {
                             Text(ruling.comment)
                                 .font(.body)
                                 .fixedSize(horizontal: false, vertical: true)
+                                .textSelection(.enabled)
 
                             if let date = ruling.publishedAtAsDate {
                                 Text(date, format: .dateTime.year().month().day())

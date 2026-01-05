@@ -45,11 +45,11 @@ struct IndexedEnumerationValues<T: Sendable> {
             matches = sortedAlphabetically[sortedAlphabetically.startIndex..<sortedAlphabetically.endIndex]
         } else {
             let lowerBound = sortedAlphabetically.partitioningIndex { element in
-                element.0.compare(prefix, options: [.caseInsensitive]) != .orderedAscending
+                element.0.compare(prefix, options: [.caseInsensitive, .diacriticInsensitive]) != .orderedAscending
             }
 
             let upperBound = sortedAlphabetically[lowerBound...].partitioningIndex { element in
-                element.0.range(of: prefix, options: [.anchored, .caseInsensitive]) == nil
+                element.0.range(of: prefix, options: [.anchored, .caseInsensitive, .diacriticInsensitive]) == nil
             }
 
             matches = sortedAlphabetically[lowerBound..<upperBound]
@@ -80,7 +80,7 @@ struct IndexedEnumerationValues<T: Sendable> {
         return matches
             .lazy
             .compactMap { item in
-                if let range = item.0.range(of: string, options: .caseInsensitive) {
+                if let range = item.0.range(of: string, options: [.caseInsensitive, .diacriticInsensitive]) {
                     (range, item)
                 } else {
                     nil
