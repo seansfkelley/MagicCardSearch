@@ -312,43 +312,75 @@ private struct TagRow: View {
     let tagging: TaggerCard.Tagging
     let iconName: String
     @State private var showAnnotation = false
+    @State private var showCopiedFeedback = false
+
+    private var copyString: String? {
+        switch tagging.tag.namespace {
+        case .artwork: "art:\(tagging.tag.slug)"
+        case .card: "function:\(tagging.tag.slug)"
+        case .print: nil
+        case .unknown: nil
+        }
+    }
 
     var body: some View {
-        HStack(spacing: 8) {
-            Image(systemName: iconName)
-                .foregroundStyle(.secondary)
-
-            Text(tagging.tag.name)
-                .font(.body)
-
-            if let annotation = tagging.annotation, !annotation.isEmpty {
-                Button {
-                    showAnnotation = true
-                } label: {
-                    Image(systemName: "text.bubble")
-                        .foregroundStyle(.secondary)
+        Button {
+            if let copyString {
+                UIPasteboard.general.string = copyString
+                
+                showCopiedFeedback = true
+                Task {
+                    try? await Task.sleep(for: .seconds(1.5))
+                    showCopiedFeedback = false
                 }
-                .buttonStyle(.plain)
-                .popover(isPresented: $showAnnotation) {
-                    AnnotationPopover(annotation: annotation)
+            }
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: iconName)
+                    .foregroundStyle(.secondary)
+
+                Text(tagging.tag.name)
+                    .font(.body)
+                    .foregroundStyle(.primary)
+
+                if let annotation = tagging.annotation, !annotation.isEmpty {
+                    Button {
+                        showAnnotation = true
+                    } label: {
+                        Image(systemName: "text.bubble")
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .popover(isPresented: $showAnnotation) {
+                        AnnotationPopover(annotation: annotation)
+                    }
+                    .padding(.leading, 8)
+                }
+
+                Group {
+                    switch tagging.weight {
+                    case .weak: Image(systemName: "arrowtriangle.down.fill").foregroundStyle(.red)
+                    case .median: EmptyView()
+                    case .strong: Image(systemName: "arrowtriangle.up.fill").foregroundStyle(.green)
+                    case .veryStrong: Image(systemName: "star.fill").foregroundStyle(.yellow)
+                    case .unknown: EmptyView()
+                    }
                 }
                 .padding(.leading, 8)
-            }
 
-            Group {
-                switch tagging.weight {
-                case .weak: Image(systemName: "arrowtriangle.down.fill").foregroundStyle(.red)
-                case .median: EmptyView()
-                case .strong: Image(systemName: "arrowtriangle.up.fill").foregroundStyle(.green)
-                case .veryStrong: Image(systemName: "star.fill").foregroundStyle(.yellow)
-                case .unknown: EmptyView()
+                Spacer()
+
+                if copyString != nil {
+                    Image(systemName: showCopiedFeedback ? "checkmark" : "clipboard")
+                        .foregroundStyle(showCopiedFeedback ? .green : .secondary)
+                        .font(.caption)
+                        .animation(.easeInOut(duration: 0.2), value: showCopiedFeedback)
                 }
             }
-            .padding(.leading, 8)
-
-            Spacer()
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .buttonStyle(.plain)
     }
 }
 
