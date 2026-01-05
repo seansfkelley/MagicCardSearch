@@ -49,10 +49,12 @@ struct ContentView: View {
                     onClearAll: handleClearAll,
                 ) {
                     isSearchSheetVisible = true
-                    // Awkward, but seems to be the best way to negatively match only one case?
-                    guard case .unloaded = searchState.results?.value else {
+                    // Awkward, but seems to be the best way to match only one case in
+                    // the absence of conformance to Equatable, which is sort of intentional.
+                    let unloaded = if case .unloaded = searchState.results?.value { true } else { false }
+
+                    if !unloaded && !searchState.filters.isEmpty {
                         mainContentType = .results
-                        return
                     }
                 }
             }
@@ -111,8 +113,11 @@ struct ContentView: View {
         .onChange(of: searchConfig) {
             startNewSearch()
         }
-        .onChange(of: searchState.filters) {
+        .onChange(of: searchState.filters) { _, newFilters in
             searchState.results?.clearWarnings()
+            if newFilters.isEmpty {
+                mainContentType = .home
+            }
         }
         .sheet(isPresented: $showDisplaySheet, onDismiss: {
             if let pending = pendingSearchConfig, pending != searchConfig {
@@ -143,6 +148,7 @@ struct ContentView: View {
     // MARK: - Helper Methods
 
     private func handleClearAll() {
+        mainContentType = .home
         searchState.clearAll()
         isSearchSheetVisible = true
         // Don't change the main view until the search begins!
