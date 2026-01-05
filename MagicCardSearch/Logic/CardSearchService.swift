@@ -11,10 +11,16 @@ class CardSearchService {
         self.client = ScryfallClient(networkLogLevel: .minimal)
     }
     
-    func fetchCard(byId id: UUID) async throws -> Card {
+    func fetchCard(byScryfallId id: UUID) async throws -> Card {
         return try await client.getCard(identifier: .scryfallID(id: id.uuidString))
     }
     
+    func fetchCard(byOracleId id: UUID) async throws -> Card? {
+        let query = "oracleId:\(id.uuidString)"
+        let results = try await client.searchCards(query: query, page: 1)
+        return results.data.first
+    }
+
     static func buildSearchURL(filters: [SearchFilter], config: SearchConfiguration, forAPI: Bool) -> URL? {
         let queryString = filters.map { $0.description }.joined(separator: " ")
         

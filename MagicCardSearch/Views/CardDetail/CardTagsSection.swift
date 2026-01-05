@@ -10,6 +10,9 @@ struct CardTagsSection: View {
     let collectorNumber: String
     @State private var isExpanded = false
     @State private var card: LoadableResult<GraphQlCard, Error> = .unloaded
+    @State private var relatedCardToShow: Card?
+    @State private var loadingRelationshipId: UUID?
+    private let cardSearchService = CardSearchService()
 
     var body: some View {
         DisclosureGroup(
@@ -45,7 +48,15 @@ struct CardTagsSection: View {
                     }
                     .padding(.vertical)
                 } else if let cardValue = card.latestValue {
-                    TagListView(card: cardValue)
+                    TagListView(
+                        card: cardValue,
+                        loadingRelationshipId: loadingRelationshipId,
+                        onRelationshipTapped: { relationshipId, oracleId in
+                            Task {
+                                await loadRelatedCard(relationshipId: relationshipId, oracleId: oracleId)
+                            }
+                        }
+                    )
                 }
             },
             label: {
@@ -61,6 +72,22 @@ struct CardTagsSection: View {
         .onChange(of: isExpanded) { _, expanded in
             if expanded, case .unloaded = card {
                 loadTags()
+            }
+        }
+        .sheet(item: $relatedCardToShow) { relatedCard in
+            NavigationStack {
+                CardDetailView(card: relatedCard, isFlipped: .constant(false))
+                    .navigationTitle(relatedCard.name)
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button {
+                                relatedCardToShow = nil
+                            } label: {
+                                Image(systemName: "xmark")
+                            }
+                        }
+                    }
             }
         }
     }
@@ -129,6 +156,30 @@ struct CardTagsSection: View {
         }
     }
 
+    private func loadRelatedCard(relationshipId: UUID, oracleId: UUID) async {
+        loadingRelationshipId = relationshipId
+        defer { loadingRelationshipId = nil }
+
+        do {
+            // Search for a card by oracle ID
+            guard let fetchedCard = try await cardSearchService.fetchCard(byOracleId: oracleId) else {
+                logger.error("no card found for oracle ID", metadata: [
+                    "relationshipId": "\(relationshipId)",
+                    "oracleId": "\(oracleId)",
+                ])
+                return
+            }
+            relatedCardToShow = fetchedCard
+        } catch {
+            // TODO: Handle error appropriately (e.g., show alert)
+            logger.error("error loading related card from relationship", metadata: [
+                "relationshipId": "\(relationshipId)",
+                "oracleId": "\(oracleId)",
+                "error": "\(error)",
+            ])
+        }
+    }
+
     private func runGraphQlQuery(cookie: String, csrfToken: String) async throws -> GraphQlCard {
         let url = URL(string: "https://tagger.scryfall.com/graphql")!
         
@@ -173,6 +224,8 @@ struct CardTagsSection: View {
 }
 private struct TagListView: View {
     let card: GraphQlCard
+    let loadingRelationshipId: UUID?
+    let onRelationshipTapped: (UUID, UUID) -> Void
     
     private var artworkTags: [GraphQlCard.Tagging] {
         card.taggings
@@ -223,7 +276,12 @@ private struct TagListView: View {
                     Spacer().frame(height: 20)
                 }
 
-                RelatedCardsSectionView(card: card, relationships: relationships)
+                RelatedCardsSectionView(
+                    card: card,
+                    relationships: relationships,
+                    loadingRelationshipId: loadingRelationshipId,
+                    onRelationshipTapped: onRelationshipTapped
+                )
             }
         }
     }
@@ -262,6 +320,8 @@ private struct TagSectionView: View {
 private struct RelatedCardsSectionView: View {
     let card: GraphQlCard
     let relationships: [GraphQlCard.Relationship]
+    let loadingRelationshipId: UUID?
+    let onRelationshipTapped: (UUID, UUID) -> Void
 
     private let spacing: CGFloat = 12
 
@@ -276,7 +336,17 @@ private struct RelatedCardsSectionView: View {
 
             VStack(spacing: spacing) {
                 ForEach(relationships, id: \.id) { relationship in
-                    RelationshipRow(relationship: relationship, card: card)
+                    RelationshipRow(
+                        relationship: relationship,
+                        card: card,
+                        isLoading: loadingRelationshipId == relationship.id,
+                        onTap: {
+                            if let otherId = relationship.otherId(as: card),
+                               relationship.foreignKey == .oracleId {
+                                onRelationshipTapped(relationship.id, otherId)
+                            }
+                        }
+                    )
 
                     if relationship.id != relationships.last?.id {
                         Divider()
@@ -376,55 +446,82 @@ private struct HeightKey: PreferenceKey {
 private struct RelationshipRow: View {
     let relationship: GraphQlCard.Relationship
     let card: GraphQlCard
+    let isLoading: Bool
+    let onTap: () -> Void
     @State private var showAnnotation = false
     @State private var popoverHeight: CGFloat = 0
 
     private let iconWidth: CGFloat = 20
+    
+    private var canTap: Bool {
+        relationship.foreignKey == .oracleId
+    }
 
     var body: some View {
-        HStack(spacing: 8) {
-            if let classifier = relationship.otherClassifier(as: card) {
-                Image(systemName: relationIcon(for: classifier))
-                    .foregroundStyle(.secondary)
-                    .frame(width: iconWidth)
+        Button {
+            if canTap {
+                onTap()
             }
-            
-            Text(relationship.otherName(as: card) ?? "Unknown")
-                .font(.body)
-            
-            if let annotation = relationship.annotation, !annotation.isEmpty {
-                Button {
-                    showAnnotation = true
-                } label: {
-                    Image(systemName: "text.bubble")
+        } label: {
+            HStack(spacing: 8) {
+                if let classifier = relationship.otherClassifier(as: card) {
+                    Image(systemName: relationIcon(for: classifier))
                         .foregroundStyle(.secondary)
+                        .frame(width: iconWidth)
                 }
-                .buttonStyle(.plain)
-                .popover(isPresented: $showAnnotation) {
-                    VStack {
-                        Text(annotation)
-                            .font(.callout)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .padding()
-                            .background(
-                                GeometryReader { proxy in
-                                    Color.clear.preference(
-                                        key: HeightKey.self,
-                                        value: proxy.size.height,
-                                    )
-                                }
-                            )
+                
+                Text(relationship.otherName(as: card) ?? "Unknown")
+                    .font(.body)
+                    .foregroundStyle(.primary)
+                
+                if let annotation = relationship.annotation, !annotation.isEmpty {
+                    Button {
+                        showAnnotation = true
+                    } label: {
+                        Image(systemName: "text.bubble")
+                            .foregroundStyle(.secondary)
                     }
-                    .frame(idealWidth: 300, idealHeight: popoverHeight)
-                    .onPreferenceChange(HeightKey.self) { popoverHeight = $0 }
-                    .presentationCompactAdaptation(.popover)
+                    .buttonStyle(.plain)
+                    .popover(isPresented: $showAnnotation) {
+                        VStack {
+                            Text(annotation)
+                                .font(.callout)
+                                .fixedSize(horizontal: false, vertical: true)
+                                .padding()
+                                .background(
+                                    GeometryReader { proxy in
+                                        Color.clear.preference(
+                                            key: HeightKey.self,
+                                            value: proxy.size.height,
+                                        )
+                                    }
+                                )
+                        }
+                        .frame(idealWidth: 300, idealHeight: popoverHeight)
+                        .onPreferenceChange(HeightKey.self) { popoverHeight = $0 }
+                        .presentationCompactAdaptation(.popover)
+                    }
+                    .padding(.leading, 8)
                 }
-                .padding(.leading, 8)
+                
+                Spacer()
+                
+                if canTap {
+                    if isLoading {
+                        ProgressView()
+                            .controlSize(.small)
+                    } else {
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
             }
-            
-            Spacer()
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .buttonStyle(.plain)
+        .disabled(!canTap)
     }
     
     // swiftlint:disable:next cyclomatic_complexity
@@ -460,7 +557,7 @@ private struct GraphQlCard: Codable {
         }
     }
 
-    enum ForeignKey: Codable {
+    enum ForeignKey: Codable, Equatable {
         case oracleId, illustrationId
         case unknown(String)
 

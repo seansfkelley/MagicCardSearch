@@ -257,7 +257,7 @@ struct CardDetailView: View {
         defer { isLoadingRelatedCard = false }
 
         do {
-            let card = try await cardSearchService.fetchCard(byId: id)
+            let card = try await cardSearchService.fetchCard(byScryfallId: id)
             relatedCardToShow = card
         } catch {
             // TODO: Handle error appropriately (e.g., show alert)
