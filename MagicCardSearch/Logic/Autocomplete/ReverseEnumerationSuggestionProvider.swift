@@ -126,7 +126,7 @@ class ReverseEnumerationSuggestionProvider {
     private func getDynamicIndexMembers() -> [String: [ScryfallFilterType]]? {
         var valueToFilters = [String: [ScryfallFilterType]]()
 
-        func addCatalogs(_ types: Catalog.`Type`..., to filter: String, lowercased: Bool = true) -> Bool {
+        func addCatalogs(_ types: Catalog.`Type`..., to filter: String, lowercased: Bool = false) -> Bool {
             guard let filterType = scryfallFilterByType[filter] else { return true }
             for type in types {
                 guard let values = scryfallCatalogs[type] else { return false }
@@ -137,8 +137,8 @@ class ReverseEnumerationSuggestionProvider {
             return true
         }
 
-        guard addCatalogs(.artistNames, to: "artist", lowercased: false) else { return nil }
-        guard addCatalogs(.keywordAbilities, to: "keyword") else { return nil }
+        guard addCatalogs(.artistNames, to: "artist") else { return nil }
+        guard addCatalogs(.keywordAbilities, to: "keyword", lowercased: true) else { return nil }
         guard addCatalogs(.watermarks, to: "watermark") else { return nil }
         guard addCatalogs(.supertypes, .cardTypes, .artifactTypes, .battleTypes, .creatureTypes, .enchantmentTypes, .landTypes, .planeswalkerTypes, .spellTypes, to: "type") else { return nil }
 

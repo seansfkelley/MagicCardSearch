@@ -139,14 +139,11 @@ struct EnumerationSuggestionProvider {
     private func getOptions(for key: CacheKey) -> IndexedEnumerationValues<String>? {
         switch key {
         case .type:
-            getCatalogData(.supertypes, .cardTypes).map {
-                IndexedEnumerationValues($0.map { $0.lowercased() })
-            }
+            getCatalogData(.supertypes, .cardTypes).map { IndexedEnumerationValues($0) }
         case .subtype:
             getCatalogData(.artifactTypes, .battleTypes, .creatureTypes, .enchantmentTypes, .landTypes, .planeswalkerTypes, .spellTypes).map {
-                IndexedEnumerationValues($0.map { $0.lowercased() })
+                IndexedEnumerationValues($0)
             }
-
         case .set:
             scryfallCatalogs.sets.map {
                 IndexedEnumerationValues(
@@ -156,7 +153,6 @@ struct EnumerationSuggestionProvider {
                         .map { $0.replacing(/[^a-zA-Z0-9 ]/, with: "") }
                 )
             }
-
         case .block:
             scryfallCatalogs.sets.map {
                 IndexedEnumerationValues(
@@ -166,27 +162,19 @@ struct EnumerationSuggestionProvider {
                         .uniqued()
                 )
             }
-
         case .keyword:
             getCatalogData(.keywordAbilities).map {
                 IndexedEnumerationValues($0.map { $0.lowercased() })
             }
-
         case .watermark:
-            getCatalogData(.watermarks).map {
-                IndexedEnumerationValues($0.map { $0.lowercased() })
-            }
-
+            getCatalogData(.watermarks).map { IndexedEnumerationValues($0) }
         case .artist:
             getCatalogData(.artistNames).map { IndexedEnumerationValues($0) }
-
         case .artTag:
             scryfallCatalogs.artTags.map { IndexedEnumerationValues($0) }
-
         case .oracleTag:
             scryfallCatalogs.oracleTags.map { IndexedEnumerationValues($0) }
         }
-
     }
 
     @MainActor
