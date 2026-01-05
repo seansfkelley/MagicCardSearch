@@ -46,6 +46,7 @@ extension Optional where Wrapped: Codable {
 
 private let jsonDecoder: JSONDecoder = {
     var decoder = JSONDecoder()
+    decoder.dateDecodingStrategy = .iso8601
     return decoder
 }()
 
@@ -53,5 +54,6 @@ private let jsonEncoder: JSONEncoder = {
     var encoder = JSONEncoder()
     // This is what gives representational stability.
     encoder.outputFormatting = [.sortedKeys]
+    encoder.dateEncodingStrategy = .iso8601
     return encoder
 }()

@@ -2,8 +2,6 @@ import Foundation
 import Logging
 import SQLiteData
 
-private let jsonDecoder = JSONDecoder()
-
 private let logger = Logger(label: "TransformedBlob")
 
 @propertyWrapper
@@ -17,7 +15,7 @@ class TransformedBlob<Value: Decodable> {
         self.transform = transform
     }
 
-    init(_ key: String) {
+    init(_ key: String, withJsonDecoder jsonDecoder: JSONDecoder = JSONDecoder()) {
         self._blob = FetchOne(wrappedValue: nil, BlobEntry.where { $0.key == key })
         self.transform = { try jsonDecoder.decode(Value.self, from: $0) }
     }

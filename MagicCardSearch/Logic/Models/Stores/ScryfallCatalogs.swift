@@ -169,7 +169,6 @@ class ScryfallCatalogs {
         await fetch("oracleTags") { try await fetchTags(matchingHrefPrefix: "/search?q=oracletag") }
     }
 
-    // swiftlint:disable:next function_body_length
     private func fetch<T: Codable>(_ key: String, expiringAfterDays expirationInDays: Int = 30, using fetcher: () async throws -> T) async {
         let existing: BlobEntry?
         do {
