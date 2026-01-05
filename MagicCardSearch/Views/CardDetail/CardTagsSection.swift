@@ -157,21 +157,47 @@ private struct TagListView: View {
     let loadingRelationshipId: UUID?
     let onRelationshipTapped: (UUID, UUID, TaggerCard.ForeignKey) -> Void
 
-    private var artworkTags: [TaggerCard.Tagging] {
-        card.taggings
-            .filter { $0.tag.namespace == .artwork && $0.tag.status == .goodStanding }
-            .sorted(using: KeyPathComparator(\.tag.name, comparator: .localizedStandard))
-    }
-
     private var gameplayTags: [TaggerCard.Tagging] {
         card.taggings
             .filter { $0.tag.namespace == .card && $0.tag.status == .goodStanding }
             .sorted(using: KeyPathComparator(\.tag.name, comparator: .localizedStandard))
     }
 
-    private var relationships: [TaggerCard.Relationship] {
+    private var gameplayRelationships: [TaggerCard.Relationship] {
         card.relationships
-            .filter { $0.status == .goodStanding }
+            .filter { $0.foreignKey == .oracleId && $0.status == .goodStanding }
+            .sorted {
+                let lhsName = $0.otherName(as: card) ?? ""
+                let rhsName = $1.otherName(as: card) ?? ""
+                return lhsName.localizedStandardCompare(rhsName) == .orderedAscending
+            }
+    }
+
+    private var artworkTags: [TaggerCard.Tagging] {
+        card.taggings
+            .filter { $0.tag.namespace == .artwork && $0.tag.status == .goodStanding }
+            .sorted(using: KeyPathComparator(\.tag.name, comparator: .localizedStandard))
+    }
+
+    private var artworkRelationships: [TaggerCard.Relationship] {
+        card.relationships
+            .filter { $0.foreignKey == .illustrationId && $0.status == .goodStanding }
+            .sorted {
+                let lhsName = $0.otherName(as: card) ?? ""
+                let rhsName = $1.otherName(as: card) ?? ""
+                return lhsName.localizedStandardCompare(rhsName) == .orderedAscending
+            }
+    }
+
+    private var printingTags: [TaggerCard.Tagging] {
+        card.taggings
+            .filter { $0.tag.namespace == .print && $0.tag.status == .goodStanding }
+            .sorted(using: KeyPathComparator(\.tag.name, comparator: .localizedStandard))
+    }
+
+    private var printingRelationships: [TaggerCard.Relationship] {
+        card.relationships
+            .filter { $0.foreignKey == .printingId && $0.status == .goodStanding }
             .sorted {
                 let lhsName = $0.otherName(as: card) ?? ""
                 let rhsName = $1.otherName(as: card) ?? ""
@@ -181,34 +207,49 @@ private struct TagListView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            if !artworkTags.isEmpty {
-                TagSectionView(
-                    title: "Artwork",
-                    taggings: artworkTags,
-                    iconName: "paintbrush.pointed",
-                )
-            }
+            let hasGameplay = !gameplayTags.isEmpty || !gameplayRelationships.isEmpty
+            let hasArtwork = !artworkTags.isEmpty || !artworkRelationships.isEmpty
+            let hasPrinting = !printingTags.isEmpty || !printingRelationships.isEmpty
 
-            if !gameplayTags.isEmpty {
-                if !artworkTags.isEmpty {
-                    Spacer().frame(height: 20)
-                }
-
-                TagSectionView(
+            if hasGameplay {
+                CombinedSectionView(
                     title: "Gameplay",
-                    taggings: gameplayTags,
-                    iconName: "list.bullet.rectangle.portrait",
+                    tagIconName: "list.bullet.rectangle.portrait",
+                    tags: gameplayTags,
+                    relationships: gameplayRelationships,
+                    card: card,
+                    loadingRelationshipId: loadingRelationshipId,
+                    onRelationshipTapped: onRelationshipTapped
                 )
             }
 
-            if !relationships.isEmpty {
-                if !artworkTags.isEmpty || !gameplayTags.isEmpty {
+            if hasArtwork {
+                if hasGameplay {
                     Spacer().frame(height: 20)
                 }
 
-                RelatedCardsSectionView(
+                CombinedSectionView(
+                    title: "Artwork",
+                    tagIconName: "paintbrush.pointed",
+                    tags: artworkTags,
+                    relationships: artworkRelationships,
                     card: card,
-                    relationships: relationships,
+                    loadingRelationshipId: loadingRelationshipId,
+                    onRelationshipTapped: onRelationshipTapped
+                )
+            }
+
+            if hasPrinting {
+                if hasGameplay || hasArtwork {
+                    Spacer().frame(height: 20)
+                }
+
+                CombinedSectionView(
+                    title: "Printing",
+                    tagIconName: "printer",
+                    tags: printingTags,
+                    relationships: printingRelationships,
+                    card: card,
                     loadingRelationshipId: loadingRelationshipId,
                     onRelationshipTapped: onRelationshipTapped
                 )
@@ -217,10 +258,14 @@ private struct TagListView: View {
     }
 }
 
-private struct TagSectionView: View {
+private struct CombinedSectionView: View {
     let title: String
-    let taggings: [TaggerCard.Tagging]
-    let iconName: String
+    let tagIconName: String
+    let tags: [TaggerCard.Tagging]
+    let relationships: [TaggerCard.Relationship]
+    let card: TaggerCard
+    let loadingRelationshipId: UUID?
+    let onRelationshipTapped: (UUID, UUID, TaggerCard.ForeignKey) -> Void
 
     private let spacing: CGFloat = 12
 
@@ -234,37 +279,14 @@ private struct TagSectionView: View {
                 .padding(.bottom, 8)
 
             VStack(spacing: spacing) {
-                ForEach(taggings, id: \.tag.id) { tagging in
-                    TagRow(tagging: tagging, iconName: iconName)
+                ForEach(tags, id: \.tag.id) { tagging in
+                    TagRow(tagging: tagging, iconName: tagIconName)
 
-                    if tagging.tag.id != taggings.last?.tag.id {
+                    if tagging.tag.id != tags.last?.tag.id || !relationships.isEmpty {
                         Divider()
                     }
                 }
-            }
-            .padding(.vertical, spacing)
-        }
-    }
-}
 
-private struct RelatedCardsSectionView: View {
-    let card: TaggerCard
-    let relationships: [TaggerCard.Relationship]
-    let loadingRelationshipId: UUID?
-    let onRelationshipTapped: (UUID, UUID, TaggerCard.ForeignKey) -> Void
-
-    private let spacing: CGFloat = 12
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Text("Related Cards")
-                .font(.subheadline)
-                .fontWeight(.semibold)
-                .foregroundStyle(.secondary)
-                .padding(.top, 12)
-                .padding(.bottom, 8)
-
-            VStack(spacing: spacing) {
                 ForEach(relationships, id: \.id) { relationship in
                     RelationshipRow(
                         relationship: relationship,
