@@ -268,7 +268,7 @@ private struct CombinedSectionView: View {
     let onRelationshipTapped: (UUID, UUID, TaggerCard.ForeignKey) -> Void
 
     private let spacing: CGFloat = 12
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             Text("\(title) (\(tags.count + relationships.count))")
@@ -293,8 +293,7 @@ private struct CombinedSectionView: View {
                         card: card,
                         isLoading: loadingRelationshipId == relationship.id,
                     ) {
-                        if let otherId = relationship.otherId(as: card),
-                           relationship.foreignKey == .oracleId || relationship.foreignKey == .illustrationId || relationship.foreignKey == .printingId {
+                        if let otherId = relationship.otherId(as: card) {
                             onRelationshipTapped(relationship.id, otherId, relationship.foreignKey)
                         }
                     }

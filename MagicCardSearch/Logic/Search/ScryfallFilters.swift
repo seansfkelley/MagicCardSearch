@@ -86,6 +86,7 @@ let scryfallFilterTypes: [ScryfallFilterType] = [
     .init("name"),
 //    .init("oracleid"),
 //    .init("illustrationid"),
+//    .init("printingid"),
 
     // MARK: - Color and Color Identity
     .init("color", ["c"], enumerationValues: scryfallColorAliases, comparisonKinds: .all),
