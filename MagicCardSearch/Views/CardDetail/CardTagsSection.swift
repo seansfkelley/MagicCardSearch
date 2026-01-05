@@ -349,6 +349,17 @@ private struct TagRow: View {
                 .padding(.leading, 8)
             }
 
+            Group {
+                switch tagging.weight {
+                case .weak: Image(systemName: "arrowtriangle.down.fill").foregroundStyle(.red)
+                case .median: EmptyView()
+                case .strong: Image(systemName: "arrowtriangle.up.fill").foregroundStyle(.green)
+                case .veryStrong: Image(systemName: "star.fill").foregroundStyle(.yellow)
+                case .unknown: EmptyView()
+                }
+            }
+            .padding(.leading, 8)
+
             Spacer()
         }
         .frame(maxWidth: .infinity, alignment: .leading)
