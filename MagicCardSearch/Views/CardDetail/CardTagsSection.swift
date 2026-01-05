@@ -5,21 +5,11 @@ import SwiftSoup
 
 private let logger = Logger(label: "CardTagsSection")
 
-enum ScryfallTag {
-    enum Relationship {
-        case similarTo, strictlyBetterThan, strictlyWorseThan, references, withBody, colorshifted
-    }
-
-    case artwork(String)
-    case function(String)
-    case relation(Relationship, UUID, String)
-}
-
 struct CardTagsSection: View {
     let setCode: String
     let collectorNumber: String
     @State private var isExpanded = false
-    @State private var tags: LoadableResult<[ScryfallTag], Error> = .unloaded
+    @State private var tags: LoadableResult<[GraphQlCard], Error> = .unloaded
 
     var body: some View {
         DisclosureGroup(
@@ -128,7 +118,7 @@ struct CardTagsSection: View {
         }
     }
 
-    private func runGraphQlQuery(cookie: String, csrfToken: String) async throws {
+    private func runGraphQlQuery(cookie: String, csrfToken: String) async throws -> GraphQlCard {
         let url = URL(string: "https://tagger.scryfall.com/graphql")!
         
         var request = URLRequest(url: url)
@@ -166,12 +156,7 @@ struct CardTagsSection: View {
         
         let decoder = JSONDecoder()
         let graphQlResponse = try decoder.decode(GraphQLResponse<FetchCardQuery>.self, from: data)
-        let fetchCard = graphQlResponse.data.card
-
-        logger.debug("GraphQL response parsed successfully", metadata: [
-            "taggingsCount": "\(fetchCard.taggings.count)",
-            "relationshipsCount": "\(fetchCard.relationships.count)",
-        ])
+        return graphQlResponse.data.card
     }
 }
 private struct TagListView: View {
@@ -305,16 +290,36 @@ private struct RelatedCardsSectionView: View {
 }
 
 private struct GraphQlCard: Codable {
-    enum Status: String, Codable {
-        // swiftlint:disable:next identifier_name
-        case REJECTED, GOOD_STANDING // what else?
+    enum Status: Codable {
+        case goodStanding // This is the only case we care about.
+        case unknown(String)
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.singleValueContainer()
+            let rawValue = try container.decode(String.self)
+            self = switch rawValue {
+            case "GOOD_STANDING": .goodStanding
+            default: .unknown(rawValue)
+            }
+        }
     }
 
     struct Tagging: Codable {
         struct Tag: Codable {
             // swiftlint:disable:next nesting
-            enum Namespace: String, Codable {
+            enum Namespace: Codable {
                 case artwork, card
+                case unknown(String)
+                
+                init(from decoder: Decoder) throws {
+                    let container = try decoder.singleValueContainer()
+                    let rawValue = try container.decode(String.self)
+                    self = switch rawValue {
+                    case "artwork": .artwork
+                    case "card": .card
+                    default: .unknown(rawValue)
+                    }
+                }
             }
 
             let createdAt: Date
@@ -322,7 +327,7 @@ private struct GraphQlCard: Codable {
             let slug: String
             let namespace: Namespace
             let description: String?
-            let status: Status?
+            let status: Status
             let ancestorTags: [Tag]
         }
 
@@ -332,9 +337,31 @@ private struct GraphQlCard: Codable {
     }
 
     struct Relationship: Codable {
-        enum Classifier: String, Codable {
-            // swiftlint:disable:next identifier_name
-            case BETTER_THAN, COLORSHIFTED, COMES_AFTER, COMES_BEFORE, DEPICTED_IN, DEPICTS, MIRRORS, REFERENCED_BY, REFERENCES_TO, RELATED_TO, SIMILAR_TO, WITH_BODY, WITHOUT_BODY, WORSE_THAN
+        enum Classifier: Codable {
+            case betterThan, colorshifted, comesAfter, comesBefore, depictedIn, depicts, mirrors, referencedBy, referencesTo, relatedTo, similarTo, withBody, withoutBody, worseThan
+            case unknown(String)
+            
+            init(from decoder: Decoder) throws {
+                let container = try decoder.singleValueContainer()
+                let rawValue = try container.decode(String.self)
+                self = switch rawValue {
+                case "BETTER_THAN": .betterThan
+                case "COLORSHIFTED": .colorshifted
+                case "COMES_AFTER": .comesAfter
+                case "COMES_BEFORE": .comesBefore
+                case "DEPICTED_IN": .depictedIn
+                case "DEPICTS": .depicts
+                case "MIRRORS": .mirrors
+                case "REFERENCED_BY": .referencedBy
+                case "REFERENCES_TO": .referencesTo
+                case "RELATED_TO": .relatedTo
+                case "SIMILAR_TO": .similarTo
+                case "WITH_BODY": .withBody
+                case "WITHOUT_BODY": .withoutBody
+                case "WORSE_THAN": .worseThan
+                default: .unknown(rawValue)
+                }
+            }
         }
 
         let createdAt: Date
