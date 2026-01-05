@@ -1,6 +1,24 @@
 import SwiftUI
 import SQLiteData
 
+private enum TimeInterval: CaseIterable {
+    case today
+    case yesterday
+    case pastWeek
+    case pastMonth
+    case older
+
+    var displayName: String {
+        switch self {
+        case .today: return "Today"
+        case .yesterday: return "Yesterday"
+        case .pastWeek: return "Past Week"
+        case .pastMonth: return "Past Month"
+        case .older: return "Older"
+        }
+    }
+}
+
 struct AllSearchHistoryView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(HistoryAndPinnedStore.self) private var historyAndPinnedStore
@@ -16,51 +34,38 @@ struct AllSearchHistoryView: View {
     }
     
     private var groupedSearchHistory: [(TimeInterval, [SearchHistoryEntry])] {
-        let grouped = Dictionary(grouping: searchHistory) { entry in
-            timeInterval(for: entry.lastUsedAt)
-        }
-        
-        return TimeInterval.allCases.compactMap { interval in
-            guard let entries = grouped[interval], !entries.isEmpty else { return nil }
-            return (interval, entries)
-        }
-    }
-    
-    private func timeInterval(for date: Date) -> TimeInterval {
         let calendar = Calendar.current
-        let now = Date()
+        let lastMidnight = calendar.startOfDay(for: Date())
+
+        var boundaries: [(Date, TimeInterval)] = [
+            (lastMidnight, .today),
+            (calendar.date(byAdding: .day, value: -1, to: lastMidnight)!, .yesterday),
+            (calendar.date(byAdding: .day, value: -7, to: lastMidnight)!, .pastWeek),
+            (calendar.date(byAdding: .month, value: -1, to: lastMidnight)!, .pastMonth),
+            (Date.distantPast, .older),
+        ]
         
-        if calendar.isDateInToday(date) {
-            return .today
-        } else if calendar.isDateInYesterday(date) {
-            return .yesterday
-        } else if let weekAgo = calendar.date(byAdding: .day, value: -7, to: now),
-                  date > weekAgo {
-            return .pastWeek
-        } else if let monthAgo = calendar.date(byAdding: .month, value: -1, to: now),
-                  date > monthAgo {
-            return .pastMonth
-        } else {
-            return .older
-        }
-    }
-    
-    enum TimeInterval: CaseIterable {
-        case today
-        case yesterday
-        case pastWeek
-        case pastMonth
-        case older
+        var result: [(TimeInterval, [SearchHistoryEntry])] = []
+        var currentEntries: [SearchHistoryEntry] = []
         
-        var displayName: String {
-            switch self {
-            case .today: return "Today"
-            case .yesterday: return "Yesterday"
-            case .pastWeek: return "Past Week"
-            case .pastMonth: return "Past Month"
-            case .older: return "Older"
+        for entry in searchHistory {
+            while !boundaries.isEmpty && entry.lastUsedAt < boundaries.first!.0 {
+                if !currentEntries.isEmpty {
+                    result.append((boundaries.first!.1, currentEntries))
+                    currentEntries = []
+                }
+                boundaries.removeFirst()
             }
+            
+            currentEntries.append(entry)
         }
+
+        if !currentEntries.isEmpty {
+            let interval = boundaries.isEmpty ? .older : boundaries[0].1
+            result.append((interval, currentEntries))
+        }
+        
+        return result
     }
     
     var body: some View {
