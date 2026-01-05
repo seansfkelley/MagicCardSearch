@@ -110,12 +110,14 @@ struct CardTagsSection: View {
                     return
                 }
 
+                let document = try SwiftSoup.parse(html)
+
                 guard let csrfToken = try document.select("meta[name=csrf-token]").first()?.attr("content") else {
                     // TODO: throw
                     return
                 }
 
-                let data = runGraphQlQuery(cookie: cookie, csrfToken: csrfToken)
+                _ = try await runGraphQlQuery(cookie: cookie, csrfToken: csrfToken)
             } catch {
                 logger.error("error while trying to scrape tags", metadata: [
                     "url": "\(url)",
@@ -143,7 +145,7 @@ struct CardTagsSection: View {
                 "moderatorView": false,
                 "number": collectorNumber,
                 "set": setCode.lowercased(),
-            ]
+            ],
         ]
 
         request.httpBody = try JSONSerialization.data(withJSONObject: query, options: [])
@@ -162,56 +164,14 @@ struct CardTagsSection: View {
             )
         }
         
-        // TODO: Parse and process the GraphQL response
-        logger.debug("GraphQL response received", metadata: ["dataSize": "\(data.count)"])
-    }
+        let decoder = JSONDecoder()
+        let graphQlResponse = try decoder.decode(GraphQLResponse<FetchCardQuery>.self, from: data)
+        let fetchCard = graphQlResponse.data.card
 
-    // swiftlint:disable:next cyclomatic_complexity
-    private func scrapeTag(from tagRow: Element) -> ScryfallTag? {
-        do {
-            guard let anchor = try tagRow.select("a").first() else { return nil }
-            guard let icon = try tagRow.select(".tagging-icon").first() else { return nil }
-
-            let classes = Set(try icon.classNames())
-
-            if classes.contains("value-artwork") {
-                let tag = try anchor.text()
-                return tag.isEmpty ? nil : .artwork(tag)
-            } else if classes.contains("value-card") {
-                let tag = try anchor.text()
-                return tag.isEmpty ? nil : .function(tag)
-            } else if classes.contains("value-referenced-by") {
-                return try scrapeRelatedCard(from: anchor, withRelation: .references)
-            } else if classes.contains("value-similar-to") {
-                return try scrapeRelatedCard(from: anchor, withRelation: .similarTo)
-            } else if classes.contains("value-with-body") {
-                return try scrapeRelatedCard(from: anchor, withRelation: .withBody)
-            } else if classes.contains("value-better-than") {
-                return try scrapeRelatedCard(from: anchor, withRelation: .strictlyBetterThan)
-            } else if classes.contains("value-worse-than") {
-                return try scrapeRelatedCard(from: anchor, withRelation: .strictlyWorseThan)
-            } else if classes.contains("value-colorshifted") {
-                return try scrapeRelatedCard(from: anchor, withRelation: .colorshifted)
-            } else {
-                return nil
-            }
-        } catch {
-            logger.error("error while trying to scrape Scryfall tag", metadata: [
-                "error": "\(error)",
-            ])
-            return nil
-        }
-    }
-
-    private func scrapeRelatedCard(from anchor: Element, withRelation relation: ScryfallTag.Relationship) throws -> ScryfallTag? {
-        let name = try anchor.text()
-        guard let rawOracleId = anchor.dataset()["hovercard"]?.suffix(from: "oracleid:".endIndex) else {
-            return nil
-        }
-        guard let oracleId = UUID(uuidString: String(rawOracleId)) else {
-            return nil
-        }
-        return .relation(relation, oracleId, name)
+        logger.debug("GraphQL response parsed successfully", metadata: [
+            "taggingsCount": "\(fetchCard.taggings.count)",
+            "relationshipsCount": "\(fetchCard.relationships.count)",
+        ])
     }
 }
 private struct TagListView: View {
@@ -344,32 +304,40 @@ private struct RelatedCardsSectionView: View {
     }
 }
 
-private struct FetchCard {
-    enum Status: String {
+private struct GraphQlCard: Codable {
+    enum Status: String, Codable {
+        // swiftlint:disable:next identifier_name
         case REJECTED, GOOD_STANDING // what else?
     }
 
-    struct Tagging {
-        struct Tag {
-            enum Namespace: String {
+    struct Tagging: Codable {
+        struct Tag: Codable {
+            // swiftlint:disable:next nesting
+            enum Namespace: String, Codable {
                 case artwork, card
             }
 
+            let createdAt: Date
             let name: String
             let slug: String
             let namespace: Namespace
             let description: String?
-            let status: Status // make this nilable and don't fail the parse if it's not there
+            let status: Status?
+            let ancestorTags: [Tag]
         }
 
+        let annotation: String?
+        let createdAt: Date
         let tag: Tag
     }
 
-    struct Relationship {
-        enum Classifier: String {
-            case BETTER_THAN, WORSE_THAN, COLORSHIFTED, REFERENCED_BY, SIMILAR_TO, REFERENCES_TO
+    struct Relationship: Codable {
+        enum Classifier: String, Codable {
+            // swiftlint:disable:next identifier_name
+            case BETTER_THAN, COLORSHIFTED, COMES_AFTER, COMES_BEFORE, DEPICTED_IN, DEPICTS, MIRRORS, REFERENCED_BY, REFERENCES_TO, RELATED_TO, SIMILAR_TO, WITH_BODY, WITHOUT_BODY, WORSE_THAN
         }
 
+        let createdAt: Date
         let classifier: Classifier
         let relatedId: UUID
         let relatedName: String
@@ -378,6 +346,14 @@ private struct FetchCard {
 
     let taggings: [Tagging]
     let relationships: [Relationship]
+}
+
+private struct GraphQLResponse<T: Codable>: Codable {
+    let data: T
+}
+
+private struct FetchCardQuery: Codable {
+    let card: GraphQlCard
 }
 
 private let graphQlQuery = """
