@@ -80,6 +80,5 @@ struct FakeSearchBarButtonView: View {
             }
         }
         .padding(.horizontal)
-        .padding(.bottom)
     }
 }
