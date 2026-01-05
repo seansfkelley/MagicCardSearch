@@ -71,10 +71,30 @@ class HistoryAndPinnedStore {
     }
 
     public func delete(search: [SearchFilter]) {
-        write("deleting search") { db in
+        write("deleting search by content") { db in
             try SearchHistoryEntry
                 .delete()
                 .where { $0.filters == [SearchFilter].StableJSONRepresentation(queryOutput: search) }
+                .execute(db)
+        }
+    }
+
+    public func delete(search id: Int64?) {
+        guard let id else { return }
+
+        write("deleting search by ID") { db in
+            try SearchHistoryEntry
+                .delete()
+                .where { $0.id == id }
+                .execute(db)
+        }
+    }
+
+    public func delete(searches ids: Set<Int64?>) {
+        write("bulk-deleting searches by ID") { db in
+            try SearchHistoryEntry
+                .delete()
+                .where { $0.id.in(Array(ids)) }
                 .execute(db)
         }
     }

@@ -31,6 +31,7 @@ struct HomeView: View {
     
     @State private var cardFlipStates: [UUID: Bool] = [:]
     @State private var selectedCardIndex: Int?
+    @State private var showAllSearchHistory = false
     
     private let featuredList = FeaturedCardsObjectList.shared
     private let featuredCardWidth: CGFloat = 120
@@ -60,10 +61,12 @@ struct HomeView: View {
                 cardFlipStates: $cardFlipStates
             )
         }
+        .sheet(isPresented: $showAllSearchHistory) {
+            AllSearchHistoryView()
+        }
     }
 
     @ViewBuilder
-    // swiftlint:disable:next function_body_length
     private func featuredCardsSection() -> some View {
         Section {
             ScrollView(.horizontal, showsIndicators: false) {
@@ -157,15 +160,25 @@ struct HomeView: View {
                     .buttonStyle(.plain)
                     .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                         Button(role: .destructive) {
-                            historyAndPinnedStore.delete(search: entry.filters)
+                            historyAndPinnedStore.delete(search: entry.id)
                         } label: {
                             Label("Delete", systemImage: "trash")
                         }
                     }
                 }
             } header: {
-                Text("Recent Searches")
-                    .padding(.horizontal)
+                HStack {
+                    Text("Recent Searches")
+                    
+                    Spacer()
+                    
+                    Button(action: {
+                        showAllSearchHistory = true
+                    }) {
+                        Text("View All")
+                    }
+                }
+                .padding(.horizontal)
             }
             .listRowInsets(.horizontal, 0)
             .listSectionMargins(.horizontal, 0)
@@ -173,7 +186,7 @@ struct HomeView: View {
     }
 
     @ViewBuilder
-    private func examplesSection() -> some View{
+    private func examplesSection() -> some View {
         Section {
             ForEach(ExampleSearch.dailyExamples, id: \.title) { example in
                 Button {
