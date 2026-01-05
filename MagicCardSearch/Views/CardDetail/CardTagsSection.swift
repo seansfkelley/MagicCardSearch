@@ -105,9 +105,17 @@ struct CardTagsSection: View {
                     )
                 }
 
-                let document = try SwiftSoup.parse(html)
-                let tagRows = try document.select(".tag-row")
-                tags = .loaded(tagRows.compactMap(scrapeTag), nil)
+                guard let cookie = httpResponse.value(forHTTPHeaderField: "set-cookie") else {
+                    // TODO: throw
+                    return
+                }
+
+                guard let csrfToken = try document.select("meta[name=csrf-token]").first()?.attr("content") else {
+                    // TODO: throw
+                    return
+                }
+
+                let data = runGraphQlQuery(cookie: cookie, csrfToken: csrfToken)
             } catch {
                 logger.error("error while trying to scrape tags", metadata: [
                     "url": "\(url)",
@@ -116,6 +124,46 @@ struct CardTagsSection: View {
                 tags = .errored(tags.latestValue, error)
             }
         }
+    }
+
+    private func runGraphQlQuery(cookie: String, csrfToken: String) async throws {
+        let url = URL(string: "https://tagger.scryfall.com/graphql")!
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(csrfToken, forHTTPHeaderField: "X-CSRF-Token")
+        request.setValue(cookie, forHTTPHeaderField: "Cookie")
+
+        let query: [String: Any] = [
+            "operationName": "FetchCard",
+            "query": graphQlQuery,
+            "variables": [
+                "back": false,
+                "moderatorView": false,
+                "number": collectorNumber,
+                "set": setCode.lowercased(),
+            ]
+        ]
+
+        request.httpBody = try JSONSerialization.data(withJSONObject: query, options: [])
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse,
+              (200...299).contains(httpResponse.statusCode) else {
+            let statusCode = (response as? HTTPURLResponse)?.statusCode ?? -1
+            throw URLError(
+                .badServerResponse,
+                userInfo: [
+                    NSURLErrorFailingURLErrorKey: url,
+                    NSLocalizedDescriptionKey: "GraphQL request failed with status code \(statusCode)",
+                ]
+            )
+        }
+        
+        // TODO: Parse and process the GraphQL response
+        logger.debug("GraphQL response received", metadata: ["dataSize": "\(data.count)"])
     }
 
     // swiftlint:disable:next cyclomatic_complexity
@@ -295,3 +343,132 @@ private struct RelatedCardsSectionView: View {
         }
     }
 }
+
+private struct FetchCard {
+    enum Status: String {
+        case REJECTED, GOOD_STANDING // what else?
+    }
+
+    struct Tagging {
+        struct Tag {
+            enum Namespace: String {
+                case artwork, card
+            }
+
+            let name: String
+            let slug: String
+            let namespace: Namespace
+            let description: String?
+            let status: Status // make this nilable and don't fail the parse if it's not there
+        }
+
+        let tag: Tag
+    }
+
+    struct Relationship {
+        enum Classifier: String {
+            case BETTER_THAN, WORSE_THAN, COLORSHIFTED, REFERENCED_BY, SIMILAR_TO, REFERENCES_TO
+        }
+
+        let classifier: Classifier
+        let relatedId: UUID
+        let relatedName: String
+        let status: Status
+    }
+
+    let taggings: [Tagging]
+    let relationships: [Relationship]
+}
+
+private let graphQlQuery = """
+query FetchCard(
+  $set: String!
+  $number: String!
+  $back: Boolean = false
+  $moderatorView: Boolean = false
+) {
+  card: cardBySet(set: $set, number: $number, back: $back) {
+    ...CardAttrs
+    backside
+    flipsideDisplayName
+    hasAlternateName
+    layout
+    scryfallUrl
+    sideNames
+    twoSided
+    rotatedLayout
+    taggings(moderatorView: $moderatorView) {
+      ...TaggingAttrs
+      tag {
+        ...TagAttrs
+        ancestorTags {
+          ...TagAttrs
+        }
+      }
+    }
+    relationships(moderatorView: $moderatorView) {
+      ...RelationshipAttrs
+    }
+  }
+}
+
+fragment CardAttrs on Card {
+  artImageUrl
+  backside
+  cardImageUrl
+  collectorNumber
+  displayName
+  id
+  illustrationId
+  name
+  oracleId
+  printingId
+  set
+}
+
+fragment RelationshipAttrs on Relationship {
+  classifier
+  classifierInverse
+  annotation
+  subjectId
+  subjectName
+  createdAt
+  creatorId
+  foreignKey
+  id
+  name
+  pendingRevisions
+  relatedId
+  relatedName
+  status
+  type
+}
+
+fragment TagAttrs on Tag {
+  category
+  createdAt
+  creatorId
+  id
+  name
+  namespace
+  pendingRevisions
+  slug
+  status
+  type
+  hasExemplaryTagging
+  description
+}
+
+fragment TaggingAttrs on Tagging {
+  annotation
+  subjectId
+  createdAt
+  creatorId
+  foreignKey
+  id
+  pendingRevisions
+  type
+  status
+  weight
+}
+"""
