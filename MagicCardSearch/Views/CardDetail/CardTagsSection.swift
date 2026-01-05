@@ -188,26 +188,23 @@ private struct TagListView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             if !artworkTags.isEmpty {
-                TagSectionView(
-                    title: "Artwork",
-                    taggings: artworkTags,
-                    isFirstSection: true
-                )
+                TagSectionView(title: "Artwork", taggings: artworkTags)
             }
             
             if !gameplayTags.isEmpty {
-                TagSectionView(
-                    title: "Gameplay",
-                    taggings: gameplayTags,
-                    isFirstSection: artworkTags.isEmpty
-                )
+                if !artworkTags.isEmpty {
+                    Spacer().frame(height: 6)
+                }
+
+                TagSectionView(title: "Gameplay", taggings: gameplayTags)
             }
             
             if !relationships.isEmpty {
-                RelatedCardsSectionView(
-                    relationships: relationships,
-                    isFirstSection: artworkTags.isEmpty && gameplayTags.isEmpty
-                )
+                if !artworkTags.isEmpty || !gameplayTags.isEmpty {
+                    Spacer().frame(height: 6)
+                }
+
+                RelatedCardsSectionView(relationships: relationships)
             }
         }
     }
@@ -216,43 +213,34 @@ private struct TagListView: View {
 private struct TagSectionView: View {
     let title: String
     let taggings: [GraphQlCard.Tagging]
-    let isFirstSection: Bool
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
+        VStack(alignment: .leading, spacing: 6) {
             Text(title)
                 .font(.subheadline)
                 .fontWeight(.semibold)
                 .foregroundStyle(.secondary)
-                .padding(.horizontal)
-                .padding(.top, isFirstSection ? 12 : 16)
-                .padding(.bottom, 6)
-            
+
             ForEach(taggings, id: \.tag.slug) { tagging in
                 Text(tagging.tag.name)
                     .font(.body)
-                    .padding(.horizontal)
-                    .padding(.vertical, 6)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
+        .padding(.top, 12)
     }
 }
 
 private struct RelatedCardsSectionView: View {
     let relationships: [GraphQlCard.Relationship]
-    let isFirstSection: Bool
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
+        VStack(alignment: .leading, spacing: 6) {
             Text("Related Cards")
                 .font(.subheadline)
                 .fontWeight(.semibold)
                 .foregroundStyle(.secondary)
-                .padding(.horizontal)
-                .padding(.top, isFirstSection ? 12 : 16)
-                .padding(.bottom, 6)
-            
+
             ForEach(relationships, id: \.relatedId) { relationship in
                 HStack(spacing: 8) {
                     Image(systemName: relationIcon(for: relationship.classifier))
@@ -264,11 +252,10 @@ private struct RelatedCardsSectionView: View {
                     
                     Spacer()
                 }
-                .padding(.horizontal)
-                .padding(.vertical, 6)
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
+        .padding(.top, 12)
     }
     
     private func relationIcon(for classifier: GraphQlCard.Relationship.Classifier) -> String {
