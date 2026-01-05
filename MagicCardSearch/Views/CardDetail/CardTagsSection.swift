@@ -51,9 +51,13 @@ struct CardTagsSection: View {
                     TagListView(
                         card: cardValue,
                         loadingRelationshipId: loadingRelationshipId,
-                        onRelationshipTapped: { relationshipId, oracleId in
+                        onRelationshipTapped: { relationshipId, foreignKeyId, foreignKey in
                             Task {
-                                await loadRelatedCard(relationshipId: relationshipId, oracleId: oracleId)
+                                await loadRelatedCard(
+                                    relationshipId: relationshipId,
+                                    foreignKeyId: foreignKeyId,
+                                    foreignKey: foreignKey
+                                )
                             }
                         }
                     )
@@ -156,16 +160,26 @@ struct CardTagsSection: View {
         }
     }
 
-    private func loadRelatedCard(relationshipId: UUID, oracleId: UUID) async {
+    private func loadRelatedCard(relationshipId: UUID, foreignKeyId: UUID, foreignKey: GraphQlCard.ForeignKey) async {
         loadingRelationshipId = relationshipId
         defer { loadingRelationshipId = nil }
 
         do {
-            // Search for a card by oracle ID
-            guard let fetchedCard = try await cardSearchService.fetchCard(byOracleId: oracleId) else {
-                logger.error("no card found for oracle ID", metadata: [
+            // Search for a card by the appropriate foreign key
+            let fetchedCard: Card? = switch foreignKey {
+            case .oracleId:
+                try await cardSearchService.fetchCard(byOracleId: foreignKeyId)
+            case .illustrationId:
+                try await cardSearchService.fetchCard(byIllustrationId: foreignKeyId)
+            case .unknown:
+                nil
+            }
+            
+            guard let fetchedCard else {
+                logger.error("no card found for foreign key", metadata: [
                     "relationshipId": "\(relationshipId)",
-                    "oracleId": "\(oracleId)",
+                    "foreignKey": "\(foreignKey)",
+                    "foreignKeyId": "\(foreignKeyId)",
                 ])
                 return
             }
@@ -174,7 +188,8 @@ struct CardTagsSection: View {
             // TODO: Handle error appropriately (e.g., show alert)
             logger.error("error loading related card from relationship", metadata: [
                 "relationshipId": "\(relationshipId)",
-                "oracleId": "\(oracleId)",
+                "foreignKey": "\(foreignKey)",
+                "foreignKeyId": "\(foreignKeyId)",
                 "error": "\(error)",
             ])
         }
@@ -225,7 +240,7 @@ struct CardTagsSection: View {
 private struct TagListView: View {
     let card: GraphQlCard
     let loadingRelationshipId: UUID?
-    let onRelationshipTapped: (UUID, UUID) -> Void
+    let onRelationshipTapped: (UUID, UUID, GraphQlCard.ForeignKey) -> Void
     
     private var artworkTags: [GraphQlCard.Tagging] {
         card.taggings
@@ -321,7 +336,7 @@ private struct RelatedCardsSectionView: View {
     let card: GraphQlCard
     let relationships: [GraphQlCard.Relationship]
     let loadingRelationshipId: UUID?
-    let onRelationshipTapped: (UUID, UUID) -> Void
+    let onRelationshipTapped: (UUID, UUID, GraphQlCard.ForeignKey) -> Void
 
     private let spacing: CGFloat = 12
 
@@ -342,8 +357,8 @@ private struct RelatedCardsSectionView: View {
                         isLoading: loadingRelationshipId == relationship.id,
                         onTap: {
                             if let otherId = relationship.otherId(as: card),
-                               relationship.foreignKey == .oracleId {
-                                onRelationshipTapped(relationship.id, otherId)
+                               relationship.foreignKey == .oracleId || relationship.foreignKey == .illustrationId {
+                                onRelationshipTapped(relationship.id, otherId, relationship.foreignKey)
                             }
                         }
                     )
@@ -454,7 +469,7 @@ private struct RelationshipRow: View {
     private let iconWidth: CGFloat = 20
     
     private var canTap: Bool {
-        relationship.foreignKey == .oracleId
+        relationship.foreignKey == .oracleId || relationship.foreignKey == .illustrationId
     }
 
     var body: some View {

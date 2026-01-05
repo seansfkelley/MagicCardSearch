@@ -20,6 +20,12 @@ class CardSearchService {
         let results = try await client.searchCards(query: query, page: 1)
         return results.data.first
     }
+    
+    func fetchCard(byIllustrationId id: UUID) async throws -> Card? {
+        let query = "illustrationId:\(id.uuidString)"
+        let results = try await client.searchCards(query: query, page: 1)
+        return results.data.first
+    }
 
     static func buildSearchURL(filters: [SearchFilter], config: SearchConfiguration, forAPI: Bool) -> URL? {
         let queryString = filters.map { $0.description }.joined(separator: " ")
