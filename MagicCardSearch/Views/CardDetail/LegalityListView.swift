@@ -84,9 +84,8 @@ struct LegalityListView: View {
     let card: Card
     
     @Bindable var configuration = LegalityConfiguration.shared
-    @State private var isExpanded = false
     @State private var isEditMode = false
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
@@ -114,54 +113,11 @@ struct LegalityListView: View {
                     )
                     .padding(.vertical, 4)
                 }
-                
-                if hasHiddenFormats {
-                    Button {
-                        withAnimation {
-                            isExpanded.toggle()
-                        }
-                    } label: {
-                        HStack {
-                            Text(isExpanded ? "Show Less" : "Show More")
-                                .font(.body)
-                            
-                            Spacer()
-                            
-                            Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                                .imageScale(.small)
-                        }
-                        .contentShape(Rectangle())
-                    }
-                    .padding(.vertical, 8)
-                }
-                
-                if isExpanded {
-                    ForEach(Array(configuration.formatOrder.suffix(from: configuration.dividerIndex)), id: \.self) { format in
-                        LegalityItemView(
-                            format: format,
-                            legality: card.getLegality(for: format),
-                            isGameChanger: card.gameChanger ?? false
-                        )
-                        .padding(.vertical, 4)
-                    }
-                }
             }
         }
         .sheet(isPresented: $isEditMode) {
             LegalityEditView(configuration: configuration)
         }
-    }
-    
-    private var visibleFormats: [Format] {
-        if isExpanded {
-            return Array(configuration.formatOrder)
-        } else {
-            return Array(configuration.formatOrder.prefix(configuration.dividerIndex))
-        }
-    }
-    
-    private var hasHiddenFormats: Bool {
-        configuration.dividerIndex < configuration.formatOrder.count
     }
 }
 
