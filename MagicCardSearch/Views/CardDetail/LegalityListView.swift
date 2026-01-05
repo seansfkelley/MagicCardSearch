@@ -97,7 +97,7 @@ struct LegalityListView: View {
                 Button {
                     isEditMode = true
                 } label: {
-                    Text("Edit Visibility")
+                    Text("View All and Reorder")
                         .font(.subheadline)
                         .fontWeight(.medium)
                 }
@@ -116,7 +116,7 @@ struct LegalityListView: View {
             }
         }
         .sheet(isPresented: $isEditMode) {
-            LegalityEditView(configuration: configuration)
+            LegalityEditView(card: card, configuration: configuration)
         }
     }
 }
@@ -125,12 +125,14 @@ struct LegalityListView: View {
 
 private struct LegalityEditView: View {
     @Environment(\.dismiss) private var dismiss
+    let card: Card
     var configuration: LegalityConfiguration
     
     @State private var workingFormatOrder: [Format]
     @State private var workingDividerIndex: Int
     
-    init(configuration: LegalityConfiguration) {
+    init(card: Card, configuration: LegalityConfiguration) {
+        self.card = card
         self.configuration = configuration
         self._workingFormatOrder = State(wrappedValue: configuration.formatOrder)
         self._workingDividerIndex = State(wrappedValue: configuration.dividerIndex)
@@ -159,7 +161,11 @@ private struct LegalityEditView: View {
                 ForEach(listItems(), id: \.self) { item in
                     switch item {
                     case .format(let format):
-                        Text(format.label).font(.body)
+                        LegalityItemView(
+                            format: format,
+                            legality: card.getLegality(for: format),
+                            isGameChanger: card.gameChanger ?? false
+                        )
                     case .divider:
                         Rectangle()
                             .fill(.tertiary)
