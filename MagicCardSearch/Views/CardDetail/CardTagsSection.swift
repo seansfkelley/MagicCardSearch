@@ -120,7 +120,7 @@ struct CardTagsSection: View {
 
                 card = .loaded(try await runGraphQlQuery(cookie: cookie, csrfToken: csrfToken), nil)
             } catch {
-                logger.error("error while trying to scrape tags", metadata: [
+                logger.error("error while trying to fetch tags", metadata: [
                     "url": "\(url)",
                     "error": "\(error)",
                 ])
@@ -190,8 +190,8 @@ private struct TagListView: View {
         card.relationships
             .filter { $0.status == .goodStanding }
             .sorted {
-                let lhsName = $0.otherName(withOwnId: card.oracleId) ?? ""
-                let rhsName = $1.otherName(withOwnId: card.oracleId) ?? ""
+                let lhsName = $0.otherName(as: card) ?? ""
+                let rhsName = $1.otherName(as: card) ?? ""
                 return lhsName.localizedStandardCompare(rhsName) == .orderedAscending
             }
     }
@@ -223,7 +223,7 @@ private struct TagListView: View {
                     Spacer().frame(height: 20)
                 }
 
-                RelatedCardsSectionView(oracleId: card.oracleId, relationships: relationships)
+                RelatedCardsSectionView(card: card, relationships: relationships)
             }
         }
     }
@@ -260,7 +260,7 @@ private struct TagSectionView: View {
 }
 
 private struct RelatedCardsSectionView: View {
-    let oracleId: UUID
+    let card: GraphQlCard
     let relationships: [GraphQlCard.Relationship]
 
     private let spacing: CGFloat = 12
@@ -276,7 +276,7 @@ private struct RelatedCardsSectionView: View {
 
             VStack(spacing: spacing) {
                 ForEach(relationships, id: \.id) { relationship in
-                    RelationshipRow(relationship: relationship, oracleId: oracleId)
+                    RelationshipRow(relationship: relationship, card: card)
 
                     if relationship.id != relationships.last?.id {
                         Divider()
@@ -375,7 +375,7 @@ private struct HeightKey: PreferenceKey {
 
 private struct RelationshipRow: View {
     let relationship: GraphQlCard.Relationship
-    let oracleId: UUID
+    let card: GraphQlCard
     @State private var showAnnotation = false
     @State private var popoverHeight: CGFloat = 0
 
@@ -383,13 +383,13 @@ private struct RelationshipRow: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            if let classifier = relationship.otherClassifier(withOwnId: oracleId) {
+            if let classifier = relationship.otherClassifier(as: card) {
                 Image(systemName: relationIcon(for: classifier))
                     .foregroundStyle(.secondary)
                     .frame(width: iconWidth)
             }
             
-            Text(relationship.otherName(withOwnId: oracleId) ?? "Unknown")
+            Text(relationship.otherName(as: card) ?? "Unknown")
                 .font(.body)
             
             if let annotation = relationship.annotation, !annotation.isEmpty {
@@ -460,6 +460,21 @@ private struct GraphQlCard: Codable {
         }
     }
 
+    enum ForeignKey: Codable {
+        case oracleId, illustrationId
+        case unknown(String)
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.singleValueContainer()
+            let rawValue = try container.decode(String.self)
+            self = switch rawValue {
+            case "oracleId": .oracleId
+            case "illustrationId": .illustrationId
+            default: .unknown(rawValue)
+            }
+        }
+    }
+
     struct Tagging: Codable {
         struct Tag: Codable {
             // swiftlint:disable:next nesting
@@ -508,6 +523,7 @@ private struct GraphQlCard: Codable {
 
         let annotation: String?
         let createdAt: Date
+        let foreignKey: ForeignKey
         let id: UUID
         let tag: Tag
         let weight: Weight
@@ -546,6 +562,7 @@ private struct GraphQlCard: Codable {
         let createdAt: Date
         let classifier: Classifier
         let classifierInverse: Classifier
+        let foreignKey: ForeignKey
         let id: UUID
         let relatedId: UUID
         let relatedName: String
@@ -553,8 +570,9 @@ private struct GraphQlCard: Codable {
         let subjectId: UUID
         let subjectName: String
 
-        func otherClassifier(withOwnId ownId: UUID) -> Relationship.Classifier? {
-            if ownId == relatedId {
+        func otherClassifier(as card: GraphQlCard) -> Relationship.Classifier? {
+            let ownId = card.id(for: foreignKey)
+            return if ownId == relatedId {
                 classifierInverse
             } else if ownId == subjectId {
                 classifier
@@ -563,8 +581,9 @@ private struct GraphQlCard: Codable {
             }
         }
 
-        func otherId(withOwnId ownId: UUID) -> UUID? {
-            if ownId == relatedId {
+        func otherId(as card: GraphQlCard) -> UUID? {
+            let ownId = card.id(for: foreignKey)
+            return if ownId == relatedId {
                 subjectId
             } else if ownId == subjectId {
                 relatedId
@@ -573,8 +592,9 @@ private struct GraphQlCard: Codable {
             }
         }
 
-        func otherName(withOwnId ownId: UUID) -> String? {
-            if ownId == relatedId {
+        func otherName(as card: GraphQlCard) -> String? {
+            let ownId = card.id(for: foreignKey)
+            return if ownId == relatedId {
                 subjectName
             } else if ownId == subjectId {
                 relatedName
@@ -585,8 +605,17 @@ private struct GraphQlCard: Codable {
     }
 
     let oracleId: UUID
+    let illustrationId: UUID
     let taggings: [Tagging]
     let relationships: [Relationship]
+
+    func id(for foreignKey: ForeignKey) -> UUID? {
+        switch foreignKey {
+        case .oracleId: oracleId
+        case .illustrationId: illustrationId
+        case .unknown: nil
+        }
+    }
 }
 
 private struct GraphQLResponse<T: Codable>: Codable {
