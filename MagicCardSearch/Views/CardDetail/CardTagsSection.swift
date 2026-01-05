@@ -477,10 +477,29 @@ private struct GraphQlCard: Codable {
             let status: Status
         }
 
+        enum Weight: Codable {
+            // Is there such a thing as VERY_WEAK? I couldn't find any examples.
+            case weak, median, strong, veryStrong
+            case unknown(String)
+
+            init(from decoder: Decoder) throws {
+                let container = try decoder.singleValueContainer()
+                let rawValue = try container.decode(String.self)
+                self = switch rawValue {
+                case "WEAK": .weak
+                case "MEDIAN": .median
+                case "STRONG": .strong
+                case "VERY_STRONG": .median
+                default: .unknown(rawValue)
+                }
+            }
+        }
+
         let annotation: String?
         let createdAt: Date
         let id: UUID
         let tag: Tag
+        let weight: Weight
     }
 
     struct Relationship: Codable {
