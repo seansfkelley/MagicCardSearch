@@ -53,10 +53,11 @@ struct CardTagsSection: View {
                     .font(.headline)
                     .fontWeight(.semibold)
                     .foregroundStyle(.primary)
+                    .padding(.vertical)
             }
         )
         .tint(.primary)
-        .padding()
+        .padding(.horizontal)
         .onChange(of: isExpanded) { _, expanded in
             if expanded, case .unloaded = card {
                 loadTags()
@@ -174,37 +175,55 @@ private struct TagListView: View {
     let card: GraphQlCard
     
     private var artworkTags: [GraphQlCard.Tagging] {
-        card.taggings.filter { $0.tag.namespace == .artwork && $0.tag.status == .goodStanding }
+        card.taggings
+            .filter { $0.tag.namespace == .artwork && $0.tag.status == .goodStanding }
+            .sorted(using: KeyPathComparator(\.tag.name, comparator: .localizedStandard))
     }
     
     private var gameplayTags: [GraphQlCard.Tagging] {
-        card.taggings.filter { $0.tag.namespace == .card && $0.tag.status == .goodStanding }
+        card.taggings
+            .filter { $0.tag.namespace == .card && $0.tag.status == .goodStanding }
+            .sorted(using: KeyPathComparator(\.tag.name, comparator: .localizedStandard))
     }
     
     private var relationships: [GraphQlCard.Relationship] {
-        card.relationships.filter { $0.status == .goodStanding }
+        card.relationships
+            .filter { $0.status == .goodStanding }
+            .sorted {
+                let lhsName = $0.otherName(withOwnId: card.oracleId) ?? ""
+                let rhsName = $1.otherName(withOwnId: card.oracleId) ?? ""
+                return lhsName.localizedStandardCompare(rhsName) == .orderedAscending
+            }
     }
     
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             if !artworkTags.isEmpty {
-                TagSectionView(title: "Artwork", taggings: artworkTags)
+                TagSectionView(
+                    title: "Artwork",
+                    taggings: artworkTags,
+                    iconName: "paintbrush.pointed",
+                )
             }
             
             if !gameplayTags.isEmpty {
                 if !artworkTags.isEmpty {
-                    Spacer().frame(height: 6)
+                    Spacer().frame(height: 20)
                 }
 
-                TagSectionView(title: "Gameplay", taggings: gameplayTags)
+                TagSectionView(
+                    title: "Gameplay",
+                    taggings: gameplayTags,
+                    iconName: "list.bullet.rectangle.portrait",
+                )
             }
             
             if !relationships.isEmpty {
                 if !artworkTags.isEmpty || !gameplayTags.isEmpty {
-                    Spacer().frame(height: 6)
+                    Spacer().frame(height: 20)
                 }
 
-                RelatedCardsSectionView(relationships: relationships)
+                RelatedCardsSectionView(oracleId: card.oracleId, relationships: relationships)
             }
         }
     }
@@ -213,71 +232,97 @@ private struct TagListView: View {
 private struct TagSectionView: View {
     let title: String
     let taggings: [GraphQlCard.Tagging]
-    
+    let iconName: String
+
+    private let spacing: CGFloat = 12
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 0) {
             Text(title)
                 .font(.subheadline)
                 .fontWeight(.semibold)
                 .foregroundStyle(.secondary)
+                .padding(.top, 12)
+                .padding(.bottom, 8)
 
-            ForEach(taggings, id: \.tag.slug) { tagging in
-                Text(tagging.tag.name)
-                    .font(.body)
+            VStack(spacing: spacing) {
+                ForEach(taggings, id: \.tag.id) { tagging in
+                    HStack(spacing: 8) {
+                        Image(systemName: iconName)
+                            .foregroundStyle(.secondary)
+
+                        Text(tagging.tag.name)
+                            .font(.body)
+
+                        Spacer()
+                    }
                     .frame(maxWidth: .infinity, alignment: .leading)
+
+                    if tagging.tag.id != taggings.last?.tag.id {
+                        Divider()
+                    }
+                }
             }
+            .padding(.vertical, spacing)
         }
-        .padding(.top, 12)
     }
 }
 
 private struct RelatedCardsSectionView: View {
+    let oracleId: UUID
     let relationships: [GraphQlCard.Relationship]
-    
+
+    private let spacing: CGFloat = 12
+    private let iconWidth: CGFloat = 20
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 0) {
             Text("Related Cards")
                 .font(.subheadline)
                 .fontWeight(.semibold)
                 .foregroundStyle(.secondary)
+                .padding(.top, 12)
+                .padding(.bottom, 8)
 
-            ForEach(relationships, id: \.relatedId) { relationship in
-                HStack(spacing: 8) {
-                    Image(systemName: relationIcon(for: relationship.classifier))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    
-                    Text(relationship.relatedName)
-                        .font(.body)
-                    
-                    Spacer()
+            VStack(spacing: spacing) {
+                ForEach(relationships, id: \.id) { relationship in
+                    HStack(spacing: 8) {
+                        if let classifier = relationship.otherClassifier(withOwnId: oracleId) {
+                            Image(systemName: relationIcon(for: classifier))
+                                .foregroundStyle(.secondary)
+                                .frame(width: iconWidth)
+                        }
+                        
+                        Text(relationship.otherName(withOwnId: oracleId) ?? "Unknown")
+                            .font(.body)
+                        
+                        Spacer()
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                    if relationship.id != relationships.last?.id {
+                        Divider()
+                    }
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
             }
+            .padding(.vertical, spacing)
         }
-        .padding(.top, 12)
     }
-    
+
+    // swiftlint:disable:next cyclomatic_complexity
     private func relationIcon(for classifier: GraphQlCard.Relationship.Classifier) -> String {
         switch classifier {
-        case .similarTo, .relatedTo, .mirrors:
-            return "equal.circle"
-        case .betterThan:
-            return "arrow.up.circle"
-        case .worseThan:
-            return "arrow.down.circle"
-        case .referencesTo, .referencedBy:
-            return "link.circle"
-        case .withBody, .withoutBody:
-            return "person.circle"
-        case .colorshifted:
-            return "paintpalette"
-        case .depicts, .depictedIn:
-            return "photo.circle"
-        case .comesAfter, .comesBefore:
-            return "arrow.left.arrow.right.circle"
-        case .unknown:
-            return "questionmark.circle"
+        case .similarTo, .relatedTo, .mirrors: "equal"
+        case .betterThan: "greaterthan"
+        case .worseThan: "lessthan"
+        case .referencesTo: "arrowshape.turn.up.left"
+        case .referencedBy: "arrowshape.turn.up.right"
+        case .withBody: "person.slash"
+        case .withoutBody: "person"
+        case .colorshifted: "paintpalette"
+        case .depicts, .depictedIn: "photo"
+        case .comesAfter, .comesBefore: "arrow.left.arrow.right.circle"
+        case .unknown: "questionmark.circle"
         }
     }
 }
@@ -315,17 +360,19 @@ private struct GraphQlCard: Codable {
                 }
             }
 
-            let createdAt: Date
-            let name: String
-            let slug: String
-            let namespace: Namespace
-            let description: String?
-            let status: Status
             let ancestorTags: [Tag]?
+            let createdAt: Date
+            let description: String?
+            let id: UUID
+            let name: String
+            let namespace: Namespace
+            let slug: String
+            let status: Status
         }
 
         let annotation: String?
         let createdAt: Date
+        let id: UUID
         let tag: Tag
     }
 
@@ -360,11 +407,46 @@ private struct GraphQlCard: Codable {
 
         let createdAt: Date
         let classifier: Classifier
+        let classifierInverse: Classifier
+        let id: UUID
         let relatedId: UUID
         let relatedName: String
         let status: Status
+        let subjectId: UUID
+        let subjectName: String
+
+        func otherClassifier(withOwnId ownId: UUID) -> Relationship.Classifier? {
+            if ownId == relatedId {
+                classifierInverse
+            } else if ownId == subjectId {
+                classifier
+            } else {
+                nil
+            }
+        }
+
+        func otherId(withOwnId ownId: UUID) -> UUID? {
+            if ownId == relatedId {
+                subjectId
+            } else if ownId == subjectId {
+                relatedId
+            } else {
+                nil
+            }
+        }
+
+        func otherName(withOwnId ownId: UUID) -> String? {
+            if ownId == relatedId {
+                subjectName
+            } else if ownId == subjectId {
+                relatedName
+            } else {
+                nil
+            }
+        }
     }
 
+    let oracleId: UUID
     let taggings: [Tagging]
     let relationships: [Relationship]
 }
