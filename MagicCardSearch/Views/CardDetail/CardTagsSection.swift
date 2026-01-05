@@ -377,7 +377,7 @@ private struct RelationshipRow: View {
         } label: {
             HStack(spacing: 8) {
                 if let classifier = relationship.otherClassifier(as: card) {
-                    Image(systemName: relationIcon(for: classifier))
+                    relationIcon(for: classifier)
                         .foregroundStyle(.secondary)
                         .frame(width: iconWidth)
                 }
@@ -437,8 +437,8 @@ private struct RelationshipRow: View {
     }
 
     // swiftlint:disable:next cyclomatic_complexity
-    private func relationIcon(for classifier: TaggerCard.Relationship.Classifier) -> String {
-        switch classifier {
+    private func relationIcon(for classifier: TaggerCard.Relationship.Classifier) -> some View {
+        let symbolName = switch classifier {
         case .similarTo, .relatedTo, .mirrors: "equal"
         case .betterThan: "greaterthan"
         case .worseThan: "lessthan"
@@ -450,9 +450,11 @@ private struct RelationshipRow: View {
         case .depictedIn: "arrow.turn.up.right"
         case .depicts: "arrow.turn.up.left"
         case .comesAfter: "clock.arrow.trianglehead.counterclockwise.rotate.90"
-            // before should be flipped
         case .comesBefore: "clock.arrow.trianglehead.counterclockwise.rotate.90"
         case .unknown: "questionmark.circle"
         }
+        
+        return Image(systemName: symbolName)
+            .scaleEffect(x: classifier == .comesBefore ? -1 : 1)
     }
 }

@@ -88,7 +88,7 @@ struct TaggerCard: Codable {
     }
 
     struct Relationship: Codable {
-        enum Classifier: Codable {
+        enum Classifier: Codable, Equatable {
             case betterThan, colorshifted, comesAfter, comesBefore, depictedIn, depicts, mirrors, referencedBy, referencesTo, relatedTo, similarTo, withBody, withoutBody, worseThan
             case unknown(String)
 
