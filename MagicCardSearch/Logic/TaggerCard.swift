@@ -163,7 +163,10 @@ struct TaggerCard: Codable {
     }
 
     let oracleId: UUID
-    let illustrationId: UUID
+    // card with Scryfall ID efbc5ec8-91ac-4a59-8f4d-577dc2d350c1 has no illustrationId at the time
+    // of writing, however, it was also the newest spoiler at the time to perhaps the problem is
+    // that they just hadn't assigned it an ID/indexed it yet?
+    let illustrationId: UUID?
     let printingId: UUID
     let taggings: [Tagging]
     let relationships: [Relationship]
