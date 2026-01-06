@@ -21,11 +21,24 @@ private extension View {
     }
 }
 
+private extension PinnedSearchEntry {
+    var listId: String { "pinned:\(id ?? -1)" }
+}
+
+private extension SearchHistoryEntry {
+    var listId: String { "history:\(id ?? -1)" }
+}
+
 struct HomeView: View {
     @Environment(HistoryAndPinnedStore.self) private var historyAndPinnedStore
     
-    @FetchAll(SearchHistoryEntry.order { $0.lastUsedAt.desc() }.limit(10))
-    var recentSearches
+    @FetchAll(
+        SearchHistoryEntry
+            .order { $0.lastUsedAt.desc() }
+            .where { !PinnedSearchEntry.select { $0.filters }.contains($0.filters) }
+            .limit(10)
+    )
+    private var recentSearches
     
     @FetchAll(PinnedSearchEntry.order { $0.pinnedAt.desc() })
     var pinnedSearches
@@ -35,7 +48,6 @@ struct HomeView: View {
     @State private var cardFlipStates: [UUID: Bool] = [:]
     @State private var selectedCardIndex: Int?
     @State private var showAllSearchHistory = false
-    @State private var pinnedSearchFilters: Set<[SearchFilter]> = []
     
     private let featuredList = FeaturedCardsObjectList.shared
     private let featuredCardWidth: CGFloat = 120
@@ -46,9 +58,6 @@ struct HomeView: View {
             pinnedSearchesSection()
             recentSearchesSection()
             examplesSection()
-        }
-        .onChange(of: pinnedSearches) { _, newValue in
-            pinnedSearchFilters = Set(newValue.map(\.filters))
         }
         .task {
             if isRunningTests() {
@@ -151,7 +160,7 @@ struct HomeView: View {
     private func pinnedSearchesSection() -> some View {
         if !pinnedSearches.isEmpty {
             Section {
-                ForEach(pinnedSearches, id: \.pinnedAt) { entry in
+                ForEach(pinnedSearches, id: \.listId) { entry in
                     Button {
                         onSearchSelected(entry.filters)
                     } label: {
@@ -193,7 +202,7 @@ struct HomeView: View {
     private func recentSearchesSection() -> some View {
         if !recentSearches.isEmpty {
             Section {
-                ForEach(recentSearches, id: \.lastUsedAt) { entry in
+                ForEach(recentSearches, id: \.listId) { entry in
                     Button {
                         onSearchSelected(entry.filters)
                     } label: {
@@ -213,14 +222,12 @@ struct HomeView: View {
                         }
                     }
                     .swipeActions(edge: .leading, allowsFullSwipe: true) {
-                        if !pinnedSearchFilters.contains(entry.filters) {
-                            Button {
-                                historyAndPinnedStore.pin(search: entry.filters)
-                            } label: {
-                                Label("Pin", systemImage: "pin")
-                            }
-                            .tint(.orange)
+                        Button {
+                            historyAndPinnedStore.pin(search: entry.filters)
+                        } label: {
+                            Label("Pin", systemImage: "pin")
                         }
+                        .tint(.orange)
                     }
                 }
             } header: {
@@ -267,7 +274,7 @@ struct HomeView: View {
                 .id("example-\(example.title)")
             }
         } header: {
-            Label("Need Inspiration?", systemImage: "lightbulb.max.fill")
+            Label("Need Inspiration?", systemImage: "lightbulb.max")
                 .padding(.horizontal)
         }
         .listRowInsets(.horizontal, 0)
@@ -291,6 +298,3 @@ private class FeaturedCardsObjectList: ScryfallObjectList<Card> {
         )
     }
 }
-// MARK: - Example Search
-
-
