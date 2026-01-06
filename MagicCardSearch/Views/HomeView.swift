@@ -45,7 +45,7 @@ struct HomeView: View {
     var pinnedSearches
     
     @State private var cardFlipStates: [UUID: Bool] = [:]
-    @State private var selectedCardIndex: Int?
+    @State private var selectedFeaturedCardIndex: Int?
     @State private var showAllSearchHistory = false
     
     private let featuredList = FeaturedCardsObjectList.shared
@@ -67,8 +67,8 @@ struct HomeView: View {
         }
         .sheet(
             item: Binding(
-                get: { selectedCardIndex.map { IdentifiableIndex(index: $0) } },
-                set: { selectedCardIndex = $0?.index }
+                get: { selectedFeaturedCardIndex.map { IdentifiableIndex(index: $0) } },
+                set: { selectedFeaturedCardIndex = $0?.index }
             )
         ) { identifier in
             SearchResultsDetailNavigator(
@@ -97,7 +97,7 @@ struct HomeView: View {
                     case .loading(let results?, _), .loaded(let results, _), .errored(let results?, _):
                         ForEach(Array(results.data.enumerated()), id: \.element.id) { index, card in
                             Button {
-                                selectedCardIndex = index
+                                selectedFeaturedCardIndex = index
                             } label: {
                                 CardView(
                                     card: card,

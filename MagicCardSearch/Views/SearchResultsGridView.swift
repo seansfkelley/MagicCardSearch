@@ -104,6 +104,9 @@ struct SearchResultsGridView: View {
                 searchState: $searchState,
             )
         }
+        .onChange(of: searchState.searchNonce) {
+            selectedCardIndex = nil
+        }
     }
 
     @ViewBuilder private var paginationStatusView: some View {

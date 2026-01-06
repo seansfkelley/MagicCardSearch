@@ -17,7 +17,7 @@ struct ContentView: View {
     @State private var pendingSearchConfig: SearchConfiguration?
     @State private var mainContentType: MainContentType = .home
 
-    @State private var isSearchSheetVisible: Bool = false
+    @State private var showSearchSheet: Bool = false
 
     private let searchService = CardSearchService()
 
@@ -44,7 +44,7 @@ struct ContentView: View {
                     warnings: searchState.results?.value.latestValue?.warnings ?? [],
                     onClearAll: searchState.clearAll,
                 ) {
-                    isSearchSheetVisible = true
+                    showSearchSheet = true
                     // Awkward, but seems to be the best way to match only one case in
                     // the absence of conformance to Equatable, which is sort of intentional.
                     let unloaded = if case .unloaded = searchState.results?.value { true } else { false }
@@ -69,7 +69,7 @@ struct ContentView: View {
                 ToolbarItem(placement: .principal) {
                     Button {
                         mainContentType = .home
-                        isSearchSheetVisible = false
+                        showSearchSheet = false
                     } label: {
                         Image("HeaderIcon")
                             .resizable()
@@ -108,10 +108,15 @@ struct ContentView: View {
         }
         .onChange(of: searchState.searchNonce) {
             mainContentType = .results
+            showDisplaySheet = false
+            showBookmarkedCardList = false
+            showSearchSheet = false
         }
         .onChange(of: searchState.clearNonce) {
             mainContentType = .home
-            isSearchSheetVisible = true
+            showDisplaySheet = false
+            showBookmarkedCardList = false
+            showSearchSheet = true
         }
         .onChange(of: searchState.filters) { _, newFilters in
             searchState.results?.clearWarnings()
@@ -134,7 +139,7 @@ struct ContentView: View {
         .sheet(isPresented: $showBookmarkedCardList) {
             BookmarkedCardsListView(searchState: $searchState)
         }
-        .sheet(isPresented: $isSearchSheetVisible) {
+        .sheet(isPresented: $showSearchSheet) {
             SearchSheetView(searchState: $searchState)
         }
     }
