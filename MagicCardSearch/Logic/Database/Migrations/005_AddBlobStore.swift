@@ -7,4 +7,3 @@ func migrate_005_AddBlobStore(db: Database) throws {
         t.column("insertedAt", .datetime).notNull()
     }
 }
-

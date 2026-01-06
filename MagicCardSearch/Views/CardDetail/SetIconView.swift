@@ -5,6 +5,20 @@ import Logging
 
 private let logger = Logger(label: "SetIconView")
 
+private enum LoadError: Error, LocalizedError {
+    case missingSetMetadata
+    case failedToCreateSVGImage
+    case failedToRenderUIImage
+
+    var errorDescription: String? {
+        switch self {
+        case .missingSetMetadata: "Failed to get set metadata"
+        case .failedToCreateSVGImage: "Failed to create SVG image"
+        case .failedToRenderUIImage: "Failed to render SVG to UIImage"
+        }
+    }
+}
+
 struct SetIconView: View {
     @Environment(ScryfallCatalogs.self) private var scryfallCatalogs
 
@@ -57,14 +71,13 @@ struct SetIconView: View {
             return
         }
 
-        let set = scryfallCatalogs.sets?[setCode]
-        guard let set, let url = URL(string: set.iconSvgUri) else {
-            imageResult = .errored(nil, NSError(domain: "SetIconView", code: 1, userInfo: [NSLocalizedDescriptionKey: "Failed to get set metadata"]))
-            return
-        }
-        
         do {
             imageResult = .loading(nil, nil)
+            
+            let set = scryfallCatalogs.sets?[setCode]
+            guard let set, let url = URL(string: set.iconSvgUri) else {
+                throw LoadError.missingSetMetadata
+            }
 
             let svgData = try await Self.svgDataCache.get(setCode) {
                 logger.info("requesting set icon", metadata: [
@@ -76,8 +89,7 @@ struct SetIconView: View {
             }
             
             guard let svgImage = SVGKImage(data: svgData) else {
-                imageResult = .errored(nil, NSError(domain: "SetIconView", code: 2, userInfo: [NSLocalizedDescriptionKey: "Failed to create SVG image"]))
-                return
+                throw LoadError.failedToCreateSVGImage
             }
             
             let originalSize = svgImage.size
@@ -94,8 +106,7 @@ struct SetIconView: View {
             svgImage.size = scaledSize
             
             guard let uiImage = svgImage.uiImage else {
-                imageResult = .errored(nil, NSError(domain: "SetIconView", code: 3, userInfo: [NSLocalizedDescriptionKey: "Failed to render SVG to UIImage"]))
-                return
+                throw LoadError.failedToRenderUIImage
             }
             
             Self.renderedImageCache[renderedImageCacheKey] = uiImage

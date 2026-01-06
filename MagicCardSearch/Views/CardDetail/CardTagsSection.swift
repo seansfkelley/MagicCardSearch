@@ -5,6 +5,16 @@ import SwiftSoup
 
 private let logger = Logger(label: "CardTagsSection")
 
+private enum LoadError: Error, LocalizedError {
+    case cardNotFound
+
+    var errorDescription: String? {
+        switch self {
+        case .cardNotFound: "Card tags not found"
+        }
+    }
+}
+
 struct CardTagsSection: View {
     let setCode: String
     let collectorNumber: String
@@ -100,11 +110,10 @@ struct CardTagsSection: View {
 
         Task {
             do {
-                if let loadedCard = try await TaggerCard.fetch(setCode: setCode, collectorNumber: collectorNumber) {
-                    card = .loaded(loadedCard, nil)
-                } else {
-                    card = .errored(nil, NSError(domain: "Tagger", code: -1, userInfo: nil))
+                guard let loadedCard = try await TaggerCard.fetch(setCode: setCode, collectorNumber: collectorNumber) else {
+                    throw LoadError.cardNotFound
                 }
+                card = .loaded(loadedCard, nil)
             } catch {
                 logger.error("error while trying to fetch tags", metadata: [
                     "error": "\(error)",

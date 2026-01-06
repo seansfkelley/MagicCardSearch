@@ -7,8 +7,16 @@ import SwiftSoup
 private let logger = Logger(label: "ScryfallCatalogs")
 
 private let oneDay: TimeInterval = 60 * 60 * 24
-private let jsonDecoder = JSONDecoder()
-private let jsonEncoder = JSONEncoder()
+private let jsonDecoder: JSONDecoder = {
+    var decoder = JSONDecoder()
+    decoder.dateDecodingStrategy = .iso8601
+    return decoder
+}()
+private let jsonEncoder: JSONEncoder = {
+    var encoder = JSONEncoder()
+    encoder.dateEncodingStrategy = .iso8601
+    return encoder
+}()
 
 private typealias CatalogType = Catalog.`Type`
 
@@ -130,7 +138,7 @@ class ScryfallCatalogs {
 
     public func hydrate() async {
         guard !isRunningTests() else {
-            logger.info("skipping ScryfallCatalogs initialization in test environment")
+            logger.warning("skipping ScryfallCatalogs initialization in test environment")
             return
         }
 
@@ -173,7 +181,7 @@ class ScryfallCatalogs {
         let existing: BlobEntry?
         do {
             existing = try await database.read { db in
-                try BlobEntry.all.where { $0.key == key }.fetchOne(db)
+                try BlobEntry.where { $0.key == key }.fetchOne(db)
             }
         } catch {
             existing = nil
