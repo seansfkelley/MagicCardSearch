@@ -7,6 +7,7 @@ struct SearchBarView: View {
     let isAutocompleteLoading: Bool
 
     @State private var showSymbolPicker = false
+    @State private var textFieldDelegate: SearchTextFieldDelegate?
 
     var body: some View {
         SearchBarLayout(icon: isAutocompleteLoading ? .progress : .visible) {
@@ -19,27 +20,35 @@ struct SearchBarView: View {
             .textInputAutocapitalization(.never)
             .autocorrectionDisabled(true)
             .textContentType(.none)
-            .submitLabel(.search)
+            .submitLabel(.go)
             // I would like to do the below, but it seems to prevent third-party keyboards from
             // being allowed to be the default keyboard. When set along with one or more of the
             // preceding options (textContentType? autocorrectionDisabled?) it does successfully get
             // rid of the predictive text bar that is not very useful.
             // .keyboardType(.asciiCapable)
-            .introspect(.textField, on: .iOS(.v26)) { textView in
-                textView.smartDashesType = .no
-                textView.smartQuotesType = .no
-                textView.smartInsertDeleteType = .no
-            }
-            .onSubmit {
-                if let filter = searchState.searchText.toSearchFilter().value {
-                    searchState.filters.append(filter)
-                    searchState.searchText = ""
-                    searchState.searchSelection = TextSelection(insertionPoint: "".endIndex)
+            .introspect(.textField, on: .iOS(.v26)) { textField in
+                textField.smartDashesType = .no
+                textField.smartQuotesType = .no
+                textField.smartInsertDeleteType = .no
+
+                if textFieldDelegate == nil {
+                    textFieldDelegate = SearchTextFieldDelegate {
+                        if let filter = searchState.searchText.toSearchFilter().value {
+                            searchState.filters.append(filter)
+                            searchState.searchText = ""
+                            searchState.searchSelection = TextSelection(insertionPoint: "".endIndex)
+                            return false
+                        } else {
+                            searchState.performSearch()
+                            return true
+                        }
+                    }
                 }
-                searchState.performSearch()
+
+                textField.delegate = textFieldDelegate
             }
             .focusOnAppear(config: .init(
-                returnKeyType: .search,
+                returnKeyType: .go,
                 autocorrectionType: .no,
                 autocapitalizationType: .none,
             ))
@@ -248,3 +257,18 @@ struct SymbolGroupRow: View {
         }
     }
 }
+
+// MARK: - UITextField Delegate
+
+private class SearchTextFieldDelegate: NSObject, UITextFieldDelegate {
+    let onReturn: () -> Bool
+
+    init(onReturn: @escaping () -> Bool) {
+        self.onReturn = onReturn
+    }
+    
+    func textFieldShouldReturn(_ textField: UITextField) -> Bool {
+        onReturn()
+    }
+}
+
