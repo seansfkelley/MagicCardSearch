@@ -301,11 +301,8 @@ private struct CombinedSectionView: View {
                         relationship: relationship,
                         card: card,
                         isLoading: loadingRelationshipId == relationship.id,
-                    ) {
-                        if let otherId = relationship.otherId(as: card) {
-                            onRelationshipTapped(relationship.id, otherId, relationship.foreignKey)
-                        }
-                    }
+                        onTap: onRelationshipTapped,
+                    )
 
                     if relationship.id != relationships.last?.id {
                         Divider()
@@ -321,75 +318,81 @@ private struct TagRow: View {
     let tagging: TaggerCard.Tagging
     let iconName: String
     @State private var showAnnotation = false
-    @State private var showCopiedFeedback = false
 
     private var copyString: String? {
         switch tagging.tag.namespace {
-        case .artwork: "art:\(tagging.tag.slug)"
-        case .card: "function:\(tagging.tag.slug)"
+        case .artwork: SearchFilter.basic(false, "art", .including, tagging.tag.name).description
+        case .card: SearchFilter.basic(false, "function", .including, tagging.tag.name).description
         case .print: nil
         case .unknown: nil
         }
     }
 
     var body: some View {
-        Button {
-            if let copyString {
-                UIPasteboard.general.string = copyString
-                
-                showCopiedFeedback = true
-                Task {
-                    try? await Task.sleep(for: .seconds(1.5))
-                    showCopiedFeedback = false
+        HStack(spacing: 8) {
+            Image(systemName: iconName)
+                .foregroundStyle(.secondary)
+
+            Text(tagging.tag.name)
+                .font(.body)
+                .foregroundStyle(.primary)
+
+            if let annotation = tagging.annotation, !annotation.isEmpty {
+                Button {
+                    showAnnotation = true
+                } label: {
+                    Image(systemName: "text.bubble")
+                        .foregroundStyle(.secondary)
                 }
-            }
-        } label: {
-            HStack(spacing: 8) {
-                Image(systemName: iconName)
-                    .foregroundStyle(.secondary)
-
-                Text(tagging.tag.name)
-                    .font(.body)
-                    .foregroundStyle(.primary)
-
-                if let annotation = tagging.annotation, !annotation.isEmpty {
-                    Button {
-                        showAnnotation = true
-                    } label: {
-                        Image(systemName: "text.bubble")
-                            .foregroundStyle(.secondary)
-                    }
-                    .buttonStyle(.plain)
-                    .popover(isPresented: $showAnnotation) {
-                        AnnotationPopover(annotation: annotation)
-                    }
-                    .padding(.leading, 8)
-                }
-
-                Group {
-                    switch tagging.weight {
-                    case .weak: Image(systemName: "arrowtriangle.down.fill").foregroundStyle(.red)
-                    case .median: EmptyView()
-                    case .strong: Image(systemName: "arrowtriangle.up.fill").foregroundStyle(.green)
-                    case .veryStrong: Image(systemName: "star.fill").foregroundStyle(.yellow)
-                    case .unknown: EmptyView()
-                    }
+                .buttonStyle(.plain)
+                .popover(isPresented: $showAnnotation) {
+                    AnnotationPopover(annotation: annotation)
                 }
                 .padding(.leading, 8)
+            }
 
-                Spacer()
-
-                if copyString != nil {
-                    Image(systemName: showCopiedFeedback ? "checkmark" : "clipboard")
-                        .foregroundStyle(showCopiedFeedback ? .green : .secondary)
-                        .font(.caption)
-                        .animation(.easeInOut(duration: 0.2), value: showCopiedFeedback)
+            Group {
+                switch tagging.weight {
+                case .weak: Image(systemName: "arrowtriangle.down.fill").foregroundStyle(.red)
+                case .median: EmptyView()
+                case .strong: Image(systemName: "arrowtriangle.up.fill").foregroundStyle(.green)
+                case .veryStrong: Image(systemName: "star.fill").foregroundStyle(.yellow)
+                case .unknown: EmptyView()
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .contentShape(Rectangle())
+            .padding(.leading, 8)
+
+            Spacer()
+
+            if let copyString {
+                Menu {
+                    Button {
+                        UIPasteboard.general.string = copyString
+                    } label: {
+                        Label("Copy as Filter", systemImage: "doc.on.clipboard.fill")
+                    }
+                    
+                    Button {
+                        // TODO: Add to current search
+                    } label: {
+                        Label("Add to Current Search", systemImage: "plus.magnifyingglass")
+                    }
+                    
+                    Button {
+                        // TODO: Replace current search
+                    } label: {
+                        Label("Replace Current Search", systemImage: "magnifyingglass")
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                .menuStyle(.borderlessButton)
+                .menuActionDismissBehavior(.automatic)
+            }
         }
-        .buttonStyle(.plain)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
@@ -397,19 +400,15 @@ private struct RelationshipRow: View {
     let relationship: TaggerCard.Relationship
     let card: TaggerCard
     let isLoading: Bool
-    let onTap: () -> Void
+    let onTap: (UUID, UUID, TaggerCard.ForeignKey) -> Void
     @State private var showAnnotation = false
 
     private let iconWidth: CGFloat = 20
 
-    private var canTap: Bool {
-        relationship.foreignKey == .oracleId || relationship.foreignKey == .illustrationId || relationship.foreignKey == .printingId
-    }
-
     var body: some View {
         Button {
-            if canTap {
-                onTap()
+            if let otherId = relationship.otherId(as: card) {
+                onTap(relationship.id, otherId, relationship.foreignKey)
             }
         } label: {
             HStack(spacing: 8) {
@@ -439,22 +438,20 @@ private struct RelationshipRow: View {
 
                 Spacer()
 
-                if canTap {
-                    if isLoading {
-                        ProgressView()
-                            .controlSize(.small)
-                    } else {
-                        Image(systemName: "chevron.right")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
+                if isLoading {
+                    ProgressView()
+                        .controlSize(.small)
+                } else {
+                    Image(systemName: "chevron.right")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .disabled(!canTap)
+        .disabled(relationship.otherId(as: card) == nil)
     }
 
     // swiftlint:disable:next cyclomatic_complexity
