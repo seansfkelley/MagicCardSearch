@@ -22,7 +22,8 @@ private enum TimeInterval: CaseIterable {
 struct AllSearchHistoryView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(HistoryAndPinnedStore.self) private var historyAndPinnedStore
-    
+    @Binding var searchState: SearchState
+
     @FetchAll(SearchHistoryEntry.order { $0.lastUsedAt.desc() })
     var searchHistory
     
@@ -82,15 +83,19 @@ struct AllSearchHistoryView: View {
                         ForEach(groupedSearchHistory, id: \.0) { interval, entries in
                             Section {
                                 ForEach(entries, id: \.id) { entry in
-                                    VStack(alignment: .leading, spacing: 8) {
+                                    Button {
+                                        guard !isEditing else { return }
+                                        searchState.filters = entry.filters
+                                        searchState.performSearch()
+                                        dismiss()
+                                    } label: {
                                         Text(entry.filters.map { $0.description }.joined(separator: " "))
                                             .font(.body)
                                             .foregroundStyle(.primary)
                                             .lineLimit(3)
+                                            .padding(.vertical, 4)
                                     }
-                                    .padding(.vertical, 4)
-                                    .contentShape(Rectangle())
-                                    .tag(entry.id!)
+                                    .tint(.primary)
                                     .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                                         Button(role: .destructive) {
                                             historyAndPinnedStore.delete(search: entry.filters)

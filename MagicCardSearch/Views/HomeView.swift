@@ -79,7 +79,10 @@ struct HomeView: View {
             )
         }
         .sheet(isPresented: $showAllSearchHistory) {
-            AllSearchHistoryView()
+            AllSearchHistoryView(searchState: $searchState)
+        }
+        .onChange(of: searchState.searchNonce) {
+            showAllSearchHistory = false
         }
     }
 
