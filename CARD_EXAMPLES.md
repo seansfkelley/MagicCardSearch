@@ -2,14 +2,12 @@
 
 Cards that exemplify the different kinds of things that are possible for each feature.
 
-## Text Box
+## Text Box/Symbols
 
-- Sphinx of the Revelation (M3C) -- large variety of symbols plus some reminder text
-
-## Symbols
-
+- Sphinx of the Revelation -- large variety of symbols plus some reminder text
 - Rage Extractor -- only usage of bare Phyrexian symbol in the entire game
 - Urza's Saga -- in rulings
+- Ajani, Sleeper Agent -- Phyrexian mana mixed with regular mana, also in reminder text; loyalty abilities
 
 ## All Prints
 
@@ -20,6 +18,8 @@ Cards that exemplify the different kinds of things that are possible for each fe
 - Jiang Yanggu, Wildcrafter (WAR) -- has printing tags and artwork relationships
 - Dark Confidant (FIN) -- variety of related cards, annotations
 - Prodigal Sorcerer (EMR) -- long inherited list, colorshifted
+- Spitemare (EVE) -- VERY_STRONG weight
+- Faceless Haven (KHM) -- WEAK and STRONG weights
 
 ## Related Cards
 
