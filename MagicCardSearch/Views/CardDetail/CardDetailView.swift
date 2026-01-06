@@ -109,14 +109,15 @@ struct CardDetailView: View {
                 CardTagsSection(setCode: card.set, collectorNumber: card.collectorNumber)
 
                 if let allParts = card.allParts {
-                    // Use name, because Scryfall does not report oracle ID, which we would prefer
-                    // to use to remove references to myself.
+                    // Scryfall only provides `id` and `name`. `id` is the Scryfall ID which is way
+                    // more specific than the oracle ID, which would be our preferred deduplication,
+                    // that is, each printing (?) gets its own Scryfall ID.
                     let otherParts = allParts.filter { $0.name != card.name }
                     if !otherParts.isEmpty {
                         Divider().padding(.horizontal)
 
                         CardRelatedPartsSection(
-                            otherParts: otherParts,
+                            otherParts: otherParts.sorted { $0.name < $1.name },
                             isLoadingRelatedCard: isLoadingRelatedCard
                         ) { partId in
                             Task {

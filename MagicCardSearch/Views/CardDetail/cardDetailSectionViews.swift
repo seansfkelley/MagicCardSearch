@@ -151,7 +151,7 @@ struct CardRelatedPartsSection: View {
                 .padding(.horizontal)
                 .padding(.vertical, 12)
 
-            ForEach(otherParts.sorted { $0.name < $1.name }) { part in
+            ForEach(otherParts) { part in
                 Button {
                     onPartTapped(part.id)
                 } label: {
