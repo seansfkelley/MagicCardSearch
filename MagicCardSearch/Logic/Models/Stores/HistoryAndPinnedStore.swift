@@ -76,25 +76,50 @@ class HistoryAndPinnedStore {
                 .delete()
                 .where { $0.filters == [SearchFilter].StableJSONRepresentation(queryOutput: search) }
                 .execute(db)
-        }
-    }
 
-    public func delete(search id: Int64?) {
-        guard let id else { return }
-
-        write("deleting search by ID") { db in
-            try SearchHistoryEntry
+            try PinnedSearchEntry
                 .delete()
-                .where { $0.id == id }
+                .where { $0.filters == [SearchFilter].StableJSONRepresentation(queryOutput: search) }
                 .execute(db)
         }
     }
 
-    public func delete(searches ids: Set<Int64?>) {
-        write("bulk-deleting searches by ID") { db in
+    public func delete(searches: some Collection<[SearchFilter]>) {
+        guard !searches.isEmpty else { return }
+
+        let serializedSearches = searches.map { [SearchFilter].StableJSONRepresentation(queryOutput: $0) }
+
+        write("bulk-deleting searches") { db in
             try SearchHistoryEntry
                 .delete()
-                .where { $0.id.in(Array(ids)) }
+                .where { $0.filters.in(serializedSearches) }
+                .execute(db)
+
+            try PinnedSearchEntry
+                .delete()
+                .where { $0.filters.in(serializedSearches) }
+                .execute(db)
+        }
+    }
+
+    public func pin(search: [SearchFilter], at date: Date = .init()) {
+        write("pinning search") { db in
+            try PinnedSearchEntry
+                .insert { PinnedSearchEntry(filters: search, at: date) }
+                .execute(db)
+        }
+    }
+
+    public func unpin(search: [SearchFilter]) {
+        write("unpinning search") { db in
+            // Keep it around near the top since you just modified it.
+            try SearchHistoryEntry
+                .insert { SearchHistoryEntry(filters: search) }
+                .execute(db)
+
+            try PinnedSearchEntry
+                .delete()
+                .where { $0.filters == [SearchFilter].StableJSONRepresentation(queryOutput: search) }
                 .execute(db)
         }
     }

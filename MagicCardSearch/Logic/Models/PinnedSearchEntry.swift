@@ -2,10 +2,10 @@ import Foundation
 import SQLiteData
 
 @Table
-struct PinnedSearchEntry: Identifiable {
+struct PinnedSearchEntry: Identifiable, Equatable {
     let id: Int64?
     let pinnedAt: Date
-    @Column(as: SearchFilter.StableJSONRepresentation.self)
+    @Column(as: [SearchFilter].StableJSONRepresentation.self)
     let filters: [SearchFilter]
 
     init(filters: [SearchFilter], at date: Date = .init()) {

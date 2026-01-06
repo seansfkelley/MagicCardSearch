@@ -26,12 +26,16 @@ struct HomeView: View {
     
     @FetchAll(SearchHistoryEntry.order { $0.lastUsedAt.desc() }.limit(10))
     var recentSearches
+    
+    @FetchAll(PinnedSearchEntry.order { $0.pinnedAt.desc() })
+    var pinnedSearches
 
     let onSearchSelected: ([SearchFilter]) -> Void
     
     @State private var cardFlipStates: [UUID: Bool] = [:]
     @State private var selectedCardIndex: Int?
     @State private var showAllSearchHistory = false
+    @State private var pinnedSearchFilters: Set<[SearchFilter]> = []
     
     private let featuredList = FeaturedCardsObjectList.shared
     private let featuredCardWidth: CGFloat = 120
@@ -39,12 +43,16 @@ struct HomeView: View {
     var body: some View {
         List {
             featuredCardsSection()
+            pinnedSearchesSection()
             recentSearchesSection()
             examplesSection()
         }
+        .onChange(of: pinnedSearches) { _, newValue in
+            pinnedSearchFilters = Set(newValue.map(\.filters))
+        }
         .task {
             if isRunningTests() {
-                logger.info("Skipping featured card load in test environment")
+                logger.info("skipping featured card load in test environment")
             } else {
                 FeaturedCardsObjectList.shared.loadNextPage()
             }
@@ -118,7 +126,7 @@ struct HomeView: View {
             }
         } header: {
             HStack {
-                Text("Recent Spoilers")
+                Label("Recent Spoilers", systemImage: "sparkles")
 
                 Spacer()
 
@@ -140,6 +148,48 @@ struct HomeView: View {
     }
 
     @ViewBuilder
+    private func pinnedSearchesSection() -> some View {
+        if !pinnedSearches.isEmpty {
+            Section {
+                ForEach(pinnedSearches, id: \.pinnedAt) { entry in
+                    Button {
+                        onSearchSelected(entry.filters)
+                    } label: {
+                        Text(entry.filters.map { $0.description }.joined(separator: " "))
+                            .font(.body)
+                            .foregroundStyle(.primary)
+                            .lineLimit(2)
+                            .padding(.horizontal)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                        Button(role: .destructive) {
+                            historyAndPinnedStore.unpin(search: entry.filters)
+                        } label: {
+                            Label("Unpin", systemImage: "pin.slash")
+                        }
+                        .tint(.orange)
+                    }
+                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                        Button(role: .destructive) {
+                            historyAndPinnedStore.delete(search: entry.filters)
+                        } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
+                        .tint(.red)
+                    }
+                }
+            } header: {
+                Label("Pinned Searches", systemImage: "pin.fill")
+                    .padding(.horizontal)
+            }
+            .listRowInsets(.horizontal, 0)
+            .listSectionMargins(.horizontal, 0)
+        }
+    }
+
+    @ViewBuilder
     private func recentSearchesSection() -> some View {
         if !recentSearches.isEmpty {
             Section {
@@ -147,28 +197,35 @@ struct HomeView: View {
                     Button {
                         onSearchSelected(entry.filters)
                     } label: {
-                        HStack {
-                            Text(entry.filters.map { $0.description }.joined(separator: " "))
-                                .font(.body)
-                                .foregroundStyle(.primary)
-                                .lineLimit(2)
-                            Spacer()
-                        }
+                        Text(entry.filters.map { $0.description }.joined(separator: " "))
+                            .font(.body)
+                            .foregroundStyle(.primary)
+                            .lineLimit(2)
                         .padding(.horizontal)
                         .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                     .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                         Button(role: .destructive) {
-                            historyAndPinnedStore.delete(search: entry.id)
+                            historyAndPinnedStore.delete(search: entry.filters)
                         } label: {
                             Label("Delete", systemImage: "trash")
+                        }
+                    }
+                    .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                        if !pinnedSearchFilters.contains(entry.filters) {
+                            Button {
+                                historyAndPinnedStore.pin(search: entry.filters)
+                            } label: {
+                                Label("Pin", systemImage: "pin")
+                            }
+                            .tint(.orange)
                         }
                     }
                 }
             } header: {
                 HStack {
-                    Text("Recent Searches")
+                    Label("Recent Searches", systemImage: "clock.arrow.circlepath")
                     
                     Spacer()
                     
@@ -207,9 +264,10 @@ struct HomeView: View {
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .id("example-\(example.title)")
             }
         } header: {
-            Text("Need Inspiration?")
+            Label("Need Inspiration?", systemImage: "lightbulb.max.fill")
                 .padding(.horizontal)
         }
         .listRowInsets(.horizontal, 0)

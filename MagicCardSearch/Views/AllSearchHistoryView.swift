@@ -93,7 +93,7 @@ struct AllSearchHistoryView: View {
                                     .tag(entry.id!)
                                     .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                                         Button(role: .destructive) {
-                                            historyAndPinnedStore.delete(search: entry.id)
+                                            historyAndPinnedStore.delete(search: entry.filters)
                                         } label: {
                                             Label("Delete", systemImage: "trash")
                                         }
@@ -154,7 +154,10 @@ struct AllSearchHistoryView: View {
                         
                         Button(role: .destructive) {
                             withAnimation {
-                                historyAndPinnedStore.delete(searches: selectedSearches)
+                                let filtersToDelete = searchHistory
+                                    .filter { selectedSearches.contains($0.id) }
+                                    .map(\.filters)
+                                historyAndPinnedStore.delete(searches: filtersToDelete)
                                 selectedSearches.removeAll()
                                 editMode = .inactive
                             }
