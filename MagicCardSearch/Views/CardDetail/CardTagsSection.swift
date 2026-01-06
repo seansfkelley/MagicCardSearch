@@ -62,6 +62,7 @@ struct CardTagsSection: View {
                     TagListView(
                         card: cardValue,
                         loadingRelationshipId: loadingRelationshipId,
+                        searchState: $searchState,
                     ) { relationshipId, foreignKeyId, foreignKey in
                         Task {
                             await loadRelatedCard(
@@ -169,6 +170,7 @@ struct CardTagsSection: View {
 private struct TagListView: View {
     let card: TaggerCard
     let loadingRelationshipId: UUID?
+    @Binding var searchState: SearchState
     let onRelationshipTapped: (UUID, UUID, TaggerCard.ForeignKey) -> Void
 
     private func tags(for namespace: TaggerCard.Tagging.Tag.Namespace) -> [TaggerCard.Tagging] {
@@ -208,6 +210,7 @@ private struct TagListView: View {
                     relationships: gameplayRelationships,
                     card: card,
                     loadingRelationshipId: loadingRelationshipId,
+                    searchState: $searchState,
                     onRelationshipTapped: onRelationshipTapped
                 )
             }
@@ -224,6 +227,7 @@ private struct TagListView: View {
                     relationships: artworkRelationships,
                     card: card,
                     loadingRelationshipId: loadingRelationshipId,
+                    searchState: $searchState,
                     onRelationshipTapped: onRelationshipTapped
                 )
             }
@@ -240,6 +244,7 @@ private struct TagListView: View {
                     relationships: printingRelationships,
                     card: card,
                     loadingRelationshipId: loadingRelationshipId,
+                    searchState: $searchState,
                     onRelationshipTapped: onRelationshipTapped
                 )
             }
@@ -254,6 +259,7 @@ private struct CombinedSectionView: View {
     let relationships: [TaggerCard.Relationship]
     let card: TaggerCard
     let loadingRelationshipId: UUID?
+    @Binding var searchState: SearchState
     let onRelationshipTapped: (UUID, UUID, TaggerCard.ForeignKey) -> Void
 
     private let spacing: CGFloat = 12
@@ -269,7 +275,11 @@ private struct CombinedSectionView: View {
 
             VStack(spacing: spacing) {
                 ForEach(tags, id: \.tag.id) { tagging in
-                    TagRow(tagging: tagging, iconName: tagIconName)
+                    TagRow(
+                        tagging: tagging,
+                        iconName: tagIconName,
+                        searchState: $searchState
+                    )
 
                     if tagging.tag.id != tags.last?.tag.id || !relationships.isEmpty {
                         Divider()
@@ -297,12 +307,13 @@ private struct CombinedSectionView: View {
 private struct TagRow: View {
     let tagging: TaggerCard.Tagging
     let iconName: String
+    @Binding var searchState: SearchState
     @State private var showAnnotation = false
 
-    private var copyString: String? {
+    private var searchFilter: SearchFilter? {
         switch tagging.tag.namespace {
-        case .artwork: SearchFilter.basic(false, "art", .including, tagging.tag.name).description
-        case .card: SearchFilter.basic(false, "function", .including, tagging.tag.name).description
+        case .artwork: SearchFilter.basic(false, "art", .including, tagging.tag.name)
+        case .card: SearchFilter.basic(false, "function", .including, tagging.tag.name)
         case .print: nil
         case .unknown: nil
         }
@@ -344,24 +355,34 @@ private struct TagRow: View {
 
             Spacer()
 
-            if let copyString {
+            if let searchFilter {
                 Menu {
                     Button {
-                        UIPasteboard.general.string = copyString
+                        UIPasteboard.general.string = searchFilter.description
                     } label: {
                         Label("Copy as Filter", systemImage: "doc.on.clipboard.fill")
                     }
-                    
-                    Button {
-                        // TODO: Add to current search
-                    } label: {
-                        Label("Add to Current Search", systemImage: "plus.magnifyingglass")
-                    }
-                    
-                    Button {
-                        // TODO: Replace current search
-                    } label: {
-                        Label("Replace Current Search", systemImage: "magnifyingglass")
+
+                    if searchState.filters.isEmpty {
+                        Button {
+                            searchState.filters = [searchFilter]
+                            searchState.performSearch()
+                        } label: {
+                            Label("Search for this Tag", systemImage: "magnifyingglass")
+                        }
+                    } else {
+                        Button {
+                            searchState.filters.append(searchFilter)
+                            searchState.performSearch()
+                        } label: {
+                            Label("Add to Current Search", systemImage: "plus.magnifyingglass")
+                        }
+                        Button {
+                            searchState.filters = [searchFilter]
+                            searchState.performSearch()
+                        } label: {
+                            Label("Replace Current Search", systemImage: "magnifyingglass")
+                        }
                     }
                 } label: {
                     Image(systemName: "ellipsis.circle")

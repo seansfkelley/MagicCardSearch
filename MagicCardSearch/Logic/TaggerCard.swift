@@ -1,5 +1,8 @@
 import Foundation
+import Logging
 import SwiftSoup
+
+private let logger = Logger(label: "TaggerCard")
 
 struct TaggerCard: Codable {
     enum Status: Codable, Equatable {
@@ -188,6 +191,12 @@ struct TaggerCard: Codable {
     private static func getHeaders(setCode: String, collectorNumber: String) async throws -> (cookie: String, csrfToken: String) {
         let url = URL(string: "https://tagger.scryfall.com/card/\(setCode.lowercased())/\(collectorNumber.lowercased())")!
 
+        logger.info("fetching cookie and CSRF token", metadata: [
+            "setCode": "\(setCode)",
+            "collectorNumber": "\(collectorNumber)",
+            "url": "\(url)",
+        ])
+
         let (data, response) = try await URLSession.shared.data(from: url)
 
         guard let httpResponse = response as? HTTPURLResponse,
@@ -261,6 +270,12 @@ struct TaggerCard: Codable {
         ]
 
         request.httpBody = try JSONSerialization.data(withJSONObject: query, options: [])
+
+        logger.info("executing GraphQL query for tags", metadata: [
+            "setCode": "\(setCode)",
+            "collectorNumber": "\(collectorNumber)",
+            "url": "\(url)",
+        ])
 
         let (data, response) = try await URLSession.shared.data(for: request)
 

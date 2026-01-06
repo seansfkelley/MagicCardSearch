@@ -87,7 +87,7 @@ struct HomeView: View {
     private func featuredCardsSection() -> some View {
         Section {
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 12) {
+                LazyHStack(spacing: 12) {
                     switch FeaturedCardsObjectList.shared.value {
                     case .loading(nil, _), .unloaded:
                         ForEach(0..<15, id: \.self) { _ in
