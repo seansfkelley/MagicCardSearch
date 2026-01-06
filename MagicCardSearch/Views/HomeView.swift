@@ -166,12 +166,15 @@ struct HomeView: View {
                         searchState.filters = entry.filters
                         searchState.performSearch()
                     } label: {
-                        Text(entry.filters.map { $0.description }.joined(separator: " "))
-                            .font(.body)
-                            .foregroundStyle(.primary)
-                            .lineLimit(2)
-                            .padding(.horizontal)
-                            .contentShape(Rectangle())
+                        HStack {
+                            Text(entry.filters.map { $0.description }.joined(separator: " "))
+                                .font(.body)
+                                .foregroundStyle(.primary)
+                                .lineLimit(2)
+                            Spacer()
+                        }
+                        .padding(.horizontal)
+                        .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                     .swipeActions(edge: .leading, allowsFullSwipe: true) {
@@ -209,10 +212,13 @@ struct HomeView: View {
                         searchState.filters = entry.filters
                         searchState.performSearch()
                     } label: {
-                        Text(entry.filters.map { $0.description }.joined(separator: " "))
-                            .font(.body)
-                            .foregroundStyle(.primary)
-                            .lineLimit(2)
+                        HStack {
+                            Text(entry.filters.map { $0.description }.joined(separator: " "))
+                                .font(.body)
+                                .foregroundStyle(.primary)
+                                .lineLimit(2)
+                            Spacer()
+                        }
                         .padding(.horizontal)
                         .contentShape(Rectangle())
                     }

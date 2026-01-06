@@ -171,47 +171,15 @@ private struct TagListView: View {
     let loadingRelationshipId: UUID?
     let onRelationshipTapped: (UUID, UUID, TaggerCard.ForeignKey) -> Void
 
-    private var gameplayTags: [TaggerCard.Tagging] {
+    private func tags(for namespace: TaggerCard.Tagging.Tag.Namespace) -> [TaggerCard.Tagging] {
         card.taggings
-            .filter { $0.tag.namespace == .card && $0.tag.status == .goodStanding }
+            .filter { $0.tag.namespace == namespace && $0.tag.status == .goodStanding }
             .sorted(using: KeyPathComparator(\.tag.name, comparator: .localizedStandard))
     }
 
-    private var gameplayRelationships: [TaggerCard.Relationship] {
+    private func relationships(for foreignKey: TaggerCard.ForeignKey) -> [TaggerCard.Relationship] {
         card.relationships
-            .filter { $0.foreignKey == .oracleId && $0.status == .goodStanding }
-            .sorted {
-                let lhsName = $0.otherName(as: card) ?? ""
-                let rhsName = $1.otherName(as: card) ?? ""
-                return lhsName.localizedStandardCompare(rhsName) == .orderedAscending
-            }
-    }
-
-    private var artworkTags: [TaggerCard.Tagging] {
-        card.taggings
-            .filter { $0.tag.namespace == .artwork && $0.tag.status == .goodStanding }
-            .sorted(using: KeyPathComparator(\.tag.name, comparator: .localizedStandard))
-    }
-
-    private var artworkRelationships: [TaggerCard.Relationship] {
-        card.relationships
-            .filter { $0.foreignKey == .illustrationId && $0.status == .goodStanding }
-            .sorted {
-                let lhsName = $0.otherName(as: card) ?? ""
-                let rhsName = $1.otherName(as: card) ?? ""
-                return lhsName.localizedStandardCompare(rhsName) == .orderedAscending
-            }
-    }
-
-    private var printingTags: [TaggerCard.Tagging] {
-        card.taggings
-            .filter { $0.tag.namespace == .print && $0.tag.status == .goodStanding }
-            .sorted(using: KeyPathComparator(\.tag.name, comparator: .localizedStandard))
-    }
-
-    private var printingRelationships: [TaggerCard.Relationship] {
-        card.relationships
-            .filter { $0.foreignKey == .printingId && $0.status == .goodStanding }
+            .filter { $0.foreignKey == foreignKey && $0.status == .goodStanding }
             .sorted {
                 let lhsName = $0.otherName(as: card) ?? ""
                 let rhsName = $1.otherName(as: card) ?? ""
@@ -221,6 +189,13 @@ private struct TagListView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
+            let gameplayTags = tags(for: .card)
+            let gameplayRelationships = relationships(for: .oracleId)
+            let artworkTags = tags(for: .artwork)
+            let artworkRelationships = relationships(for: .illustrationId)
+            let printingTags = tags(for: .print)
+            let printingRelationships = relationships(for: .printingId)
+            
             let hasGameplay = !gameplayTags.isEmpty || !gameplayRelationships.isEmpty
             let hasArtwork = !artworkTags.isEmpty || !artworkRelationships.isEmpty
             let hasPrinting = !printingTags.isEmpty || !printingRelationships.isEmpty
