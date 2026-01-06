@@ -53,7 +53,7 @@ struct SearchResultsGridView: View {
                                         get: { cardFlipStates[card.id] ?? false },
                                         set: { cardFlipStates[card.id] = $0 }
                                     ),
-                                    cornerRadius: 8,
+                                    cornerRadius: 10,
                                 )
                                 .onTapGesture {
                                     selectedCardIndex = index
@@ -74,6 +74,7 @@ struct SearchResultsGridView: View {
                         }
                     }
                     .padding(.horizontal, spacing / 2)
+                    .padding(.bottom)
                 }
             }
 
