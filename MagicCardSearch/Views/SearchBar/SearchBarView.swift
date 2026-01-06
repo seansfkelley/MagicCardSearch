@@ -7,7 +7,26 @@ struct SearchBarView: View {
     let isAutocompleteLoading: Bool
 
     @State private var showSymbolPicker = false
-    @State private var textFieldDelegate: SearchTextFieldDelegate?
+    private let textFieldDelegate: SearchTextFieldDelegate
+
+    init(searchState: Binding<SearchState>, isAutocompleteLoading: Bool) {
+        self._searchState = searchState
+        self.isAutocompleteLoading = isAutocompleteLoading
+
+        // The only reason this is here is because UITextField.delegate is weak, so we need to
+        // retain it as long as this view is alive.
+        self.textFieldDelegate = SearchTextFieldDelegate {
+            if let filter = searchState.wrappedValue.searchText.toSearchFilter().value {
+                searchState.wrappedValue.filters.append(filter)
+                searchState.wrappedValue.searchText = ""
+                searchState.wrappedValue.searchSelection = nil
+                return false
+            } else {
+                searchState.wrappedValue.performSearch()
+                return true
+            }
+        }
+    }
 
     var body: some View {
         SearchBarLayout(icon: isAutocompleteLoading ? .progress : .visible) {
@@ -30,21 +49,6 @@ struct SearchBarView: View {
                 textField.smartDashesType = .no
                 textField.smartQuotesType = .no
                 textField.smartInsertDeleteType = .no
-
-                if textFieldDelegate == nil {
-                    textFieldDelegate = SearchTextFieldDelegate {
-                        if let filter = searchState.searchText.toSearchFilter().value {
-                            searchState.filters.append(filter)
-                            searchState.searchText = ""
-                            searchState.searchSelection = TextSelection(insertionPoint: "".endIndex)
-                            return false
-                        } else {
-                            searchState.performSearch()
-                            return true
-                        }
-                    }
-                }
-
                 textField.delegate = textFieldDelegate
             }
             .focusOnAppear(config: .init(
@@ -89,7 +93,7 @@ struct SearchBarView: View {
             if Self.didAppend(characterFrom: [" "], to: previous, toCreate: current, withSelection: searchState.searchSelection) {
                 if current.allSatisfy({ $0.isWhitespace }) {
                     searchState.searchText = ""
-                    searchState.searchSelection = TextSelection(insertionPoint: "".endIndex)
+                    searchState.searchSelection = nil
                     return
                 }
 
