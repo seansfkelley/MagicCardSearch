@@ -16,6 +16,7 @@ private enum LoadError: Error, LocalizedError {
 }
 
 struct CardTagsSection: View {
+    @Binding var searchState: SearchState
     let setCode: String
     let collectorNumber: String
     @State private var isExpanded = false
@@ -89,18 +90,22 @@ struct CardTagsSection: View {
         }
         .sheet(item: $relatedCardToShow) { relatedCard in
             NavigationStack {
-                CardDetailView(card: relatedCard, isFlipped: .constant(false))
-                    .navigationTitle(relatedCard.name)
-                    .navigationBarTitleDisplayMode(.inline)
-                    .toolbar {
-                        ToolbarItem(placement: .cancellationAction) {
-                            Button {
-                                relatedCardToShow = nil
-                            } label: {
-                                Image(systemName: "xmark")
-                            }
+                CardDetailView(
+                    card: relatedCard,
+                    isFlipped: .constant(false),
+                    searchState: $searchState,
+                )
+                .navigationTitle(relatedCard.name)
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button {
+                            relatedCardToShow = nil
+                        } label: {
+                            Image(systemName: "xmark")
                         }
                     }
+                }
             }
         }
     }

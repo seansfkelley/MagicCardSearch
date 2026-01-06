@@ -9,6 +9,7 @@ private let logger = Logger(label: "BookmarkedCardsListView")
 
 struct BookmarkedCardsListView: View {
     @Environment(\.dismiss) private var dismiss
+    @Binding var searchState: SearchState
     @State private var editMode: EditMode = .inactive
     @State private var selectedCards: Set<UUID> = []
     @State private var detailSheetState: SheetState?
@@ -174,6 +175,7 @@ struct BookmarkedCardsListView: View {
             BookmarkedCardDetailNavigator(
                 initialBookmarks: state.cards,
                 initialIndex: state.index,
+                searchState: $searchState,
             )
         }
         .task(id: sortMode) {
@@ -258,6 +260,7 @@ struct BookmarkedCardsListView: View {
 private struct BookmarkedCardDetailNavigator: View {
     let initialBookmarks: [BookmarkedCard]
     let initialIndex: Int
+    @Binding var searchState: SearchState
 
     @State private var cardFlipStates: [UUID: Bool] = [:]
 
@@ -287,7 +290,8 @@ private struct BookmarkedCardDetailNavigator: View {
                 isFlipped: Binding(
                     get: { cardFlipStates[card.id] ?? false },
                     set: { cardFlipStates[card.id] = $0 }
-                )
+                ),
+                searchState: $searchState,
             )
         } toolbarContent: { card in
             // n.b. we have to use allBookmarks here, not initialBookmarks, so we are reactive to

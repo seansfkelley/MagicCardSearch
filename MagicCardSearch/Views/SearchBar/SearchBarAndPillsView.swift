@@ -3,9 +3,6 @@ import SwiftUI
 struct SearchBarAndPillsView: View {
     @Binding var searchState: SearchState
     let isAutocompleteLoading: Bool
-    let onFilterEdit: (SearchFilter) -> Void
-    let onClearAll: () -> Void
-    let onSubmit: () -> Void
 
     @State var showWarningsPopover: Bool = false
     @Namespace private var animation
@@ -22,7 +19,7 @@ struct SearchBarAndPillsView: View {
                 )
                 Spacer()
                 if !searchState.filters.isEmpty {
-                    Button(role: .destructive, action: onClearAll) {
+                    Button(role: .destructive, action: searchState.clearAll) {
                         Text("Clear all")
                             .font(.subheadline)
                             .fontWeight(.medium)
@@ -58,12 +55,8 @@ struct SearchBarAndPillsView: View {
                 }
 
                 SearchBarView(
-                    filters: $searchState.filters,
-                    inputText: $searchState.searchText,
-                    inputSelection: $searchState.searchSelection,
+                    searchState: $searchState,
                     isAutocompleteLoading: isAutocompleteLoading,
-                    searchState: searchState,
-                    onSubmit: onSubmit,
                 )
             }
             .contentShape(Rectangle())
@@ -71,5 +64,10 @@ struct SearchBarAndPillsView: View {
         }
         .padding(.horizontal)
         .padding(.bottom)
+    }
+
+    private func onFilterEdit(_ filter: SearchFilter) {
+        searchState.searchText = filter.description
+        searchState.searchSelection = TextSelection(range: filter.suggestedEditingRange)
     }
 }

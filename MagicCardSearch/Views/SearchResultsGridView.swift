@@ -3,6 +3,7 @@ import ScryfallKit
 
 struct SearchResultsGridView: View {
     let list: ScryfallObjectList<Card>
+    @Binding var searchState: SearchState
 
     @State private var selectedCardIndex: Int?
     @State private var cardFlipStates: [UUID: Bool] = [:]
@@ -99,7 +100,8 @@ struct SearchResultsGridView: View {
             SearchResultsDetailNavigator(
                 list: list,
                 initialIndex: identifier.index,
-                cardFlipStates: $cardFlipStates
+                cardFlipStates: $cardFlipStates,
+                searchState: $searchState,
             )
         }
     }

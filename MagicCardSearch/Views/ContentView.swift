@@ -14,7 +14,6 @@ struct ContentView: View {
 
     @State private var showDisplaySheet = false
     @State private var showBookmarkedCardList = false
-    @State private var searchConfig = SearchConfiguration.load()
     @State private var pendingSearchConfig: SearchConfiguration?
     @State private var mainContentType: MainContentType = .home
 
@@ -33,12 +32,9 @@ struct ContentView: View {
                 
                 switch mainContentType {
                 case .home:
-                    HomeView { filters in
-                        searchState.filters = filters
-                        startNewSearch()
-                    }
+                    HomeView(searchState: $searchState)
                 case .results:
-                    SearchResultsGridView(list: searchState.results ?? .empty())
+                    SearchResultsGridView(list: searchState.results ?? .empty(), searchState: $searchState)
                 }
             }
             .contentShape(Rectangle())
@@ -46,7 +42,7 @@ struct ContentView: View {
                 FakeSearchBarButtonView(
                     filters: searchState.filters,
                     warnings: searchState.results?.value.latestValue?.warnings ?? [],
-                    onClearAll: handleClearAll,
+                    onClearAll: searchState.clearAll,
                 ) {
                     isSearchSheetVisible = true
                     // Awkward, but seems to be the best way to match only one case in
@@ -62,7 +58,7 @@ struct ContentView: View {
                 if mainContentType == .results {
                     ToolbarItem(placement: .topBarLeading) {
                         Button {
-                            pendingSearchConfig = searchConfig
+                            pendingSearchConfig = searchState.configuration
                             showDisplaySheet = true
                         } label: {
                             Image(systemName: "arrow.up.arrow.down")
@@ -98,7 +94,7 @@ struct ContentView: View {
                     ToolbarItem(placement: .topBarTrailing) {
                         ShareLink(
                             item: CardSearchService
-                                .buildSearchURL(filters: searchState.filters, config: searchConfig, forAPI: false) ?? URL(
+                                .buildSearchURL(filters: searchState.filters, config: searchState.configuration, forAPI: false) ?? URL(
                                     string: "https://scryfall.com"
                                 )!
                         ) {
@@ -110,8 +106,12 @@ struct ContentView: View {
             .toolbarBackground(.hidden, for: .navigationBar)
             .navigationBarTitleDisplayMode(.inline)
         }
-        .onChange(of: searchConfig) {
-            startNewSearch()
+        .onChange(of: searchState.searchNonce) {
+            mainContentType = .results
+        }
+        .onChange(of: searchState.clearNonce) {
+            mainContentType = .home
+            isSearchSheetVisible = true
         }
         .onChange(of: searchState.filters) { _, newFilters in
             searchState.results?.clearWarnings()
@@ -120,42 +120,22 @@ struct ContentView: View {
             }
         }
         .sheet(isPresented: $showDisplaySheet, onDismiss: {
-            if let pending = pendingSearchConfig, pending != searchConfig {
-                searchConfig = pending
-                searchConfig.save()
+            if let pending = pendingSearchConfig, pending != searchState.configuration {
+                searchState.configuration = pending
             }
             pendingSearchConfig = nil
         }) {
             DisplayOptionsView(searchConfig: Binding(
-                get: { pendingSearchConfig ?? searchConfig },
+                get: { pendingSearchConfig ?? searchState.configuration },
                 set: { pendingSearchConfig = $0 }
             ))
             .presentationDetents([.medium])
         }
         .sheet(isPresented: $showBookmarkedCardList) {
-            BookmarkedCardsListView()
+            BookmarkedCardsListView(searchState: $searchState)
         }
         .sheet(isPresented: $isSearchSheetVisible) {
-            SearchSheetView(
-                searchState: $searchState,
-                onClearAll: handleClearAll,
-            ) {
-                startNewSearch()
-            }
+            SearchSheetView(searchState: $searchState)
         }
-    }
-    
-    // MARK: - Helper Methods
-
-    private func handleClearAll() {
-        mainContentType = .home
-        searchState.clearAll()
-        isSearchSheetVisible = true
-        // Don't change the main view until the search begins!
-    }
-
-    private func startNewSearch() {
-        mainContentType = .results
-        searchState.performSearch(withConfiguration: searchConfig)
     }
 }

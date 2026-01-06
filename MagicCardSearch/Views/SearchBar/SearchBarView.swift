@@ -3,21 +3,17 @@ import FocusOnAppear
 import SwiftUIIntrospect
 
 struct SearchBarView: View {
-    @Binding var filters: [SearchFilter]
-    @Binding var inputText: String
-    @Binding var inputSelection: TextSelection?
+    @Binding var searchState: SearchState
     let isAutocompleteLoading: Bool
-    let searchState: SearchState
-    let onSubmit: () -> Void
 
     @State private var showSymbolPicker = false
 
     var body: some View {
         SearchBarLayout(icon: isAutocompleteLoading ? .progress : .visible) {
             TextField(
-                filters.isEmpty ? "Search for cards..." : "Add filters...",
-                text: $inputText,
-                selection: $inputSelection,
+                searchState.filters.isEmpty ? "Search for cards..." : "Add filters...",
+                text: $searchState.searchText,
+                selection: $searchState.searchSelection,
             )
             .textFieldStyle(.plain)
             .textInputAutocapitalization(.never)
@@ -35,12 +31,12 @@ struct SearchBarView: View {
                 textView.smartInsertDeleteType = .no
             }
             .onSubmit {
-                if let filter = inputText.toSearchFilter().value {
-                    filters.append(filter)
-                    inputText = ""
-                    inputSelection = TextSelection(insertionPoint: inputText.endIndex)
+                if let filter = searchState.searchText.toSearchFilter().value {
+                    searchState.filters.append(filter)
+                    searchState.searchText = ""
+                    searchState.searchSelection = TextSelection(insertionPoint: "".endIndex)
                 }
-                onSubmit()
+                searchState.performSearch()
             }
             .focusOnAppear(config: .init(
                 returnKeyType: .search,
@@ -49,10 +45,10 @@ struct SearchBarView: View {
             ))
             .frame(maxWidth: .infinity)
 
-            if !inputText.isEmpty {
+            if !searchState.searchText.isEmpty {
                 Button(action: {
-                    inputText = ""
-                    inputSelection = nil
+                    searchState.searchText = ""
+                    searchState.searchSelection = nil
                 }) {
                     Image(systemName: "xmark.circle.fill")
                         .foregroundStyle(.secondary)
@@ -76,40 +72,40 @@ struct SearchBarView: View {
                 .presentationCompactAdaptation(.popover)
             }
         }
-        .onChange(of: inputText) { previous, current in
+        .onChange(of: searchState.searchText) { previous, current in
             if !previous.isEmpty && current.isEmpty {
                 showSymbolPicker = false
             }
 
-            if Self.didAppend(characterFrom: [" "], to: previous, toCreate: current, withSelection: inputSelection) {
-                let partial = PartialSearchFilter.from(inputText)
+            if Self.didAppend(characterFrom: [" "], to: previous, toCreate: current, withSelection: searchState.searchSelection) {
+                let partial = PartialSearchFilter.from(searchState.searchText)
                 if case .name(let isExact, let term) = partial.content, case .bare(let content) = term {
-                    inputText = PartialSearchFilter(
+                    searchState.searchText = PartialSearchFilter(
                         negated: partial.negated,
                         content: .name(isExact, .unterminated(.doubleQuote, content)),
                     )
                     .description
-                    inputSelection = TextSelection(insertionPoint: inputText.endIndex)
+                    searchState.searchSelection = TextSelection(insertionPoint: searchState.searchText.endIndex)
                     return
                 }
             }
 
-            if Self.didAppend(characterFrom: [" ", "'", "\"", ")", "/"], to: previous, toCreate: current, withSelection: inputSelection) {
-                if case .valid(let filter) = inputText.toSearchFilter() {
-                    filters.append(filter)
-                    inputText = ""
-                    inputSelection = TextSelection(insertionPoint: inputText.endIndex)
+            if Self.didAppend(characterFrom: [" ", "'", "\"", ")", "/"], to: previous, toCreate: current, withSelection: searchState.searchSelection) {
+                if case .valid(let filter) = searchState.searchText.toSearchFilter() {
+                    searchState.filters.append(filter)
+                    searchState.searchText = ""
+                    searchState.searchSelection = TextSelection(insertionPoint: searchState.searchText.endIndex)
                 }
                 return
             }
 
-            if let (newText, newSelection) = removeAutoinsertedWhitespace(current, inputSelection), newText != inputText {
-                inputText = newText
-                inputSelection = newSelection
+            if let (newText, newSelection) = removeAutoinsertedWhitespace(current, searchState.searchSelection), newText != searchState.searchText {
+                searchState.searchText = newText
+                searchState.searchSelection = newSelection
                 return
             }
         }
-        .onChange(of: filters) {
+        .onChange(of: searchState.filters) {
             showSymbolPicker = false
         }
     }
@@ -143,23 +139,23 @@ struct SearchBarView: View {
     }
 
     private func insertSymbol(_ symbol: SymbolCode) {
-        if let selection = inputSelection {
+        if let selection = searchState.searchSelection {
             switch selection.indices {
             case .selection(let range):
-                inputText.replaceSubrange(range, with: symbol.normalized)
-                let location = inputText.index(range.lowerBound, offsetBy: symbol.normalized.count)
-                inputSelection = .init(range: location..<location)
+                searchState.searchText.replaceSubrange(range, with: symbol.normalized)
+                let location = searchState.searchText.index(range.lowerBound, offsetBy: symbol.normalized.count)
+                searchState.searchSelection = .init(range: location..<location)
             case .multiSelection:
                 // TODO: how or why
                 // swiftlint:disable:next fallthrough
                 fallthrough
             @unknown default:
-                inputText += symbol.normalized
-                inputSelection = .init(range: inputText.endIndex..<inputText.endIndex)
+                searchState.searchText += symbol.normalized
+                searchState.searchSelection = .init(range: searchState.searchText.endIndex..<searchState.searchText.endIndex)
             }
         } else {
-            inputText += symbol.normalized
-            inputSelection = .init(range: inputText.endIndex..<inputText.endIndex)
+            searchState.searchText += symbol.normalized
+            searchState.searchSelection = .init(range: searchState.searchText.endIndex..<searchState.searchText.endIndex)
         }
     }
 }

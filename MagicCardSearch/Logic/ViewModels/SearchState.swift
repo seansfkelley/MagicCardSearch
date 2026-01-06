@@ -12,9 +12,12 @@ class SearchState {
     public var searchText: String = ""
     public var searchSelection: TextSelection?
     public var filters: [SearchFilter] = []
+    public var configuration = SearchConfiguration.load()
     public private(set) var results: ScryfallObjectList<Card>?
     // TODO: This should eventually be private and only expose the suggestions themselves.
     public let suggestionProvider: CombinedSuggestionProvider
+    public private(set) var searchNonce = 0
+    public private(set) var clearNonce = 0
 
     public var selectedFilter: CurrentlyHighlightedFilterFacade {
         CurrentlyHighlightedFilterFacade(inputText: searchText, inputSelection: searchSelection)
@@ -40,17 +43,20 @@ class SearchState {
         searchSelection = nil
         filters = []
         results = nil
+        clearNonce += 1
     }
 
     public func clearWarnings() {
         results?.clearWarnings()
     }
 
-    public func performSearch(withConfiguration config: SearchConfiguration) {
+    public func performSearch() {
         logger.info("starting new search", metadata: [
             "filters": "\(filters)",
-            "configuration": "\(config)",
+            "configuration": "\(configuration)",
         ])
+
+        searchNonce += 1
 
         guard !filters.isEmpty else {
             logger.info("no search filters; skipping to empty result")
@@ -66,9 +72,9 @@ class SearchState {
 
             return try await scryfall.searchCards(
                 query: query,
-                unique: config.uniqueMode.toScryfallKitUniqueMode(),
-                order: config.sortField.toScryfallKitSortMode(),
-                sortDirection: config.sortOrder.toScryfallKitSortDirection(),
+                unique: configuration.uniqueMode.toScryfallKitUniqueMode(),
+                order: configuration.sortField.toScryfallKitSortMode(),
+                sortDirection: configuration.sortOrder.toScryfallKitSortDirection(),
                 page: page,
             )
         }

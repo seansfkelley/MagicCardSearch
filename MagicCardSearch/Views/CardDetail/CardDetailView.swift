@@ -40,6 +40,7 @@ extension Card: CardDetailDisplayable {
 struct CardDetailView: View {
     let card: Card
     @Binding var isFlipped: Bool
+    @Binding var searchState: SearchState
 
     @State private var relatedCardToShow: Card?
     @State private var isLoadingRelatedCard = false
@@ -106,7 +107,11 @@ struct CardDetailView: View {
                 }
 
                 Divider().padding(.horizontal)
-                CardTagsSection(setCode: card.set, collectorNumber: card.collectorNumber)
+                CardTagsSection(
+                    searchState: $searchState,
+                    setCode: card.set,
+                    collectorNumber: card.collectorNumber,
+                )
 
                 if let allParts = card.allParts {
                     // Scryfall only provides `id` and `name`. `id` is the Scryfall ID which is way
@@ -157,7 +162,11 @@ struct CardDetailView: View {
         }
         .sheet(item: $relatedCardToShow) { relatedCard in
             NavigationStack {
-                CardDetailView(card: relatedCard, isFlipped: $isFlipped)
+                CardDetailView(
+                    card: relatedCard,
+                    isFlipped: $isFlipped,
+                    searchState: $searchState,
+                )
                     .navigationTitle(relatedCard.name)
                     .navigationBarTitleDisplayMode(.inline)
                     .toolbar {

@@ -8,6 +8,7 @@ struct SearchResultsDetailNavigator: View {
     let list: ScryfallObjectList<Card>
     let initialIndex: Int
     @Binding var cardFlipStates: [UUID: Bool]
+    @Binding var searchState: SearchState
 
     @FetchAll private var bookmarks: [BookmarkedCard]
 
@@ -29,7 +30,8 @@ struct SearchResultsDetailNavigator: View {
                 isFlipped: Binding(
                     get: { cardFlipStates[card.id] ?? false },
                     set: { cardFlipStates[card.id] = $0 }
-                )
+                ),
+                searchState: $searchState,
             )
         } toolbarContent: { card in
             if let bookmark = bookmarks.first(where: { $0.id == card.id }) {

@@ -31,7 +31,8 @@ private extension SearchHistoryEntry {
 
 struct HomeView: View {
     @Environment(HistoryAndPinnedStore.self) private var historyAndPinnedStore
-    
+    @Binding var searchState: SearchState
+
     @FetchAll(
         SearchHistoryEntry
             .order { $0.lastUsedAt.desc() }
@@ -42,8 +43,6 @@ struct HomeView: View {
     
     @FetchAll(PinnedSearchEntry.order { $0.pinnedAt.desc() })
     var pinnedSearches
-
-    let onSearchSelected: ([SearchFilter]) -> Void
     
     @State private var cardFlipStates: [UUID: Bool] = [:]
     @State private var selectedCardIndex: Int?
@@ -75,7 +74,8 @@ struct HomeView: View {
             SearchResultsDetailNavigator(
                 list: FeaturedCardsObjectList.shared,
                 initialIndex: identifier.index,
-                cardFlipStates: $cardFlipStates
+                cardFlipStates: $cardFlipStates,
+                searchState: $searchState,
             )
         }
         .sheet(isPresented: $showAllSearchHistory) {
@@ -140,12 +140,13 @@ struct HomeView: View {
                 Spacer()
 
                 Button(action: {
-                    onSearchSelected([
+                    searchState.filters = [
                         .basic(false, "date", .greaterThanOrEqual, "today"),
                         .basic(false, "order", .including, SortMode.spoiled.rawValue),
                         .basic(false, "dir", .including, SortDirection.desc.rawValue),
                         .basic(false, "unique", .including, UniqueMode.prints.rawValue),
-                    ])
+                    ]
+                    searchState.performSearch()
                 }) {
                     Text("View All")
                 }
@@ -162,7 +163,8 @@ struct HomeView: View {
             Section {
                 ForEach(pinnedSearches, id: \.listId) { entry in
                     Button {
-                        onSearchSelected(entry.filters)
+                        searchState.filters = entry.filters
+                        searchState.performSearch()
                     } label: {
                         Text(entry.filters.map { $0.description }.joined(separator: " "))
                             .font(.body)
@@ -204,7 +206,8 @@ struct HomeView: View {
             Section {
                 ForEach(recentSearches, id: \.listId) { entry in
                     Button {
-                        onSearchSelected(entry.filters)
+                        searchState.filters = entry.filters
+                        searchState.performSearch()
                     } label: {
                         Text(entry.filters.map { $0.description }.joined(separator: " "))
                             .font(.body)
@@ -254,7 +257,8 @@ struct HomeView: View {
         Section {
             ForEach(ExampleSearch.dailyExamples, id: \.title) { example in
                 Button {
-                    onSearchSelected(example.filters)
+                    searchState.filters = example.filters
+                    searchState.performSearch()
                 } label: {
                     HStack {
                         VStack(alignment: .leading, spacing: 4) {

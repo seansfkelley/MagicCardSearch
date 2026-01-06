@@ -4,8 +4,6 @@ struct SearchSheetView: View {
     @Environment(\.dismiss) private var dismiss
     
     @Binding var searchState: SearchState
-    let onClearAll: () -> Void
-    let onSubmit: () -> Void
 
     @State private var suggestionLoadingState = DebouncedLoadingState()
     @State private var showSyntaxReference = false
@@ -15,9 +13,9 @@ struct SearchSheetView: View {
             AutocompleteView(
                 searchState: $searchState,
                 suggestionLoadingState: $suggestionLoadingState,
-            ) {
+            )
+            .onChange(of: searchState.searchNonce) {
                 dismiss()
-                onSubmit()
             }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -38,8 +36,7 @@ struct SearchSheetView: View {
 
                 ToolbarItem(placement: .confirmationAction) {
                     Button {
-                        dismiss()
-                        onSubmit()
+                        searchState.performSearch()
                     } label: {
                         Image(systemName: "checkmark")
                     }
@@ -50,21 +47,11 @@ struct SearchSheetView: View {
                 SearchBarAndPillsView(
                     searchState: $searchState,
                     isAutocompleteLoading: suggestionLoadingState.isLoadingDebounced,
-                    onFilterEdit: handleFilterEdit,
-                    onClearAll: onClearAll,
-                ) {
-                    dismiss()
-                    onSubmit()
-                }
+                )
             }
             .sheet(isPresented: $showSyntaxReference) {
                 SyntaxReferenceView()
             }
         }
-    }
-
-    private func handleFilterEdit(_ filter: SearchFilter) {
-        searchState.searchText = filter.description
-        searchState.searchSelection = TextSelection(range: filter.suggestedEditingRange)
     }
 }

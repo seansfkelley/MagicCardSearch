@@ -6,7 +6,6 @@ struct AutocompleteView: View {
 
     @Binding var searchState: SearchState
     @Binding var suggestionLoadingState: DebouncedLoadingState
-    let performSearch: () -> Void
 
     @State private var suggestions: [Suggestion] = []
     @State private var nonce: Int = 0
@@ -136,7 +135,7 @@ struct AutocompleteView: View {
                         // We don't replace the entire search because some other filters might
                         // actually have an effect on the results, like `set:`.
                         addTopLevelFilter($0)
-                        performSearch()
+                        searchState.performSearch()
                     }
                     .listRowInsets(.vertical, 0)
                 }
@@ -157,7 +156,7 @@ struct AutocompleteView: View {
         searchState.filters = search
         searchState.searchText = ""
         searchState.searchSelection = TextSelection(insertionPoint: "".endIndex)
-        performSearch()
+        searchState.performSearch()
     }
     
     private func addTopLevelFilter(_ filter: SearchFilter) {
