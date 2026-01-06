@@ -78,6 +78,12 @@ struct SearchBarView: View {
             }
 
             if Self.didAppend(characterFrom: [" "], to: previous, toCreate: current, withSelection: searchState.searchSelection) {
+                if current.allSatisfy({ $0.isWhitespace }) {
+                    searchState.searchText = ""
+                    searchState.searchSelection = TextSelection(insertionPoint: "".endIndex)
+                    return
+                }
+
                 let partial = PartialSearchFilter.from(searchState.searchText)
                 if case .name(let isExact, let term) = partial.content, case .bare(let content) = term {
                     searchState.searchText = PartialSearchFilter(
