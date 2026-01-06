@@ -127,6 +127,8 @@ struct ContentView: View {
         .sheet(isPresented: $showDisplaySheet, onDismiss: {
             if let pending = pendingSearchConfig, pending != searchState.configuration {
                 searchState.configuration = pending
+                searchState.performSearch()
+                searchState.configuration.save()
             }
             pendingSearchConfig = nil
         }) {
