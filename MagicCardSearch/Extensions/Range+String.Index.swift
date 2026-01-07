@@ -14,4 +14,10 @@ extension Range where Bound == String.Index {
     func length(in string: String) -> Int {
         string.distance(from: lowerBound, to: upperBound)
     }
+
+    func clamped(within text: String) -> Range<String.Index> {
+        let clampedLowerBound = Swift.max(text.startIndex, Swift.min(lowerBound, text.endIndex))
+        let clampedUpperBound = Swift.max(clampedLowerBound, Swift.min(upperBound, text.endIndex))
+        return clampedLowerBound..<clampedUpperBound
+    }
 }

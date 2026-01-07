@@ -67,6 +67,7 @@ struct SearchBarAndPillsView: View {
     }
 
     private func onFilterEdit(_ filter: SearchFilter) {
+        searchState.filters = searchState.filters.filter { $0 != filter }
         searchState.searchText = filter.description
         searchState.searchSelection = .init(range: filter.suggestedEditingRange)
     }

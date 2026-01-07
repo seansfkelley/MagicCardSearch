@@ -10,7 +10,11 @@ private let logger = Logger(label: "SearchState")
 @Observable
 class SearchState {
     public var searchText: String = ""
-    public var searchSelection: TextSelection?
+    public var searchSelection: TextSelection = .init(insertionPoint: "".endIndex) {
+        didSet {
+            print("state object saw", searchSelection.indices)
+        }
+    }
     public var filters: [SearchFilter] = []
     public var configuration = SearchConfiguration.load()
     public private(set) var results: ScryfallObjectList<Card>?

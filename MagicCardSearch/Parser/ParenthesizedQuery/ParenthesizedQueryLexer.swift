@@ -12,6 +12,7 @@ internal typealias LexedParenthesizedQueryToken = (
     ParenthesizedQueryParser.CitronToken, ParenthesizedQueryParser.CitronTokenCode
 )
 
+// swiftlint:disable:next function_body_length
 func lexParenthesizedQuery(_ input: String, allowingUnterminatedLiterals: Bool = false) throws -> [LexedParenthesizedQueryToken] {
     guard !input.isEmpty else {
         return []

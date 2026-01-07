@@ -20,7 +20,7 @@ struct SearchBarView: View {
                 if let filter = searchState.wrappedValue.searchText.toSearchFilter().value {
                     searchState.wrappedValue.filters.append(filter)
                     searchState.wrappedValue.searchText = ""
-                    searchState.wrappedValue.searchSelection = nil
+                    searchState.wrappedValue.searchSelection = .init(insertionPoint: "".endIndex)
                     return false
                 } else {
                     searchState.wrappedValue.performSearch()
@@ -133,7 +133,7 @@ struct SearchBarView: View {
             showSymbolPicker = false
         }
         .onChange(of: searchState.searchSelection) {
-            print(searchState.searchSelection)
+            print("view saw", searchState.searchSelection.indices)
         }
     }
 
@@ -165,20 +165,15 @@ struct SearchBarView: View {
     }
 
     private func insertSymbol(_ symbol: SymbolCode) {
-        if let selection = searchState.searchSelection {
-            switch selection.indices {
-            case .selection(let range):
-                searchState.searchText.replaceSubrange(range, with: symbol.normalized)
-                searchState.searchSelection = .init(insertionPoint: searchState.searchText.index(range.lowerBound, offsetBy: symbol.normalized.count))
-            case .multiSelection:
-                // TODO: how or why
-                // swiftlint:disable:next fallthrough
-                fallthrough
-            @unknown default:
-                searchState.searchText += symbol.normalized
-                searchState.searchSelection = .init(insertionPoint: searchState.searchText.endIndex)
-            }
-        } else {
+        switch searchState.searchSelection.indices {
+        case .selection(let range):
+            searchState.searchText.replaceSubrange(range, with: symbol.normalized)
+            searchState.searchSelection = .init(insertionPoint: searchState.searchText.index(range.lowerBound, offsetBy: symbol.normalized.count))
+        case .multiSelection:
+            // TODO: how or why
+            // swiftlint:disable:next fallthrough
+            fallthrough
+        @unknown default:
             searchState.searchText += symbol.normalized
             searchState.searchSelection = .init(insertionPoint: searchState.searchText.endIndex)
         }
@@ -272,17 +267,13 @@ struct SymbolGroupRow: View {
 
 private class SearchTextFieldDelegate: NSObject, UITextFieldDelegate {
     let onReturn: () -> Bool
-    let selection: Binding<TextSelection?>
+    let selection: Binding<TextSelection>
     
-    weak var textField: UITextField? {
-        didSet {
-            syncSelectionToUIKit()
-        }
-    }
+    weak var textField: UITextField?
 
     init(
         onReturn: @escaping () -> Bool,
-        selection: Binding<TextSelection?>
+        selection: Binding<TextSelection>
     ) {
         self.onReturn = onReturn
         self.selection = selection
@@ -308,23 +299,19 @@ private class SearchTextFieldDelegate: NSObject, UITextFieldDelegate {
         guard currentUIKitSelection != selection.wrappedValue else { return }
         
         let targetRange: Range<String.Index>
-        if let swiftUISelection = selection.wrappedValue {
-            switch swiftUISelection.indices {
-            case .selection(let range):
-                targetRange = range
-            case .multiSelection:
-                // Multi-selection not supported in UITextField, default to cursor at end
-                targetRange = text.endIndex..<text.endIndex
-            @unknown default:
-                // Unknown case, default to cursor at end
-                targetRange = text.endIndex..<text.endIndex
-            }
-        } else {
-            // nil selection means cursor at end
+        switch selection.wrappedValue.indices {
+        case .selection(let range):
+            targetRange = range
+        case .multiSelection:
+            // Multi-selection not supported in UITextField, default to cursor at end
+            targetRange = text.endIndex..<text.endIndex
+        @unknown default:
+            // Unknown case, default to cursor at end
             targetRange = text.endIndex..<text.endIndex
         }
         
-        let clampedRange = targetRange.clamped(to: text)
+        let clampedRange = targetRange.clamped(within: text)
+        print("setting to UIKit", clampedRange)
         textField.selectedTextRange = UITextRange.from(range: clampedRange, in: textField, text: text)
     }
 
@@ -338,17 +325,8 @@ private class SearchTextFieldDelegate: NSObject, UITextFieldDelegate {
         let newSelection = TextSelection.from(range: textField.selectedTextRange, in: textField, text: text)
         guard newSelection != selection.wrappedValue else { return }
 
+        print("setting to SwiftUI", newSelection.indices)
         selection.wrappedValue = newSelection
-    }
-}
-
-// MARK: - Range Extensions
-
-extension Range where Bound == String.Index {
-    func clamped(to text: String) -> Range<String.Index> {
-        let clampedLowerBound = Swift.max(text.startIndex, Swift.min(lowerBound, text.endIndex))
-        let clampedUpperBound = Swift.max(clampedLowerBound, Swift.min(upperBound, text.endIndex))
-        return clampedLowerBound..<clampedUpperBound
     }
 }
 
@@ -372,15 +350,15 @@ extension UITextRange {
 
 @MainActor
 extension TextSelection {
-    static func from(range: UITextRange?, in textField: UITextField, text: String) -> TextSelection? {
-        guard let range = range else { return nil }
-        
+    static func from(range: UITextRange?, in textField: UITextField, text: String) -> TextSelection {
+        guard let range else { return .init(insertionPoint: text.endIndex) }
+
         let startOffset = textField.offset(from: textField.beginningOfDocument, to: range.start)
         let endOffset = textField.offset(from: textField.beginningOfDocument, to: range.end)
         
         let startIndex = text.index(text.startIndex, offsetBy: max(0, min(startOffset, text.count)))
         let endIndex = text.index(text.startIndex, offsetBy: max(startOffset, min(endOffset, text.count)))
         
-        return TextSelection(range: startIndex..<endIndex)
+        return .init(range: startIndex..<endIndex)
     }
 }
