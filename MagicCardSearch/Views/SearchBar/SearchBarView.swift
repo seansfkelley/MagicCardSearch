@@ -144,6 +144,9 @@ struct SearchBarView: View {
         .onChange(of: searchState.actualSearchSelection) {
             print("view saw actual change", searchState.actualSearchSelection)
         }
+        .onChange(of: wrappedDesiredSelection) {
+            wrappedDesiredSelection = nil
+        }
     }
 
     private static func didAppend(
@@ -164,8 +167,8 @@ struct SearchBarView: View {
     }
 
     private func insertSymbol(_ symbol: SymbolCode) {
-        let index = searchState.searchText.index(searchState.actualSearchSelection.lowerBound, offsetBy: symbol.normalized.count)
         searchState.searchText.replaceSubrange(searchState.actualSearchSelection, with: symbol.normalized)
+        let index = searchState.searchText.index(searchState.actualSearchSelection.lowerBound, offsetBy: symbol.normalized.count)
         searchState.desiredSearchSelection = index..<index
     }
 }

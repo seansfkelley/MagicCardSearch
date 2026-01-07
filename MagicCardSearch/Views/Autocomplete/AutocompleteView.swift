@@ -172,8 +172,8 @@ struct AutocompleteView: View {
                 searchState.searchText.replaceSubrange(range, with: filterString)
                 searchState.desiredSearchSelection = searchState.searchText.endIndexRange
             } else {
-                let index = searchState.searchText.index(range.lowerBound, offsetBy: filterString.count)
                 searchState.searchText.replaceSubrange(range, with: filterString)
+                let index = searchState.searchText.index(range.lowerBound, offsetBy: filterString.count)
                 searchState.desiredSearchSelection = index..<index
             }
         } else {
@@ -185,8 +185,8 @@ struct AutocompleteView: View {
 
     private func setScopedString(_ string: String) {
         if let range = searchState.selectedFilter.range {
-            let index = searchState.searchText.index(range.lowerBound, offsetBy: string.count)
             searchState.searchText.replaceSubrange(range, with: string)
+            let index = searchState.searchText.index(range.lowerBound, offsetBy: string.count)
             searchState.desiredSearchSelection = index..<index
         } else {
             searchState.searchText = string
@@ -205,4 +205,3 @@ struct AutocompleteView: View {
         .tint(.orange)
     }
 }
-
