@@ -1,7 +1,6 @@
 import SwiftUI
 import Logging
 import ScryfallKit
-import SQLiteData
 
 private let logger = Logger(label: "SearchState")
 
@@ -10,9 +9,14 @@ private let logger = Logger(label: "SearchState")
 @Observable
 class SearchState {
     public var searchText: String = ""
-    public var searchSelection: TextSelection = .init(insertionPoint: "".endIndex) {
+    public var searchSelection: TextSelection? = .init(insertionPoint: "".endIndex) {
         didSet {
-            print("state object saw", searchSelection.indices)
+            print("state object desired selection", searchSelection?.indices)
+        }
+    }
+    public var actualSelection: TextSelection? {
+        didSet {
+            print("state object actual selection", actualSelection?.indices)
         }
     }
     public var filters: [SearchFilter] = []
@@ -24,7 +28,7 @@ class SearchState {
     public private(set) var clearNonce = 0
 
     public var selectedFilter: CurrentlyHighlightedFilterFacade {
-        CurrentlyHighlightedFilterFacade(inputText: searchText, inputSelection: searchSelection)
+        CurrentlyHighlightedFilterFacade(inputText: searchText, inputSelection: actualSelection)
     }
 
     private let scryfall = ScryfallClient(networkLogLevel: .minimal)

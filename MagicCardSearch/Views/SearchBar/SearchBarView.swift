@@ -27,7 +27,7 @@ struct SearchBarView: View {
                     return true
                 }
             },
-            selection: searchState.searchSelection
+            actualSelection: searchState.actualSelection
         )
     }
 
@@ -36,6 +36,7 @@ struct SearchBarView: View {
             TextField(
                 searchState.filters.isEmpty ? "Search for cards..." : "Add filters...",
                 text: $searchState.searchText,
+                selection: $searchState.searchSelection,
             )
             .textFieldStyle(.plain)
             .textInputAutocapitalization(.never)
@@ -52,7 +53,6 @@ struct SearchBarView: View {
                 textField.smartQuotesType = .no
                 textField.smartInsertDeleteType = .no
                 textField.delegate = textFieldDelegate
-                textFieldDelegate.textField = textField
             }
             .focusOnAppear(config: .init(
                 returnKeyType: .go,
@@ -123,7 +123,9 @@ struct SearchBarView: View {
                 return
             }
 
-            if let (newText, newSelection) = removeAutoinsertedWhitespace(current, searchState.searchSelection), newText != searchState.searchText {
+            if let selection = searchState.actualSelection,
+               let (newText, newSelection) = removeAutoinsertedWhitespace(current, selection),
+               newText != searchState.searchText {
                 searchState.searchText = newText
                 searchState.searchSelection = newSelection
                 return
@@ -133,7 +135,12 @@ struct SearchBarView: View {
             showSymbolPicker = false
         }
         .onChange(of: searchState.searchSelection) {
-            print("view saw", searchState.searchSelection.indices)
+            print("view saw desired change", searchState.searchSelection?.indices)
+            print("unsetting")
+            searchState.searchSelection = nil
+        }
+        .onChange(of: searchState.actualSelection) {
+            print("view saw actual change", searchState.actualSelection?.indices)
         }
     }
 
@@ -165,7 +172,7 @@ struct SearchBarView: View {
     }
 
     private func insertSymbol(_ symbol: SymbolCode) {
-        switch searchState.searchSelection.indices {
+        switch searchState.actualSelection?.indices {
         case .selection(let range):
             searchState.searchText.replaceSubrange(range, with: symbol.normalized)
             searchState.searchSelection = .init(insertionPoint: searchState.searchText.index(range.lowerBound, offsetBy: symbol.normalized.count))
@@ -267,52 +274,14 @@ struct SymbolGroupRow: View {
 
 private class SearchTextFieldDelegate: NSObject, UITextFieldDelegate {
     let onReturn: () -> Bool
-    let selection: Binding<TextSelection>
-    
-    weak var textField: UITextField?
+    let actualSelection: Binding<TextSelection?>
 
     init(
         onReturn: @escaping () -> Bool,
-        selection: Binding<TextSelection>
+        actualSelection: Binding<TextSelection?>
     ) {
         self.onReturn = onReturn
-        self.selection = selection
-        super.init()
-        observeSelection()
-    }
-    
-    private func observeSelection() {
-        withObservationTracking {
-            _ = selection.wrappedValue
-        } onChange: { [weak self] in
-            Task { @MainActor [weak self] in
-                self?.syncSelectionToUIKit()
-                self?.observeSelection()
-            }
-        }
-    }
-    
-    func syncSelectionToUIKit() {
-        guard let textField = textField, let text = textField.text else { return }
-        
-        let currentUIKitSelection = TextSelection.from(range: textField.selectedTextRange, in: textField, text: text)
-        guard currentUIKitSelection != selection.wrappedValue else { return }
-        
-        let targetRange: Range<String.Index>
-        switch selection.wrappedValue.indices {
-        case .selection(let range):
-            targetRange = range
-        case .multiSelection:
-            // Multi-selection not supported in UITextField, default to cursor at end
-            targetRange = text.endIndex..<text.endIndex
-        @unknown default:
-            // Unknown case, default to cursor at end
-            targetRange = text.endIndex..<text.endIndex
-        }
-        
-        let clampedRange = targetRange.clamped(within: text)
-        print("setting to UIKit", clampedRange)
-        textField.selectedTextRange = UITextRange.from(range: clampedRange, in: textField, text: text)
+        self.actualSelection = actualSelection
     }
 
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {
@@ -323,26 +292,9 @@ private class SearchTextFieldDelegate: NSObject, UITextFieldDelegate {
         guard let text = textField.text else { return }
 
         let newSelection = TextSelection.from(range: textField.selectedTextRange, in: textField, text: text)
-        guard newSelection != selection.wrappedValue else { return }
 
         print("setting to SwiftUI", newSelection.indices)
-        selection.wrappedValue = newSelection
-    }
-}
-
-// MARK: - UITextRange Extensions
-
-extension UITextRange {
-    static func from(range: Range<String.Index>, in textField: UITextField, text: String) -> UITextRange? {
-        let startOffset = text.distance(from: text.startIndex, to: range.lowerBound)
-        let endOffset = text.distance(from: text.startIndex, to: range.upperBound)
-        
-        guard let startPosition = textField.position(from: textField.beginningOfDocument, offset: startOffset),
-              let endPosition = textField.position(from: textField.beginningOfDocument, offset: endOffset) else {
-            return nil
-        }
-        
-        return textField.textRange(from: startPosition, to: endPosition)
+        actualSelection.wrappedValue = newSelection
     }
 }
 
