@@ -13,7 +13,7 @@ struct AutocompleteView: View {
     private var searchSuggestionKey: SearchSuggestionKey {
         SearchSuggestionKey(inputText: searchState.searchText, filterCount: searchState.filters.count, nonce: nonce)
     }
-    
+
     private struct SearchSuggestionKey: Equatable {
         // Obvious.
         let inputText: String
@@ -28,12 +28,12 @@ struct AutocompleteView: View {
         // This nonce is also used whenever pinning changes, which can trigger different suggestions.
         let nonce: Int
     }
-    
+
     private let orderedEqualityComparison: [Comparison] = [
         .including,
         .equal,
     ]
-    
+
     private let orderedAllComparisons: [Comparison] = [
         .including,
         .equal,
@@ -118,14 +118,14 @@ struct AutocompleteView: View {
                         pinSwipeAction(for: suggestion.filter)
                     }
                     .listRowInsets(.vertical, 0)
-                
+
                 case .reverseEnumeration(let suggestion):
                     ReverseEnumerationRowView(
                         suggestion: suggestion,
                         onSelect: addScopedFilter
                     )
                     .listRowInsets(.vertical, 0)
-                
+
                 case .name(let suggestion):
                     BasicRowView(
                         filter: suggestion.filter,
@@ -155,40 +155,42 @@ struct AutocompleteView: View {
     private func setEntireSearch(to search: [SearchFilter]) {
         searchState.filters = search
         searchState.searchText = ""
-        searchState.searchSelection = .init(insertionPoint: searchState.searchText.endIndex)
+        searchState.desiredSearchSelection = searchState.searchText.endIndexRange
         searchState.performSearch()
     }
-    
+
     private func addTopLevelFilter(_ filter: SearchFilter) {
         searchState.filters.append(filter)
         searchState.searchText = ""
-        searchState.searchSelection = .init(insertionPoint: searchState.searchText.endIndex)
+        searchState.desiredSearchSelection = searchState.searchText.endIndexRange
     }
-    
+
     private func addScopedFilter(_ filter: SearchFilter) {
         if let range = searchState.selectedFilter.range, range != searchState.searchText.range {
             let filterString = filter.description
             if range.upperBound == searchState.searchText.endIndex {
                 searchState.searchText.replaceSubrange(range, with: filterString)
-                searchState.searchSelection = .init(insertionPoint: searchState.searchText.endIndex)
+                searchState.desiredSearchSelection = searchState.searchText.endIndexRange
             } else {
+                let index = searchState.searchText.index(range.lowerBound, offsetBy: filterString.count)
                 searchState.searchText.replaceSubrange(range, with: filterString)
-                searchState.searchSelection = .init(insertionPoint: searchState.searchText.index(range.lowerBound, offsetBy: filterString.count))
+                searchState.desiredSearchSelection = index..<index
             }
         } else {
             searchState.filters.append(filter)
             searchState.searchText = ""
-            searchState.searchSelection = .init(insertionPoint: searchState.searchText.endIndex)
+            searchState.desiredSearchSelection = searchState.searchText.endIndexRange
         }
     }
-    
+
     private func setScopedString(_ string: String) {
         if let range = searchState.selectedFilter.range {
+            let index = searchState.searchText.index(range.lowerBound, offsetBy: string.count)
             searchState.searchText.replaceSubrange(range, with: string)
-            searchState.searchSelection = .init(insertionPoint: searchState.searchText.index(range.lowerBound, offsetBy: string.count))
+            searchState.desiredSearchSelection = index..<index
         } else {
             searchState.searchText = string
-            searchState.searchSelection = .init(insertionPoint: string.endIndex)
+            searchState.desiredSearchSelection = string.endIndexRange
         }
     }
 
@@ -203,3 +205,4 @@ struct AutocompleteView: View {
         .tint(.orange)
     }
 }
+

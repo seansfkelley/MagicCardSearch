@@ -1,17 +1,13 @@
 import SwiftUI
 
-func removeAutoinsertedWhitespace(_ current: String, _ selection: TextSelection) -> (String, TextSelection)? {
+func removeAutoinsertedWhitespace(_ current: String, _ selection: Range<String.Index>) -> (String, Range<String.Index>)? {
     guard let tokens = try? lexParenthesizedQuery(current, allowingUnterminatedLiterals: true) else {
         return nil
     }
 
-    guard case .selection(let range) = selection.indices else {
-        return nil
-    }
-
     var result = current
-    var lower = range.lowerBound
-    var upper = range.upperBound
+    var lower = selection.lowerBound
+    var upper = selection.upperBound
 
     for i in stride(from: tokens.count - 1, through: 2, by: -1) {
         let (nameToken, nameCode) = tokens[i]
@@ -44,5 +40,5 @@ func removeAutoinsertedWhitespace(_ current: String, _ selection: TextSelection)
         result.removeSubrange(andToken.range)
     }
 
-    return (result, TextSelection(range: lower..<upper))
+    return (result, lower..<upper)
 }
