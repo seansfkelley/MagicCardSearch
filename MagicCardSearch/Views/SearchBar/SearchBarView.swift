@@ -97,15 +97,17 @@ struct SearchBarView: View {
                     return
                 }
 
-                let partial = PartialSearchFilter.from(searchState.searchText)
-                if case .name(let isExact, let term) = partial.content, case .bare(let content) = term {
-                    searchState.searchText = PartialSearchFilter(
-                        negated: partial.negated,
-                        content: .name(isExact, .unterminated(.doubleQuote, content)),
-                    )
-                    .description
-                    searchState.searchSelection = TextSelection(insertionPoint: searchState.searchText.endIndex)
-                    return
+                if (try? /^-?\(/.prefixMatch(in: searchState.searchText)) == nil {
+                    let partial = PartialSearchFilter.from(searchState.searchText)
+                    if case .name(let isExact, let term) = partial.content, case .bare(let content) = term {
+                        searchState.searchText = PartialSearchFilter(
+                            negated: partial.negated,
+                            content: .name(isExact, .unterminated(.doubleQuote, content)),
+                        )
+                        .description
+                        searchState.searchSelection = nil
+                        return
+                    }
                 }
             }
 
@@ -113,7 +115,7 @@ struct SearchBarView: View {
                 if case .valid(let filter) = searchState.searchText.toSearchFilter() {
                     searchState.filters.append(filter)
                     searchState.searchText = ""
-                    searchState.searchSelection = TextSelection(insertionPoint: searchState.searchText.endIndex)
+                    searchState.searchSelection = nil
                 }
                 return
             }
@@ -143,16 +145,15 @@ struct SearchBarView: View {
             return false
         }
 
-        // Aggressively default to true because it seems like safer default behavior.
         return if let selection = selection {
+            // Aggressively default to true because it seems like safer default behavior.
             switch selection.indices {
             case .selection(let range): range.upperBound == current.endIndex
             case .multiSelection: true
             @unknown default: true
             }
         } else {
-            // A cursor at a single point without a selection is still represented as a non-nil
-            // zero-length range, so I guess this branch is only hit if you're not focused on it?
+            // A nil selection is taken to mean end-of-string.
             true
         }
     }
@@ -170,11 +171,11 @@ struct SearchBarView: View {
                 fallthrough
             @unknown default:
                 searchState.searchText += symbol.normalized
-                searchState.searchSelection = .init(range: searchState.searchText.endIndex..<searchState.searchText.endIndex)
+                searchState.searchSelection = nil
             }
         } else {
             searchState.searchText += symbol.normalized
-            searchState.searchSelection = .init(range: searchState.searchText.endIndex..<searchState.searchText.endIndex)
+            searchState.searchSelection = nil
         }
     }
 }

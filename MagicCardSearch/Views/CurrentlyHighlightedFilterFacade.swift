@@ -21,11 +21,16 @@ struct CurrentlyHighlightedFilterFacade {
             // This or nil?
             return inputText.range
         }
-        
-        guard let selection = inputSelection, case .selection(let selectionRange) = selection.indices else {
-            return nil
+
+        let selectionRange: Range<String.Index>? = if let inputSelection {
+            if case .selection(let selectionRange) = inputSelection.indices { selectionRange } else { nil }
+        } else {
+            // The nil selection is assumed to be end-of-string.
+            inputText.endIndex..<inputText.endIndex
         }
-         
+
+        guard let selectionRange else { return nil }
+
         return allFilterRanges.first { range in
             range.contains(selectionRange) && (
                 // Empty ranges are considered to be contained by any other range, regardless of

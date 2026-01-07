@@ -155,25 +155,30 @@ struct AutocompleteView: View {
     private func setEntireSearch(to search: [SearchFilter]) {
         searchState.filters = search
         searchState.searchText = ""
-        searchState.searchSelection = TextSelection(insertionPoint: "".endIndex)
+        searchState.searchSelection = nil
         searchState.performSearch()
     }
     
     private func addTopLevelFilter(_ filter: SearchFilter) {
         searchState.filters.append(filter)
         searchState.searchText = ""
-        searchState.searchSelection = TextSelection(insertionPoint: "".endIndex)
+        searchState.searchSelection = nil
     }
     
     private func addScopedFilter(_ filter: SearchFilter) {
         if let range = searchState.selectedFilter.range, range != searchState.searchText.range {
             let filterString = filter.description
-            searchState.searchText.replaceSubrange(range, with: filterString)
-            searchState.searchSelection = TextSelection(insertionPoint: searchState.searchText.index(range.lowerBound, offsetBy: filterString.count))
+            if range.upperBound == searchState.searchText.endIndex {
+                searchState.searchText.replaceSubrange(range, with: filterString)
+                searchState.searchSelection = nil
+            } else {
+                searchState.searchText.replaceSubrange(range, with: filterString)
+                searchState.searchSelection = TextSelection(insertionPoint: searchState.searchText.index(range.lowerBound, offsetBy: filterString.count))
+            }
         } else {
             searchState.filters.append(filter)
             searchState.searchText = ""
-            searchState.searchSelection = TextSelection(insertionPoint: "".endIndex)
+            searchState.searchSelection = nil
         }
     }
     
