@@ -40,7 +40,7 @@ class SearchState {
 
     public func clearAll() {
         searchText = ""
-        searchSelection = nil
+        searchSelection = .init(insertionPoint: "".endIndex)
         filters = []
         results = nil
         clearNonce += 1

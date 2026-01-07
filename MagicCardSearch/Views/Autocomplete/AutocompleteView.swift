@@ -155,14 +155,14 @@ struct AutocompleteView: View {
     private func setEntireSearch(to search: [SearchFilter]) {
         searchState.filters = search
         searchState.searchText = ""
-        searchState.searchSelection = nil
+        searchState.searchSelection = .init(insertionPoint: searchState.searchText.endIndex)
         searchState.performSearch()
     }
     
     private func addTopLevelFilter(_ filter: SearchFilter) {
         searchState.filters.append(filter)
         searchState.searchText = ""
-        searchState.searchSelection = nil
+        searchState.searchSelection = .init(insertionPoint: searchState.searchText.endIndex)
     }
     
     private func addScopedFilter(_ filter: SearchFilter) {
@@ -170,25 +170,25 @@ struct AutocompleteView: View {
             let filterString = filter.description
             if range.upperBound == searchState.searchText.endIndex {
                 searchState.searchText.replaceSubrange(range, with: filterString)
-                searchState.searchSelection = nil
+                searchState.searchSelection = .init(insertionPoint: searchState.searchText.endIndex)
             } else {
                 searchState.searchText.replaceSubrange(range, with: filterString)
-                searchState.searchSelection = TextSelection(insertionPoint: searchState.searchText.index(range.lowerBound, offsetBy: filterString.count))
+                searchState.searchSelection = .init(insertionPoint: searchState.searchText.index(range.lowerBound, offsetBy: filterString.count))
             }
         } else {
             searchState.filters.append(filter)
             searchState.searchText = ""
-            searchState.searchSelection = nil
+            searchState.searchSelection = .init(insertionPoint: searchState.searchText.endIndex)
         }
     }
     
     private func setScopedString(_ string: String) {
         if let range = searchState.selectedFilter.range {
             searchState.searchText.replaceSubrange(range, with: string)
-            searchState.searchSelection = TextSelection(insertionPoint: searchState.searchText.index(range.lowerBound, offsetBy: string.count))
+            searchState.searchSelection = .init(insertionPoint: searchState.searchText.index(range.lowerBound, offsetBy: string.count))
         } else {
             searchState.searchText = string
-            searchState.searchSelection = TextSelection(insertionPoint: string.endIndex)
+            searchState.searchSelection = .init(insertionPoint: string.endIndex)
         }
     }
 

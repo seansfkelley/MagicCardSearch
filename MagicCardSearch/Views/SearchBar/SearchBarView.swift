@@ -61,7 +61,7 @@ struct SearchBarView: View {
             if !searchState.searchText.isEmpty {
                 Button(action: {
                     searchState.searchText = ""
-                    searchState.searchSelection = nil
+                    searchState.searchSelection = .init(insertionPoint: searchState.searchText.endIndex)
                 }) {
                     Image(systemName: "xmark.circle.fill")
                         .foregroundStyle(.secondary)
@@ -93,7 +93,7 @@ struct SearchBarView: View {
             if Self.didAppend(characterFrom: [" "], to: previous, toCreate: current, withSelection: searchState.searchSelection) {
                 if current.allSatisfy({ $0.isWhitespace }) {
                     searchState.searchText = ""
-                    searchState.searchSelection = nil
+                    searchState.searchSelection = .init(insertionPoint: searchState.searchText.endIndex)
                     return
                 }
 
@@ -105,7 +105,7 @@ struct SearchBarView: View {
                             content: .name(isExact, .unterminated(.doubleQuote, content)),
                         )
                         .description
-                        searchState.searchSelection = nil
+                        searchState.searchSelection = .init(insertionPoint: searchState.searchText.endIndex)
                         return
                     }
                 }
@@ -115,7 +115,7 @@ struct SearchBarView: View {
                 if case .valid(let filter) = searchState.searchText.toSearchFilter() {
                     searchState.filters.append(filter)
                     searchState.searchText = ""
-                    searchState.searchSelection = nil
+                    searchState.searchSelection = .init(insertionPoint: searchState.searchText.endIndex)
                 }
                 return
             }
@@ -163,19 +163,18 @@ struct SearchBarView: View {
             switch selection.indices {
             case .selection(let range):
                 searchState.searchText.replaceSubrange(range, with: symbol.normalized)
-                let location = searchState.searchText.index(range.lowerBound, offsetBy: symbol.normalized.count)
-                searchState.searchSelection = .init(range: location..<location)
+                searchState.searchSelection = .init(insertionPoint: searchState.searchText.index(range.lowerBound, offsetBy: symbol.normalized.count))
             case .multiSelection:
                 // TODO: how or why
                 // swiftlint:disable:next fallthrough
                 fallthrough
             @unknown default:
                 searchState.searchText += symbol.normalized
-                searchState.searchSelection = nil
+                searchState.searchSelection = .init(insertionPoint: searchState.searchText.endIndex)
             }
         } else {
             searchState.searchText += symbol.normalized
-            searchState.searchSelection = nil
+            searchState.searchSelection = .init(insertionPoint: searchState.searchText.endIndex)
         }
     }
 }
