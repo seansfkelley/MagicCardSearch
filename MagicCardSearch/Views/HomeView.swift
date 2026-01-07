@@ -62,7 +62,7 @@ struct HomeView: View {
             if isRunningTests() {
                 logger.info("skipping featured card load in test environment")
             } else {
-                FeaturedCardsObjectList.shared.loadNextPage()
+                FeaturedCardsObjectList.shared.loadFirstPage()
             }
         }
         .sheet(
@@ -309,5 +309,14 @@ private class FeaturedCardsObjectList: ScryfallObjectList<Card> {
             sortDirection: .desc,
             page: page,
         )
+    }
+
+    // Since this object is long-lived and we might cause the home view to appear multiple times,
+    // we can't just blindly load the "next" (initial case: first) page. We have to specifically
+    // only load the first page!
+    func loadFirstPage() {
+        if case .unloaded = value {
+            loadNextPage()
+        }
     }
 }
