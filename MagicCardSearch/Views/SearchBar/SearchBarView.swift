@@ -15,17 +15,20 @@ struct SearchBarView: View {
 
         // The only reason this is here is because UITextField.delegate is weak, so we need to
         // retain it as long as this view is alive.
-        self.textFieldDelegate = SearchTextFieldDelegate {
-            if let filter = searchState.wrappedValue.searchText.toSearchFilter().value {
-                searchState.wrappedValue.filters.append(filter)
-                searchState.wrappedValue.searchText = ""
-                searchState.wrappedValue.searchSelection = nil
-                return false
-            } else {
-                searchState.wrappedValue.performSearch()
-                return true
-            }
-        }
+        self.textFieldDelegate = SearchTextFieldDelegate(
+            onReturn: {
+                if let filter = searchState.wrappedValue.searchText.toSearchFilter().value {
+                    searchState.wrappedValue.filters.append(filter)
+                    searchState.wrappedValue.searchText = ""
+                    searchState.wrappedValue.searchSelection = nil
+                    return false
+                } else {
+                    searchState.wrappedValue.performSearch()
+                    return true
+                }
+            },
+            selection: searchState.searchSelection
+        )
     }
 
     var body: some View {
@@ -33,7 +36,6 @@ struct SearchBarView: View {
             TextField(
                 searchState.filters.isEmpty ? "Search for cards..." : "Add filters...",
                 text: $searchState.searchText,
-                selection: $searchState.searchSelection,
             )
             .textFieldStyle(.plain)
             .textInputAutocapitalization(.never)
@@ -50,6 +52,7 @@ struct SearchBarView: View {
                 textField.smartQuotesType = .no
                 textField.smartInsertDeleteType = .no
                 textField.delegate = textFieldDelegate
+                textFieldDelegate.textField = textField
             }
             .focusOnAppear(config: .init(
                 returnKeyType: .go,
@@ -128,6 +131,9 @@ struct SearchBarView: View {
         }
         .onChange(of: searchState.filters) {
             showSymbolPicker = false
+        }
+        .onChange(of: searchState.searchSelection) {
+            print(searchState.searchSelection)
         }
     }
 
@@ -266,13 +272,115 @@ struct SymbolGroupRow: View {
 
 private class SearchTextFieldDelegate: NSObject, UITextFieldDelegate {
     let onReturn: () -> Bool
+    let selection: Binding<TextSelection?>
+    
+    weak var textField: UITextField? {
+        didSet {
+            syncSelectionToUIKit()
+        }
+    }
 
-    init(onReturn: @escaping () -> Bool) {
+    init(
+        onReturn: @escaping () -> Bool,
+        selection: Binding<TextSelection?>
+    ) {
         self.onReturn = onReturn
+        self.selection = selection
+        super.init()
+        observeSelection()
     }
     
+    private func observeSelection() {
+        withObservationTracking {
+            _ = selection.wrappedValue
+        } onChange: { [weak self] in
+            Task { @MainActor [weak self] in
+                self?.syncSelectionToUIKit()
+                self?.observeSelection()
+            }
+        }
+    }
+    
+    func syncSelectionToUIKit() {
+        guard let textField = textField, let text = textField.text else { return }
+        
+        let currentUIKitSelection = TextSelection.from(range: textField.selectedTextRange, in: textField, text: text)
+        guard currentUIKitSelection != selection.wrappedValue else { return }
+        
+        let targetRange: Range<String.Index>
+        if let swiftUISelection = selection.wrappedValue {
+            switch swiftUISelection.indices {
+            case .selection(let range):
+                targetRange = range
+            case .multiSelection:
+                // Multi-selection not supported in UITextField, default to cursor at end
+                targetRange = text.endIndex..<text.endIndex
+            @unknown default:
+                // Unknown case, default to cursor at end
+                targetRange = text.endIndex..<text.endIndex
+            }
+        } else {
+            // nil selection means cursor at end
+            targetRange = text.endIndex..<text.endIndex
+        }
+        
+        let clampedRange = targetRange.clamped(to: text)
+        textField.selectedTextRange = UITextRange.from(range: clampedRange, in: textField, text: text)
+    }
+
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {
         onReturn()
     }
+    
+    func textFieldDidChangeSelection(_ textField: UITextField) {
+        guard let text = textField.text else { return }
+
+        let newSelection = TextSelection.from(range: textField.selectedTextRange, in: textField, text: text)
+        guard newSelection != selection.wrappedValue else { return }
+
+        selection.wrappedValue = newSelection
+    }
 }
 
+// MARK: - Range Extensions
+
+extension Range where Bound == String.Index {
+    func clamped(to text: String) -> Range<String.Index> {
+        let clampedLowerBound = Swift.max(text.startIndex, Swift.min(lowerBound, text.endIndex))
+        let clampedUpperBound = Swift.max(clampedLowerBound, Swift.min(upperBound, text.endIndex))
+        return clampedLowerBound..<clampedUpperBound
+    }
+}
+
+// MARK: - UITextRange Extensions
+
+extension UITextRange {
+    static func from(range: Range<String.Index>, in textField: UITextField, text: String) -> UITextRange? {
+        let startOffset = text.distance(from: text.startIndex, to: range.lowerBound)
+        let endOffset = text.distance(from: text.startIndex, to: range.upperBound)
+        
+        guard let startPosition = textField.position(from: textField.beginningOfDocument, offset: startOffset),
+              let endPosition = textField.position(from: textField.beginningOfDocument, offset: endOffset) else {
+            return nil
+        }
+        
+        return textField.textRange(from: startPosition, to: endPosition)
+    }
+}
+
+// MARK: - TextSelection Extensions
+
+@MainActor
+extension TextSelection {
+    static func from(range: UITextRange?, in textField: UITextField, text: String) -> TextSelection? {
+        guard let range = range else { return nil }
+        
+        let startOffset = textField.offset(from: textField.beginningOfDocument, to: range.start)
+        let endOffset = textField.offset(from: textField.beginningOfDocument, to: range.end)
+        
+        let startIndex = text.index(text.startIndex, offsetBy: max(0, min(startOffset, text.count)))
+        let endIndex = text.index(text.startIndex, offsetBy: max(startOffset, min(endOffset, text.count)))
+        
+        return TextSelection(range: startIndex..<endIndex)
+    }
+}
