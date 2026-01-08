@@ -15,7 +15,7 @@ public struct _StableJSONRepresentation<QueryOutput: Codable>: Codable, QueryRep
     public var queryBinding: QueryBinding {
         do {
             // Copied from SQLiteData, don't want to mess with whatever reason they might have used this.
-            // swiflint:disable:next optional_data_string_conversion
+            // swiftlint:disable:next optional_data_string_conversion
             return try .text(String(decoding: jsonEncoder.encode(queryOutput), as: UTF8.self))
         } catch {
             return .invalid(error)

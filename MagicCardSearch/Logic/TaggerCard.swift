@@ -28,7 +28,7 @@ struct TaggerCard: Codable {
             case .oracleId: return "oracleId"
             case .illustrationId: return "illustrationId"
             case .printingId: return "printingId"
-            case .unknown(let s): return "unknown(\(s))"
+            case .unknown(let id): return "unknown(\(id))"
             }
         }
 

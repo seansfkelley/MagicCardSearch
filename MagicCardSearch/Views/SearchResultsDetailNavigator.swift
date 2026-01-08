@@ -34,7 +34,7 @@ struct SearchResultsDetailNavigator: View {
                 searchState: $searchState,
             )
         } toolbarContent: { card in
-            if let bookmark = bookmarks.first(where: { $0.id == card.id }) {
+            if bookmarks.contains(where: { $0.id == card.id }) {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         bookmarkedCardsStore.unbookmark(id: card.id)
