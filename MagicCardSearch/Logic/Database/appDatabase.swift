@@ -1,7 +1,7 @@
-import Logging
+import OSLog
 import SQLiteData
 
-private let logger = Logger(label: "appDatabase")
+private let logger = Logger(subsystem: "MagicCardSearch", category: "appDatabase")
 
 func appDatabase() throws -> any DatabaseWriter {
     @Dependency(\.context) var context
@@ -18,9 +18,7 @@ func appDatabase() throws -> any DatabaseWriter {
         }
     #endif
     let database = try defaultDatabase(configuration: configuration)
-    logger.info("opened database", metadata: [
-        "path": "\(database.path)",
-    ])
+    logger.info("opened database path=\(database.path)")
     var migrator = DatabaseMigrator()
     #if DEBUG
         migrator.eraseDatabaseOnSchemaChange = true

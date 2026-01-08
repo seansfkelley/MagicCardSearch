@@ -1,5 +1,8 @@
 import Foundation
 import ScryfallKit
+import OSLog
+
+private let logger = Logger(subsystem: "MagicCardSearch", category: "CardSearchService")
 
 @MainActor
 class CardSearchService {
@@ -8,7 +11,7 @@ class CardSearchService {
     private let client: ScryfallClient
     
     init() {
-        self.client = ScryfallClient(networkLogLevel: .minimal)
+        self.client = ScryfallClient(logger: logger)
     }
     
     func fetchCard(byScryfallId id: UUID) async throws -> Card {

@@ -1,4 +1,7 @@
 import ScryfallKit
+import OSLog
+
+private let logger = Logger(subsystem: "MagicCardSearch", category: "ScryfallCardNameFetcher")
 
 struct NameSuggestion: Equatable, Hashable, Sendable, ScorableSuggestion {
     let filter: SearchFilter
@@ -14,7 +17,7 @@ protocol CardNameFetcher: Sendable {
 struct ScryfallCardNameFetcher: CardNameFetcher {
     func fetch(_ query: String) async -> [String] {
         do {
-            let client = ScryfallClient(networkLogLevel: .minimal)
+            let client = ScryfallClient(logger: logger)
             let catalog = try await client.getCardNameAutocomplete(query: query)
             return catalog.data
         } catch {

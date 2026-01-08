@@ -1,11 +1,15 @@
 import Foundation
 import ScryfallKit
 
-struct SearchConfiguration: Equatable, Codable {
+struct SearchConfiguration: Equatable, Codable, CustomStringConvertible {
     var uniqueMode: UniqueMode = .cards
     var sortField: SortField = .name
     var sortOrder: SortOrder = .auto
-    
+
+    public var description: String {
+        "unique:\(uniqueMode) order:\(sortField) dir:\(sortOrder)"
+    }
+
     static let defaultConfig = SearchConfiguration()
     
     mutating func resetToDefaults() {

@@ -1,5 +1,8 @@
 import Foundation
+import OSLog
 import ScryfallKit
+
+private let logger = Logger(subsystem: "MagicCardSearch", category: "RulingsService")
 
 @MainActor
 class RulingsService {
@@ -15,7 +18,7 @@ class RulingsService {
     }()
     
     private init() {
-        self.client = ScryfallClient(networkLogLevel: .minimal)
+        self.client = ScryfallClient(logger: logger)
     }
     
     /// Fetch rulings for a card by oracle ID

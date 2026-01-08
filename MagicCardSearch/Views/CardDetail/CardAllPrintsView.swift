@@ -2,6 +2,9 @@ import ScryfallKit
 import SwiftUI
 import SQLiteData
 import NukeUI
+import OSLog
+
+private let logger = Logger(subsystem: "MagicCardSearch", category: "CardAllPrintsView")
 
 struct CardAllPrintsView: View {
     let oracleId: String
@@ -185,7 +188,7 @@ struct CardAllPrintsView: View {
             currentPrints[safe: currentIndex]?.id
         }
 
-        let client = ScryfallClient(networkLogLevel: .minimal)
+        let client = ScryfallClient(logger: logger)
         objectList = ScryfallObjectList { page in
             try await client.searchCards(
                 query: searchQuery,

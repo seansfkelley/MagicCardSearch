@@ -1,10 +1,10 @@
 import Foundation
 import ScryfallKit
-import Logging
+import OSLog
 import SQLiteData
 import SwiftSoup
 
-private let logger = Logger(label: "ScryfallCatalogs")
+private let logger = Logger(subsystem: "MagicCardSearch", category: "ScryfallCatalogs")
 
 private let oneDay: TimeInterval = 60 * 60 * 24
 private let jsonDecoder: JSONDecoder = {
@@ -142,7 +142,7 @@ class ScryfallCatalogs {
             return
         }
 
-        let client = ScryfallClient(networkLogLevel: .minimal)
+        let client = ScryfallClient(logger: logger)
 
         for type in CatalogType.allCases {
             await fetch(type.rawValue) {
@@ -164,9 +164,7 @@ class ScryfallCatalogs {
             }
         } catch {
             symbology = nil
-            logger.warning("failed to load or parse symbology; will not attempt to load SVGs", metadata: [
-                "error": "\(error)",
-            ])
+            logger.warning("failed to load or parse symbology; will not attempt to load SVGs error=\(error)")
         }
 
         if let symbology {
@@ -185,30 +183,20 @@ class ScryfallCatalogs {
             }
         } catch {
             existing = nil
-            logger.warning("failed while reading blob from database; will re-fetch", metadata: [
-                "key": "\(key)",
-                "error": "\(error)",
-            ])
+            logger.warning("failed while reading blob for key=\(key) from database; will re-fetch error=\(error)")
         }
 
         if let existing {
             if existing.insertedAt >= Date(timeIntervalSinceNow: -Double(expirationInDays) * oneDay) {
                 do {
                     _ = try jsonDecoder.decode(T.self, from: existing.value)
-                    logger.info("not fetching; already have valid blob", metadata: [
-                        "key": "\(key)",
-                    ])
+                    logger.info("already have valid blob for key=\(key); not fetching")
                     return
                 } catch {
-                    logger.warning("blob existed but could not be parsed; will re-fetch", metadata: [
-                        "key": "\(key)",
-                        "error": "\(error)",
-                    ])
+                    logger.warning("blob for key=\(key) existed but could not be parsed; will re-fetch error=\(error)")
                 }
             } else {
-                logger.info("blob existed but is expired; will re-fetch", metadata: [
-                    "key": "\(key)",
-                ])
+                logger.info("blob for key=\(key) existed but is expired; will re-fetch")
             }
         }
 
@@ -216,10 +204,7 @@ class ScryfallCatalogs {
         do {
             result = try await fetcher()
         } catch {
-            logger.error("error fetching blob data from Scryfall; will continue without", metadata: [
-                "key": "\(key)",
-                "error": "\(error)",
-            ])
+            logger.error("error fetching blob data for key=\(key) from Scryfall; will continue without error=\(error)")
             return
         }
 
@@ -232,22 +217,15 @@ class ScryfallCatalogs {
                     .execute(db)
             }
         } catch {
-            logger.error("error writing blob to store", metadata: [
-                "key": "\(key)",
-                "error": "\(error)",
-            ])
+            logger.error("error writing blob for key=\(key) to store error=\(error)")
             return
         }
 
-        logger.info("fetched and cached blob", metadata: [
-            "key": "\(key)",
-        ])
+        logger.info("fetched and cached blob for key=\(key)")
     }
 
     private func fetchSymbolSvgs(symbols: [Card.Symbol]) async -> [SymbolCode: Data] {
-        logger.info("fetching symbol SVGs...", metadata: [
-            "count": "\(symbols.count)",
-        ])
+        logger.info("fetching count=\(symbols.count) symbol SVGs")
 
         var result: [SymbolCode: Data] = [:]
         let batchSize = 10
@@ -263,48 +241,39 @@ class ScryfallCatalogs {
             await withTaskGroup(of: (SymbolCode, Data)?.self) { group in
                 for symbol in batch {
                     group.addTask {
-                        do {
-                            if let svgUri = symbol.svgUri,
-                                let url = URL(string: svgUri) {
-                                logger.debug("fetching symbol SVG", metadata: [
-                                    "symbol": "\(symbol.symbol)",
-                                    "svgUri": "\(svgUri)",
-                                ])
-                                let (data, response) = try await URLSession.shared.data(from: url)
+                        if let svgUri = symbol.svgUri,
+                            let url = URL(string: svgUri) {
+                            logger.debug("fetching SVG for symbol=\(symbol.symbol) from svgUri=\(svgUri)")
 
-                                guard let httpResponse = response as? HTTPURLResponse,
-                                      (200...299).contains(httpResponse.statusCode),
-                                      !data.isEmpty else {
-                                    logger.error("invalid SVG response", metadata: [
-                                        "symbol": "\(symbol.symbol)",
-                                        "svgUri": "\(svgUri)",
-                                        "dataSize": "\(data.count)",
-                                    ])
-                                    return nil
-                                }
-
-                                if String(data: data, encoding: .utf8) == nil {
-                                    logger.error("SVG data is not valid UTF-8", metadata: [
-                                        "symbol": "\(symbol.symbol)",
-                                        "svgUri": "\(svgUri)",
-                                        "dataSize": "\(data.count)",
-                                    ])
-                                    return nil
-                                }
-
-                                return (SymbolCode(symbol.symbol), data)
-                            } else {
+                            var data: Data
+                            var response: URLResponse
+                            do {
+                                (data, response) = try await URLSession.shared.data(from: url)
+                            } catch {
+                                // FIXME: This will be broken until ALL the SVGs expire.
+                                logger.warning("failed to fetch symbol SVG for symbol=\(symbol.symbol) from svgUri=\(svgUri); this symbol will not render properly error=\(error)")
                                 return nil
                             }
-                        } catch {
+
+                            guard let httpResponse = response as? HTTPURLResponse else {
+                                logger.error("SVG for symbol=\(symbol.symbol) from svgUri=\(svgUri) response was not a HTTPURLResponse")
+                                return nil
+                            }
+
+                            guard (200...299).contains(httpResponse.statusCode), !data.isEmpty else {
+                                logger.error("invalid response fetching SVG for symbol=\(symbol.symbol) from svgUri=\(svgUri) code=\(httpResponse.statusCode) length=\(data.count)")
+                                return nil
+                            }
+
+                            if String(data: data, encoding: .utf8) == nil {
+                                logger.error("SVG data for symbol=\(symbol.symbol) from svgUri=\(svgUri) is not valid UTF-8")
+                                return nil
+                            }
+
+                            return (SymbolCode(symbol.symbol), data)
+                        } else {
                             // FIXME: This will be broken until ALL the SVGs expire.
-                            logger.warning(
-                                "failed to fetch symbol SVG; this symbol will not render properly",
-                                metadata: [
-                                    "symbolCode": "\(symbol.symbol)",
-                                    "error": "\(error)",
-                                ]
-                            )
+                            logger.warning("SVG for symbol=\(symbol.symbol) had no URI or an invalid URI svgUri=\(symbol.svgUri ?? "nil")")
                             return nil
                         }
                     }

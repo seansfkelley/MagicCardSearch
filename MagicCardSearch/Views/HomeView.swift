@@ -1,9 +1,9 @@
 import SwiftUI
 import ScryfallKit
-import Logging
+import OSLog
 import SQLiteData
 
-private let logger = Logger(label: "HomeView")
+private let logger = Logger(subsystem: "MagicCardSearch", category: "HomeView")
 
 private struct PlainStyling: ViewModifier {
     func body(content: Content) -> some View {
@@ -299,7 +299,7 @@ struct HomeView: View {
 @MainActor
 @Observable
 private class FeaturedCardsObjectList: ScryfallObjectList<Card> {
-    private static let scryfall = ScryfallClient(networkLogLevel: .minimal)
+    private static let scryfall = ScryfallClient(logger: logger)
 
     static let shared = FeaturedCardsObjectList { page async throws in
         return try await scryfall.searchCards(

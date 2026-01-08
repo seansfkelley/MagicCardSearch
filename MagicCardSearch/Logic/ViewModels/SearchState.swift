@@ -1,8 +1,8 @@
 import SwiftUI
-import Logging
+import OSLog
 import ScryfallKit
 
-private let logger = Logger(label: "SearchState")
+private let logger = Logger(subsystem: "MagicCardSearch", category: "SearchState")
 
 // TODO: Remove this decorator once I have disentagled a bunch of the state management.
 @MainActor
@@ -46,7 +46,7 @@ class SearchState {
         CurrentlyHighlightedFilterFacade(inputText: searchText, inputSelection: actualSearchSelection)
     }
 
-    private let scryfall = ScryfallClient(networkLogLevel: .minimal)
+    private let scryfall = ScryfallClient(logger: logger)
     private let historyAndPinnedStore: HistoryAndPinnedStore
 
     public init(historyAndPinnedStore: HistoryAndPinnedStore, scryfallCatalogs: ScryfallCatalogs) {
@@ -74,10 +74,7 @@ class SearchState {
     }
 
     public func performSearch() {
-        logger.info("starting new search", metadata: [
-            "filters": "\(filters)",
-            "configuration": "\(configuration)",
-        ])
+        logger.info("starting new search filters=\(self.filters) configuration=\(self.configuration)")
 
         searchNonce += 1
 

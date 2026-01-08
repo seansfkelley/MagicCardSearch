@@ -12,7 +12,7 @@ struct ReverseEnumerationSuggestion: Equatable, Hashable, Sendable, ScorableSugg
 }
 
 // These are really noisy in the search results and I can't imagine anyone ever wants them.
-private let ignoredSetTypes: Set<MTGSet.`Type`> = [
+private let ignoredSetTypes: Set<MTGSet.Kind> = [
     .token,
     .promo,
 ]
