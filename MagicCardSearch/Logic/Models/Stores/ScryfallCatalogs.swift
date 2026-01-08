@@ -132,7 +132,7 @@ class ScryfallCatalogs {
 
     private let database: any DatabaseWriter
 
-    init(database: DatabaseWriter) {
+    public init(database: DatabaseWriter) {
         self.database = database
     }
 

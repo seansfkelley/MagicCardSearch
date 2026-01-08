@@ -168,5 +168,3 @@ class HistoryAndPinnedStoreTests {
         #expect(pinned.count == 0)
     }
 }
-
-

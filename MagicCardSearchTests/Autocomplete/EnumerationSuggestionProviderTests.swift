@@ -1,7 +1,17 @@
 import Testing
+import SQLiteData
+import DependenciesTestSupport
 @testable import MagicCardSearch
 
+@Suite(.dependency(\.defaultDatabase, try appDatabase()))
 struct EnumerationSuggestionProviderTests {
+    @Dependency(\.defaultDatabase) var database
+    let provider: EnumerationSuggestionProvider
+
+    init() {
+        provider = EnumerationSuggestionProvider(scryfallCatalogs: .init(database: database))
+    }
+
     @Test<[(PartialSearchFilter, [EnumerationSuggestion])]>("getSuggestions", arguments: [
         (
             // gives all values, in alphabetical order, if no value part is given
@@ -103,7 +113,7 @@ struct EnumerationSuggestionProviderTests {
         ),
     ])
     func getSuggestions(partial: PartialSearchFilter, expected: [EnumerationSuggestion]) {
-        let actual = EnumerationSuggestionProvider().getSuggestions(for: partial, excluding: [], limit: 100)
+        let actual = provider.getSuggestions(for: partial, excluding: [], limit: 100)
         #expect(actual == expected)
     }
 }
