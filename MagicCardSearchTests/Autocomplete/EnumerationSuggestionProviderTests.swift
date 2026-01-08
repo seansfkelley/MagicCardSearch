@@ -1,15 +1,17 @@
 import Testing
+import Foundation
 import SQLiteData
 import DependenciesTestSupport
 @testable import MagicCardSearch
 
 @Suite(.dependency(\.defaultDatabase, try appDatabase()))
+@MainActor
 struct EnumerationSuggestionProviderTests {
     @Dependency(\.defaultDatabase) var database
-    let provider: EnumerationSuggestionProvider
+    var provider: EnumerationSuggestionProvider!
 
     init() {
-        provider = EnumerationSuggestionProvider(scryfallCatalogs: .init(database: database))
+        provider = EnumerationSuggestionProvider(scryfallCatalogs: ScryfallCatalogs(database: database))
     }
 
     @Test<[(PartialSearchFilter, [EnumerationSuggestion])]>("getSuggestions", arguments: [

@@ -47,8 +47,8 @@ struct RemoveAutoinsertedWhitespaceTests {
         ("color <=izzet", "color <=izzet"),
     ])
     func testRemoveAutoinsertedWhitespace(input: String, expected: String) {
-        let result = removeAutoinsertedWhitespace(input)
-        #expect(result == expected)
+        let result = removeAutoinsertedWhitespace(input, input.endIndexRange)
+        #expect(result?.0 == expected)
     }
 
     @Test("Selection adjustment cases", arguments: [
@@ -88,9 +88,9 @@ struct RemoveAutoinsertedWhitespaceTests {
         expected: String,
         expectedSelection: Range<Int>,
     ) throws {
-        let actual = removeAutoinsertedWhitespace(input, TextSelection(range: selection.toStringIndices(in: input)!))
+        let actual = removeAutoinsertedWhitespace(input, selection.toStringIndices(in: input)!)
         try #require(actual != nil)
         #expect(actual!.0 == expected)
-        #expect(actual!.1 == TextSelection(range: expectedSelection.toStringIndices(in: actual!.0)!))
+        #expect(actual!.1 == expectedSelection.toStringIndices(in: actual!.0)!)
     }
 }
