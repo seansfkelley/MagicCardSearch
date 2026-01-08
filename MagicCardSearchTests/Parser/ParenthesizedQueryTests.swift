@@ -389,7 +389,26 @@ struct ParenthesizedQueryTests {
             ),
             "-red or -blue",
         ),
-        
+        TestCase(
+            "-(red or blue)",
+            ["-red", "or", "-blue"],
+            disj(
+                conj(
+                    .disjunction(
+                        disj(
+                            conj(
+                                .filter("-red"),
+                            ),
+                            conj(
+                                .filter("-blue"),
+                            ),
+                        ),
+                    ),
+                ),
+            ),
+            "-red or -blue",
+        ),
+
         // MARK: Key:Value and Comparison Operators
         
         // Simple key:value
