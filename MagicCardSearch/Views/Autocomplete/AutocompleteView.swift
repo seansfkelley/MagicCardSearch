@@ -155,14 +155,14 @@ struct AutocompleteView: View {
     private func setEntireSearch(to search: [SearchFilter]) {
         searchState.filters = search
         searchState.searchText = ""
-        searchState.desiredSearchSelection = searchState.searchText.endIndexRange
+        searchState.desiredSearchSelection = nil
         searchState.performSearch()
     }
 
     private func addTopLevelFilter(_ filter: SearchFilter) {
         searchState.filters.append(filter)
         searchState.searchText = ""
-        searchState.desiredSearchSelection = searchState.searchText.endIndexRange
+        searchState.desiredSearchSelection = nil
     }
 
     private func addScopedFilter(_ filter: SearchFilter) {
@@ -170,16 +170,16 @@ struct AutocompleteView: View {
             let filterString = filter.description
             if range.upperBound == searchState.searchText.endIndex {
                 searchState.searchText.replaceSubrange(range, with: filterString)
-                searchState.desiredSearchSelection = searchState.searchText.endIndexRange
+                searchState.desiredSearchSelection = nil
             } else {
                 searchState.searchText.replaceSubrange(range, with: filterString)
                 let index = searchState.searchText.index(range.lowerBound, offsetBy: filterString.count)
-                searchState.desiredSearchSelection = index..<index
+                searchState.desiredSearchSelection = .init(insertionPoint: index)
             }
         } else {
             searchState.filters.append(filter)
             searchState.searchText = ""
-            searchState.desiredSearchSelection = searchState.searchText.endIndexRange
+            searchState.desiredSearchSelection = nil
         }
     }
 
@@ -187,10 +187,10 @@ struct AutocompleteView: View {
         if let range = searchState.selectedFilter.range {
             searchState.searchText.replaceSubrange(range, with: string)
             let index = searchState.searchText.index(range.lowerBound, offsetBy: string.count)
-            searchState.desiredSearchSelection = index..<index
+            searchState.desiredSearchSelection = .init(insertionPoint: index)
         } else {
             searchState.searchText = string
-            searchState.desiredSearchSelection = string.endIndexRange
+            searchState.desiredSearchSelection = nil
         }
     }
 

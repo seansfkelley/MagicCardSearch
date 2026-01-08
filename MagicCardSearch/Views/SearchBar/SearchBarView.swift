@@ -7,10 +7,6 @@ struct SearchBarView: View {
     let isAutocompleteLoading: Bool
 
     @State private var showSymbolPicker = false
-    // Write-only wrapper state for telling UIKit what we want. Never read from, but we still define
-    // it like this so that we aren't creating a new wrapper Binding (and thereby changing the
-    // object identity/underlying state) every render cycle.
-    @State private var wrappedDesiredSelection: TextSelection?
     private let textFieldDelegate: SearchTextFieldDelegate
 
     init(searchState: Binding<SearchState>, isAutocompleteLoading: Bool) {
@@ -24,7 +20,7 @@ struct SearchBarView: View {
                 if let filter = searchState.wrappedValue.searchText.toSearchFilter().value {
                     searchState.wrappedValue.filters.append(filter)
                     searchState.wrappedValue.searchText = ""
-                    searchState.wrappedValue.desiredSearchSelection = "".range
+                    searchState.wrappedValue.desiredSearchSelection = nil
                     return false
                 } else {
                     searchState.wrappedValue.performSearch()
@@ -40,7 +36,7 @@ struct SearchBarView: View {
             TextField(
                 searchState.filters.isEmpty ? "Search for cards..." : "Add filters...",
                 text: $searchState.searchText,
-                selection: $wrappedDesiredSelection,
+                selection: $searchState.desiredSearchSelection,
             )
             .textFieldStyle(.plain)
             .textInputAutocapitalization(.never)
@@ -68,7 +64,7 @@ struct SearchBarView: View {
             if !searchState.searchText.isEmpty {
                 Button(action: {
                     searchState.searchText = ""
-                    searchState.desiredSearchSelection = "".endIndexRange
+                    searchState.desiredSearchSelection = nil
                 }) {
                     Image(systemName: "xmark.circle.fill")
                         .foregroundStyle(.secondary)
@@ -100,7 +96,7 @@ struct SearchBarView: View {
             if Self.didAppend(characterFrom: [" "], to: previous, toCreate: current, withSelection: searchState.actualSearchSelection) {
                 if current.allSatisfy({ $0.isWhitespace }) {
                     searchState.searchText = ""
-                    searchState.desiredSearchSelection = "".endIndexRange
+                    searchState.desiredSearchSelection = nil
                     return
                 }
 
@@ -112,7 +108,7 @@ struct SearchBarView: View {
                             content: .name(isExact, .unterminated(.doubleQuote, content)),
                         )
                         .description
-                        searchState.desiredSearchSelection = searchState.searchText.endIndexRange
+                        searchState.desiredSearchSelection = nil
                         return
                     }
                 }
@@ -122,7 +118,7 @@ struct SearchBarView: View {
                 if case .valid(let filter) = searchState.searchText.toSearchFilter() {
                     searchState.filters.append(filter)
                     searchState.searchText = ""
-                    searchState.desiredSearchSelection = "".endIndexRange
+                    searchState.desiredSearchSelection = nil
                 }
                 return
             }
@@ -130,7 +126,7 @@ struct SearchBarView: View {
             if let (newText, newSelection) = removeAutoinsertedWhitespace(current, searchState.actualSearchSelection),
                newText != searchState.searchText {
                 searchState.searchText = newText
-                searchState.desiredSearchSelection = newSelection
+                searchState.desiredSearchSelection = .init(range: newSelection)
                 return
             }
         }
@@ -138,14 +134,10 @@ struct SearchBarView: View {
             showSymbolPicker = false
         }
         .onChange(of: searchState.desiredSearchSelection) {
-            print("view saw desired change", searchState.desiredSearchSelection)
-            wrappedDesiredSelection = .init(range: searchState.desiredSearchSelection)
-        }
-        .onChange(of: searchState.actualSearchSelection) {
-            print("view saw actual change", searchState.actualSearchSelection)
-        }
-        .onChange(of: wrappedDesiredSelection) {
-            wrappedDesiredSelection = nil
+            // Once it's passed in one time, nil it out so next time it'll take effect again. I
+            // didn't 100% test that this was necessary, but it does work as written and I spent way
+            // too long fucking about with selection so I left it as-is.
+            searchState.desiredSearchSelection = nil
         }
     }
 
@@ -169,7 +161,7 @@ struct SearchBarView: View {
     private func insertSymbol(_ symbol: SymbolCode) {
         searchState.searchText.replaceSubrange(searchState.actualSearchSelection, with: symbol.normalized)
         let index = searchState.searchText.index(searchState.actualSearchSelection.lowerBound, offsetBy: symbol.normalized.count)
-        searchState.desiredSearchSelection = index..<index
+        searchState.desiredSearchSelection = .init(insertionPoint: index)
     }
 }
 

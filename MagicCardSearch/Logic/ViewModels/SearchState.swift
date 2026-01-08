@@ -31,7 +31,7 @@ class SearchState {
     // interested in and, in any case, UITextField doesn't seem to support anyway. It also means we
     // can define some of our own semantics, namely, that an empty range is still considered a point
     // insertion.
-    public var desiredSearchSelection: Range<String.Index> = "".startIndex..<"".endIndex
+    public var desiredSearchSelection: TextSelection?
     public var actualSearchSelection: Range<String.Index> = "".startIndex..<"".endIndex
 
     public var filters: [SearchFilter] = []
@@ -63,7 +63,7 @@ class SearchState {
 
     public func clearAll() {
         searchText = ""
-        desiredSearchSelection = "".range
+        desiredSearchSelection = nil
         filters = []
         results = nil
         clearNonce += 1
