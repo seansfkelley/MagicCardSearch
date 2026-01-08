@@ -1,14 +1,16 @@
+import Foundation
 import ScryfallKit
-import Logging
+import OSLog
 import SwiftUI
 
-private let logger = Logger(label: "ScryfallObjectList")
+private let logger = Logger(subsystem: "MagicCardSearch", category: "ScryfallObjectList")
 
 @MainActor
 @Observable
 class ScryfallObjectList<T: Codable & Sendable> {
     public private(set) var value: LoadableResult<ObjectList<T>, SearchErrorState> = .unloaded
 
+    private let searchUuid = UUID()
     private var fetcher: @Sendable (Int) async throws -> ObjectList<T>
     private var nextPage = 1
     nonisolated(unsafe) private var task: Task<Void, Never>?
@@ -36,18 +38,16 @@ class ScryfallObjectList<T: Codable & Sendable> {
     @discardableResult
     func loadNextPage() -> Task<Void, Never> {
         if case .loading = value {
-            logger.debug("declining to load next page: already loading")
+            logger.debug("declining to load next page: already loading uuid=\(self.searchUuid)")
             return Task {}
         }
 
         if case .loaded(let list, _) = value, list.nextPage == nil {
-            logger.debug("declining to load next page: already at the end of the list")
+            logger.debug("declining to load next page: already at the end of the list uuid=\(self.searchUuid)")
             return Task {}
         }
 
-        logger.info("loading next page", metadata: [
-            "page": "\(nextPage)",
-        ])
+        logger.info("loading page=\(self.nextPage) uuid=\(self.searchUuid)")
 
         task?.cancel()
         value = .loading(value.latestValue, nil)
@@ -57,9 +57,7 @@ class ScryfallObjectList<T: Codable & Sendable> {
                 let result = try await self.fetcher(self.nextPage)
                 guard !Task.isCancelled else { return }
 
-                logger.debug("successfully fetched next page", metadata: [
-                    "page": "\(nextPage)",
-                ])
+                logger.debug("successfully fetched page=\(self.nextPage) uuid=\(self.searchUuid)")
                 self.nextPage += 1
                 self.value = .loaded(self.append(self.value.latestValue, result), nil)
             } catch let error as ScryfallKitError {
@@ -68,21 +66,15 @@ class ScryfallObjectList<T: Codable & Sendable> {
                 // be fine since we only use a small number of fixed URLs, but of course it's not
                 // foolproof if Scryfall makes breaking changes.
                 if case .scryfallError(let error) = error, error.status == 404 {
-                    logger.debug("intercepted Scryfall 404 and set to empty instead")
+                    logger.debug("intercepted Scryfall 404 and set to empty instead uuid=\(self.searchUuid)")
                     // Appending empty is another way of saying to mark is as having no more pages, etc.
                     self.value = .loaded(append(self.value.latestValue, .empty()), nil)
                 } else {
-                    logger.error("error fetching next page", metadata: [
-                        "page": "\(nextPage)",
-                        "error": "\(error)",
-                    ])
+                    logger.error("error fetching page=\(self.nextPage) uuid=\(self.searchUuid) error=\(error)")
                     self.value = .errored(self.value.latestValue, SearchErrorState(from: error))
                 }
             } catch {
-                logger.error("error fetching next page", metadata: [
-                    "page": "\(nextPage)",
-                    "error": "\(error)",
-                ])
+                logger.error("error fetching page=\(self.nextPage) uuid=\(self.searchUuid) error=\(error)")
                 self.value = .errored(self.value.latestValue, SearchErrorState(from: error))
             }
         }
@@ -93,18 +85,16 @@ class ScryfallObjectList<T: Codable & Sendable> {
     @discardableResult
     func loadAllRemainingPages() -> Task<Void, Never> {
         if case .loading = value {
-            logger.debug("declining to load all remaining pages: already loading")
+            logger.debug("declining to load all remaining pages: already loading uuid=\(self.searchUuid)")
             return Task {}
         }
 
         if case .loaded(let list, _) = value, list.nextPage == nil {
-            logger.debug("declining to load all remaining pages: already at the end of the list")
+            logger.debug("declining to load all remaining pages: already at the end of the list uuid=\(self.searchUuid)")
             return Task {}
         }
 
-        logger.info("loading all remaining pages", metadata: [
-            "fromPage": "\(nextPage)",
-        ])
+        logger.info("loading all remaining pages from page=\(self.nextPage) uuid=\(self.searchUuid)")
 
         task?.cancel()
         value = .loading(value.latestValue, nil)
@@ -118,25 +108,20 @@ class ScryfallObjectList<T: Codable & Sendable> {
                     let result = try await self.fetcher(self.nextPage)
                     guard !Task.isCancelled else { return }
 
-                    logger.debug("successfully fetched page", metadata: [
-                        "page": "\(nextPage)",
-                    ])
+                    logger.debug("successfully fetched page=\(self.nextPage) uuid=\(self.searchUuid)")
 
                     currentData = self.append(currentData, result)
                     self.nextPage += 1
                     shouldContinue = result.hasMore ?? false
                 } catch {
-                    logger.error("error fetching page, stopping", metadata: [
-                        "page": "\(nextPage)",
-                        "error": "\(error)",
-                    ])
+                    logger.error("error fetching page=\(self.nextPage), stopping uuid=\(self.searchUuid) error=\(error)")
                     self.value = .errored(currentData, SearchErrorState(from: error))
                     return
                 }
             }
 
             if !Task.isCancelled {
-                logger.info("successfully loaded all remaining pages")
+                logger.info("successfully loaded all remaining pages uuid=\(self.searchUuid)")
                 self.value = .loaded(currentData, nil)
             }
         }

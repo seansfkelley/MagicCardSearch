@@ -1,21 +1,24 @@
 import Foundation
-import Logging
+import OSLog
 import SQLiteData
 
-private let logger = Logger(label: "TransformedBlob")
+private let logger = Logger(subsystem: "MagicCardSearch", category: "TransformedBlob")
 
 @propertyWrapper
 class TransformedBlob<Value: Decodable> {
     @FetchOne private var blob: BlobEntry?
+    private var key: String
     private var cache: Result<Value, Error>?
     private let transform: (Data) throws -> Value
 
     init(_ key: String, _ transform: @escaping (Data) throws -> Value) {
+        self.key = key
         self._blob = FetchOne(wrappedValue: nil, BlobEntry.where { $0.key == key })
         self.transform = transform
     }
 
     init(_ key: String, withJsonDecoder jsonDecoder: JSONDecoder = JSONDecoder()) {
+        self.key = key
         self._blob = FetchOne(wrappedValue: nil, BlobEntry.where { $0.key == key })
         self.transform = { try jsonDecoder.decode(Value.self, from: $0) }
     }
@@ -32,9 +35,7 @@ class TransformedBlob<Value: Decodable> {
             cache = .success(value)
             return value
         } catch {
-            logger.warning("failed to transform blob", metadata: [
-                "error": "\(error)",
-            ])
+            logger.warning("failed to transform blob for key=\(self.key) error=\(error)")
             cache = .failure(error)
             return nil
         }

@@ -3,9 +3,9 @@ import ScryfallKit
 import SQLiteData
 import NukeUI
 import GRDB
-import Logging
+import OSLog
 
-private let logger = Logger(label: "BookmarkedCardsListView")
+private let logger = Logger(subsystem: "MagicCardSearch", category: "BookmarkedCardsListView")
 
 struct BookmarkedCardsListView: View {
     @Environment(\.dismiss) private var dismiss
@@ -278,10 +278,7 @@ private struct BookmarkedCardDetailNavigator: View {
             nextPageError: nil,
             loadDistance: 1,
             loader: { card in
-                logger.info("fetching card", metadata: [
-                    "name": "\(card.name)",
-                    "scryfallId": "\(card.id)",
-                ])
+                logger.info("fetching card cardName=\(card.name) cardId=\(card.id)")
                 return try await cardSearchService.fetchCard(byScryfallId: card.id)
             }
         ) { card in

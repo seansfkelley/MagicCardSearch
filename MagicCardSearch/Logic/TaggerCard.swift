@@ -1,8 +1,8 @@
 import Foundation
-import Logging
+import OSLog
 import SwiftSoup
 
-private let logger = Logger(label: "TaggerCard")
+private let logger = Logger(subsystem: "MagicCardSearch", category: "TaggerCard")
 
 struct TaggerCard: Codable {
     enum Status: Codable, Equatable {
@@ -19,9 +19,18 @@ struct TaggerCard: Codable {
         }
     }
 
-    enum ForeignKey: Codable, Equatable {
+    enum ForeignKey: Codable, Equatable, CustomStringConvertible {
         case oracleId, illustrationId, printingId
         case unknown(String)
+
+        public var description: String {
+            switch self {
+            case .oracleId: return "oracleId"
+            case .illustrationId: return "illustrationId"
+            case .printingId: return "printingId"
+            case .unknown(let s): return "unknown(\(s))"
+            }
+        }
 
         init(from decoder: Decoder) throws {
             let container = try decoder.singleValueContainer()
@@ -165,6 +174,7 @@ struct TaggerCard: Codable {
         }
     }
 
+    let name: String // Just for logging, really.
     let oracleId: UUID
     // card with Scryfall ID efbc5ec8-91ac-4a59-8f4d-577dc2d350c1 has no illustrationId at the time
     // of writing, however, it was also the newest spoiler at the time to perhaps the problem is
@@ -191,11 +201,7 @@ struct TaggerCard: Codable {
     private static func getHeaders(setCode: String, collectorNumber: String) async throws -> (cookie: String, csrfToken: String) {
         let url = URL(string: "https://tagger.scryfall.com/card/\(setCode.lowercased())/\(collectorNumber.lowercased())")!
 
-        logger.info("fetching cookie and CSRF token", metadata: [
-            "setCode": "\(setCode)",
-            "collectorNumber": "\(collectorNumber)",
-            "url": "\(url)",
-        ])
+        logger.info("fetching cookie and CSRF token for set=\(setCode) collectorNumber=\(collectorNumber) from url=\(url)")
 
         let (data, response) = try await URLSession.shared.data(from: url)
 
@@ -271,11 +277,7 @@ struct TaggerCard: Codable {
 
         request.httpBody = try JSONSerialization.data(withJSONObject: query, options: [])
 
-        logger.info("executing GraphQL query for tags", metadata: [
-            "setCode": "\(setCode)",
-            "collectorNumber": "\(collectorNumber)",
-            "url": "\(url)",
-        ])
+        logger.info("executing GraphQL query to fetch tags for set=\(setCode) collectorNumber=\(collectorNumber) from url=\(url)")
 
         let (data, response) = try await URLSession.shared.data(for: request)
 

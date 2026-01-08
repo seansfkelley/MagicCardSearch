@@ -1,9 +1,9 @@
-import Logging
+import OSLog
 import SwiftUI
 import ScryfallKit
 import SwiftSoup
 
-private let logger = Logger(label: "CardTagsSection")
+private let logger = Logger(subsystem: "MagicCardSearch", category: "CardTagsSection")
 
 private enum LoadError: Error, LocalizedError {
     case cardNotFound
@@ -121,9 +121,7 @@ struct CardTagsSection: View {
                 }
                 card = .loaded(loadedCard, nil)
             } catch {
-                logger.error("error while trying to fetch tags", metadata: [
-                    "error": "\(error)",
-                ])
+                logger.error("error while trying to fetch tagged card for set=\(setCode) collectorNumber=\(collectorNumber) error=\(error)")
                 card = .errored(card.latestValue, error)
             }
         }
@@ -147,22 +145,13 @@ struct CardTagsSection: View {
             }
 
             guard let fetchedCard else {
-                logger.error("no card found for foreign key", metadata: [
-                    "relationshipId": "\(relationshipId)",
-                    "foreignKey": "\(foreignKey)",
-                    "foreignKeyId": "\(foreignKeyId)",
-                ])
+                logger.error("no related card found with foreignKeyId=\(foreignKeyId) ofType=\(foreignKey)")
                 return
             }
             relatedCardToShow = fetchedCard
         } catch {
             // TODO: Handle error appropriately (e.g., show alert)
-            logger.error("error loading related card from relationship", metadata: [
-                "relationshipId": "\(relationshipId)",
-                "foreignKey": "\(foreignKey)",
-                "foreignKeyId": "\(foreignKeyId)",
-                "error": "\(error)",
-            ])
+            logger.error("error loading related card with foreignKeyId=\(foreignKeyId) ofType=\(foreignKey) error=\(error)")
         }
     }
 }

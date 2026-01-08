@@ -1,6 +1,6 @@
-import Logging
+import OSLog
 
-private let logger = Logger(label: "PartialSearchFilter")
+private let logger = Logger(subsystem: "MagicCardSearch", category: "PartialSearchFilter")
 
 struct PartialSearchFilter: Equatable, CustomStringConvertible {
     enum PartialComparison: String, Equatable, CustomStringConvertible {
@@ -157,9 +157,7 @@ struct PartialSearchFilter: Equatable, CustomStringConvertible {
                 )
             }
         } catch {
-            logger.error("unexpected error; this code should not ever throw", metadata: [
-                "error": "\(error)",
-            ])
+            logger.error("unexpected error; this code should not ever throw error=\(error)")
         }
         
         return .init(

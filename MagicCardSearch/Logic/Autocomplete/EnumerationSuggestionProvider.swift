@@ -1,6 +1,6 @@
 import Foundation
 import ScryfallKit
-import Logging
+import OSLog
 import Algorithms
 
 struct EnumerationSuggestion: Equatable, Hashable, Sendable, ScorableSuggestion {
@@ -28,7 +28,7 @@ private let ignoredSetTypes: Set<MTGSet.Kind> = [
     .promo,
 ]
 
-private let logger = Logger(label: "EnumerationSuggestionProvider")
+private let logger = Logger(subsystem: "MagicCardSearch", category: "EnumerationSuggestionProvider")
 
 @MainActor
 struct EnumerationSuggestionProvider {

@@ -1,8 +1,8 @@
-import Logging
+import OSLog
 import ScryfallKit
 import SwiftUI
 
-private let logger = Logger(label: "CardDetailView")
+private let logger = Logger(subsystem: "MagicCardSearch", category: "CardDetailView")
 
 protocol CardDetailDisplayable {
     var name: String { get }
@@ -293,11 +293,7 @@ struct CardDetailView: View {
             rulingsResult = rulingsResult.asLoaded(fetchedRulings)
         } catch {
             rulingsResult = rulingsResult.asErrored(error)
-            logger.error("error loading rulings", metadata: [
-                "cardId": "\(card.id)",
-                "cardName": "\(card.name)",
-                "error": "\(error)",
-            ])
+            logger.error("error loading rulings for cardId=\(card.id) cardId=\(card.id) error=\(error)")
         }
     }
 }

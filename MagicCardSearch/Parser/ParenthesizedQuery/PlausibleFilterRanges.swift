@@ -1,6 +1,6 @@
-import Logging
+import OSLog
 
-private let logger = Logger(label: "PlausibleFilterRanges")
+private let logger = Logger(subsystem: "MagicCardSearch", category: "PlausibleFilterRanges")
 
 struct PlausibleFilterRanges {
     // Note that these are not guaranteed to be all filters; on parse error we stop trying and
@@ -68,9 +68,7 @@ struct PlausibleFilterRanges {
 
             return .init(ranges: coalescedRanges)
         } catch {
-            logger.error("Lexer errored, which should not happen", metadata: [
-                "error": "\(error)",
-            ])
+            logger.error("lexer errored, which should not happen error=\(error)")
             return .init(ranges: [])
         }
     }

@@ -1,9 +1,9 @@
 import SwiftUI
 import SVGKit
 import ScryfallKit
-import Logging
+import OSLog
 
-private let logger = Logger(label: "SetIconView")
+private let logger = Logger(subsystem: "MagicCardSearch", category: "SetIconView")
 
 private enum LoadError: Error, LocalizedError {
     case missingSetMetadata
@@ -80,10 +80,7 @@ struct SetIconView: View {
             }
 
             let svgData = try await Self.svgDataCache.get(setCode) {
-                logger.info("requesting set icon", metadata: [
-                    "setCode": "\(setCode.normalized)",
-                    "url": "\(url)",
-                ])
+                logger.info("requesting set icon for set=\(setCode.normalized) from url=\(url)")
                 let (data, _) = try await URLSession.shared.data(from: url)
                 return data
             }

@@ -1,8 +1,8 @@
 import SwiftUI
-import Logging
+import OSLog
 import ScryfallKit
 
-private let logger = Logger(label: "ContentView")
+private let logger = Logger(subsystem: "MagicCardSearch", category: "ContentView")
 
 enum MainContentType {
     case home

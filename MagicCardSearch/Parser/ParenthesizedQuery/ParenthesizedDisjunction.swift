@@ -1,6 +1,6 @@
-import Logging
+import OSLog
 
-private let logger = Logger(label: "ParenthesizedDisjunction")
+private let logger = Logger(subsystem: "MagicCardSearch", category: "ParenthesizedDisjunction")
 
 struct ParenthesizedDisjunction: Equatable, CustomStringConvertible, Sendable {
     let negated: Bool
@@ -58,9 +58,7 @@ struct ParenthesizedDisjunction: Equatable, CustomStringConvertible, Sendable {
             }
             return try parser.endParsing()
         } catch {
-            logger.debug("failed to parse disjunction", metadata: [
-                "error": "\(error)",
-            ])
+            logger.debug("failed to parse disjunction error=\(error)")
             return nil
         }
     }

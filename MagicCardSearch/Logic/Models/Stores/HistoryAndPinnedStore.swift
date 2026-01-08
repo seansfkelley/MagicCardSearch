@@ -1,9 +1,9 @@
 import Foundation
-import Logging
+import OSLog
 import SQLiteData
 import Observation
 
-private let logger = Logger(label: "HistoryAndPinnedState")
+private let logger = Logger(subsystem: "MagicCardSearch", category: "HistoryAndPinnedState")
 
 @MainActor
 @Observable
@@ -130,9 +130,7 @@ class HistoryAndPinnedStore {
         do {
             try database.write(block)
         } catch {
-            logger.error("error while \(operation)", metadata: [
-                "error": "\(error)",
-            ])
+            logger.error("error while performing operation=\(operation) error=\(error)")
             lastError = error
         }
     }
