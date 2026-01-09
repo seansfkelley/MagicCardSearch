@@ -1,6 +1,6 @@
 import OSLog
 
-private let logger = Logger(subsystem: "MagicCardSearch", label: "FilterQuery")
+private let logger = Logger(subsystem: "MagicCardSearch", category: "FilterQuery")
 
 public enum FilterQuery<T: Codable & Sendable & Hashable & Equatable & CustomStringConvertible>: Codable, Sendable, Hashable, Equatable, CustomStringConvertible {
     case term(Polarity, T)
@@ -104,6 +104,38 @@ public enum FilterQuery<T: Codable & Sendable & Hashable & Equatable & CustomStr
             } else {
                 .or(polarity, unwrappedFilters)
             }
+        }
+    }
+    
+    public func transformLeaves<U: Codable & Sendable & Hashable & Equatable & CustomStringConvertible>(
+        using transform: (T) -> U?
+    ) -> FilterQuery<U>? {
+        switch self {
+        case .term(let polarity, let value):
+            guard let transformedValue = transform(value) else {
+                return nil
+            }
+            return .term(polarity, transformedValue)
+            
+        case .and(let polarity, let filters):
+            var transformedFilters: [FilterQuery<U>] = []
+            for filter in filters {
+                guard let transformedFilter = filter.transformLeaves(using: transform) else {
+                    return nil
+                }
+                transformedFilters.append(transformedFilter)
+            }
+            return .and(polarity, transformedFilters)
+            
+        case .or(let polarity, let filters):
+            var transformedFilters: [FilterQuery<U>] = []
+            for filter in filters {
+                guard let transformedFilter = filter.transformLeaves(using: transform) else {
+                    return nil
+                }
+                transformedFilters.append(transformedFilter)
+            }
+            return .or(polarity, transformedFilters)
         }
     }
 }

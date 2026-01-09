@@ -3,6 +3,10 @@ public enum FilterTerm: Codable, Sendable, Hashable, Equatable, CustomStringConv
     case basic(String, Comparison, String)
     case regex(String, Comparison, String)
 
+    public static func from(_ string: String) -> FilterTerm? {
+        PartialFilterTerm.from(string).toComplete()
+    }
+
     public var description: String {
         switch self {
         case .name(let isExact, let name):
