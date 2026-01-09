@@ -7,7 +7,7 @@
 
 // Parser class
 
-class ParenthesizedQueryParser: CitronParser {
+class PartialFilterQueryParser: CitronParser {
 
     // Types
 
@@ -59,25 +59,23 @@ class ParenthesizedQueryParser: CitronParser {
         }
     }
 
-    typealias CitronToken = ParenthesizedQueryTokenContent
+    typealias CitronToken = PartialFilterQueryTokenContent
 
     enum CitronSymbol {
         case yyBaseOfStack
         case yy0(CitronToken)
-        case yy5(ParenthesizedConjunction)
-        case yy13(ParenthesizedDisjunction)
+        case yy14(PartialFilterQuery)
 
         func typeErasedContent() -> Any {
             switch (self) {
             case .yyBaseOfStack: fatalError()
             case .yy0(let value): return value as Any
-            case .yy5(let value): return value as Any
-            case .yy13(let value): return value as Any
+            case .yy14(let value): return value as Any
             }
         }
     }
 
-    typealias CitronResult = ParenthesizedDisjunction
+    typealias CitronResult = PartialFilterQuery
 
     // Counts
 
@@ -180,95 +178,100 @@ class ParenthesizedQueryParser: CitronParser {
     func yyInvokeCodeBlockForRule(ruleNumber: CitronRuleNumber) throws -> CitronSymbol {
         switch (ruleNumber) {
         case 0: /* query ::= disjunction(d) */
-            func codeBlockForRule0(d: ParenthesizedDisjunction) throws -> ParenthesizedDisjunction {
-#sourceLocation(file: "MagicCardSearch/Parser/ParenthesizedQuery/ParenthesizedQueryGrammar.y", line: 7)
+            func codeBlockForRule0(d: PartialFilterQuery) throws -> PartialFilterQuery {
+#sourceLocation(file: "MagicCardSearch/Parser/PartialFilterQuery/PartialFilterQueryGrammar.y", line: 7)
  d 
 #sourceLocation()
 }
-            if case .yy13(let d) = yySymbolOnStack(distanceFromTop: 0) {
-                return .yy13(try codeBlockForRule0(d: d))
+            if case .yy14(let d) = yySymbolOnStack(distanceFromTop: 0) {
+                return .yy14(try codeBlockForRule0(d: d))
             }
         case 1: /* disjunction ::= conjunction(c) */
-            func codeBlockForRule1(c: ParenthesizedConjunction) throws -> ParenthesizedDisjunction {
-#sourceLocation(file: "MagicCardSearch/Parser/ParenthesizedQuery/ParenthesizedQueryGrammar.y", line: 11)
-
-    .init(false, [c])
-
+            func codeBlockForRule1(c: PartialFilterQuery) throws -> PartialFilterQuery {
+#sourceLocation(file: "MagicCardSearch/Parser/PartialFilterQuery/PartialFilterQueryGrammar.y", line: 11)
+ c 
 #sourceLocation()
 }
-            if case .yy5(let c) = yySymbolOnStack(distanceFromTop: 0) {
-                return .yy13(try codeBlockForRule1(c: c))
+            if case .yy14(let c) = yySymbolOnStack(distanceFromTop: 0) {
+                return .yy14(try codeBlockForRule1(c: c))
             }
         case 2: /* disjunction ::= disjunction(d) Or conjunction(c) */
-            func codeBlockForRule2(d: ParenthesizedDisjunction, c: ParenthesizedConjunction) throws -> ParenthesizedDisjunction {
-#sourceLocation(file: "MagicCardSearch/Parser/ParenthesizedQuery/ParenthesizedQueryGrammar.y", line: 14)
+            func codeBlockForRule2(d: PartialFilterQuery, c: PartialFilterQuery) throws -> PartialFilterQuery {
+#sourceLocation(file: "MagicCardSearch/Parser/PartialFilterQuery/PartialFilterQueryGrammar.y", line: 12)
 
-    .init(false, d.clauses + [c])
+    .or(.positive, [d, c])
 
 #sourceLocation()
 }
-            if case .yy13(let d) = yySymbolOnStack(distanceFromTop: 2),
-               case .yy5(let c) = yySymbolOnStack(distanceFromTop: 0) {
-                return .yy13(try codeBlockForRule2(d: d, c: c))
+            if case .yy14(let d) = yySymbolOnStack(distanceFromTop: 2),
+               case .yy14(let c) = yySymbolOnStack(distanceFromTop: 0) {
+                return .yy14(try codeBlockForRule2(d: d, c: c))
             }
         case 3: /* conjunction ::= Verbatim(v) */
-            func codeBlockForRule3(v: ParenthesizedQueryTokenContent) throws -> ParenthesizedConjunction {
-#sourceLocation(file: "MagicCardSearch/Parser/ParenthesizedQuery/ParenthesizedQueryGrammar.y", line: 20)
+            func codeBlockForRule3(v: PartialFilterQueryTokenContent) throws -> PartialFilterQuery {
+#sourceLocation(file: "MagicCardSearch/Parser/PartialFilterQuery/PartialFilterQueryGrammar.y", line: 18)
 
-    .init([.filter(v.content)])
+    if v.content.first == "-" {
+        .term(.negative, String(v.content[1...]))
+    } else {
+        .term(.positive, v.content)
+    }
 
 #sourceLocation()
 }
             if case .yy0(let v) = yySymbolOnStack(distanceFromTop: 0) {
-                return .yy5(try codeBlockForRule3(v: v))
+                return .yy14(try codeBlockForRule3(v: v))
             }
         case 4: /* conjunction ::= parenthesized(d) */
-            func codeBlockForRule4(d: ParenthesizedDisjunction) throws -> ParenthesizedConjunction {
-#sourceLocation(file: "MagicCardSearch/Parser/ParenthesizedQuery/ParenthesizedQueryGrammar.y", line: 23)
-
-    .init([.disjunction(d)])
-
+            func codeBlockForRule4(d: PartialFilterQuery) throws -> PartialFilterQuery {
+#sourceLocation(file: "MagicCardSearch/Parser/PartialFilterQuery/PartialFilterQueryGrammar.y", line: 25)
+ d 
 #sourceLocation()
 }
-            if case .yy13(let d) = yySymbolOnStack(distanceFromTop: 0) {
-                return .yy5(try codeBlockForRule4(d: d))
+            if case .yy14(let d) = yySymbolOnStack(distanceFromTop: 0) {
+                return .yy14(try codeBlockForRule4(d: d))
             }
         case 5: /* conjunction ::= conjunction(c) And Verbatim(v) */
-            func codeBlockForRule5(c: ParenthesizedConjunction, v: ParenthesizedQueryTokenContent) throws -> ParenthesizedConjunction {
-#sourceLocation(file: "MagicCardSearch/Parser/ParenthesizedQuery/ParenthesizedQueryGrammar.y", line: 26)
+            func codeBlockForRule5(c: PartialFilterQuery, v: PartialFilterQueryTokenContent) throws -> PartialFilterQuery {
+#sourceLocation(file: "MagicCardSearch/Parser/PartialFilterQuery/PartialFilterQueryGrammar.y", line: 26)
 
-    .init(c.clauses + [.filter(v.content)])
+    let filter = if v.content.first == "-" {
+        FilterQuery.term(.negative, String(v.content[1...]))
+    } else {
+        FilterQuery.term(.positive, v.content)
+    }
+    .and(.positive, [c, filter])
 
 #sourceLocation()
 }
-            if case .yy5(let c) = yySymbolOnStack(distanceFromTop: 2),
+            if case .yy14(let c) = yySymbolOnStack(distanceFromTop: 2),
                case .yy0(let v) = yySymbolOnStack(distanceFromTop: 0) {
-                return .yy5(try codeBlockForRule5(c: c, v: v))
+                return .yy14(try codeBlockForRule5(c: c, v: v))
             }
         case 6: /* conjunction ::= conjunction(c) And parenthesized(d) */
-            func codeBlockForRule6(c: ParenthesizedConjunction, d: ParenthesizedDisjunction) throws -> ParenthesizedConjunction {
-#sourceLocation(file: "MagicCardSearch/Parser/ParenthesizedQuery/ParenthesizedQueryGrammar.y", line: 29)
+            func codeBlockForRule6(c: PartialFilterQuery, d: PartialFilterQuery) throws -> PartialFilterQuery {
+#sourceLocation(file: "MagicCardSearch/Parser/PartialFilterQuery/PartialFilterQueryGrammar.y", line: 34)
 
-    .init(c.clauses + [.disjunction(d)])
+    .and(.positive, [c, d])
 
 #sourceLocation()
 }
-            if case .yy5(let c) = yySymbolOnStack(distanceFromTop: 2),
-               case .yy13(let d) = yySymbolOnStack(distanceFromTop: 0) {
-                return .yy5(try codeBlockForRule6(c: c, d: d))
+            if case .yy14(let c) = yySymbolOnStack(distanceFromTop: 2),
+               case .yy14(let d) = yySymbolOnStack(distanceFromTop: 0) {
+                return .yy14(try codeBlockForRule6(c: c, d: d))
             }
         case 7: /* parenthesized ::= OpenParen(l) disjunction(d) CloseParen(r) */
-            func codeBlockForRule7(l: ParenthesizedQueryTokenContent, d: ParenthesizedDisjunction, r: ParenthesizedQueryTokenContent) throws -> ParenthesizedDisjunction {
-#sourceLocation(file: "MagicCardSearch/Parser/ParenthesizedQuery/ParenthesizedQueryGrammar.y", line: 35)
+            func codeBlockForRule7(l: PartialFilterQueryTokenContent, d: PartialFilterQuery, r: PartialFilterQueryTokenContent) throws -> PartialFilterQuery {
+#sourceLocation(file: "MagicCardSearch/Parser/PartialFilterQuery/PartialFilterQueryGrammar.y", line: 40)
 
-    .init(l.content.first == "-", d.clauses)
+    .or(l.content.first == "-", [d])
 
 #sourceLocation()
 }
             if case .yy0(let l) = yySymbolOnStack(distanceFromTop: 2),
-               case .yy13(let d) = yySymbolOnStack(distanceFromTop: 1),
+               case .yy14(let d) = yySymbolOnStack(distanceFromTop: 1),
                case .yy0(let r) = yySymbolOnStack(distanceFromTop: 0) {
-                return .yy13(try codeBlockForRule7(l: l, d: d, r: r))
+                return .yy14(try codeBlockForRule7(l: l, d: d, r: r))
             }
         default:
             fatalError("Can't invoke code block for rule number \(ruleNumber) - no such rule")
@@ -282,7 +285,7 @@ class ParenthesizedQueryParser: CitronParser {
     }
 
     func yyUnwrapResultFromSymbol(_ symbol: CitronSymbol) -> CitronResult {
-        if case .yy13(let result) = symbol {
+        if case .yy14(let result) = symbol {
             return result
         } else {
             fatalError("Unexpected mismatch in result type")
@@ -291,7 +294,7 @@ class ParenthesizedQueryParser: CitronParser {
 
     // Error capturing
 
-    typealias CitronErrorCaptureDelegate = _ParenthesizedQueryParserCitronErrorCaptureDelegate
+    typealias CitronErrorCaptureDelegate = _PartialFilterQueryParserCitronErrorCaptureDelegate
 
     weak var errorCaptureDelegate: CitronErrorCaptureDelegate? = nil
 
@@ -336,7 +339,7 @@ class ParenthesizedQueryParser: CitronParser {
             let delegateResponse = delegate.shouldCaptureErrorOnQuery(state: state, error: error)
             switch (delegateResponse) {
             case .captureAs(let symbol):
-                return .yy13(symbol)
+                return .yy14(symbol)
             case .dontCapture:
                 return nil
             }
@@ -344,7 +347,7 @@ class ParenthesizedQueryParser: CitronParser {
             let delegateResponse = delegate.shouldCaptureErrorOnDisjunction(state: state, error: error)
             switch (delegateResponse) {
             case .captureAs(let symbol):
-                return .yy13(symbol)
+                return .yy14(symbol)
             case .dontCapture:
                 return nil
             }
@@ -352,7 +355,7 @@ class ParenthesizedQueryParser: CitronParser {
             let delegateResponse = delegate.shouldCaptureErrorOnConjunction(state: state, error: error)
             switch (delegateResponse) {
             case .captureAs(let symbol):
-                return .yy5(symbol)
+                return .yy14(symbol)
             case .dontCapture:
                 return nil
             }
@@ -360,7 +363,7 @@ class ParenthesizedQueryParser: CitronParser {
             let delegateResponse = delegate.shouldCaptureErrorOnParenthesized(state: state, error: error)
             switch (delegateResponse) {
             case .captureAs(let symbol):
-                return .yy13(symbol)
+                return .yy14(symbol)
             case .dontCapture:
                 return nil
             }
@@ -380,27 +383,27 @@ class ParenthesizedQueryParser: CitronParser {
     var numberOfCapturedErrors: Int = 0
 }
 
-protocol _ParenthesizedQueryParserCitronErrorCaptureDelegate : AnyObject {
+protocol _PartialFilterQueryParserCitronErrorCaptureDelegate : AnyObject {
     func shouldSaveErrorForCapturing(error: Error) -> Bool
 
     /* query */
-    func shouldCaptureErrorOnQuery(state: ParenthesizedQueryParser.CitronErrorCaptureState,
-        error: Error) -> CitronErrorCaptureResponse<ParenthesizedDisjunction>
+    func shouldCaptureErrorOnQuery(state: PartialFilterQueryParser.CitronErrorCaptureState,
+        error: Error) -> CitronErrorCaptureResponse<PartialFilterQuery>
 
     /* disjunction */
-    func shouldCaptureErrorOnDisjunction(state: ParenthesizedQueryParser.CitronErrorCaptureState,
-        error: Error) -> CitronErrorCaptureResponse<ParenthesizedDisjunction>
+    func shouldCaptureErrorOnDisjunction(state: PartialFilterQueryParser.CitronErrorCaptureState,
+        error: Error) -> CitronErrorCaptureResponse<PartialFilterQuery>
 
     /* conjunction */
-    func shouldCaptureErrorOnConjunction(state: ParenthesizedQueryParser.CitronErrorCaptureState,
-        error: Error) -> CitronErrorCaptureResponse<ParenthesizedConjunction>
+    func shouldCaptureErrorOnConjunction(state: PartialFilterQueryParser.CitronErrorCaptureState,
+        error: Error) -> CitronErrorCaptureResponse<PartialFilterQuery>
 
     /* parenthesized */
-    func shouldCaptureErrorOnParenthesized(state: ParenthesizedQueryParser.CitronErrorCaptureState,
-        error: Error) -> CitronErrorCaptureResponse<ParenthesizedDisjunction>
+    func shouldCaptureErrorOnParenthesized(state: PartialFilterQueryParser.CitronErrorCaptureState,
+        error: Error) -> CitronErrorCaptureResponse<PartialFilterQuery>
 }
 
-extension _ParenthesizedQueryParserCitronErrorCaptureDelegate {
+extension _PartialFilterQueryParserCitronErrorCaptureDelegate {
     func shouldSaveErrorForCapturing(error: Error) -> Bool {
         return true
     }
@@ -408,20 +411,20 @@ extension _ParenthesizedQueryParserCitronErrorCaptureDelegate {
 
 // Ability to use == to compare CitronSymbolCode with CitronTokenCode / CitronNonTerminalCode
 
-extension ParenthesizedQueryParser.CitronSymbolCode {
-    static func == (a: ParenthesizedQueryParser.CitronSymbolCode, b: ParenthesizedQueryParser.CitronTokenCode) -> Bool {
+extension PartialFilterQueryParser.CitronSymbolCode {
+    static func == (a: PartialFilterQueryParser.CitronSymbolCode, b: PartialFilterQueryParser.CitronTokenCode) -> Bool {
         guard case let .token(code) = a else { return false }
         return (code == b)
     }
-    static func == (a: ParenthesizedQueryParser.CitronTokenCode, b: ParenthesizedQueryParser.CitronSymbolCode) -> Bool {
+    static func == (a: PartialFilterQueryParser.CitronTokenCode, b: PartialFilterQueryParser.CitronSymbolCode) -> Bool {
         guard case let .token(code) = b else { return false }
         return (code == a)
     }
-    static func == (a: ParenthesizedQueryParser.CitronSymbolCode, b: ParenthesizedQueryParser.CitronNonTerminalCode) -> Bool {
+    static func == (a: PartialFilterQueryParser.CitronSymbolCode, b: PartialFilterQueryParser.CitronNonTerminalCode) -> Bool {
         guard case let .nonterminal(code) = a else { return false }
         return (code == b)
     }
-    static func == (a: ParenthesizedQueryParser.CitronNonTerminalCode, b: ParenthesizedQueryParser.CitronSymbolCode) -> Bool {
+    static func == (a: PartialFilterQueryParser.CitronNonTerminalCode, b: PartialFilterQueryParser.CitronSymbolCode) -> Bool {
         guard case let .nonterminal(code) = b else { return false }
         return (code == a)
     }
@@ -429,11 +432,11 @@ extension ParenthesizedQueryParser.CitronSymbolCode {
 
 // Ability to use switch (symbolCode) { case .tokenCode: ...; case .nonterminalCode: ... }
 
-extension ParenthesizedQueryParser.CitronSymbolCode {
-    static func ~= (pattern: ParenthesizedQueryParser.CitronTokenCode, value: ParenthesizedQueryParser.CitronSymbolCode) -> Bool {
+extension PartialFilterQueryParser.CitronSymbolCode {
+    static func ~= (pattern: PartialFilterQueryParser.CitronTokenCode, value: PartialFilterQueryParser.CitronSymbolCode) -> Bool {
         return (pattern == value)
     }
-    static func ~= (pattern: ParenthesizedQueryParser.CitronNonTerminalCode, value: ParenthesizedQueryParser.CitronSymbolCode) -> Bool {
+    static func ~= (pattern: PartialFilterQueryParser.CitronNonTerminalCode, value: PartialFilterQueryParser.CitronSymbolCode) -> Bool {
         return (pattern == value)
     }
 }

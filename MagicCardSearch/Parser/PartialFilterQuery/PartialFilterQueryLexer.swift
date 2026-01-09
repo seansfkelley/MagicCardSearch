@@ -1,4 +1,6 @@
-struct ParenthesizedQueryTokenContent {
+typealias PartialFilterQuery = FilterQuery<String>
+
+struct PartialFilterQueryTokenContent {
     let content: String
     let range: Range<String.Index>
     
@@ -8,17 +10,17 @@ struct ParenthesizedQueryTokenContent {
     }
 }
 
-internal typealias LexedParenthesizedQueryToken = (
-    ParenthesizedQueryParser.CitronToken, ParenthesizedQueryParser.CitronTokenCode
+internal typealias LexedPartialFilterQueryToken = (
+    PartialFilterQueryParser.CitronToken, PartialFilterQueryParser.CitronTokenCode
 )
 
 // swiftlint:disable:next function_body_length
-func lexParenthesizedQuery(_ input: String, allowingUnterminatedLiterals: Bool = false) throws -> [LexedParenthesizedQueryToken] {
+func lexPartialFilterQuery(_ input: String, allowingUnterminatedLiterals: Bool = false) throws -> [LexedPartialFilterQueryToken] {
     guard !input.isEmpty else {
         return []
     }
     
-    var rules: [CitronLexer<(String, ParenthesizedQueryParser.CitronTokenCode)>.LexingRule] = [
+    var rules: [CitronLexer<(String, PartialFilterQueryParser.CitronTokenCode)>.LexingRule] = [
         .regexPattern(#"-?\(\s*"#) { ($0, .OpenParen) },
         .regexPattern(#"\s*\)"#) { ($0, .CloseParen) },
         .regexPattern(#"(\b|\s+)or(\s+|\b)"#) { ($0, .Or) },
@@ -45,9 +47,9 @@ func lexParenthesizedQuery(_ input: String, allowingUnterminatedLiterals: Bool =
     
     rules.append(.regexPattern(#"[ \n\t]+"#) { ($0, .And) })
     
-    let lexer = CitronLexer<(String, ParenthesizedQueryParser.CitronTokenCode)>(rules: rules)
+    let lexer = CitronLexer<(String, PartialFilterQueryParser.CitronTokenCode)>(rules: rules)
     
-    var tokens: [LexedParenthesizedQueryToken] = []
+    var tokens: [LexedPartialFilterQueryToken] = []
     try lexer.tokenize(input) { token, code in
         if tokens.isEmpty {
             tokens.append((

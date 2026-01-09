@@ -17,9 +17,9 @@ func removeAutoinsertedWhitespace(_ current: String, _ selection: Range<String.I
         guard nameCode == .Verbatim,
               andCode == .And,
               filterCode == .Verbatim,
-              case .filter(_, _, let term) = PartialSearchFilter.from(filterToken.content).content,
+              case .filter(_, _, let term) = PartialFilterTerm.from(filterToken.content).content,
               term.incompleteContent.isEmpty,
-              case .name(_, let nameTerm) = PartialSearchFilter.from(nameToken.content).content,
+              case .name(_, let nameTerm) = PartialFilterTerm.from(nameToken.content).content,
               !nameTerm.incompleteContent.isEmpty else {
             continue
         }

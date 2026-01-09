@@ -1,55 +1,29 @@
-public enum Polarity: Codable, Sendable, Hashable, Equatable {
-    case positive
-    case negative
-    
-    public var negated: Polarity {
-        switch self {
-        case .positive: .negative
-        case .negative: .positive
-        }
-    }
-}
+import OSLog
 
-private func quoteIfNecessary(_ string: String) -> String {
-    if string.starts(with: "\"") {
-        "'\(string)'"
-    } else if string.starts(with: "'") {
-        "\"\(string)\""
-    } else if string.contains(" ") {
-        "\"\(string)\""
-    } else {
-        string
-    }
-}
+private let logger = Logger(subsystem: "MagicCardSearch", label: "FilterQuery")
 
-public enum FilterTerm: Codable, Sendable, Hashable, Equatable, CustomStringConvertible {
-    case name(Bool, String)
-    case basic(String, Comparison, String)
-    case regex(String, Comparison, String)
-
-    public var description: String {
-        switch self {
-        case .name(let isExact, let name):
-            "\(isExact ? "!" : "")\(quoteIfNecessary(name))"
-        case .basic(let filter, let comparison, let term):
-            "\(filter)\(comparison)\(quoteIfNecessary(term))"
-        case .regex(let filter, let comparison, let term):
-            "\(filter)\(comparison)/\(term)/"
-        }
-    }
-}
-
-public enum SearchFilter2<T: Codable & Sendable & Hashable & Equatable & CustomStringConvertible>: Codable, Sendable, Hashable, Equatable, CustomStringConvertible {
+public enum FilterQuery<T: Codable & Sendable & Hashable & Equatable & CustomStringConvertible>: Codable, Sendable, Hashable, Equatable, CustomStringConvertible {
     case term(Polarity, T)
-    case and(Polarity, [SearchFilter2<T>])
-    case or(Polarity, [SearchFilter2<T>])
+    case and(Polarity, [FilterQuery<T>])
+    case or(Polarity, [FilterQuery<T>])
 
-    private enum ParentOperator {
-        case and
-        case or
+    public static func from(_ input: String, _ transform: @escaping (String) -> T?) -> FilterQuery<T>? {
+        let parser = PartialFilterQueryParser()
+
+        let trimmedInput = input.trimmingCharacters(in: .whitespaces)
+
+        do {
+            for (token, code) in try lexPartialFilterQuery(trimmedInput) {
+                try parser.consume(token: token, code: code)
+            }
+            return try parser.endParsing().transformLeaves(using: transform)
+        } catch {
+            logger.debug("failed to parse disjunction error=\(error)")
+            return nil
+        }
     }
-    
-    public var negated: SearchFilter2<T> {
+
+    public var negated: FilterQuery<T> {
         switch self {
         case .term(let polarity, let filterTerm):
             .term(polarity.negated, filterTerm)
@@ -63,34 +37,38 @@ public enum SearchFilter2<T: Codable & Sendable & Hashable & Equatable & CustomS
     public var description: String {
         descriptionWithContext(parentOperator: nil)
     }
-    
+
+    private enum ParentOperator {
+        case and
+        case or
+    }
+
     private func descriptionWithContext(parentOperator: ParentOperator?) -> String {
         switch self {
         case .term(let polarity, let filterTerm):
-            let prefix = polarity == .negative ? "-" : ""
-            return "\(prefix)\(filterTerm.description)"
-            
+            return "\(polarity.description)\(filterTerm.description)"
+
         case .and(let polarity, let filters):
             let joined = filters.map { $0.descriptionWithContext(parentOperator: .and) }.joined(separator: " ")
 
-            let needsParens = polarity == .negative && filters.count > 1
-            let result = needsParens ? "(\(joined))" : joined
-            
-            let prefix = polarity == .negative ? "-" : ""
-            return "\(prefix)\(result)"
-            
+            let result = polarity == .negative && filters.count > 1
+                ? "(\(joined))"
+                : joined
+
+            return "\(polarity.description)\(result)"
+
         case .or(let polarity, let filters):
             let joined = filters.map { $0.descriptionWithContext(parentOperator: .or) }.joined(separator: " or ")
 
-            let needsParens = (parentOperator == .and) || (polarity == .negative && filters.count > 1)
-            let result = needsParens ? "(\(joined))" : joined
-            
-            let prefix = polarity == .negative ? "-" : ""
-            return "\(prefix)\(result)"
+            let result = (parentOperator == .and) || (polarity == .negative && filters.count > 1)
+                ? "(\(joined))"
+                : joined
+
+            return "\(polarity.description)\(result)"
         }
     }
 
-    public func flattened() -> SearchFilter2<T> {
+    public func flattened() -> FilterQuery<T> {
         switch self {
         case .term:
             return self
@@ -104,7 +82,7 @@ public enum SearchFilter2<T: Codable & Sendable & Hashable & Equatable & CustomS
                     [filter]
                 }
             }
-            
+
             return if unwrappedFilters.count == 1 {
                 polarity == .positive ? unwrappedFilters.first! : unwrappedFilters.first!.negated
             } else {
@@ -120,12 +98,31 @@ public enum SearchFilter2<T: Codable & Sendable & Hashable & Equatable & CustomS
                     [filter]
                 }
             }
-            
+
             return if unwrappedFilters.count == 1 {
                 polarity == .positive ? unwrappedFilters.first! : unwrappedFilters.first!.negated
             } else {
                 .or(polarity, unwrappedFilters)
             }
+        }
+    }
+}
+
+public enum Polarity: Codable, Sendable, Hashable, Equatable, CustomStringConvertible {
+    case positive
+    case negative
+    
+    public var negated: Polarity {
+        switch self {
+        case .positive: .negative
+        case .negative: .positive
+        }
+    }
+
+    public var description: String {
+        switch self {
+        case .positive: ""
+        case .negative: "-"
         }
     }
 }

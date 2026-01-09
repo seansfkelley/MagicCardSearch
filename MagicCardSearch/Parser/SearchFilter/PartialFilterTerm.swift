@@ -2,7 +2,7 @@ import OSLog
 
 private let logger = Logger(subsystem: "MagicCardSearch", category: "PartialSearchFilter")
 
-struct PartialSearchFilter: Equatable, CustomStringConvertible {
+struct PartialFilterTerm: Equatable, CustomStringConvertible {
     enum PartialComparison: String, Equatable, CustomStringConvertible {
         case including = ":"
         case equal = "="
@@ -122,7 +122,7 @@ struct PartialSearchFilter: Equatable, CustomStringConvertible {
         }
     }
     
-    static func from(_ input: String) -> PartialSearchFilter {
+    static func from(_ input: String) -> PartialFilterTerm {
         var remaining: Substring = input[input.startIndex...]
         
         let negated: Bool
@@ -149,7 +149,7 @@ struct PartialSearchFilter: Equatable, CustomStringConvertible {
         do {
             if let match = try /^([a-zA-Z]+)(<=|<|>=|>|!=|=|!|:)/.prefixMatch(in: remaining) {
                 let filter = String(match.output.1)
-                let comparison = PartialSearchFilter.PartialComparison(rawValue: String(match.output.2))!
+                let comparison = PartialFilterTerm.PartialComparison(rawValue: String(match.output.2))!
                 let value = matchPartialTerm(String(remaining[match.range.upperBound...]))
                 return .init(
                     negated: negated,
@@ -170,7 +170,7 @@ struct PartialSearchFilter: Equatable, CustomStringConvertible {
     }
 }
 
-internal func matchPartialTerm(_ input: String, treatingRegexesAsLiterals: Bool = false) -> PartialSearchFilter.PartialTerm {
+internal func matchPartialTerm(_ input: String, treatingRegexesAsLiterals: Bool = false) -> PartialFilterTerm.PartialTerm {
     if let match = input.wholeMatch(of: /^'([^']*)('?)$/) {
         let (_, content, close) = match.output
         return close.isEmpty

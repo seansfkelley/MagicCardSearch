@@ -36,7 +36,7 @@ struct NameSuggestionProvider {
         }, for: debounce)
     }
     
-    func getSuggestions(for partial: PartialSearchFilter, limit: Int) async -> [NameSuggestion] {
+    func getSuggestions(for partial: PartialFilterTerm, limit: Int) async -> [NameSuggestion] {
         await debouncedFetch.cancel()
         
         guard limit > 0 else {

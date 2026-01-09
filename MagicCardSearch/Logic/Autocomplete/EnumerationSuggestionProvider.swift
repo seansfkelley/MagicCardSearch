@@ -36,7 +36,7 @@ struct EnumerationSuggestionProvider {
 
     let scryfallCatalogs: ScryfallCatalogs
 
-    func getSuggestions(for partial: PartialSearchFilter, excluding excludedFilters: Set<SearchFilter>, limit: Int) -> [EnumerationSuggestion] {
+    func getSuggestions(for partial: PartialFilterTerm, excluding excludedFilters: Set<SearchFilter>, limit: Int) -> [EnumerationSuggestion] {
         guard limit > 0,
               case .filter(let filterTypeName, let partialComparison, let partialValue) = partial.content,
               let comparison = partialComparison.toComplete(),

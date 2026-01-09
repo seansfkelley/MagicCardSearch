@@ -16,7 +16,7 @@ class PinnedFilterSuggestionProvider {
 
     // MARK: - Public Methods
     
-    func getSuggestions(for partial: PartialSearchFilter, excluding excludedFilters: Set<SearchFilter>) -> [PinnedFilterSuggestion] {
+    func getSuggestions(for partial: PartialFilterTerm, excluding excludedFilters: Set<SearchFilter>) -> [PinnedFilterSuggestion] {
         let searchTerm = partial.description.trimmingCharacters(in: .whitespaces)
         
         return pinnedFilters

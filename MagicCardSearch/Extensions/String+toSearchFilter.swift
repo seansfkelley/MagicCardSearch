@@ -33,7 +33,7 @@ extension String {
             }
         }
 
-        let partial = PartialSearchFilter.from(trimmed)
+        let partial = PartialFilterTerm.from(trimmed)
         if let filter = partial.toComplete() {
             return .valid(filter)
         } else if let filter = partial.toComplete(autoterminateQuotes: true) {

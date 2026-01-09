@@ -8,7 +8,7 @@ struct FilterTypeSuggestion: Equatable, Hashable, Sendable, ScorableSuggestion {
 
 struct FilterTypeSuggestionProvider {
     // swiftlint:disable:next cyclomatic_complexity function_body_length
-    func getSuggestions(for partial: PartialSearchFilter, limit: Int) -> [FilterTypeSuggestion] {
+    func getSuggestions(for partial: PartialFilterTerm, limit: Int) -> [FilterTypeSuggestion] {
         guard limit > 0 else {
             return []
         }

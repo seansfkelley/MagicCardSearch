@@ -14,10 +14,10 @@ struct EnumerationSuggestionProviderTests {
         provider = EnumerationSuggestionProvider(scryfallCatalogs: ScryfallCatalogs(database: database))
     }
 
-    @Test<[(PartialSearchFilter, [EnumerationSuggestion])]>("getSuggestions", arguments: [
+    @Test<[(PartialFilterTerm, [EnumerationSuggestion])]>("getSuggestions", arguments: [
         (
             // gives all values, in alphabetical order, if no value part is given
-            PartialSearchFilter(negated: false, content: .filter("manavalue", .equal, .bare(""))),
+            PartialFilterTerm(negated: false, content: .filter("manavalue", .equal, .bare(""))),
             [
                 .init(
                     filter: SearchFilter.basic(false, "manavalue", .equal, "even"),
@@ -35,7 +35,7 @@ struct EnumerationSuggestionProviderTests {
         ),
         (
             // narrows based on substring match, preferring shorter strings when they are both prefixes
-            PartialSearchFilter(negated: false, content: .filter("is", .including, .bare("scry"))),
+            PartialFilterTerm(negated: false, content: .filter("is", .including, .bare("scry"))),
             [
                 .init(
                     filter: SearchFilter.basic(false, "is", .including, "scryland"),
@@ -53,7 +53,7 @@ struct EnumerationSuggestionProviderTests {
         ),
         (
             // narrows with any substring, not just prefix, also, doesn't care about operator
-            PartialSearchFilter(negated: false, content: .filter("format", .greaterThanOrEqual, .bare("less"))),
+            PartialFilterTerm(negated: false, content: .filter("format", .greaterThanOrEqual, .bare("less"))),
             [
                 .init(
                     filter: SearchFilter.basic(false, "format", .greaterThanOrEqual, "timeless"),
@@ -65,7 +65,7 @@ struct EnumerationSuggestionProviderTests {
         ),
         (
             // the negation operator is preserved and does not affect behavior, but is included in the result
-            PartialSearchFilter(negated: true, content: .filter("is", .including, .bare("scry"))),
+            PartialFilterTerm(negated: true, content: .filter("is", .including, .bare("scry"))),
             [
                 .init(
                     filter: SearchFilter.basic(true, "is", .including, "scryland"),
@@ -83,7 +83,7 @@ struct EnumerationSuggestionProviderTests {
         ),
         (
             // case-insensitive
-            PartialSearchFilter(negated: false, content: .filter("foRMat", .greaterThanOrEqual, .bare("lESs"))),
+            PartialFilterTerm(negated: false, content: .filter("foRMat", .greaterThanOrEqual, .bare("lESs"))),
             [
                 .init(
                     filter: SearchFilter.basic(false, "format", .greaterThanOrEqual, "timeless"),
@@ -95,26 +95,26 @@ struct EnumerationSuggestionProviderTests {
         ),
         (
             // non-enumerable filter type yields no options
-            PartialSearchFilter(negated: false, content: .filter("oracle", .equal, .bare(""))),
+            PartialFilterTerm(negated: false, content: .filter("oracle", .equal, .bare(""))),
             [],
         ),
         (
             // incomplete filter types yield no suggestions
-            PartialSearchFilter(negated: false, content: .name(false, .bare("form"))),
+            PartialFilterTerm(negated: false, content: .name(false, .bare("form"))),
             [],
         ),
         (
             // unknown filter types yield no suggestions
-            PartialSearchFilter(negated: false, content: .filter("foobar", .including, .bare(""))),
+            PartialFilterTerm(negated: false, content: .filter("foobar", .including, .bare(""))),
             [],
         ),
         (
             // incomplete operator is not completeable
-            PartialSearchFilter(negated: false, content: .filter("format", .incompleteNotEqual, .bare(""))),
+            PartialFilterTerm(negated: false, content: .filter("format", .incompleteNotEqual, .bare(""))),
             [],
         ),
     ])
-    func getSuggestions(partial: PartialSearchFilter, expected: [EnumerationSuggestion]) {
+    func getSuggestions(partial: PartialFilterTerm, expected: [EnumerationSuggestion]) {
         let actual = provider.getSuggestions(for: partial, excluding: [], limit: 100)
         #expect(actual == expected)
     }

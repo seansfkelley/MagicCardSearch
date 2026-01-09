@@ -79,7 +79,7 @@
 		21A816102EE2395100282ED3 /* Exceptions for "MagicCardSearch" folder in "MagicCardSearch" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				Parser/ParenthesizedQuery/ParenthesizedQueryGrammar.y,
+				Parser/PartialFilterQuery/PartialFilterQueryGrammar.y,
 			);
 			target = 2137B5AC2EE139C60066BF7E /* MagicCardSearch */;
 		};
@@ -393,16 +393,16 @@
 			);
 			inputPaths = (
 				"$(SRCROOT)/Citron/citron",
-				"$(SRCROOT)/MagicCardSearch/Parser/ParenthesizedQuery/ParenthesizedQueryGrammar.y",
+				"$(SRCROOT)/MagicCardSearch/Parser/PartialFilterQuery/PartialFilterQueryGrammar.y",
 			);
 			outputFileListPaths = (
 			);
 			outputPaths = (
-				"$(SRCROOT)/MagicCardSearch/Parser/ParenthesizedQuery/ParenthesizedQueryParser.swift",
+				"$(SRCROOT)/MagicCardSearch/Parser/PartialFilterQuery/PartialFilterQueryParser.swift",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/zsh;
-			shellScript = "Citron/citron MagicCardSearch/Parser/ParenthesizedQuery/ParenthesizedQueryGrammar.y -o MagicCardSearch/Parser/ParenthesizedQuery/ParenthesizedQueryParser.swift\n";
+			shellScript = "Citron/citron MagicCardSearch/Parser/PartialFilterQuery/PartialFilterQueryGrammar.y -o MagicCardSearch/Parser/PartialFilterQuery/PartialFilterQueryParser.swift\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 

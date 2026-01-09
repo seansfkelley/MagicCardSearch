@@ -101,9 +101,9 @@ struct SearchBarView: View {
                 }
 
                 if (try? /^-?\(/.prefixMatch(in: searchState.searchText)) == nil {
-                    let partial = PartialSearchFilter.from(searchState.searchText)
+                    let partial = PartialFilterTerm.from(searchState.searchText)
                     if case .name(let isExact, let term) = partial.content, case .bare(let content) = term {
-                        searchState.searchText = PartialSearchFilter(
+                        searchState.searchText = PartialFilterTerm(
                             negated: partial.negated,
                             content: .name(isExact, .unterminated(.doubleQuote, content)),
                         )

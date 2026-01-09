@@ -28,7 +28,7 @@ class ReverseEnumerationSuggestionProvider {
         self.scryfallCatalogs = scryfallCatalogs
     }
 
-    func getSuggestions(for partial: PartialSearchFilter, limit: Int) -> [ReverseEnumerationSuggestion] {
+    func getSuggestions(for partial: PartialFilterTerm, limit: Int) -> [ReverseEnumerationSuggestion] {
         guard limit > 0,
               case .name(let isExact, let partialTerm) = partial.content,
               !isExact else {
