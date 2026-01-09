@@ -1,6 +1,13 @@
-enum Polarity: Codable, Sendable, Hashable, Equatable {
+public enum Polarity: Codable, Sendable, Hashable, Equatable {
     case positive
     case negative
+    
+    public var negated: Polarity {
+        switch self {
+        case .positive: .negative
+        case .negative: .positive
+        }
+    }
 }
 
 private func quoteIfNecessary(_ string: String) -> String {
@@ -41,6 +48,17 @@ public enum SearchFilter2: Codable, Sendable, Hashable, Equatable, CustomStringC
         case and
         case or
     }
+    
+    public var negated: SearchFilter2 {
+        switch self {
+        case .term(let polarity, let filterTerm):
+            .term(polarity.negated, filterTerm)
+        case .and(let polarity, let filters):
+            .and(polarity.negated, filters)
+        case .or(let polarity, let filters):
+            .or(polarity.negated, filters)
+        }
+    }
 
     public var description: String {
         descriptionWithContext(parentOperator: nil)
@@ -78,28 +96,36 @@ public enum SearchFilter2: Codable, Sendable, Hashable, Equatable, CustomStringC
             return self
 
         case .and(let polarity, let filters):
-            var unwrappedFilters: [SearchFilter2] = []
-            for filter in filters.map({ $0.flattened() }) {
+            let unwrappedFilters = filters.map { $0.flattened() }.flatMap { filter in
                 // Only unwrap contained ANDs that don't flip the polarity again.
                 if case .and(.positive, let subFilters) = filter {
-                    unwrappedFilters.append(contentsOf: subFilters)
+                    subFilters
                 } else {
-                    unwrappedFilters.append(filter)
+                    [filter]
                 }
             }
-            return .and(polarity, unwrappedFilters)
             
+            return if unwrappedFilters.count == 1 {
+                polarity == .positive ? unwrappedFilters.first! : unwrappedFilters.first!.negated
+            } else {
+                .and(polarity, unwrappedFilters)
+            }
+
         case .or(let polarity, let filters):
-            var unwrappedFilters: [SearchFilter2] = []
-            for filter in filters.map({ $0.flattened() }) {
+            let unwrappedFilters = filters.map { $0.flattened() }.flatMap { filter in
                 // Only unwrap contained ORs that don't flip the polarity again.
                 if case .or(.positive, let subFilters) = filter {
-                    unwrappedFilters.append(contentsOf: subFilters)
+                    subFilters
                 } else {
-                    unwrappedFilters.append(filter)
+                    [filter]
                 }
             }
-            return .or(polarity, unwrappedFilters)
+            
+            return if unwrappedFilters.count == 1 {
+                polarity == .positive ? unwrappedFilters.first! : unwrappedFilters.first!.negated
+            } else {
+                .or(polarity, unwrappedFilters)
+            }
         }
     }
 }

@@ -229,7 +229,7 @@ public enum SearchFilter: SearchFilterContent {
     }
 }
 
-enum Comparison: String, Codable, Hashable, Equatable, CustomStringConvertible, Sendable {
+public enum Comparison: String, Codable, Hashable, Equatable, CustomStringConvertible, Sendable {
     case including = ":"
     case equal = "="
     case notEqual = "!="
@@ -238,5 +238,5 @@ enum Comparison: String, Codable, Hashable, Equatable, CustomStringConvertible, 
     case greaterThan = ">"
     case greaterThanOrEqual = ">="
 
-    var description: String { rawValue }
+    public var description: String { rawValue }
 }
