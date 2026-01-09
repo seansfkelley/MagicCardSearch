@@ -39,17 +39,17 @@ public enum FilterTerm: Codable, Sendable, Hashable, Equatable, CustomStringConv
     }
 }
 
-public enum SearchFilter2: Codable, Sendable, Hashable, Equatable, CustomStringConvertible {
-    case term(Polarity, FilterTerm)
-    case and(Polarity, [SearchFilter2])
-    case or(Polarity, [SearchFilter2])
+public enum SearchFilter2<T: Codable & Sendable & Hashable & Equatable & CustomStringConvertible>: Codable, Sendable, Hashable, Equatable, CustomStringConvertible {
+    case term(Polarity, T)
+    case and(Polarity, [SearchFilter2<T>])
+    case or(Polarity, [SearchFilter2<T>])
 
     private enum ParentOperator {
         case and
         case or
     }
     
-    public var negated: SearchFilter2 {
+    public var negated: SearchFilter2<T> {
         switch self {
         case .term(let polarity, let filterTerm):
             .term(polarity.negated, filterTerm)
@@ -90,7 +90,7 @@ public enum SearchFilter2: Codable, Sendable, Hashable, Equatable, CustomStringC
         }
     }
 
-    public func flattened() -> SearchFilter2 {
+    public func flattened() -> SearchFilter2<T> {
         switch self {
         case .term:
             return self
