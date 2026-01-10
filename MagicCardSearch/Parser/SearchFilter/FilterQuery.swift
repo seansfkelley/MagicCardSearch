@@ -20,7 +20,7 @@ public enum FilterQuery<Term: FilterQueryLeaf>: FilterQueryLeaf {
             for (token, code) in try lexPartialFilterQuery(trimmedInput) {
                 try parser.consume(token: token, code: code)
             }
-            return try parser.endParsing().transformLeaves(using: transform)
+            return try parser.endParsing().flattened().transformLeaves(using: transform)
         } catch {
             logger.debug("failed to parse query error=\(error)")
             return nil

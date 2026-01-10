@@ -15,7 +15,7 @@ enum ParsedFilter {
 }
 
 extension String {
-    func toSearchFilter() -> ParsedFilter {
+    func toFilter() -> ParsedFilter {
         let trimmed = trimmingCharacters(in: .whitespaces)
 
         guard !trimmed.isEmpty else { return .empty }
@@ -23,7 +23,7 @@ extension String {
         // FIXME: This is kind of gross; shouldn't we be able to unconditionally pass it through to
         // the parser and then it can tell us if it's valid or not?
         //
-        // TODO: The parenthesized parser is a superset of PartialSearchFilter. This control flow
+        // TODO: The parenthesized parser is a superset of PartialFilterTerm. This control flow
         // should be cleaned up to not require a regex.
         if (try? /^-?\(/.prefixMatch(in: trimmed)) != nil {
             return if let filter = FilterQuery.from(trimmed, FilterTerm.from) {

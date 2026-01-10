@@ -5,10 +5,10 @@ import SQLiteData
 struct PinnedSearchEntry: Identifiable, Equatable {
     let id: Int64?
     let pinnedAt: Date
-    @Column(as: [SearchFilter].StableJSONRepresentation.self)
-    let filters: [SearchFilter]
+    @Column(as: [FilterQuery<FilterTerm>].StableJSONRepresentation.self)
+    let filters: [FilterQuery<FilterTerm>]
 
-    init(filters: [SearchFilter], at date: Date = .init()) {
+    init(filters: [FilterQuery<FilterTerm>], at date: Date = .init()) {
         self.id = nil
         self.pinnedAt = date
         self.filters = filters

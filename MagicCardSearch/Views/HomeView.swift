@@ -144,10 +144,10 @@ struct HomeView: View {
 
                 Button(action: {
                     searchState.filters = [
-                        .basic(false, "date", .greaterThanOrEqual, "today"),
-                        .basic(false, "order", .including, SortMode.spoiled.rawValue),
-                        .basic(false, "dir", .including, SortDirection.desc.rawValue),
-                        .basic(false, "unique", .including, UniqueMode.prints.rawValue),
+                        .term(.basic(.positive, "date", .greaterThanOrEqual, "today")),
+                        .term(.basic(.positive, "order", .including, SortMode.spoiled.rawValue)),
+                        .term(.basic(.positive, "dir", .including, SortDirection.desc.rawValue)),
+                        .term(.basic(.positive, "unique", .including, UniqueMode.prints.rawValue)),
                     ]
                     searchState.performSearch()
                 }) {
@@ -266,7 +266,7 @@ struct HomeView: View {
         Section {
             ForEach(ExampleSearch.dailyExamples, id: \.title) { example in
                 Button {
-                    searchState.filters = example.filters
+                    searchState.filters = example.filters.map { .term($0) }
                     searchState.performSearch()
                 } label: {
                     HStack {

@@ -3,7 +3,7 @@ import SQLiteData
 import Observation
 
 struct HistorySuggestion: Equatable, Hashable, Sendable, ScorableSuggestion {
-    let filter: SearchFilter
+    let filter: FilterQuery<FilterTerm>
     let matchRange: Range<String.Index>?
     let prefixKind: PrefixKind
     let suggestionLength: Int
@@ -25,7 +25,7 @@ class HistorySuggestionProvider {
 
     // MARK: - Public Methods
 
-    func getSuggestions(for searchTerm: String, excluding excludedFilters: Set<SearchFilter>, limit: Int) -> [HistorySuggestion] {
+    func getSuggestions(for searchTerm: String, excluding excludedFilters: Set<FilterQuery<FilterTerm>>, limit: Int) -> [HistorySuggestion] {
         guard limit > 0 else {
             return []
         }

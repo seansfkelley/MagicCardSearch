@@ -4,7 +4,7 @@ import OSLog
 import Algorithms
 
 struct EnumerationSuggestion: Equatable, Hashable, Sendable, ScorableSuggestion {
-    let filter: SearchFilter
+    let filter: FilterTerm
     let matchRange: Range<String.Index>?
     let prefixKind: PrefixKind
     let suggestionLength: Int
@@ -36,7 +36,7 @@ struct EnumerationSuggestionProvider {
 
     let scryfallCatalogs: ScryfallCatalogs
 
-    func getSuggestions(for partial: PartialFilterTerm, excluding excludedFilters: Set<SearchFilter>, limit: Int) -> [EnumerationSuggestion] {
+    func getSuggestions(for partial: PartialFilterTerm, excluding excludedFilters: Set<FilterQuery<FilterTerm>>, limit: Int) -> [EnumerationSuggestion] {
         guard limit > 0,
               case .filter(let filterTypeName, let partialComparison, let partialValue) = partial.content,
               let comparison = partialComparison.toComplete(),
@@ -71,20 +71,20 @@ struct EnumerationSuggestionProvider {
         return Array(matchingOpts
             .map {
                 (
-                    SearchFilter.Basic(partial.negated, filterTypeName.lowercased(), comparison, $0.0),
+                    FilterTerm.basic(partial.polarity, filterTypeName.lowercased(), comparison, $0.0),
                     $0.1,
                 )
             }
-            .filter { !excludedFilters.contains(.basic($0.0)) }
+            .filter { !excludedFilters.contains(.term($0.0)) }
             .map { args in
                 let (filter, isPrefix) = args
                 let range = value.isEmpty ? nil : filter.description.range(of: value, options: .caseInsensitive)
 
                 return EnumerationSuggestion(
-                    filter: .basic(filter),
+                    filter: filter,
                     matchRange: range,
-                    prefixKind: isPrefix ? (partial.negated ? .effective : .actual) : .none,
-                    suggestionLength: filter.query.count,
+                    prefixKind: isPrefix ? (partial.polarity == .negative ? .effective : .actual) : .none,
+                    suggestionLength: filter.description.count,
                 )
             }
             .prefix(limit)

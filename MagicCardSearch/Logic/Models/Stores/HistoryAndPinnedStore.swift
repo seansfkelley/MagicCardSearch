@@ -17,21 +17,21 @@ class HistoryAndPinnedStore {
 
     // MARK: - Filter-only Methods
 
-    public func delete(filter: SearchFilter) {
+    public func delete(filter: FilterQuery<FilterTerm>) {
         write("deleting filter") { db in
             try FilterHistoryEntry
                 .delete()
-                .where { $0.filter == SearchFilter.StableJSONRepresentation(queryOutput: filter) }
+                .where { $0.filter == FilterQuery<FilterTerm>.StableJSONRepresentation(queryOutput: filter) }
                 .execute(db)
 
             try PinnedFilterEntry
                 .delete()
-                .where { $0.filter == SearchFilter.StableJSONRepresentation(queryOutput: filter) }
+                .where { $0.filter == FilterQuery<FilterTerm>.StableJSONRepresentation(queryOutput: filter) }
                 .execute(db)
         }
     }
 
-    public func pin(filter: SearchFilter, at date: Date = .init()) {
+    public func pin(filter: FilterQuery<FilterTerm>, at date: Date = .init()) {
         write("pinning filter") { db in
             try PinnedFilterEntry
                 .insert { PinnedFilterEntry(filter: filter, at: date) }
@@ -39,7 +39,7 @@ class HistoryAndPinnedStore {
         }
     }
 
-    public func unpin(filter: SearchFilter) {
+    public func unpin(filter: FilterQuery<FilterTerm>) {
         write("unpinning filter") { db in
             // Keep it around near the top since you just modified it.
             try FilterHistoryEntry
@@ -48,14 +48,14 @@ class HistoryAndPinnedStore {
 
             try PinnedFilterEntry
                 .delete()
-                .where { $0.filter == SearchFilter.StableJSONRepresentation(queryOutput: filter) }
+                .where { $0.filter == FilterQuery<FilterTerm>.StableJSONRepresentation(queryOutput: filter) }
                 .execute(db)
         }
     }
 
     // MARK: - Search Methods
 
-    public func record(search: [SearchFilter], at date: Date = .init()) {
+    public func record(search: [FilterQuery<FilterTerm>], at date: Date = .init()) {
         write("recording search") { db in
             try SearchHistoryEntry
                 .insert { SearchHistoryEntry(filters: search, at: date) }
@@ -70,24 +70,24 @@ class HistoryAndPinnedStore {
         }
     }
 
-    public func delete(search: [SearchFilter]) {
+    public func delete(search: [FilterQuery<FilterTerm>]) {
         write("deleting search by content") { db in
             try SearchHistoryEntry
                 .delete()
-                .where { $0.filters == [SearchFilter].StableJSONRepresentation(queryOutput: search) }
+                .where { $0.filters == [FilterQuery<FilterTerm>].StableJSONRepresentation(queryOutput: search) }
                 .execute(db)
 
             try PinnedSearchEntry
                 .delete()
-                .where { $0.filters == [SearchFilter].StableJSONRepresentation(queryOutput: search) }
+                .where { $0.filters == [FilterQuery<FilterTerm>].StableJSONRepresentation(queryOutput: search) }
                 .execute(db)
         }
     }
 
-    public func delete(searches: some Collection<[SearchFilter]>) {
+    public func delete(searches: some Collection<[FilterQuery<FilterTerm>]>) {
         guard !searches.isEmpty else { return }
 
-        let serializedSearches = searches.map { [SearchFilter].StableJSONRepresentation(queryOutput: $0) }
+        let serializedSearches = searches.map { [FilterQuery<FilterTerm>].StableJSONRepresentation(queryOutput: $0) }
 
         write("bulk-deleting searches") { db in
             try SearchHistoryEntry
@@ -102,7 +102,7 @@ class HistoryAndPinnedStore {
         }
     }
 
-    public func pin(search: [SearchFilter], at date: Date = .init()) {
+    public func pin(search: [FilterQuery<FilterTerm>], at date: Date = .init()) {
         write("pinning search") { db in
             try PinnedSearchEntry
                 .insert { PinnedSearchEntry(filters: search, at: date) }
@@ -110,7 +110,7 @@ class HistoryAndPinnedStore {
         }
     }
 
-    public func unpin(search: [SearchFilter]) {
+    public func unpin(search: [FilterQuery<FilterTerm>]) {
         write("unpinning search") { db in
             // Keep it around near the top since you just modified it.
             try SearchHistoryEntry
@@ -119,7 +119,7 @@ class HistoryAndPinnedStore {
 
             try PinnedSearchEntry
                 .delete()
-                .where { $0.filters == [SearchFilter].StableJSONRepresentation(queryOutput: search) }
+                .where { $0.filters == [FilterQuery<FilterTerm>].StableJSONRepresentation(queryOutput: search) }
                 .execute(db)
         }
     }

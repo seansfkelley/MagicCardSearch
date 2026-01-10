@@ -87,7 +87,7 @@ struct FilterTypeSuggestionProvider {
                 )
         }
         
-        if partial.negated {
+        if partial.polarity == .negative {
             suggestions = suggestions.map {
                 let matchIsAtBeginning = $0.matchRange.lowerBound == $0.filterType.startIndex
                 let prefixed = "-\($0.filterType)"

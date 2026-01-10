@@ -212,7 +212,12 @@ class PartialFilterQueryParser: CitronParser {
 #sourceLocation(file: "MagicCardSearch/Parser/PartialFilterQuery/PartialFilterQueryGrammar.y", line: 18)
 
     if v.content.first == "-" {
-        .term(.init(.negative, String(v.content[1...])))
+        .term(
+            .init(
+                .negative,
+                String(v.content.suffix(from: v.content.index(after: v.content.startIndex))),
+            ),
+        )
     } else {
         .term(.init(.positive, v.content))
     }
@@ -224,7 +229,7 @@ class PartialFilterQueryParser: CitronParser {
             }
         case 4: /* conjunction ::= parenthesized(d) */
             func codeBlockForRule4(d: PartialFilterQuery) throws -> PartialFilterQuery {
-#sourceLocation(file: "MagicCardSearch/Parser/PartialFilterQuery/PartialFilterQueryGrammar.y", line: 25)
+#sourceLocation(file: "MagicCardSearch/Parser/PartialFilterQuery/PartialFilterQueryGrammar.y", line: 30)
  d 
 #sourceLocation()
 }
@@ -233,14 +238,17 @@ class PartialFilterQueryParser: CitronParser {
             }
         case 5: /* conjunction ::= conjunction(c) And Verbatim(v) */
             func codeBlockForRule5(c: PartialFilterQuery, v: PartialFilterQueryTokenContent) throws -> PartialFilterQuery {
-#sourceLocation(file: "MagicCardSearch/Parser/PartialFilterQuery/PartialFilterQueryGrammar.y", line: 26)
+#sourceLocation(file: "MagicCardSearch/Parser/PartialFilterQuery/PartialFilterQueryGrammar.y", line: 31)
 
-    let term = if v.content.first == "-" {
-        FilterQuery.term(.init(.negative, String(v.content[1...])))
+    let string: PolarityString = if v.content.first == "-" {
+        .init(
+            .negative,
+            String(v.content.suffix(from: v.content.index(after: v.content.startIndex))),
+        )
     } else {
-        FilterQuery.term(.init(.positive, v.content))
+        .init(.positive, v.content)
     }
-    .and(.positive, [c, term])
+    return .and(.positive, [c, .term(string)])
 
 #sourceLocation()
 }
@@ -250,7 +258,7 @@ class PartialFilterQueryParser: CitronParser {
             }
         case 6: /* conjunction ::= conjunction(c) And parenthesized(d) */
             func codeBlockForRule6(c: PartialFilterQuery, d: PartialFilterQuery) throws -> PartialFilterQuery {
-#sourceLocation(file: "MagicCardSearch/Parser/PartialFilterQuery/PartialFilterQueryGrammar.y", line: 34)
+#sourceLocation(file: "MagicCardSearch/Parser/PartialFilterQuery/PartialFilterQueryGrammar.y", line: 42)
 
     .and(.positive, [c, d])
 
@@ -262,9 +270,9 @@ class PartialFilterQueryParser: CitronParser {
             }
         case 7: /* parenthesized ::= OpenParen(l) disjunction(d) CloseParen(r) */
             func codeBlockForRule7(l: PartialFilterQueryTokenContent, d: PartialFilterQuery, r: PartialFilterQueryTokenContent) throws -> PartialFilterQuery {
-#sourceLocation(file: "MagicCardSearch/Parser/PartialFilterQuery/PartialFilterQueryGrammar.y", line: 40)
+#sourceLocation(file: "MagicCardSearch/Parser/PartialFilterQuery/PartialFilterQueryGrammar.y", line: 48)
 
-    .or(l.content.first == "-", [d])
+    .or(l.content.first == "-" ? .negative : .positive, [d])
 
 #sourceLocation()
 }

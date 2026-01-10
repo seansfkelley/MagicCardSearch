@@ -17,19 +17,27 @@ disjunction ::= disjunction(d) Or conjunction(c). {
 %capture_errors conjunction end_after(And).
 conjunction ::= Verbatim(v). {
     if v.content.first == "-" {
-        .term(.init(.negative, String(v.content[1...])))
+        .term(
+            .init(
+                .negative,
+                String(v.content.suffix(from: v.content.index(after: v.content.startIndex))),
+            ),
+        )
     } else {
         .term(.init(.positive, v.content))
     }
 }
 conjunction ::= parenthesized(d). { d }
 conjunction ::= conjunction(c) And Verbatim(v). {
-    let term = if v.content.first == "-" {
-        FilterQuery.term(.init(.negative, String(v.content[1...])))
+    let string: PolarityString = if v.content.first == "-" {
+        .init(
+            .negative,
+            String(v.content.suffix(from: v.content.index(after: v.content.startIndex))),
+        )
     } else {
-        FilterQuery.term(.init(.positive, v.content))
+        .init(.positive, v.content)
     }
-    .and(.positive, [c, term])
+    return .and(.positive, [c, .term(string)])
 }
 conjunction ::= conjunction(c) And parenthesized(d). {
     .and(.positive, [c, d])
@@ -38,5 +46,5 @@ conjunction ::= conjunction(c) And parenthesized(d). {
 %nonterminal_type parenthesized PartialFilterQuery
 %capture_errors parenthesized end_before(CloseParen | Verbatim | Or | And).
 parenthesized ::= OpenParen(l) disjunction(d) CloseParen(r). {
-    .or(l.content.first == "-", [d])
+    .or(l.content.first == "-" ? .negative : .positive, [d])
 }

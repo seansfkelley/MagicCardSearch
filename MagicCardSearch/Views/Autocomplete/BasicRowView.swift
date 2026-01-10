@@ -1,10 +1,10 @@
 import SwiftUI
 
 struct BasicRowView: View {
-    let filter: SearchFilter
+    let filter: FilterQuery<FilterTerm>
     let matchRange: Range<String.Index>?
     let systemImageName: String
-    let onTap: (SearchFilter) -> Void
+    let onTap: (FilterQuery<FilterTerm>) -> Void
 
     var body: some View {
         Button {

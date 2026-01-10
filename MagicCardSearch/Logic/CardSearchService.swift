@@ -36,7 +36,7 @@ class CardSearchService {
         return results.data.first
     }
 
-    static func buildSearchURL(filters: [SearchFilter], config: SearchConfiguration, forAPI: Bool) -> URL? {
+    static func buildSearchURL(filters: [FilterQuery<FilterTerm>], config: SearchConfiguration, forAPI: Bool) -> URL? {
         let queryString = filters.map { $0.description }.joined(separator: " ")
         
         guard !queryString.isEmpty else {

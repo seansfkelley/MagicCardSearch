@@ -4,7 +4,7 @@ import OSLog
 private let logger = Logger(subsystem: "MagicCardSearch", category: "ScryfallCardNameFetcher")
 
 struct NameSuggestion: Equatable, Hashable, Sendable, ScorableSuggestion {
-    let filter: SearchFilter
+    let filter: FilterTerm
     let matchRange: Range<String.Index>?
     let prefixKind: PrefixKind
     let suggestionLength: Int
@@ -72,11 +72,11 @@ struct NameSuggestionProvider {
             .lazy
             .prefix(limit)
             .map { cardName in
-                let filter: SearchFilter
+                let filter: FilterTerm
                 if let comparison {
-                    filter = SearchFilter.basic(partial.negated, "name", comparison, cardName)
+                    filter = .basic(partial.polarity, "name", comparison, cardName)
                 } else {
-                    filter = SearchFilter.name(partial.negated, true, cardName)
+                    filter = .name(partial.polarity, true, cardName)
                 }
 
                 // TODO: We can do better than this; we know where it should be!
@@ -84,7 +84,7 @@ struct NameSuggestionProvider {
                 return NameSuggestion(
                     filter: filter,
                     matchRange: range,
-                    prefixKind: cardName.range(of: name, options: [.caseInsensitive, .anchored]) == nil ? .none : (cardName.contains(" ") || partial.negated ? .effective : .actual),
+                    prefixKind: cardName.range(of: name, options: [.caseInsensitive, .anchored]) == nil ? .none : (cardName.contains(" ") || partial.polarity == .negative ? .effective : .actual),
                     suggestionLength: cardName.count,
                 )
             }

@@ -2,8 +2,8 @@ import SwiftUI
 
 struct ReverseEnumerationRowView: View {
     let suggestion: ReverseEnumerationSuggestion
-    let onSelect: (SearchFilter) -> Void
-    
+    let onSelect: (FilterTerm) -> Void
+
     @State private var showingPopover = false
 
     private var filter: ScryfallFilterType {
@@ -13,19 +13,21 @@ struct ReverseEnumerationRowView: View {
 
     var body: some View {
         Button {
-            onSelect(.basic(
-                suggestion.negated,
-                suggestion.canonicalFilterName,
-                .including,
-                suggestion.value
-            ))
+            onSelect(
+                .basic(
+                    suggestion.polarity,
+                    suggestion.canonicalFilterName,
+                    .including,
+                    suggestion.value,
+                ),
+            )
         } label: {
             HStack(spacing: 12) {
                 Image(systemName: "line.3.horizontal.decrease.circle")
                     .foregroundStyle(.secondary)
 
                 HStack(spacing: 4) {
-                    Text("\(suggestion.negated ? "-" : "")\(suggestion.canonicalFilterName)")
+                    Text("\(suggestion.polarity.description)\(suggestion.canonicalFilterName)")
                         .foregroundStyle(.primary)
 
                     Button {
@@ -46,12 +48,14 @@ struct ReverseEnumerationRowView: View {
                     .popover(isPresented: $showingPopover) {
                         ComparisonGridPicker(comparisonKinds: filter.comparisonKinds) { comparison in
                             showingPopover = false
-                            onSelect(.basic(
-                                suggestion.negated,
-                                suggestion.canonicalFilterName,
-                                comparison,
-                                suggestion.value
-                            ))
+                            onSelect(
+                                .basic(
+                                    suggestion.polarity,
+                                    suggestion.canonicalFilterName,
+                                    comparison,
+                                    suggestion.value,
+                                ),
+                            )
                         }
                         .presentationCompactAdaptation(.popover)
                     }

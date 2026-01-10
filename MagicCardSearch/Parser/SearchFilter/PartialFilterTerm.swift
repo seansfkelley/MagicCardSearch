@@ -1,6 +1,6 @@
 import OSLog
 
-private let logger = Logger(subsystem: "MagicCardSearch", category: "PartialSearchFilter")
+private let logger = Logger(subsystem: "MagicCardSearch", category: "PartialFilterTerm")
 
 struct PartialFilterTerm: Equatable, CustomStringConvertible {
     enum PartialComparison: String, Equatable, CustomStringConvertible {

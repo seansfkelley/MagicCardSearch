@@ -3,7 +3,7 @@ import Algorithms
 import ScryfallKit
 
 struct ReverseEnumerationSuggestion: Equatable, Hashable, Sendable, ScorableSuggestion {
-    let negated: Bool
+    let polarity: Polarity
     let canonicalFilterName: String
     let value: String
     let valueMatchRange: Range<String.Index>
@@ -58,7 +58,7 @@ class ReverseEnumerationSuggestionProvider {
                 prefixMatches.lazy.flatMap { match in
                     match.value.1.map { filter in
                         ReverseEnumerationSuggestion(
-                            negated: partial.negated,
+                            polarity: partial.polarity,
                             canonicalFilterName: filter.canonicalName,
                             value: match.value.0,
                             valueMatchRange: match.range,
@@ -71,7 +71,7 @@ class ReverseEnumerationSuggestionProvider {
                 substringMatches.flatMap { match in
                     match.value.1.map { filter in
                         ReverseEnumerationSuggestion(
-                            negated: partial.negated,
+                            polarity: partial.polarity,
                             canonicalFilterName: filter.canonicalName,
                             value: match.value.0,
                             valueMatchRange: match.range,

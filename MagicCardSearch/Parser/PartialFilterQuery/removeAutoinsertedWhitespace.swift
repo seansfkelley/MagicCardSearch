@@ -1,7 +1,7 @@
 import SwiftUI
 
 func removeAutoinsertedWhitespace(_ current: String, _ selection: Range<String.Index>) -> (String, Range<String.Index>)? {
-    guard let tokens = try? lexParenthesizedQuery(current, allowingUnterminatedLiterals: true) else {
+    guard let tokens = try? lexPartialFilterQuery(current, allowingUnterminatedLiterals: true) else {
         return nil
     }
 

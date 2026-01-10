@@ -76,7 +76,7 @@ class CombinedSuggestionProvider {
         self.nameProvider = name
     }
 
-    func getSuggestions(for searchTerm: String, existingFilters: Set<SearchFilter>) -> AsyncStream<[Suggestion]> {
+    func getSuggestions(for searchTerm: String, existingFilters: Set<FilterQuery<FilterTerm>>) -> AsyncStream<[Suggestion]> {
         let currentTaskId = loadingState.start()
         let partial = PartialFilterTerm.from(searchTerm)
         

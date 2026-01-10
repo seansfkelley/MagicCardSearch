@@ -46,7 +46,7 @@ struct AutocompleteView: View {
 
     var body: some View {
         List {
-            if let filter = searchState.searchText.toSearchFilter().value {
+            if let filter = searchState.searchText.toFilter().value {
                 BasicRowView(
                     filter: filter,
                     matchRange: nil,
@@ -110,25 +110,25 @@ struct AutocompleteView: View {
 
                 case .enumeration(let suggestion):
                     BasicRowView(
-                        filter: suggestion.filter,
+                        filter: .term(suggestion.filter),
                         matchRange: suggestion.matchRange,
                         systemImageName: "list.bullet.circle",
                     ) { addScopedFilter($0) }
                     .swipeActions(edge: .leading, allowsFullSwipe: true) {
-                        pinSwipeAction(for: suggestion.filter)
+                        pinSwipeAction(for: .term(suggestion.filter))
                     }
                     .listRowInsets(.vertical, 0)
 
                 case .reverseEnumeration(let suggestion):
                     ReverseEnumerationRowView(
                         suggestion: suggestion,
-                        onSelect: addScopedFilter
+                        onSelect: { addScopedFilter(.term($0)) }
                     )
                     .listRowInsets(.vertical, 0)
 
                 case .name(let suggestion):
                     BasicRowView(
-                        filter: suggestion.filter,
+                        filter: .term(suggestion.filter),
                         matchRange: suggestion.matchRange,
                         systemImageName: "textformat.abc",
                     ) {
@@ -152,20 +152,20 @@ struct AutocompleteView: View {
         }
     }
 
-    private func setEntireSearch(to search: [SearchFilter]) {
+    private func setEntireSearch(to search: [FilterQuery<FilterTerm>]) {
         searchState.filters = search
         searchState.searchText = ""
         searchState.desiredSearchSelection = nil
         searchState.performSearch()
     }
 
-    private func addTopLevelFilter(_ filter: SearchFilter) {
+    private func addTopLevelFilter(_ filter: FilterQuery<FilterTerm>) {
         searchState.filters.append(filter)
         searchState.searchText = ""
         searchState.desiredSearchSelection = nil
     }
 
-    private func addScopedFilter(_ filter: SearchFilter) {
+    private func addScopedFilter(_ filter: FilterQuery<FilterTerm>) {
         if let range = searchState.selectedFilter.range, range != searchState.searchText.range {
             let filterString = filter.description
             if range.upperBound == searchState.searchText.endIndex {
@@ -195,7 +195,7 @@ struct AutocompleteView: View {
     }
 
     @ViewBuilder
-    private func pinSwipeAction(for filter: SearchFilter) -> some View {
+    private func pinSwipeAction(for filter: FilterQuery<FilterTerm>) -> some View {
         Button {
             historyAndPinnedStore.pin(filter: filter)
             nonce += 1

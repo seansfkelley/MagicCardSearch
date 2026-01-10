@@ -17,7 +17,7 @@ struct SearchBarView: View {
         // retain it as long as this view is alive.
         self.textFieldDelegate = SearchTextFieldDelegate(
             onReturn: {
-                if let filter = searchState.wrappedValue.searchText.toSearchFilter().value {
+                if let filter = searchState.wrappedValue.searchText.toFilter().value {
                     searchState.wrappedValue.filters.append(filter)
                     searchState.wrappedValue.searchText = ""
                     searchState.wrappedValue.desiredSearchSelection = nil
@@ -104,7 +104,7 @@ struct SearchBarView: View {
                     let partial = PartialFilterTerm.from(searchState.searchText)
                     if case .name(let isExact, let term) = partial.content, case .bare(let content) = term {
                         searchState.searchText = PartialFilterTerm(
-                            negated: partial.negated,
+                            polarity: partial.polarity,
                             content: .name(isExact, .unterminated(.doubleQuote, content)),
                         )
                         .description
@@ -115,7 +115,7 @@ struct SearchBarView: View {
             }
 
             if Self.didAppend(characterFrom: [" ", "'", "\"", ")", "/"], to: previous, toCreate: current, withSelection: searchState.actualSearchSelection) {
-                if case .valid(let filter) = searchState.searchText.toSearchFilter() {
+                if case .valid(let filter) = searchState.searchText.toFilter() {
                     searchState.filters.append(filter)
                     searchState.searchText = ""
                     searchState.desiredSearchSelection = nil

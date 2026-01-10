@@ -1,11 +1,11 @@
 import SwiftUI
 
 struct ReflowingFilterPillsView: View {
-    @Binding var filters: [SearchFilter]
+    @Binding var filters: [FilterQuery<FilterTerm>]
     let maxRows: Int
-    let onEdit: (SearchFilter) -> Void
-    
-    @State private var pillSizes: [SearchFilter: CGSize] = [:]
+    let onEdit: (FilterQuery<FilterTerm>) -> Void
+
+    @State private var pillSizes: [FilterQuery<FilterTerm>: CGSize] = [:]
     
     private let horizontalSpacing: CGFloat = 8
     private let verticalSpacing: CGFloat = 8
@@ -109,7 +109,7 @@ struct ReflowingFilterPillsView: View {
     @State private var availableWidth: CGFloat = 0
     
     private struct FilterItem: Hashable {
-        let filter: SearchFilter
+        let filter: FilterQuery<FilterTerm>
         let index: Int
     }
     

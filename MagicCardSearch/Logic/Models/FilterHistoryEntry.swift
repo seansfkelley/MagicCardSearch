@@ -5,10 +5,10 @@ import SQLiteData
 struct FilterHistoryEntry: Identifiable {
     let id: Int64?
     let lastUsedAt: Date
-    @Column(as: SearchFilter.StableJSONRepresentation.self)
-    let filter: SearchFilter
+    @Column(as: FilterQuery<FilterTerm>.StableJSONRepresentation.self)
+    let filter: FilterQuery<FilterTerm>
 
-    init(filter: SearchFilter, at date: Date = .init()) {
+    init(filter: FilterQuery<FilterTerm>, at date: Date = .init()) {
         self.id = nil
         self.lastUsedAt = date
         self.filter = filter

@@ -3,7 +3,7 @@ import Observation
 import SQLiteData
 
 struct PinnedFilterSuggestion: Equatable, Hashable, Sendable, ScorableSuggestion {
-    let filter: SearchFilter
+    let filter: FilterQuery<FilterTerm>
     let matchRange: Range<String.Index>?
     let prefixKind: PrefixKind
     let suggestionLength: Int
@@ -16,7 +16,7 @@ class PinnedFilterSuggestionProvider {
 
     // MARK: - Public Methods
     
-    func getSuggestions(for partial: PartialFilterTerm, excluding excludedFilters: Set<SearchFilter>) -> [PinnedFilterSuggestion] {
+    func getSuggestions(for partial: PartialFilterTerm, excluding excludedFilters: Set<FilterQuery<FilterTerm>>) -> [PinnedFilterSuggestion] {
         let searchTerm = partial.description.trimmingCharacters(in: .whitespaces)
         
         return pinnedFilters

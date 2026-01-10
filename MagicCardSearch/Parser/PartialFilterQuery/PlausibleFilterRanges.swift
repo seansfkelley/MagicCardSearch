@@ -16,7 +16,7 @@ struct PlausibleFilterRanges {
         do {
             // The grammar is simple enough that we can rely on the lexer directly without having to
             // have the proper parser resolve things for us. Nice.
-            var ranges = (try lexParenthesizedQuery(trimmedInput, allowingUnterminatedLiterals: true))
+            var ranges = (try lexPartialFilterQuery(trimmedInput, allowingUnterminatedLiterals: true))
                 .compactMap { token, code in
                     if code == .Verbatim || code == .Or {
                         // `Or` can be the beginning of a well-formed filter, like `oracle`, or a

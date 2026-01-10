@@ -34,7 +34,7 @@ class SearchState {
     public var desiredSearchSelection: TextSelection?
     public var actualSearchSelection: Range<String.Index> = "".startIndex..<"".endIndex
 
-    public var filters: [SearchFilter] = []
+    public var filters: [FilterQuery<FilterTerm>] = []
     public var configuration = SearchConfiguration.load()
     public private(set) var results: ScryfallObjectList<Card>?
     // TODO: This should eventually be private and only expose the suggestions themselves.

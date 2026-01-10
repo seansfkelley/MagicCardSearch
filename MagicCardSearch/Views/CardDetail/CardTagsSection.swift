@@ -299,10 +299,10 @@ private struct TagRow: View {
     @Binding var searchState: SearchState
     @State private var showAnnotation = false
 
-    private var searchFilter: SearchFilter? {
+    private var filterTerm: FilterTerm? {
         switch tagging.tag.namespace {
-        case .artwork: SearchFilter.basic(false, "art", .including, tagging.tag.name)
-        case .card: SearchFilter.basic(false, "function", .including, tagging.tag.name)
+        case .artwork: .basic(.positive, "art", .including, tagging.tag.name)
+        case .card: .basic(.positive, "function", .including, tagging.tag.name)
         case .print: nil
         case .unknown: nil
         }
@@ -344,30 +344,30 @@ private struct TagRow: View {
 
             Spacer()
 
-            if let searchFilter {
+            if let filterTerm {
                 Menu {
                     Button {
-                        UIPasteboard.general.string = searchFilter.description
+                        UIPasteboard.general.string = filterTerm.description
                     } label: {
                         Label("Copy as Filter", systemImage: "doc.on.clipboard.fill")
                     }
 
                     if searchState.filters.isEmpty {
                         Button {
-                            searchState.filters = [searchFilter]
+                            searchState.filters = [.term(filterTerm)]
                             searchState.performSearch()
                         } label: {
                             Label("Search for this Tag", systemImage: "magnifyingglass")
                         }
                     } else {
                         Button {
-                            searchState.filters.append(searchFilter)
+                            searchState.filters.append(.term(filterTerm))
                             searchState.performSearch()
                         } label: {
                             Label("Add to Current Search", systemImage: "plus.magnifyingglass")
                         }
                         Button {
-                            searchState.filters = [searchFilter]
+                            searchState.filters = [.term(filterTerm)]
                             searchState.performSearch()
                         } label: {
                             Label("Replace Current Search", systemImage: "magnifyingglass")

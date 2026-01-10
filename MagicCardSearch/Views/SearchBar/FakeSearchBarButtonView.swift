@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct FakeSearchBarButtonView: View {
-    var filters: [SearchFilter]
+    var filters: [FilterQuery<FilterTerm>]
     let warnings: [String]
     var onClearAll: () -> Void
     var onTap: () -> Void
