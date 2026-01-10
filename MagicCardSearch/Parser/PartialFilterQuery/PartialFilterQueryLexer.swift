@@ -1,4 +1,4 @@
-public struct PolarityString: Codable, Sendable, Hashable, Equatable, CustomStringConvertible, Negatable {
+public struct PolarityString: FilterQueryLeaf {
     let polarity: Polarity
     let string: String
     

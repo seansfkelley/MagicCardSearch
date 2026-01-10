@@ -1,4 +1,9 @@
-public enum FilterTerm: FilterQueryLeaf {
+protocol EditableFilter {
+    var suggestedEditingRange: Range<String.Index> { get }
+    var isKnownFilterType: Bool { get }
+}
+
+public enum FilterTerm: FilterQueryLeaf, EditableFilter {
     case name(Polarity, Bool, String)
     case basic(Polarity, String, Comparison, String)
     case regex(Polarity, String, Comparison, String)
@@ -29,17 +34,61 @@ public enum FilterTerm: FilterQueryLeaf {
         }
     }
 
-    private func quoteIfNecessary(_ string: String) -> String {
-        if string.starts(with: "\"") {
-            "'\(string)'"
-        } else if string.starts(with: "'") {
-            "\"\(string)\""
-        } else if string.contains(" ") {
-            "\"\(string)\""
-        } else {
-            string
+    var suggestedEditingRange: Range<String.Index> {
+        let string = description
+        switch self {
+        case .name(let polarity, let isExact, let name):
+            let quotes = requiredQuotingType(in: name)
+            return string.range.inset(
+                with: string,
+                left: (polarity == .negative ? 1 : 0) + (isExact ? 1 : 0) + (quotes == .none ? 0 : 1),
+                right: (quotes == .none ? 0 : 1),
+            )
+        case .basic(let polarity, let filter, let comparison, let term):
+            let quotes = requiredQuotingType(in: term)
+            return string.range.inset(
+                with: string,
+                left: (polarity == .negative ? 1 : 0) + filter.count + comparison.description.count + (quotes == .none ? 0 : 1),
+                right: (quotes == .none ? 0 : 1),
+            )
+        case .regex(let polarity, let filter, let comparison, let term):
+            return string.range.inset(
+                with: string,
+                left: (polarity == .negative ? 1 : 0) + filter.count + comparison.description.count + 1,
+                right: 1,
+            )
         }
     }
+
+    var isKnownFilterType: Bool {
+        switch self {
+        case .name: true
+        case .basic(_, let filter, _, _): isScryfallFilter(filter)
+        case .regex(_, let filter, _, _): isScryfallFilter(filter)
+        }
+    }
+
+    private func requiredQuotingType(in string: String) -> RequiredQuotingType {
+        if string.starts(with: "\"") {
+            .single
+        } else if string.starts(with: "'") || string.contains(" ") {
+            .double
+        } else {
+            .none
+        }
+    }
+
+    private func quoteIfNecessary(_ string: String) -> String {
+        switch requiredQuotingType(in: string) {
+        case .single: "'\(string)'"
+        case .double: "\"\(string)\""
+        case .none: string
+        }
+    }
+}
+
+private enum RequiredQuotingType {
+    case single, double, none
 }
 
 public enum Comparison: String, Codable, Hashable, Equatable, CustomStringConvertible, Sendable {
@@ -52,4 +101,34 @@ public enum Comparison: String, Codable, Hashable, Equatable, CustomStringConver
     case greaterThanOrEqual = ">="
 
     public var description: String { rawValue }
+}
+
+private func isScryfallFilter(_ filter: String) -> Bool {
+    scryfallFilterByType[filter.lowercased()] != nil
+}
+
+extension FilterQuery: EditableFilter where Term == FilterTerm {
+    var suggestedEditingRange: Range<String.Index> {
+        switch self {
+        case .term(let filter):
+            return filter.suggestedEditingRange
+        case .and(let polarity, let filters), .or(let polarity, let filters):
+            let string = description
+            // This is a big dumb in that we should be able to calculate this from the source data
+            // instead of inspecting the stringified form, but it's also simple and unambiguous.
+            let hasParentheses = (try? /^-?\(/.prefixMatch(in: string)) != nil
+            return string.range.inset(
+                with: string,
+                left: (polarity == .negative ? 1 : 0) + (hasParentheses ? 1 : 0),
+                right: (hasParentheses ? 1 : 0),
+            )
+        }
+    }
+    
+    var isKnownFilterType: Bool {
+        switch self {
+        case .term(let filter): filter.isKnownFilterType
+        case .and(_, let filters), .or(_, let filters): filters.allSatisfy(\.isKnownFilterType)
+        }
+    }
 }

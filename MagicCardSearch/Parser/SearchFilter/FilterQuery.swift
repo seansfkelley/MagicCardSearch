@@ -50,7 +50,7 @@ public enum FilterQuery<Term: FilterQueryLeaf>: FilterQueryLeaf {
     private func descriptionWithContext(parentOperator: ParentOperator?) -> String {
         switch self {
         case .term(let term):
-            return "\(term.description)"
+            return term.description
 
         case .and(let polarity, let filters):
             let joined = filters.map { $0.descriptionWithContext(parentOperator: .and) }.joined(separator: " ")
