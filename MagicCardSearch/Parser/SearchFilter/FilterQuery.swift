@@ -43,32 +43,31 @@ public enum FilterQuery<Term: FilterQueryLeaf>: FilterQueryLeaf {
     }
 
     public var description: String {
-        descriptionWithContext(parentOperator: nil)
+        descriptionWithContext(context: .root)
     }
 
-    private enum ParentOperator {
-        case and
-        case or
+    private enum DescriptionContext {
+        case root, and, or
     }
 
-    private func descriptionWithContext(parentOperator: ParentOperator?) -> String {
+    private func descriptionWithContext(context: DescriptionContext?) -> String {
         switch self {
         case .term(let term):
             return term.description
 
         case .and(let polarity, let filters):
-            let joined = filters.map { $0.descriptionWithContext(parentOperator: .and) }.joined(separator: " ")
+            let joined = filters.map { $0.descriptionWithContext(context: .and) }.joined(separator: " ")
 
-            let result = polarity == .negative && filters.count > 1
+            let result = context == .root || (polarity == .negative && filters.count > 1)
                 ? "(\(joined))"
                 : joined
 
             return "\(polarity.description)\(result)"
 
         case .or(let polarity, let filters):
-            let joined = filters.map { $0.descriptionWithContext(parentOperator: .or) }.joined(separator: " or ")
+            let joined = filters.map { $0.descriptionWithContext(context: .or) }.joined(separator: " or ")
 
-            let result = (parentOperator == .and) || (polarity == .negative && filters.count > 1)
+            let result = context == .root || context == .and || (polarity == .negative && filters.count > 1)
                 ? "(\(joined))"
                 : joined
 
