@@ -26,20 +26,22 @@ extension String {
         // TODO: The parenthesized parser is a superset of PartialSearchFilter. This control flow
         // should be cleaned up to not require a regex.
         if (try? /^-?\(/.prefixMatch(in: trimmed)) != nil {
-            return if let disjunction = PartialFilterQuery.from(trimmed, FilterTerm.from), let filter = disjunction.toSearchFilter() {
-                .valid(.disjunction(filter))
+            return if let filter = FilterQuery.from(trimmed, FilterTerm.from) {
+                .valid(filter)
             } else {
-                .fallback(.name(false, false, trimmed))
+                // TODO: Should assign the negation correctly I think.
+                .fallback(.term(.name(.positive, false, trimmed)))
+            }
+        } else {
+            let partial = PartialFilterTerm.from(trimmed)
+            if let filter = partial.toComplete() {
+                return .valid(.term(filter))
+            } else if let filter = partial.toComplete(autoterminateQuotes: true) {
+                return .autoterminated(.term(filter))
+            } else {
+                // TODO: Should assign the negation correctly I think.
+                return .fallback(.term(.name(.positive, false, trimmed)))
             }
         }
-
-        let partial = PartialFilterTerm.from(trimmed)
-        if let filter = partial.toComplete() {
-            return .valid(filter)
-        } else if let filter = partial.toComplete(autoterminateQuotes: true) {
-            return .autoterminated(filter)
-        }
-
-        return .fallback(.name(false, false, trimmed))
     }
 }

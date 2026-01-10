@@ -1,4 +1,17 @@
-typealias PartialFilterQuery = FilterQuery<String>
+public struct PolarityString: Codable, Sendable, Hashable, Equatable, CustomStringConvertible, Negatable {
+    let polarity: Polarity
+    let string: String
+    
+    init(_ polarity: Polarity, _ string: String) {
+        self.polarity = polarity
+        self.string = string
+    }
+    
+    public var description: String { "\(polarity.description)\(string)" }
+    public var negated: PolarityString { .init(polarity.negated, string) }
+}
+
+typealias PartialFilterQuery = FilterQuery<PolarityString>
 
 struct PartialFilterQueryTokenContent {
     let content: String

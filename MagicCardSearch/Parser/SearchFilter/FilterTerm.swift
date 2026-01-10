@@ -1,20 +1,31 @@
-public enum FilterTerm: Codable, Sendable, Hashable, Equatable, CustomStringConvertible {
-    case name(Bool, String)
-    case basic(String, Comparison, String)
-    case regex(String, Comparison, String)
+public enum FilterTerm: FilterQueryLeaf {
+    case name(Polarity, Bool, String)
+    case basic(Polarity, String, Comparison, String)
+    case regex(Polarity, String, Comparison, String)
 
-    public static func from(_ string: String) -> FilterTerm? {
-        PartialFilterTerm.from(string).toComplete()
+    public static func from(_ string: PolarityString) -> FilterTerm? {
+        PartialFilterTerm.from(string.description).toComplete()
     }
 
     public var description: String {
         switch self {
-        case .name(let isExact, let name):
-            "\(isExact ? "!" : "")\(quoteIfNecessary(name))"
-        case .basic(let filter, let comparison, let term):
-            "\(filter)\(comparison)\(quoteIfNecessary(term))"
-        case .regex(let filter, let comparison, let term):
-            "\(filter)\(comparison)/\(term)/"
+        case .name(let polarity, let isExact, let name):
+            "\(polarity)\(isExact ? "!" : "")\(quoteIfNecessary(name))"
+        case .basic(let polarity, let filter, let comparison, let term):
+            "\(polarity)\(filter)\(comparison)\(quoteIfNecessary(term))"
+        case .regex(let polarity, let filter, let comparison, let term):
+            "\(polarity)\(filter)\(comparison)/\(term)/"
+        }
+    }
+
+    public var negated: FilterTerm {
+        switch self {
+        case .name(let polarity, let isExact, let name):
+            .name(polarity.negated, isExact, name)
+        case .basic(let polarity, let filter, let comparison, let term):
+            .basic(polarity.negated, filter, comparison, term)
+        case .regex(let polarity, let filter, let comparison, let term):
+            .regex(polarity.negated, filter, comparison, term)
         }
     }
 

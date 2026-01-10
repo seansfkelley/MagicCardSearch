@@ -91,18 +91,16 @@ struct PartialFilterTerm: Equatable, CustomStringConvertible {
         }
     }
     
-    let negated: Bool
+    let polarity: Polarity
     let content: Content
     
-    var description: String {
-        "\(negated ? "-" : "")\(content)"
-    }
-    
+    var description: String { "\(polarity)\(content)" }
+
     func toComplete(autoterminateQuotes: Bool = false) -> FilterTerm? {
         switch content {
         case .name(let exact, let term):
             if let completeTerm = term.toComplete(autoterminateQuotes: autoterminateQuotes) {
-                return .name(exact, completeTerm)
+                return .name(polarity, exact, completeTerm)
             } else {
                 return nil
             }
@@ -110,11 +108,11 @@ struct PartialFilterTerm: Equatable, CustomStringConvertible {
             if let completeTerm = term.toComplete(autoterminateQuotes: autoterminateQuotes), let completeComparison = comparison.toComplete() {
                 return switch term.quotingType {
                 case .singleQuote, .doubleQuote:
-                    .basic(field, completeComparison, completeTerm)
+                    .basic(polarity, field, completeComparison, completeTerm)
                 case .forwardSlash:
-                    .regex(field, completeComparison, completeTerm)
+                    .regex(polarity, field, completeComparison, completeTerm)
                 case nil:
-                    completeTerm.isEmpty ? nil : .basic(field, completeComparison, completeTerm)
+                    completeTerm.isEmpty ? nil : .basic(polarity, field, completeComparison, completeTerm)
                 }
             } else {
                 return nil
@@ -125,17 +123,17 @@ struct PartialFilterTerm: Equatable, CustomStringConvertible {
     static func from(_ input: String) -> PartialFilterTerm {
         var remaining: Substring = input[input.startIndex...]
         
-        let negated: Bool
+        let polarity: Polarity
         if !remaining.isEmpty && remaining.first == "-" {
-            negated = true
+            polarity = .negative
             remaining = remaining.suffix(from: remaining.index(after: remaining.startIndex))
         } else {
-            negated = false
+            polarity = .positive
         }
         
         if !remaining.isEmpty && remaining.first == "!" {
             return .init(
-                negated: negated,
+                polarity: polarity,
                 content: .name(
                     true,
                     matchPartialTerm(
@@ -152,7 +150,7 @@ struct PartialFilterTerm: Equatable, CustomStringConvertible {
                 let comparison = PartialFilterTerm.PartialComparison(rawValue: String(match.output.2))!
                 let value = matchPartialTerm(String(remaining[match.range.upperBound...]))
                 return .init(
-                    negated: negated,
+                    polarity: polarity,
                     content: .filter(filter, comparison, value),
                 )
             }
@@ -161,7 +159,7 @@ struct PartialFilterTerm: Equatable, CustomStringConvertible {
         }
         
         return .init(
-            negated: negated,
+            polarity: polarity,
             content: .name(
                 false,
                 matchPartialTerm(String(remaining), treatingRegexesAsLiterals: true),

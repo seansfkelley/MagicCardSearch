@@ -2,12 +2,16 @@ import OSLog
 
 private let logger = Logger(subsystem: "MagicCardSearch", category: "FilterQuery")
 
-public enum FilterQuery<T: Codable & Sendable & Hashable & Equatable & CustomStringConvertible>: Codable, Sendable, Hashable, Equatable, CustomStringConvertible {
-    case term(Polarity, T)
-    case and(Polarity, [FilterQuery<T>])
-    case or(Polarity, [FilterQuery<T>])
+public protocol FilterQueryLeaf: Equatable, Hashable, Codable, CustomStringConvertible, Sendable {
+    var negated: Self { get }
+}
 
-    public static func from(_ input: String, _ transform: @escaping (String) -> T?) -> FilterQuery<T>? {
+public enum FilterQuery<Term: FilterQueryLeaf>: FilterQueryLeaf {
+    case term(Term)
+    case and(Polarity, [FilterQuery<Term>])
+    case or(Polarity, [FilterQuery<Term>])
+
+    public static func from(_ input: String, _ transform: @escaping (PolarityString) -> Term?) -> FilterQuery<Term>? {
         let parser = PartialFilterQueryParser()
 
         let trimmedInput = input.trimmingCharacters(in: .whitespaces)
@@ -18,15 +22,15 @@ public enum FilterQuery<T: Codable & Sendable & Hashable & Equatable & CustomStr
             }
             return try parser.endParsing().transformLeaves(using: transform)
         } catch {
-            logger.debug("failed to parse disjunction error=\(error)")
+            logger.debug("failed to parse query error=\(error)")
             return nil
         }
     }
 
-    public var negated: FilterQuery<T> {
+    public var negated: FilterQuery<Term> {
         switch self {
-        case .term(let polarity, let filterTerm):
-            .term(polarity.negated, filterTerm)
+        case .term(let term):
+            .term(term.negated)
         case .and(let polarity, let filters):
             .and(polarity.negated, filters)
         case .or(let polarity, let filters):
@@ -45,8 +49,8 @@ public enum FilterQuery<T: Codable & Sendable & Hashable & Equatable & CustomStr
 
     private func descriptionWithContext(parentOperator: ParentOperator?) -> String {
         switch self {
-        case .term(let polarity, let filterTerm):
-            return "\(polarity.description)\(filterTerm.description)"
+        case .term(let term):
+            return "\(term.description)"
 
         case .and(let polarity, let filters):
             let joined = filters.map { $0.descriptionWithContext(parentOperator: .and) }.joined(separator: " ")
@@ -68,7 +72,7 @@ public enum FilterQuery<T: Codable & Sendable & Hashable & Equatable & CustomStr
         }
     }
 
-    public func flattened() -> FilterQuery<T> {
+    public func flattened() -> FilterQuery<Term> {
         switch self {
         case .term:
             return self
@@ -108,14 +112,14 @@ public enum FilterQuery<T: Codable & Sendable & Hashable & Equatable & CustomStr
     }
     
     public func transformLeaves<U: Codable & Sendable & Hashable & Equatable & CustomStringConvertible>(
-        using transform: (T) -> U?
+        using transform: (Term) -> U?
     ) -> FilterQuery<U>? {
         switch self {
-        case .term(let polarity, let value):
-            guard let transformedValue = transform(value) else {
+        case .term(let term):
+            guard let transformedValue = transform(term) else {
                 return nil
             }
-            return .term(polarity, transformedValue)
+            return .term(transformedValue)
             
         case .and(let polarity, let filters):
             var transformedFilters: [FilterQuery<U>] = []

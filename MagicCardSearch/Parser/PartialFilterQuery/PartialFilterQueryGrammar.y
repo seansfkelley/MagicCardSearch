@@ -17,19 +17,19 @@ disjunction ::= disjunction(d) Or conjunction(c). {
 %capture_errors conjunction end_after(And).
 conjunction ::= Verbatim(v). {
     if v.content.first == "-" {
-        .term(.negative, String(v.content[1...]))
+        .term(.init(.negative, String(v.content[1...])))
     } else {
-        .term(.positive, v.content)
+        .term(.init(.positive, v.content))
     }
 }
 conjunction ::= parenthesized(d). { d }
 conjunction ::= conjunction(c) And Verbatim(v). {
-    let filter = if v.content.first == "-" {
-        FilterQuery.term(.negative, String(v.content[1...]))
+    let term = if v.content.first == "-" {
+        FilterQuery.term(.init(.negative, String(v.content[1...])))
     } else {
-        FilterQuery.term(.positive, v.content)
+        FilterQuery.term(.init(.positive, v.content))
     }
-    .and(.positive, [c, filter])
+    .and(.positive, [c, term])
 }
 conjunction ::= conjunction(c) And parenthesized(d). {
     .and(.positive, [c, d])
