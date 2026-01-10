@@ -7,37 +7,37 @@ struct FilterTypeSuggestionProviderTests {
         arguments: [
             // prefix of a filter returns that filter
             (
-                PartialFilterTerm(negated: false, content: .name(false, .bare("forma"))),
+                PartialFilterTerm(polarity: .positive, content: .name(false, .bare("forma"))),
                 [("format", 0..<5)],
             ),
             // substrings matching multiple filters return them all, shortest first
             (
-                PartialFilterTerm(negated: false, content: .name(false, .bare("print"))),
+                PartialFilterTerm(polarity: .positive, content: .name(false, .bare("print"))),
                 [("prints", 0..<5), ("paperprints", 5..<10)],
             ),
             // exact match of an alias returns the alias before other matching filters, and does not return the canonical name
             (
-                PartialFilterTerm(negated: false, content: .name(false, .bare("fo"))),
+                PartialFilterTerm(polarity: .positive, content: .name(false, .bare("fo"))),
                 [("fo", 0..<2), ("format", 0..<2)],
             ),
             // unmatching string returns nothing
             (
-                PartialFilterTerm(negated: false, content: .name(false, .bare("foobar"))),
+                PartialFilterTerm(polarity: .positive, content: .name(false, .bare("foobar"))),
                 [],
             ),
             // negation does not affect the behavior, but is included in the result
             (
-                PartialFilterTerm(negated: true, content: .name(false, .bare("print"))),
+                PartialFilterTerm(polarity: .negative, content: .name(false, .bare("print"))),
                 [("-prints", 0..<6), ("-paperprints", 6..<11)],
             ),
             // case-insensitive
             (
-                PartialFilterTerm(negated: false, content: .name(false, .bare("ForMa"))),
+                PartialFilterTerm(polarity: .positive, content: .name(false, .bare("ForMa"))),
                 [("format", 0..<5)],
             ),
             // prefixes are scored higher than other matches, even if they're longer, then by length
             (
-                PartialFilterTerm(negated: false, content: .name(false, .bare("or"))),
+                PartialFilterTerm(polarity: .positive, content: .name(false, .bare("or"))),
                 [
                     ("order", 0..<2),
                     ("oracle", 0..<2),
@@ -52,27 +52,27 @@ struct FilterTypeSuggestionProviderTests {
             ),
             // should prefer the shortest alias, skipping the canonical name, if neither is an exact match
             (
-                PartialFilterTerm(negated: false, content: .name(false, .bare("ow"))),
+                PartialFilterTerm(polarity: .positive, content: .name(false, .bare("ow"))),
                 [("pow", 1..<3), ("powtou", 1..<3)],
             ),
             // unquoted exact-match is not eligible even if it would match
             (
-                PartialFilterTerm(negated: false, content: .name(true, .bare("form"))),
+                PartialFilterTerm(polarity: .positive, content: .name(true, .bare("form"))),
                 [],
             ),
             // quoted exact-match is not eligible even if it would match
             (
-                PartialFilterTerm(negated: false, content: .name(true, .balanced(.doubleQuote, "form"))),
+                PartialFilterTerm(polarity: .positive, content: .name(true, .balanced(.doubleQuote, "form"))),
                 [],
             ),
             // quoted is not eligible because it implies a name search
             (
-                PartialFilterTerm(negated: false, content: .name(false, .unterminated(.doubleQuote, "form"))),
+                PartialFilterTerm(polarity: .positive, content: .name(false, .unterminated(.doubleQuote, "form"))),
                 [],
             ),
             // if operators are present we're past the point where we can suggest, even if we could
             (
-                PartialFilterTerm(negated: false, content: .filter("form", .including, .bare(""))),
+                PartialFilterTerm(polarity: .positive, content: .filter("form", .including, .bare(""))),
                 [],
             ),
         ]

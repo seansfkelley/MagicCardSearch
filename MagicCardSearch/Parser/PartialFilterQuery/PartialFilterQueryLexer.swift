@@ -11,7 +11,7 @@ public struct PolarityString: FilterQueryLeaf {
     public var negated: PolarityString { .init(polarity.negated, string) }
 }
 
-typealias PartialFilterQuery = FilterQuery<PolarityString>
+public typealias PartialFilterQuery = FilterQuery<PolarityString>
 
 struct PartialFilterQueryTokenContent {
     let content: String

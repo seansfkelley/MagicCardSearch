@@ -51,7 +51,7 @@ public enum FilterTerm: FilterQueryLeaf, EditableFilter {
                 left: (polarity == .negative ? 1 : 0) + filter.count + comparison.description.count + (quotes == .none ? 0 : 1),
                 right: (quotes == .none ? 0 : 1),
             )
-        case .regex(let polarity, let filter, let comparison, let term):
+        case .regex(let polarity, let filter, let comparison, _):
             return string.range.inset(
                 with: string,
                 left: (polarity == .negative ? 1 : 0) + filter.count + comparison.description.count + 1,
@@ -112,7 +112,7 @@ extension FilterQuery: EditableFilter where Term == FilterTerm {
         switch self {
         case .term(let filter):
             return filter.suggestedEditingRange
-        case .and(let polarity, let filters), .or(let polarity, let filters):
+        case .and(let polarity, _), .or(let polarity, _):
             let string = description
             // This is a big dumb in that we should be able to calculate this from the source data
             // instead of inspecting the stringified form, but it's also simple and unambiguous.

@@ -1,134 +1,103 @@
 import Testing
 @testable import MagicCardSearch
 
-@Suite("SearchFilter Tests")
-struct SearchFilterTests {
-    @Test<[(SearchFilter, String, String)]>(
+@Suite
+struct FilterTermTests {
+    @Test<[(FilterTerm, String, String)]>(
         "description and suggestedEditingRange",
         arguments: [
             // Simple name without spaces
             (
-                SearchFilter.name(false, false, "lightning"),
+                FilterTerm.name(.positive, false, "lightning"),
                 "lightning",
                 "lightning",
             ),
             // Name with spaces (quoted)
             (
-                SearchFilter.name(false, false, "lightning bolt"),
+                FilterTerm.name(.positive, false, "lightning bolt"),
                 "\"lightning bolt\"",
                 "lightning bolt",
             ),
             // Exact name without spaces
             (
-                SearchFilter.name(false, true, "lightning"),
+                FilterTerm.name(.positive, true, "lightning"),
                 "!lightning",
                 "lightning",
             ),
             // Exact name with spaces (quoted)
             (
-                SearchFilter.name(false, true, "lightning bolt"),
+                FilterTerm.name(.positive, true, "lightning bolt"),
                 "!\"lightning bolt\"",
                 "lightning bolt",
             ),
             // Negated simple name
             (
-                SearchFilter.name(true, false, "lightning"),
+                FilterTerm.name(.negative, false, "lightning"),
                 "-lightning",
                 "lightning",
             ),
             // Negated name with spaces
             (
-                SearchFilter.name(true, false, "lightning bolt"),
+                FilterTerm.name(.negative, false, "lightning bolt"),
                 "-\"lightning bolt\"",
                 "lightning bolt",
             ),
             // Negated exact name
             (
-                SearchFilter.name(true, true, "lightning"),
+                FilterTerm.name(.negative, true, "lightning"),
                 "-!lightning",
                 "lightning",
             ),
             // Key-value without spaces
             (
-                SearchFilter.basic(false, "color", .equal, "red"),
+                FilterTerm.basic(.positive, "color", .equal, "red"),
                 "color=red",
                 "red",
             ),
             // Key-value with spaces (quoted)
             (
-                SearchFilter.basic(false, "type", .including, "legendary creature"),
+                FilterTerm.basic(.positive, "type", .including, "legendary creature"),
                 "type:\"legendary creature\"",
                 "legendary creature",
             ),
             // Key-value with different comparison
             (
-                SearchFilter.basic(false, "power", .greaterThan, "5"),
+                FilterTerm.basic(.positive, "power", .greaterThan, "5"),
                 "power>5",
                 "5",
             ),
             // Negated key-value
             (
-                SearchFilter.basic(true, "color", .equal, "red"),
+                FilterTerm.basic(.negative, "color", .equal, "red"),
                 "-color=red",
                 "red",
             ),
             (
-                SearchFilter.basic(true, "type", .including, "legendary creature"),
+                FilterTerm.basic(.negative, "type", .including, "legendary creature"),
                 "-type:\"legendary creature\"",
                 "legendary creature",
             ),
             // Regex filters
             (
-                SearchFilter.regex(false, "oracle", .including, "flying"),
+                FilterTerm.regex(.positive, "oracle", .including, "flying"),
                 "oracle:/flying/",
                 "flying",
             ),
             (
-                SearchFilter.regex(false, "name", .equal, "^lightning"),
+                FilterTerm.regex(.positive, "name", .equal, "^lightning"),
                 "name=/^lightning/",
                 "^lightning",
             ),
             // Negated regex
             (
-                SearchFilter.regex(true, "oracle", .including, "flying"),
+                FilterTerm.regex(.negative, "oracle", .including, "flying"),
                 "-oracle:/flying/",
                 "flying",
-            ),
-            // Parenthesized content
-            (
-                SearchFilter.disjunction(
-                    false,
-                    [
-                        .init([
-                            .filter(SearchFilter.basic(false, "color", .equal, "red")),
-                        ]),
-                        .init([
-                            .filter(SearchFilter.basic(true, "color", .equal, "blue")),
-                        ]),
-                    ],
-                ),
-                "(color=red or -color=blue)",
-                "color=red or -color=blue",
-            ),
-            (
-                SearchFilter.disjunction(
-                    true,
-                    [
-                        .init([
-                            .filter(SearchFilter.basic(false, "color", .equal, "red")),
-                        ]),
-                        .init([
-                            .filter(SearchFilter.basic(false, "color", .equal, "blue")),
-                        ]),
-                    ],
-                ),
-                "-(color=red or color=blue)",
-                "color=red or color=blue",
             ),
         ]
     )
     func descriptionAndSuggestedEditingRange(
-        filter: SearchFilter,
+        filter: FilterTerm,
         expectedDescription: String,
         expectedEditingContent: String
     ) {

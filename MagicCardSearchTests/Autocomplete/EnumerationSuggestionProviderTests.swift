@@ -17,16 +17,16 @@ struct EnumerationSuggestionProviderTests {
     @Test<[(PartialFilterTerm, [EnumerationSuggestion])]>("getSuggestions", arguments: [
         (
             // gives all values, in alphabetical order, if no value part is given
-            PartialFilterTerm(negated: false, content: .filter("manavalue", .equal, .bare(""))),
+            PartialFilterTerm(polarity: .positive, content: .filter("manavalue", .equal, .bare(""))),
             [
                 .init(
-                    filter: SearchFilter.basic(false, "manavalue", .equal, "even"),
+                    filter: FilterTerm.basic(.positive, "manavalue", .equal, "even"),
                     matchRange: nil,
                     prefixKind: .none,
                     suggestionLength: 4
                 ),
                 .init(
-                    filter: SearchFilter.basic(false, "manavalue", .equal, "odd"),
+                    filter: FilterTerm.basic(.positive, "manavalue", .equal, "odd"),
                     matchRange: nil,
                     prefixKind: .none,
                     suggestionLength: 3
@@ -35,16 +35,16 @@ struct EnumerationSuggestionProviderTests {
         ),
         (
             // narrows based on substring match, preferring shorter strings when they are both prefixes
-            PartialFilterTerm(negated: false, content: .filter("is", .including, .bare("scry"))),
+            PartialFilterTerm(polarity: .positive, content: .filter("is", .including, .bare("scry"))),
             [
                 .init(
-                    filter: SearchFilter.basic(false, "is", .including, "scryland"),
+                    filter: FilterTerm.basic(.positive, "is", .including, "scryland"),
                     matchRange: "is:scryland".range(of: "scry"),
                     prefixKind: .actual,
                     suggestionLength: 8
                 ),
                 .init(
-                    filter: SearchFilter.basic(false, "is", .including, "scryfallpreview"),
+                    filter: FilterTerm.basic(.positive, "is", .including, "scryfallpreview"),
                     matchRange: "is:scryfallpreview".range(of: "scry"),
                     prefixKind: .actual,
                     suggestionLength: 15
@@ -53,10 +53,10 @@ struct EnumerationSuggestionProviderTests {
         ),
         (
             // narrows with any substring, not just prefix, also, doesn't care about operator
-            PartialFilterTerm(negated: false, content: .filter("format", .greaterThanOrEqual, .bare("less"))),
+            PartialFilterTerm(polarity: .positive, content: .filter("format", .greaterThanOrEqual, .bare("less"))),
             [
                 .init(
-                    filter: SearchFilter.basic(false, "format", .greaterThanOrEqual, "timeless"),
+                    filter: FilterTerm.basic(.positive, "format", .greaterThanOrEqual, "timeless"),
                     matchRange: "format>=timeless".range(of: "less"),
                     prefixKind: .none,
                     suggestionLength: 8
@@ -65,16 +65,16 @@ struct EnumerationSuggestionProviderTests {
         ),
         (
             // the negation operator is preserved and does not affect behavior, but is included in the result
-            PartialFilterTerm(negated: true, content: .filter("is", .including, .bare("scry"))),
+            PartialFilterTerm(polarity: .negative, content: .filter("is", .including, .bare("scry"))),
             [
                 .init(
-                    filter: SearchFilter.basic(true, "is", .including, "scryland"),
+                    filter: FilterTerm.basic(.negative, "is", .including, "scryland"),
                     matchRange: "-is:scryland".range(of: "scry"),
                     prefixKind: .effective,
                     suggestionLength: 8
                 ),
                 .init(
-                    filter: SearchFilter.basic(true, "is", .including, "scryfallpreview"),
+                    filter: FilterTerm.basic(.negative, "is", .including, "scryfallpreview"),
                     matchRange: "-is:scryfallpreview".range(of: "scry"),
                     prefixKind: .effective,
                     suggestionLength: 15
@@ -83,10 +83,10 @@ struct EnumerationSuggestionProviderTests {
         ),
         (
             // case-insensitive
-            PartialFilterTerm(negated: false, content: .filter("foRMat", .greaterThanOrEqual, .bare("lESs"))),
+            PartialFilterTerm(polarity: .positive, content: .filter("foRMat", .greaterThanOrEqual, .bare("lESs"))),
             [
                 .init(
-                    filter: SearchFilter.basic(false, "format", .greaterThanOrEqual, "timeless"),
+                    filter: FilterTerm.basic(.positive, "format", .greaterThanOrEqual, "timeless"),
                     matchRange: "format>=timeless".range(of: "less", options: .caseInsensitive),
                     prefixKind: .none,
                     suggestionLength: 8
@@ -95,22 +95,22 @@ struct EnumerationSuggestionProviderTests {
         ),
         (
             // non-enumerable filter type yields no options
-            PartialFilterTerm(negated: false, content: .filter("oracle", .equal, .bare(""))),
+            PartialFilterTerm(polarity: .positive, content: .filter("oracle", .equal, .bare(""))),
             [],
         ),
         (
             // incomplete filter types yield no suggestions
-            PartialFilterTerm(negated: false, content: .name(false, .bare("form"))),
+            PartialFilterTerm(polarity: .positive, content: .name(false, .bare("form"))),
             [],
         ),
         (
             // unknown filter types yield no suggestions
-            PartialFilterTerm(negated: false, content: .filter("foobar", .including, .bare(""))),
+            PartialFilterTerm(polarity: .positive, content: .filter("foobar", .including, .bare(""))),
             [],
         ),
         (
             // incomplete operator is not completeable
-            PartialFilterTerm(negated: false, content: .filter("format", .incompleteNotEqual, .bare(""))),
+            PartialFilterTerm(polarity: .positive, content: .filter("format", .incompleteNotEqual, .bare(""))),
             [],
         ),
     ])

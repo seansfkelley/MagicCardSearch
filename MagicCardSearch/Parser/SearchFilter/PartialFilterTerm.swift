@@ -2,7 +2,7 @@ import OSLog
 
 private let logger = Logger(subsystem: "MagicCardSearch", category: "PartialFilterTerm")
 
-struct PartialFilterTerm: Equatable, CustomStringConvertible {
+public struct PartialFilterTerm: Sendable, Equatable, CustomStringConvertible {
     enum PartialComparison: String, Equatable, CustomStringConvertible {
         case including = ":"
         case equal = "="
@@ -94,7 +94,7 @@ struct PartialFilterTerm: Equatable, CustomStringConvertible {
     let polarity: Polarity
     let content: Content
     
-    var description: String { "\(polarity)\(content)" }
+    public var description: String { "\(polarity)\(content)" }
 
     func toComplete(autoterminateQuotes: Bool = false) -> FilterTerm? {
         switch content {

@@ -11,6 +11,10 @@ public enum FilterQuery<Term: FilterQueryLeaf>: FilterQueryLeaf {
     case and(Polarity, [FilterQuery<Term>])
     case or(Polarity, [FilterQuery<Term>])
 
+    public static func from(_ input: String) -> FilterQuery<PolarityString>? {
+        FilterQuery<PolarityString>.from(input) { $0 }
+    }
+
     public static func from(_ input: String, _ transform: @escaping (PolarityString) -> Term?) -> FilterQuery<Term>? {
         let parser = PartialFilterQueryParser()
 

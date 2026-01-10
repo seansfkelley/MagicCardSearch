@@ -14,7 +14,7 @@ class HistorySuggestionProviderTests {
         provider = HistorySuggestionProvider()
     }
 
-    private func record(filter: SearchFilter, atOffset interval: TimeInterval) {
+    private func record(filter: FilterQuery<FilterTerm>, atOffset interval: TimeInterval) {
         try? database.write { db in
             try FilterHistoryEntry
                 .insert {
@@ -44,8 +44,8 @@ class HistorySuggestionProviderTests {
 
     @Test("returns all filters below the limit if no search term is provided")
     func emptySearchText() {
-        let colorFilter = SearchFilter.basic(false, "color", .equal, "red")
-        let oracleFilter = SearchFilter.basic(false, "oracle", .including, "flying")
+        let colorFilter = FilterQuery<FilterTerm>.term(.basic(.positive, "color", .equal, "red"))
+        let oracleFilter = FilterQuery<FilterTerm>.term(.basic(.positive, "oracle", .including, "flying"))
 
         record(filter: colorFilter, atOffset: 0)
         record(filter: oracleFilter, atOffset: 1000)
@@ -59,14 +59,14 @@ class HistorySuggestionProviderTests {
 
     @Test("returns any filters whose string representation has any substring match")
     func substringMatch() {
-        let colorFilter = SearchFilter.basic(false, "color", .equal, "red")
-        let oracleFilter = SearchFilter.basic(false, "oracle", .including, "flying")
-        let setFilter = SearchFilter.basic(false, "set", .equal, "odyssey")
-        
+        let colorFilter = FilterQuery<FilterTerm>.term(.basic(.positive, "color", .equal, "red"))
+        let oracleFilter = FilterQuery<FilterTerm>.term(.basic(.positive, "oracle", .including, "flying"))
+        let setFilter = FilterQuery<FilterTerm>.term(.basic(.positive, "set", .equal, "odyssey"))
+
         record(filter: colorFilter, atOffset: 0)
         record(filter: oracleFilter, atOffset: 1000)
         record(filter: setFilter, atOffset: 2000)
-        
+
         wait()
 
         let suggestions = provider.getSuggestions(for: "y", excluding: Set(), limit: 10)
@@ -78,14 +78,14 @@ class HistorySuggestionProviderTests {
 
     @Test("returns exclude matching filters present in the exclusion list")
     func excludeMatchingFilters() {
-        let colorFilter = SearchFilter.basic(false, "color", .equal, "red")
-        let oracleFilter = SearchFilter.basic(false, "oracle", .including, "flying")
-        let setFilter = SearchFilter.basic(false, "set", .equal, "ody")
-        
+        let colorFilter = FilterQuery<FilterTerm>.term(.basic(.positive, "color", .equal, "red"))
+        let oracleFilter = FilterQuery<FilterTerm>.term(.basic(.positive, "oracle", .including, "flying"))
+        let setFilter = FilterQuery<FilterTerm>.term(.basic(.positive, "set", .equal, "ody"))
+
         record(filter: colorFilter, atOffset: 0)
         record(filter: oracleFilter, atOffset: 1000)
         record(filter: setFilter, atOffset: 2000)
-        
+
         wait()
 
         let suggestions = provider.getSuggestions(for: "y", excluding: Set([oracleFilter]), limit: 10)
@@ -96,12 +96,12 @@ class HistorySuggestionProviderTests {
 
     @Test("returns the empty list if there is no simple substring match in the stringified filters")
     func noSubstringMatch() {
-        let colorFilter = SearchFilter.basic(false, "color", .equal, "red")
-        let oracleFilter = SearchFilter.basic(false, "oracle", .including, "flying")
-        
+        let colorFilter = FilterQuery<FilterTerm>.term(.basic(.positive, "color", .equal, "red"))
+        let oracleFilter = FilterQuery<FilterTerm>.term(.basic(.positive, "oracle", .including, "flying"))
+
         record(filter: colorFilter, atOffset: 0)
         record(filter: oracleFilter, atOffset: 1000)
-        
+
         wait()
 
         let suggestions = provider.getSuggestions(for: "xyz", excluding: Set(), limit: 10)

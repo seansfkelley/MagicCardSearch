@@ -13,9 +13,9 @@ class HistoryAndPinnedStoreTests {
     init() throws {
         store = HistoryAndPinnedStore(database: database)
     }
-    
+
     // MARK: - Utility Properties
-    
+
     private var allSearchHistory: [SearchHistoryEntry] {
         get throws {
             try database.read { db in
@@ -23,7 +23,7 @@ class HistoryAndPinnedStoreTests {
             }
         }
     }
-    
+
     private var allFilterHistory: [FilterHistoryEntry] {
         get throws {
             try database.read { db in
@@ -31,7 +31,7 @@ class HistoryAndPinnedStoreTests {
             }
         }
     }
-    
+
     private var allPinnedFilters: [PinnedFilterEntry] {
         get throws {
             try database.read { db in
@@ -45,8 +45,8 @@ class HistoryAndPinnedStoreTests {
     @Test("records a search itself as well as the consituent filters")
     func recordCompleteSearch() throws {
         let filters = [
-            SearchFilter.basic(false, "color", .equal, "red"),
-            SearchFilter.basic(false, "oracle", .including, "flying"),
+            FilterQuery<FilterTerm>.term(.basic(.positive, "color", .equal, "red")),
+            FilterQuery<FilterTerm>.term(.basic(.positive, "oracle", .including, "flying")),
         ]
 
         store.record(search: filters)
@@ -54,7 +54,7 @@ class HistoryAndPinnedStoreTests {
         let entries = try allSearchHistory
         try #require(entries.count == 1)
         #expect(entries[0].filters == filters)
-        
+
         let filterEntries = try allFilterHistory
         try #require(filterEntries.count == 2)
         #expect(filterEntries.map(\.filter) == filters)
@@ -62,10 +62,10 @@ class HistoryAndPinnedStoreTests {
 
     @Test("updates last used date of a filter when it appears in a later search")
     func updateExistingSearch() throws {
-        let sharedFilter = SearchFilter.basic(false, "color", .equal, "red")
-        let uniqueFilter1 = SearchFilter.basic(false, "oracle", .including, "flying")
-        let uniqueFilter2 = SearchFilter.basic(false, "set", .equal, "ody")
-        
+        let sharedFilter = FilterQuery<FilterTerm>.term(.basic(.positive, "color", .equal, "red"))
+        let uniqueFilter1 = FilterQuery<FilterTerm>.term(.basic(.positive, "oracle", .including, "flying"))
+        let uniqueFilter2 = FilterQuery<FilterTerm>.term(.basic(.positive, "set", .equal, "ody"))
+
         let search1 = [sharedFilter, uniqueFilter1]
         let search2 = [sharedFilter, uniqueFilter2]
 
@@ -73,30 +73,30 @@ class HistoryAndPinnedStoreTests {
         let date2 = Date(timeIntervalSinceReferenceDate: 2000)
 
         store.record(search: search1, at: date1)
-        
+
         let entries1 = try allFilterHistory
         try #require(entries1.count == 2)
 
         store.record(search: search2, at: date2)
-        
+
         let entries2 = try allFilterHistory
         try #require(entries2.count == 3)
-        
+
         #expect(entries2.map(\.filter) == [sharedFilter, uniqueFilter2, uniqueFilter1])
         #expect(entries2.map(\.lastUsedAt) == [date2, date2, date1])
     }
 
     @Test("deleting a search takes effect, but does not delete the constituent filters")
     func deleteCompleteSearch() throws {
-        let search1 = [SearchFilter.basic(false, "color", .equal, "red")]
-        let search2 = [SearchFilter.basic(false, "oracle", .including, "flying")]
+        let search1 = [FilterQuery<FilterTerm>.term(.basic(.positive, "color", .equal, "red"))]
+        let search2 = [FilterQuery<FilterTerm>.term(.basic(.positive, "oracle", .including, "flying"))]
 
         store.record(search: search1)
         store.record(search: search2)
 
         var entries = try allSearchHistory
         #expect(entries.count == 2)
-        
+
         let filterEntries1 = try allFilterHistory
         #expect(filterEntries1.count == 2)
 
@@ -105,21 +105,21 @@ class HistoryAndPinnedStoreTests {
         entries = try allSearchHistory
         try #require(entries.count == 1)
         #expect(entries[0].filters == search2)
-        
+
         let filterEntries2 = try allFilterHistory
         #expect(filterEntries2.count == 2)
     }
 
     @Test("does nothing when deleting a nonexistent search")
     func deleteNonexistentCompleteSearch() throws {
-        let search1 = [SearchFilter.basic(false, "color", .equal, "red")]
-        let search2 = [SearchFilter.basic(false, "oracle", .including, "flying")]
+        let search1 = [FilterQuery<FilterTerm>.term(.basic(.positive, "color", .equal, "red"))]
+        let search2 = [FilterQuery<FilterTerm>.term(.basic(.positive, "oracle", .including, "flying"))]
 
         store.record(search: search1)
-        
+
         let entries1 = try allSearchHistory
         #expect(entries1.count == 1)
-        
+
         store.delete(search: search2)
 
         let entries2 = try allSearchHistory
@@ -129,7 +129,7 @@ class HistoryAndPinnedStoreTests {
 
     @Test("pinning a filter adds it to the list, unpinning removes it")
     func pinAndUnpinFilter() throws {
-        let filter = SearchFilter.basic(false, "color", .equal, "red")
+        let filter = FilterQuery<FilterTerm>.term(.basic(.positive, "color", .equal, "red"))
 
         var pinned = try allPinnedFilters
         #expect(pinned.count == 0)
@@ -148,7 +148,7 @@ class HistoryAndPinnedStoreTests {
 
     @Test("when deleting a pinned filter, it is also removed from the pinned list")
     func deletePinnedFilter() throws {
-        let filter = SearchFilter.basic(false, "color", .equal, "red")
+        let filter = FilterQuery<FilterTerm>.term(.basic(.positive, "color", .equal, "red"))
 
         store.record(search: [filter])
         store.pin(filter: filter)
