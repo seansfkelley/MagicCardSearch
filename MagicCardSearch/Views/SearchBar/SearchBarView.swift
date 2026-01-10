@@ -1,6 +1,9 @@
 import SwiftUI
+import OSLog
 import FocusOnAppear
 import SwiftUIIntrospect
+
+private let logger = Logger(subsystem: "MagicCardSearch", category: "SearchBarView")
 
 struct SearchBarView: View {
     @Binding var searchState: SearchState
@@ -271,7 +274,7 @@ private class SearchTextFieldDelegate: NSObject, UITextFieldDelegate {
 
         let newSelection = Range<String.Index>.from(range: textField.selectedTextRange, in: textField, text: text)
 
-        print("setting to SwiftUI", newSelection)
+        logger.trace("updating SwiftUI with selection=\(newSelection)")
         actualSelection.wrappedValue = newSelection
     }
 }
