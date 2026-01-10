@@ -225,7 +225,7 @@ struct PartialFilterQueryTests {
         ),
         TestCase(
             "-(red or blue)",
-            ["-red", "or", "-blue"],
+            ["red", "or", "blue"],
             or(.negative, term("red"), term("blue")),
             "-(red or blue)"
         ),
