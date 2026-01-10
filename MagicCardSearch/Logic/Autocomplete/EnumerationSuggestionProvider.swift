@@ -73,18 +73,19 @@ struct EnumerationSuggestionProvider {
                 (
                     FilterTerm.basic(partial.polarity, filterTypeName.lowercased(), comparison, $0.0),
                     $0.1,
+                    $0.0.count,
                 )
             }
             .filter { !excludedFilters.contains(.term($0.0)) }
             .map { args in
-                let (filter, isPrefix) = args
+                let (filter, isPrefix, queryLength) = args
                 let range = value.isEmpty ? nil : filter.description.range(of: value, options: .caseInsensitive)
 
                 return EnumerationSuggestion(
                     filter: filter,
                     matchRange: range,
                     prefixKind: isPrefix ? (partial.polarity == .negative ? .effective : .actual) : .none,
-                    suggestionLength: filter.description.count,
+                    suggestionLength: queryLength,
                 )
             }
             .prefix(limit)
