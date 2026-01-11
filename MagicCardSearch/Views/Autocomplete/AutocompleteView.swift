@@ -80,7 +80,7 @@ struct AutocompleteView: View {
                         }
                     }
                     .listRowInsets(.vertical, 0)
-                case .history(let suggestion):
+                case .filterHistory(let suggestion):
                     BasicRowView(
                         filter: suggestion.filter,
                         matchRange: suggestion.matchRange,

@@ -2,7 +2,7 @@ import Foundation
 import SQLiteData
 import Observation
 
-struct HistorySuggestion: Equatable, Hashable, Sendable, ScorableSuggestion {
+struct FilterHistorySuggestion: Equatable, Hashable, Sendable, ScorableSuggestion {
     let filter: FilterQuery<FilterTerm>
     let matchRange: Range<String.Index>?
     let prefixKind: PrefixKind
@@ -10,7 +10,7 @@ struct HistorySuggestion: Equatable, Hashable, Sendable, ScorableSuggestion {
 }
 
 @Observable
-class HistorySuggestionProvider {
+class FilterHistorySuggestionProvider {
     // MARK: - Properties
 
     @ObservationIgnored
@@ -25,7 +25,7 @@ class HistorySuggestionProvider {
 
     // MARK: - Public Methods
 
-    func getSuggestions(for searchTerm: String, excluding excludedFilters: Set<FilterQuery<FilterTerm>>, limit: Int) -> [HistorySuggestion] {
+    func getSuggestions(for searchTerm: String, excluding excludedFilters: Set<FilterQuery<FilterTerm>>, limit: Int) -> [FilterHistorySuggestion] {
         guard limit > 0 else {
             return []
         }
@@ -40,7 +40,7 @@ class HistorySuggestionProvider {
                     let filterText = entry.filter.description
 
                     if trimmedSearchTerm.isEmpty {
-                        return HistorySuggestion(
+                        return FilterHistorySuggestion(
                             filter: entry.filter,
                             matchRange: nil,
                             // TODO: Would .actual produce better results?
@@ -50,7 +50,7 @@ class HistorySuggestionProvider {
                     }
                     
                     if let range = filterText.range(of: trimmedSearchTerm, options: .caseInsensitive) {
-                        return HistorySuggestion(
+                        return FilterHistorySuggestion(
                             filter: entry.filter,
                             matchRange: range,
                             prefixKind: range.lowerBound == filterText.startIndex ? .actual : .none,

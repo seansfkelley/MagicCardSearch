@@ -53,7 +53,7 @@ class SearchState {
         self.historyAndPinnedStore = historyAndPinnedStore
         self.suggestionProvider = CombinedSuggestionProvider(
             pinnedFilter: PinnedFilterSuggestionProvider(),
-            history: HistorySuggestionProvider(),
+            filterHistory: FilterHistorySuggestionProvider(),
             filterType: FilterTypeSuggestionProvider(),
             enumeration: EnumerationSuggestionProvider(scryfallCatalogs: scryfallCatalogs),
             reverseEnumeration: ReverseEnumerationSuggestionProvider(scryfallCatalogs: scryfallCatalogs),

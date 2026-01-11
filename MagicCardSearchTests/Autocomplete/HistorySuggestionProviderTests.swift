@@ -8,10 +8,10 @@ import DependenciesTestSupport
 @MainActor
 class HistorySuggestionProviderTests {
     @Dependency(\.defaultDatabase) var database
-    var provider: HistorySuggestionProvider
+    var provider: FilterHistorySuggestionProvider
 
     init() throws {
-        provider = HistorySuggestionProvider()
+        provider = FilterHistorySuggestionProvider()
     }
 
     private func record(filter: FilterQuery<FilterTerm>, atOffset interval: TimeInterval) {

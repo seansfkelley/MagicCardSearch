@@ -17,7 +17,7 @@ protocol ScorableSuggestion {
 
 enum Suggestion: Equatable, Hashable, Sendable, ScorableSuggestion {
     case pinned(PinnedFilterSuggestion)
-    case history(HistorySuggestion)
+    case filterHistory(FilterHistorySuggestion)
     case filter(FilterTypeSuggestion)
     case enumeration(EnumerationSuggestion)
     case reverseEnumeration(ReverseEnumerationSuggestion)
@@ -26,7 +26,7 @@ enum Suggestion: Equatable, Hashable, Sendable, ScorableSuggestion {
     private var scorable: any ScorableSuggestion {
         switch self {
         case .pinned(let suggestion): suggestion
-        case .history(let suggestion): suggestion
+        case .filterHistory(let suggestion): suggestion
         case .filter(let suggestion): suggestion
         case .enumeration(let suggestion): suggestion
         case .reverseEnumeration(let suggestion): suggestion
@@ -39,7 +39,7 @@ enum Suggestion: Equatable, Hashable, Sendable, ScorableSuggestion {
     var priority: Int {
         switch self {
         case .pinned: return 0
-        case .history: return 1
+        case .filterHistory: return 1
         case .filter: return 2
         case .enumeration: return 3
         case .reverseEnumeration: return 4
@@ -52,7 +52,7 @@ enum Suggestion: Equatable, Hashable, Sendable, ScorableSuggestion {
 @Observable
 class CombinedSuggestionProvider {
     let pinnedFilterProvider: PinnedFilterSuggestionProvider
-    let historyProvider: HistorySuggestionProvider
+    let filterHistoryProvider: FilterHistorySuggestionProvider
     let filterTypeProvider: FilterTypeSuggestionProvider
     let enumerationProvider: EnumerationSuggestionProvider
     let reverseEnumerationProvider: ReverseEnumerationSuggestionProvider
@@ -62,14 +62,14 @@ class CombinedSuggestionProvider {
     
     init(
         pinnedFilter: PinnedFilterSuggestionProvider,
-        history: HistorySuggestionProvider,
+        filterHistory: FilterHistorySuggestionProvider,
         filterType: FilterTypeSuggestionProvider,
         enumeration: EnumerationSuggestionProvider,
         reverseEnumeration: ReverseEnumerationSuggestionProvider,
         name: NameSuggestionProvider
     ) {
         self.pinnedFilterProvider = pinnedFilter
-        self.historyProvider = history
+        self.filterHistoryProvider = filterHistory
         self.filterTypeProvider = filterType
         self.enumerationProvider = enumeration
         self.reverseEnumerationProvider = reverseEnumeration
@@ -91,14 +91,14 @@ class CombinedSuggestionProvider {
             allSuggestions.append(contentsOf: pinnedSuggestions.map { Suggestion.pinned($0) })
             excludedFilters.formUnion(pinnedSuggestions.map { $0.filter })
             
-            let historySuggestions = self.historyProvider.getSuggestions(
+            let filterHistorySuggestions = self.filterHistoryProvider.getSuggestions(
                 for: searchTerm,
                 excluding: excludedFilters,
                 limit: 20
             )
-            allSuggestions.append(contentsOf: historySuggestions.map { Suggestion.history($0) })
-            excludedFilters.formUnion(historySuggestions.map { $0.filter })
-            
+            allSuggestions.append(contentsOf: filterHistorySuggestions.map { Suggestion.filterHistory($0) })
+            excludedFilters.formUnion(filterHistorySuggestions.map { $0.filter })
+
             let filterSuggestions = self.filterTypeProvider.getSuggestions(
                 for: partial,
                 limit: 4
