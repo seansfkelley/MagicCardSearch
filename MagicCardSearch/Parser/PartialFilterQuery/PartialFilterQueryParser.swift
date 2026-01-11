@@ -17,10 +17,10 @@ class PartialFilterQueryParser: CitronParser {
 
     enum CitronTokenCode: CitronSymbolNumber {
       case Or                             =   1
-      case And                            =   2
-      case Verbatim                       =   3
-      case CloseParen                     =   4
-      case OpenParen                      =   5
+      case Verbatim                       =   2
+      case And                            =   3
+      case OpenParen                      =   4
+      case CloseParen                     =   5
     }
 
     enum CitronNonTerminalCode: CitronSymbolNumber {
@@ -86,17 +86,16 @@ class PartialFilterQueryParser: CitronParser {
 
     let yyLookaheadAction: [(CitronSymbolNumber, CitronParsingAction)] = [
 /*   0 */  ( 6, .ACCEPT),   ( 7, .SH( 5)), ( 8, .SH( 6)), ( 9, .RD( 4)), ( 7, .SH( 4)),
-/*   5 */  ( 8, .SH( 6)), ( 9, .RD( 4)), ( 3, .SR( 3)), ( 9, .RD( 6)), ( 5, .SH( 1)),
-/*  10 */  ( 8, .SH( 7)), ( 9, .RD( 4)), (10, .RD( 2)), ( 3, .SR( 5)), ( 2, .SH( 3)),
-/*  15 */  ( 5, .SH( 1)), (10, .RD( 2)), ( 1, .SH( 2)), ( 0, .RD( 0)), ( 1, .SH( 2)),
-/*  20 */  ( 4, .SR( 7)),
+/*   5 */  ( 8, .SH( 6)), ( 9, .RD( 4)), ( 2, .SR( 3)), ( 9, .RD( 6)), ( 4, .SH( 1)),
+/*  10 */  ( 8, .SH( 7)), ( 9, .RD( 4)), ( 2, .SR( 5)), ( 1, .SH( 2)), ( 4, .SH( 1)),
+/*  15 */  ( 0, .RD( 0)), ( 1, .SH( 2)), ( 5, .SR( 7)), (10, .RD( 2)), ( 3, .SH( 3)),
     ]
 
-    let yyShiftUseDefault: Int = 21
+    let yyShiftUseDefault: Int = 20
     let yyShiftOffsetMin: Int = 0
-    let yyShiftOffsetMax: Int = 18
+    let yyShiftOffsetMax: Int = 16
     let yyShiftOffset: [Int] = [
-        /*     0 */     4,    4,    4,   10,   16,   18,   12,   12,
+        /*     0 */     5,    5,    5,   10,   12,   15,   16,   16,
     ]
 
     let yyReduceUseDefault: Int = -7
@@ -149,10 +148,10 @@ class PartialFilterQueryParser: CitronParser {
     let yySymbolName: [String] = [
     /*  0 */ "$",
     /*  1 */ "Or",
-    /*  2 */ "And",
-    /*  3 */ "Verbatim",
-    /*  4 */ "CloseParen",
-    /*  5 */ "OpenParen",
+    /*  2 */ "Verbatim",
+    /*  3 */ "And",
+    /*  4 */ "OpenParen",
+    /*  5 */ "CloseParen",
     /*  6 */ "query",
     /*  7 */ "disjunction",
     /*  8 */ "conjunction",
@@ -179,7 +178,7 @@ class PartialFilterQueryParser: CitronParser {
         switch (ruleNumber) {
         case 0: /* query ::= disjunction(d) */
             func codeBlockForRule0(d: PartialFilterQuery) throws -> PartialFilterQuery {
-#sourceLocation(file: "MagicCardSearch/Parser/PartialFilterQuery/PartialFilterQueryGrammar.y", line: 7)
+#sourceLocation(file: "MagicCardSearch/Parser/PartialFilterQuery/PartialFilterQueryGrammar.y", line: 6)
  d 
 #sourceLocation()
 }
@@ -188,7 +187,7 @@ class PartialFilterQueryParser: CitronParser {
             }
         case 1: /* disjunction ::= conjunction(c) */
             func codeBlockForRule1(c: PartialFilterQuery) throws -> PartialFilterQuery {
-#sourceLocation(file: "MagicCardSearch/Parser/PartialFilterQuery/PartialFilterQueryGrammar.y", line: 11)
+#sourceLocation(file: "MagicCardSearch/Parser/PartialFilterQuery/PartialFilterQueryGrammar.y", line: 9)
  c 
 #sourceLocation()
 }
@@ -197,7 +196,7 @@ class PartialFilterQueryParser: CitronParser {
             }
         case 2: /* disjunction ::= disjunction(d) Or conjunction(c) */
             func codeBlockForRule2(d: PartialFilterQuery, c: PartialFilterQuery) throws -> PartialFilterQuery {
-#sourceLocation(file: "MagicCardSearch/Parser/PartialFilterQuery/PartialFilterQueryGrammar.y", line: 12)
+#sourceLocation(file: "MagicCardSearch/Parser/PartialFilterQuery/PartialFilterQueryGrammar.y", line: 10)
 
     .or(.positive, [d, c])
 
@@ -209,7 +208,7 @@ class PartialFilterQueryParser: CitronParser {
             }
         case 3: /* conjunction ::= Verbatim(v) */
             func codeBlockForRule3(v: PartialFilterQueryTokenContent) throws -> PartialFilterQuery {
-#sourceLocation(file: "MagicCardSearch/Parser/PartialFilterQuery/PartialFilterQueryGrammar.y", line: 18)
+#sourceLocation(file: "MagicCardSearch/Parser/PartialFilterQuery/PartialFilterQueryGrammar.y", line: 15)
 
     if v.content.first == "-" {
         .term(
@@ -229,7 +228,7 @@ class PartialFilterQueryParser: CitronParser {
             }
         case 4: /* conjunction ::= parenthesized(d) */
             func codeBlockForRule4(d: PartialFilterQuery) throws -> PartialFilterQuery {
-#sourceLocation(file: "MagicCardSearch/Parser/PartialFilterQuery/PartialFilterQueryGrammar.y", line: 30)
+#sourceLocation(file: "MagicCardSearch/Parser/PartialFilterQuery/PartialFilterQueryGrammar.y", line: 27)
  d 
 #sourceLocation()
 }
@@ -238,7 +237,7 @@ class PartialFilterQueryParser: CitronParser {
             }
         case 5: /* conjunction ::= conjunction(c) And Verbatim(v) */
             func codeBlockForRule5(c: PartialFilterQuery, v: PartialFilterQueryTokenContent) throws -> PartialFilterQuery {
-#sourceLocation(file: "MagicCardSearch/Parser/PartialFilterQuery/PartialFilterQueryGrammar.y", line: 31)
+#sourceLocation(file: "MagicCardSearch/Parser/PartialFilterQuery/PartialFilterQueryGrammar.y", line: 28)
 
     let string: PolarityString = if v.content.first == "-" {
         .init(
@@ -258,7 +257,7 @@ class PartialFilterQueryParser: CitronParser {
             }
         case 6: /* conjunction ::= conjunction(c) And parenthesized(d) */
             func codeBlockForRule6(c: PartialFilterQuery, d: PartialFilterQuery) throws -> PartialFilterQuery {
-#sourceLocation(file: "MagicCardSearch/Parser/PartialFilterQuery/PartialFilterQueryGrammar.y", line: 42)
+#sourceLocation(file: "MagicCardSearch/Parser/PartialFilterQuery/PartialFilterQueryGrammar.y", line: 39)
 
     .and(.positive, [c, d])
 
@@ -270,7 +269,7 @@ class PartialFilterQueryParser: CitronParser {
             }
         case 7: /* parenthesized ::= OpenParen(l) disjunction(d) CloseParen(r) */
             func codeBlockForRule7(l: PartialFilterQueryTokenContent, d: PartialFilterQuery, r: PartialFilterQueryTokenContent) throws -> PartialFilterQuery {
-#sourceLocation(file: "MagicCardSearch/Parser/PartialFilterQuery/PartialFilterQueryGrammar.y", line: 48)
+#sourceLocation(file: "MagicCardSearch/Parser/PartialFilterQuery/PartialFilterQueryGrammar.y", line: 44)
 
     .or(l.content.first == "-" ? .negative : .positive, [d])
 
@@ -306,76 +305,19 @@ class PartialFilterQueryParser: CitronParser {
 
     weak var errorCaptureDelegate: CitronErrorCaptureDelegate? = nil
 
-    let yyErrorCaptureSymbolNumbersForState: [CitronStateNumber:[CitronSymbolNumber]] = [
-          0 : [6, 7, 8, 9],
-          1 : [7, 8, 9],
-          2 : [8, 9],
-          3 : [9],
-    ]
-    let yyCanErrorCapture: Bool = true
-    let yyErrorCaptureDirectives: [CitronSymbolNumber:(endAfter:[[CitronTokenCode]],endBefore:[CitronTokenCode])] = [
-         7 : (endAfter: [[.Or]],
-              endBefore: []),
-         8 : (endAfter: [[.And]],
-              endBefore: []),
-         9 : (endAfter: [],
-              endBefore: [.CloseParen, .Verbatim, .Or, .And])
-    ]
-    let yyErrorCaptureEndBeforeTokens: Set<CitronSymbolNumber> = [
-        1, 2, 3, 4
-    ]
-    let yyErrorCaptureEndAfterSequenceEndingTokens: Set<CitronSymbolNumber> = [
-        1, 2
-    ]
+    let yyErrorCaptureSymbolNumbersForState: [CitronStateNumber:[CitronSymbolNumber]] = [:]
+    let yyCanErrorCapture: Bool = false
+    let yyErrorCaptureDirectives: [CitronSymbolNumber:(endAfter:[[CitronTokenCode]],endBefore:[CitronTokenCode])] = [:]
+    let yyErrorCaptureEndBeforeTokens: Set<CitronSymbolNumber> = []
+
+    let yyErrorCaptureEndAfterSequenceEndingTokens: Set<CitronSymbolNumber> = []
 
     func yyShouldSaveErrorForCapturing(error: Error) -> Bool {
-        guard let delegate = errorCaptureDelegate else {
-            print("Error capture: Not saving error for capturing because errorCaptureDelegate is not set")
-            return false
-        }
-        return delegate.shouldSaveErrorForCapturing(error: error)
+        fatalError("This parser was not generated with error capturing information")
     }
 
     func yyCaptureError(on symbolCode: CitronNonTerminalCode, error: Error, state: CitronErrorCaptureState) -> CitronSymbol? {
-        guard let delegate = errorCaptureDelegate else {
-            print("Error capture: Not capturing error because errorCaptureDelegate is not set")
-            return nil
-        }
-
-        switch (symbolCode) {
-        case .query:
-            let delegateResponse = delegate.shouldCaptureErrorOnQuery(state: state, error: error)
-            switch (delegateResponse) {
-            case .captureAs(let symbol):
-                return .yy14(symbol)
-            case .dontCapture:
-                return nil
-            }
-        case .disjunction:
-            let delegateResponse = delegate.shouldCaptureErrorOnDisjunction(state: state, error: error)
-            switch (delegateResponse) {
-            case .captureAs(let symbol):
-                return .yy14(symbol)
-            case .dontCapture:
-                return nil
-            }
-        case .conjunction:
-            let delegateResponse = delegate.shouldCaptureErrorOnConjunction(state: state, error: error)
-            switch (delegateResponse) {
-            case .captureAs(let symbol):
-                return .yy14(symbol)
-            case .dontCapture:
-                return nil
-            }
-        case .parenthesized:
-            let delegateResponse = delegate.shouldCaptureErrorOnParenthesized(state: state, error: error)
-            switch (delegateResponse) {
-            case .captureAs(let symbol):
-                return .yy14(symbol)
-            case .dontCapture:
-                return nil
-            }
-        }
+        fatalError("This parser was not generated with error capturing information")
     }
 
     func yySymbolContent(_ symbol: CitronSymbol) -> Any { return symbol.typeErasedContent() }
@@ -393,22 +335,6 @@ class PartialFilterQueryParser: CitronParser {
 
 protocol _PartialFilterQueryParserCitronErrorCaptureDelegate : AnyObject {
     func shouldSaveErrorForCapturing(error: Error) -> Bool
-
-    /* query */
-    func shouldCaptureErrorOnQuery(state: PartialFilterQueryParser.CitronErrorCaptureState,
-        error: Error) -> CitronErrorCaptureResponse<PartialFilterQuery>
-
-    /* disjunction */
-    func shouldCaptureErrorOnDisjunction(state: PartialFilterQueryParser.CitronErrorCaptureState,
-        error: Error) -> CitronErrorCaptureResponse<PartialFilterQuery>
-
-    /* conjunction */
-    func shouldCaptureErrorOnConjunction(state: PartialFilterQueryParser.CitronErrorCaptureState,
-        error: Error) -> CitronErrorCaptureResponse<PartialFilterQuery>
-
-    /* parenthesized */
-    func shouldCaptureErrorOnParenthesized(state: PartialFilterQueryParser.CitronErrorCaptureState,
-        error: Error) -> CitronErrorCaptureResponse<PartialFilterQuery>
 }
 
 extension _PartialFilterQueryParserCitronErrorCaptureDelegate {

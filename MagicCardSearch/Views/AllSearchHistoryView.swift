@@ -27,6 +27,9 @@ struct AllSearchHistoryView: View {
     @FetchAll(SearchHistoryEntry.order { $0.lastUsedAt.desc() })
     var searchHistory
     
+    @FetchAll
+    var pinnedSearches: [PinnedSearchEntry]
+
     @State private var editMode: EditMode = .inactive
     @State private var selectedSearches: Set<Int64?> = []
 
@@ -79,6 +82,8 @@ struct AllSearchHistoryView: View {
                         description: Text("Your search history will appear here.")
                     )
                 } else {
+                    let pinnedFilters = Set(pinnedSearches.map(\.filters))
+
                     List(selection: $selectedSearches) {
                         ForEach(groupedSearchHistory, id: \.0) { interval, entries in
                             Section {
@@ -89,13 +94,39 @@ struct AllSearchHistoryView: View {
                                         searchState.performSearch()
                                         dismiss()
                                     } label: {
-                                        Text(entry.filters.map { $0.description }.joined(separator: " "))
-                                            .font(.body)
-                                            .foregroundStyle(.primary)
-                                            .lineLimit(3)
-                                            .padding(.vertical, 4)
+                                        HStack {
+                                            Text(entry.filters.map { $0.description }.joined(separator: " "))
+                                                .font(.body)
+                                                .foregroundStyle(.primary)
+                                                .lineLimit(3)
+                                                .padding(.vertical, 4)
+                                            
+                                            Spacer()
+                                            
+                                            if pinnedFilters.contains(entry.filters) {
+                                                Image(systemName: "pin.fill")
+                                                    .foregroundStyle(.secondary)
+                                            }
+                                        }
                                     }
                                     .tint(.primary)
+                                    .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                                        if pinnedFilters.contains(entry.filters) {
+                                            Button {
+                                                historyAndPinnedStore.unpin(search: entry.filters)
+                                            } label: {
+                                                Label("Unpin", systemImage: "pin.slash")
+                                            }
+                                            .tint(.orange)
+                                        } else {
+                                            Button {
+                                                historyAndPinnedStore.pin(search: entry.filters)
+                                            } label: {
+                                                Label("Pin", systemImage: "pin")
+                                            }
+                                            .tint(.orange)
+                                        }
+                                    }
                                     .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                                         Button(role: .destructive) {
                                             historyAndPinnedStore.delete(search: entry.filters)
