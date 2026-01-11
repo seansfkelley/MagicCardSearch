@@ -17,12 +17,7 @@ class FilterHistorySuggestionProvider {
     @FetchAll(FilterHistoryEntry.order { $0.lastUsedAt.desc() })
     // swiftlint:disable:next attributes
     private var filterHistoryEntries
-
-    @ObservationIgnored
-    @FetchAll(SearchHistoryEntry.order { $0.lastUsedAt.desc() })
-    // swiftlint:disable:next attributes
-    private var searchHistoryEntries
-
+    
     // MARK: - Public Methods
 
     func getSuggestions(for searchTerm: String, excluding excludedFilters: Set<FilterQuery<FilterTerm>>, limit: Int) -> [FilterHistorySuggestion] {
