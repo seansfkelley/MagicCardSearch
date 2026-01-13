@@ -1,5 +1,5 @@
 {
-  "originHash" : "0a301c4c7614196ebb41d01dd5e50a78c107a0ab244fb1216512aa65d54bb5f2",
+  "originHash" : "35a3da485bb04574328aaa9a7e25fdd8c1386cd281dc5d8d128d193dc5037f50",
   "pins" : [
     {
       "identity" : "cocoalumberjack",
@@ -42,8 +42,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/nicklockwood/LRUCache.git",
       "state" : {
-        "revision" : "0d91406ecd4d6c1c56275866f00508d9aeacc92a",
-        "version" : "1.2.0"
+        "revision" : "cb5b2bd0da83ad29c0bec762d39f41c8ad0eaf3e",
+        "version" : "1.2.1"
       }
     },
     {
@@ -58,10 +58,10 @@
     {
       "identity" : "scryfallkit",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/seansfkelley/ScryfallKit",
+      "location" : "https://github.com/JacobHearst/ScryfallKit",
       "state" : {
         "branch" : "main",
-        "revision" : "45a639809bbda97ad4269ed713f85d1e3c44e87f"
+        "revision" : "f38c41df4091d7dc79852fd928642a9027dfa26f"
       }
     },
     {

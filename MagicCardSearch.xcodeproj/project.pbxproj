@@ -879,7 +879,7 @@
 		};
 		21A856BA2EE3AA9200E72541 /* XCRemoteSwiftPackageReference "ScryfallKit" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/seansfkelley/ScryfallKit";
+			repositoryURL = "https://github.com/JacobHearst/ScryfallKit";
 			requirement = {
 				branch = main;
 				kind = branch;

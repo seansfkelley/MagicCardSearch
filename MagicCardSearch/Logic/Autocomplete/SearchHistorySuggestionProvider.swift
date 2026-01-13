@@ -30,7 +30,6 @@ class SearchHistorySuggestionProvider {
 
     @ObservationIgnored
     @FetchAll(SearchHistoryEntry.order { $0.lastUsedAt.desc() })
-    // swiftlint:disable:next attributes
     private var searchHistoryEntries
 
     // MARK: - Public Methods
