@@ -33,6 +33,21 @@ There have been some mild annoyances beyond the fact that it's slightly out of d
 
 Scryfall's name-autocomplete API doesn't seem meaningfully better than what I can bang together using a list of strings, and since we Scryfall provides the complete list of card names in the same fashion as other catalogs I need for other purposes, there's no much reason to introduce network latency where not required to implement the feature. 30,000 names is small for pocket supercomputers.
 
-## Home-rolled NSCache Wrapper
+## Home-rolled `NSCache` Wrapper (`MemoryCache`)
 
 It was simple enough, and I wasn't able to find any promising caching libraries that had the features I actually needed. Most were focused on things like fine-tuned eviction rules but didn't provide complexities I would actually want (such as get-through-cache while guaranteeing a cache miss would only trigger a single fetch, even if concurrent). 
+
+## `Polarity`
+
+This exists because a bare boolean was ambiguous. The obvious field to use would have been `negated`, since the idiomatic default-false would cover the common case, but this introduced double negatives. A two-valued enumeration avoids all usage-site ambiguity and also makes stringification slightly more elegant, since unlike a boolean it knows how to stringify itself appropriately.
+
+## `FilterQuery` and `[Partial]FilterTerm`
+
+Separating the parsing of the boolean expression query structure from the filter's text simplifies many operations and allows DRYing code. (Some) incomplete boolean expressions can be parsed and suggestions provided for constituent (potentially-incomplete) filters. Code interested in inspecting a potentially-incomplete query term can reuse the code without doing a full parse (and potentially being limited by how tolerant the full parser would have been around incomplete filter terms).
+
+`FilterQuery` is unlike a typical boolean query language structure because it doesn't bake AND/OR precedence into the type system and permits even more versions of redundant representations than one normally could make with infinitely deep one-term AND/ORs. It also inlines `Polarity` into each enum variant instead of having a dedicated NOT variant. This partially-flattened representation was chosen because it:
+
+- is reasonably ergonomic to write by hand for testing and example-query purposes.
+- requires less recursion and type-juggling when pattern-matching to inspect a parsed query.
+- permits aggressive flattening of redundant nesting, even down to a single term, which aids database inspection and debugging.
+- simplifies the common case of wrapping single-term autocomplete suggestions into a valid query component.

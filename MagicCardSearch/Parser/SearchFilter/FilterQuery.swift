@@ -114,7 +114,7 @@ public enum FilterQuery<Term: FilterQueryLeaf>: FilterQueryLeaf {
         }
     }
     
-    public func transformLeaves<U: Codable & Sendable & Hashable & Equatable & CustomStringConvertible>(
+    public func transformLeaves<U: FilterQueryLeaf>(
         using transform: (Term) -> U?
     ) -> FilterQuery<U>? {
         switch self {
