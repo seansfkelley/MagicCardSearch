@@ -11,6 +11,7 @@
 		210E13AA2EFC66C4009D9FE0 /* FocusOnAppear in Frameworks */ = {isa = PBXBuildFile; productRef = 210E13A92EFC66C4009D9FE0 /* FocusOnAppear */; };
 		210E14922EFDE5FB009D9FE0 /* SwiftUIIntrospect in Frameworks */ = {isa = PBXBuildFile; productRef = 210E14912EFDE5FB009D9FE0 /* SwiftUIIntrospect */; };
 		210E245C2F0858DC008C05C1 /* DependenciesTestSupport in Frameworks */ = {isa = PBXBuildFile; productRef = 210E245B2F0858DC008C05C1 /* DependenciesTestSupport */; };
+		2125D59E2F43CA1A00BA755E /* DESIGN-tab-navigation.md in Resources */ = {isa = PBXBuildFile; fileRef = 2125D59D2F43CA1A00BA755E /* DESIGN-tab-navigation.md */; };
 		21332B992EF5D04100C80208 /* Algorithms in Frameworks */ = {isa = PBXBuildFile; productRef = 21332B982EF5D04100C80208 /* Algorithms */; };
 		213F299A2EE9285400E058DB /* SVGKitSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 213F29992EE9285400E058DB /* SVGKitSwift */; };
 		21874B3A2F07045300E07D9A /* SQLiteData in Frameworks */ = {isa = PBXBuildFile; productRef = 21874B392F07045300E07D9A /* SQLiteData */; };
@@ -46,6 +47,7 @@
 
 /* Begin PBXFileReference section */
 		211396112EE9E39500093873 /* CLAUDE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = CLAUDE.md; sourceTree = "<group>"; };
+		2125D59D2F43CA1A00BA755E /* DESIGN-tab-navigation.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "DESIGN-tab-navigation.md"; sourceTree = "<group>"; };
 		2137B5AD2EE139C60066BF7E /* MagicCardSearch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MagicCardSearch.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		2137B5BA2EE139C70066BF7E /* MagicCardSearchTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MagicCardSearchTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		2137B5C42EE139C70066BF7E /* MagicCardSearchUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MagicCardSearchUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -171,6 +173,7 @@
 				2137B5C72EE139C70066BF7E /* MagicCardSearchUITests */,
 				21A856BB2EE3AAE400E72541 /* Frameworks */,
 				2137B5AE2EE139C60066BF7E /* Products */,
+				2125D59D2F43CA1A00BA755E /* DESIGN-tab-navigation.md */,
 			);
 			sourceTree = "<group>";
 		};
@@ -362,6 +365,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				2125D59E2F43CA1A00BA755E /* DESIGN-tab-navigation.md in Resources */,
 				21B726BE2F0AFCDD00D2F951 /* DECISIONS.md in Resources */,
 				21B334122F0C53CA0048627E /* CARD_EXAMPLES.md in Resources */,
 			);
