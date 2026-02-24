@@ -98,6 +98,14 @@ struct ExampleSearch: Hashable {
             .basic(.positive, "type", .including, "land"),
             .basic(.positive, "unique", .including, "art"),
         ]),
+        .init(title: "Hard-hitting 1-Drops", filters: [
+            .basic(.positive, "type", .including, "creature"),
+            .basic(.positive, "manavalue", .equal, "1"),
+            .basic(.positive, "power", .greaterThanOrEqual, "3"),
+        ]),
+        .init(title: "Jaya Ballard's Witticisms", filters: [
+            .basic(.positive, "flavor", .including, "Jaya Ballard"),
+        ]),
     ]
 
     private static func hourlySeed() -> Int {

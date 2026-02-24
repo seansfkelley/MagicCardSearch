@@ -103,7 +103,7 @@ let scryfallFilterTypes: [ScryfallFilterType] = [
     
     // MARK: - Mana Costs
     .init("mana", ["m"], comparisonKinds: .all),
-    .init("manavalue", ["mv"], enumerationValues: ["even", "odd"], comparisonKinds: .all),
+    .init("manavalue", ["mv", "cmc"], enumerationValues: ["even", "odd"], comparisonKinds: .all),
     .init("devotion", comparisonKinds: .all),
     .init("produces", comparisonKinds: .all),
     // see also `is`
