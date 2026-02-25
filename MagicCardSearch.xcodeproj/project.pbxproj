@@ -818,7 +818,7 @@
 			repositoryURL = "https://github.com/kean/Nuke";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 12.8.0;
+				minimumVersion = 12.9.0;
 			};
 		};
 		210E13A82EFC66C4009D9FE0 /* XCRemoteSwiftPackageReference "FocusOnAppear" */ = {
@@ -881,8 +881,8 @@
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/JacobHearst/ScryfallKit";
 			requirement = {
-				branch = main;
-				kind = branch;
+				kind = upToNextMajorVersion;
+				minimumVersion = 6.1.0;
 			};
 		};
 		21B726BF2F0B101300D2F951 /* XCRemoteSwiftPackageReference "SwiftSoup" */ = {
