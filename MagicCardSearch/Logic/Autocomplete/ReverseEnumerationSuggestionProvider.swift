@@ -11,12 +11,6 @@ struct ReverseEnumerationSuggestion: Equatable, Hashable, Sendable, ScorableSugg
     let suggestionLength: Int
 }
 
-// These are really noisy in the search results and I can't imagine anyone ever wants them.
-private let ignoredSetTypes: Set<MTGSet.Kind> = [
-    .token,
-    .promo,
-]
-
 @MainActor
 class ReverseEnumerationSuggestionProvider {
     private let cacheLock = NSLock()
@@ -146,7 +140,9 @@ class ReverseEnumerationSuggestionProvider {
         guard addCatalogs(.watermarks, to: "watermark") else { return nil }
         guard addCatalogs(.supertypes, .cardTypes, .artifactTypes, .battleTypes, .creatureTypes, .enchantmentTypes, .landTypes, .planeswalkerTypes, .spellTypes, to: "type") else { return nil }
 
-        guard let sets = (scryfallCatalogs.sets?.values.filter { !ignoredSetTypes.contains($0.setType) }) else { return nil }
+        guard let sets = (scryfallCatalogs.sets?.values.filter { !AutocompleteConstants.ignoredSetTypes.contains($0.setType) }) else {
+            return nil
+        }
 
         if let setFilter = scryfallFilterByType["set"] {
             for set in sets {

@@ -22,12 +22,6 @@ private enum CacheKey: Hashable {
     case oracleTag
 }
 
-// These are really noisy in the search results and I can't imagine anyone ever wants them.
-private let ignoredSetTypes: Set<MTGSet.Kind> = [
-    .token,
-    .promo,
-]
-
 private let logger = Logger(subsystem: "MagicCardSearch", category: "EnumerationSuggestionProvider")
 
 @MainActor
@@ -149,7 +143,7 @@ struct EnumerationSuggestionProvider {
             scryfallCatalogs.sets.map {
                 IndexedEnumerationValues(
                     $0.values
-                        .filter { !ignoredSetTypes.contains($0.setType) }
+                        .filter { !AutocompleteConstants.ignoredSetTypes.contains($0.setType) }
                         .flatMap { [$0.code.uppercased(), $0.name] }
                         .map { $0.replacing(/[^a-zA-Z0-9 ]/, with: "") }
                 )
@@ -158,7 +152,7 @@ struct EnumerationSuggestionProvider {
             scryfallCatalogs.sets.map {
                 IndexedEnumerationValues(
                     $0.values
-                        .filter { !ignoredSetTypes.contains($0.setType) }
+                        .filter { !AutocompleteConstants.ignoredSetTypes.contains($0.setType) }
                         .compactMap { $0.block?.replacing(/[^a-zA-Z0-9 ]/, with: "") }
                         .uniqued()
                 )
