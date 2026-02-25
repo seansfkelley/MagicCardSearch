@@ -28,7 +28,7 @@ class BookmarkedCardsStore {
         write("unbookmarking card") { db in
             try BookmarkedCard
                 .delete()
-                .where { $0.id == id }
+                .where { $0.id.eq(id) }
                 .execute(db)
         }
     }

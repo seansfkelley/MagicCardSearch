@@ -21,12 +21,12 @@ class HistoryAndPinnedStore {
         write("deleting filter") { db in
             try FilterHistoryEntry
                 .delete()
-                .where { $0.filter == FilterQuery<FilterTerm>.StableJSONRepresentation(queryOutput: filter) }
+                .where { $0.filter.eq(FilterQuery<FilterTerm>.StableJSONRepresentation(queryOutput: filter)) }
                 .execute(db)
 
             try PinnedFilterEntry
                 .delete()
-                .where { $0.filter == FilterQuery<FilterTerm>.StableJSONRepresentation(queryOutput: filter) }
+                .where { $0.filter.eq(FilterQuery<FilterTerm>.StableJSONRepresentation(queryOutput: filter)) }
                 .execute(db)
         }
     }
@@ -48,7 +48,7 @@ class HistoryAndPinnedStore {
 
             try PinnedFilterEntry
                 .delete()
-                .where { $0.filter == FilterQuery<FilterTerm>.StableJSONRepresentation(queryOutput: filter) }
+                .where { $0.filter.eq(FilterQuery<FilterTerm>.StableJSONRepresentation(queryOutput: filter)) }
                 .execute(db)
         }
     }
@@ -74,12 +74,12 @@ class HistoryAndPinnedStore {
         write("deleting search by content") { db in
             try SearchHistoryEntry
                 .delete()
-                .where { $0.filters == [FilterQuery<FilterTerm>].StableJSONRepresentation(queryOutput: search) }
+                .where { $0.filters.eq([FilterQuery<FilterTerm>].StableJSONRepresentation(queryOutput: search)) }
                 .execute(db)
 
             try PinnedSearchEntry
                 .delete()
-                .where { $0.filters == [FilterQuery<FilterTerm>].StableJSONRepresentation(queryOutput: search) }
+                .where { $0.filters.eq([FilterQuery<FilterTerm>].StableJSONRepresentation(queryOutput: search)) }
                 .execute(db)
         }
     }
@@ -119,7 +119,7 @@ class HistoryAndPinnedStore {
 
             try PinnedSearchEntry
                 .delete()
-                .where { $0.filters == [FilterQuery<FilterTerm>].StableJSONRepresentation(queryOutput: search) }
+                .where { $0.filters.eq([FilterQuery<FilterTerm>].StableJSONRepresentation(queryOutput: search)) }
                 .execute(db)
         }
     }

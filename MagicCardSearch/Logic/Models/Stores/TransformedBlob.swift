@@ -13,13 +13,13 @@ class TransformedBlob<Value: Decodable> {
 
     init(_ key: String, _ transform: @escaping (Data) throws -> Value) {
         self.key = key
-        self._blob = FetchOne(wrappedValue: nil, BlobEntry.where { $0.key == key })
+        self._blob = FetchOne(wrappedValue: nil, BlobEntry.where { $0.key.eq(key) })
         self.transform = transform
     }
 
     init(_ key: String, withJsonDecoder jsonDecoder: JSONDecoder = JSONDecoder()) {
         self.key = key
-        self._blob = FetchOne(wrappedValue: nil, BlobEntry.where { $0.key == key })
+        self._blob = FetchOne(wrappedValue: nil, BlobEntry.where { $0.key.eq(key) })
         self.transform = { try jsonDecoder.decode(Value.self, from: $0) }
     }
 

@@ -156,7 +156,7 @@ class ScryfallCatalogs {
         let symbology: [Card.Symbol]?
         do {
             symbology = try await database.read { db in
-                if let blob = try (BlobEntry.where { $0.key == "symbology" }.fetchOne(db)) {
+                if let blob = try (BlobEntry.where { $0.key.eq("symbology") }.fetchOne(db)) {
                     try jsonDecoder.decode([Card.Symbol].self, from: blob.value)
                 } else {
                     nil
@@ -179,7 +179,7 @@ class ScryfallCatalogs {
         let existing: BlobEntry?
         do {
             existing = try await database.read { db in
-                try BlobEntry.where { $0.key == key }.fetchOne(db)
+                try BlobEntry.where { $0.key.eq(key) }.fetchOne(db)
             }
         } catch {
             existing = nil
