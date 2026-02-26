@@ -2,6 +2,10 @@
 
 Cards that exemplify the different kinds of things that are possible for each feature.
 
+## Card Detail View
+
+- Bloodtithe Harvester (INR) -- has every section nonempty
+
 ## Text Box/Symbols
 
 - Sphinx of the Revelation -- large variety of symbols plus some reminder text

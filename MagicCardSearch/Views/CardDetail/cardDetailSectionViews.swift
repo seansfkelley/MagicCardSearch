@@ -149,7 +149,8 @@ struct CardRelatedPartsSection: View {
                 .font(.headline)
                 .fontWeight(.semibold)
                 .padding(.horizontal)
-                .padding(.vertical, 12)
+                .padding(.top, 17)
+                .padding(.bottom, 12)
 
             ForEach(otherParts) { part in
                 Button {
@@ -272,12 +273,15 @@ struct CardAllPrintsSection: View {
             HStack {
                 Text("All Prints")
                     .font(.headline)
+                    // pixel-push to make it line up with the adjacent DisclosureGroup
+                    .padding(.vertical, 3)
 
                 Spacer()
 
                 Image(systemName: "chevron.right")
-                    .font(.caption)
+                    .font(.system(size: 14)) // determinted empirically to match DisclosureGroup
                     .foregroundStyle(.primary)
+                    .fontWeight(.semibold)
             }
             .padding()
             .contentShape(Rectangle())
