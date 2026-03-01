@@ -3,23 +3,7 @@ import ScryfallKit
 import OSLog
 import SQLiteData
 
-private let logger = Logger(subsystem: "MagicCardSearch", category: "HomeView")
-
-private struct PlainStyling: ViewModifier {
-    func body(content: Content) -> some View {
-        content
-            .font(.body)
-            .textCase(.none)
-            .foregroundStyle(.primary)
-            .listRowInsets(.init(top: 10, leading: 0, bottom: 10, trailing: 0))
-    }
-}
-
-private extension View {
-    func plainStyling() -> some View {
-        modifier(PlainStyling())
-    }
-}
+private let logger = Logger(subsystem: "MagicCardSearch", category: "SearchTabView")
 
 private extension PinnedSearchEntry {
     var listId: String { "pinned:\(id ?? -1)" }
@@ -29,9 +13,154 @@ private extension SearchHistoryEntry {
     var listId: String { "history:\(id ?? -1)" }
 }
 
-struct HomeView: View {
+struct SearchTabView: View {
+    @Binding var searchState: SearchState
+
+    @State private var suggestionLoadingState = DebouncedLoadingState()
+    @State private var showSyntaxReference = false
+    @State private var showDisplaySheet = false
+    @State private var pendingSearchConfig: SearchConfiguration?
+    @State private var showAllSearchHistory = false
+
+    private var hasActiveSearch: Bool {
+        searchState.results != nil && !searchState.filters.isEmpty
+    }
+
+    private var showAutocomplete: Bool {
+        !searchState.searchText.isEmpty || !searchState.filters.isEmpty
+    }
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                Color(uiColor: .systemBackground)
+                    .ignoresSafeArea()
+
+                if hasActiveSearch {
+                    searchResultsContent
+                } else if showAutocomplete {
+                    autocompleteContent
+                } else {
+                    defaultContent
+                }
+            }
+            .safeAreaInset(edge: .bottom) {
+                SearchBarAndPillsView(
+                    searchState: $searchState,
+                    isAutocompleteLoading: suggestionLoadingState.isLoadingDebounced,
+                )
+            }
+            .toolbar {
+                if hasActiveSearch {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button {
+                            pendingSearchConfig = searchState.configuration
+                            showDisplaySheet = true
+                        } label: {
+                            Image(systemName: "arrow.up.arrow.down")
+                        }
+                    }
+                }
+
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        showSyntaxReference = true
+                    } label: {
+                        Image(systemName: "book")
+                    }
+                }
+
+                if !hasActiveSearch {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button {
+                            searchState.performSearch()
+                        } label: {
+                            Image(systemName: "checkmark")
+                        }
+                        .buttonStyle(.glassProminent)
+                    }
+                }
+
+                if hasActiveSearch {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        ShareLink(
+                            item: CardSearchService
+                                .buildSearchURL(
+                                    filters: searchState.filters,
+                                    config: searchState.configuration,
+                                    forAPI: false
+                                ) ?? URL(string: "https://scryfall.com")!
+                        ) {
+                            Image(systemName: "square.and.arrow.up")
+                        }
+                    }
+                }
+            }
+            .toolbarBackground(.hidden, for: .navigationBar)
+            .navigationBarTitleDisplayMode(.inline)
+        }
+        .onChange(of: searchState.filters) { _, newFilters in
+            searchState.results?.clearWarnings()
+            if newFilters.isEmpty {
+                searchState.results = nil
+            }
+        }
+        .sheet(isPresented: $showDisplaySheet, onDismiss: {
+            if let pending = pendingSearchConfig, pending != searchState.configuration {
+                searchState.configuration = pending
+                searchState.performSearch()
+                searchState.configuration.save()
+            }
+            pendingSearchConfig = nil
+        }) {
+            DisplayOptionsView(searchConfig: Binding(
+                get: { pendingSearchConfig ?? searchState.configuration },
+                set: { pendingSearchConfig = $0 }
+            ))
+            .presentationDetents([.medium])
+        }
+        .sheet(isPresented: $showSyntaxReference) {
+            SyntaxReferenceView()
+        }
+        .sheet(isPresented: $showAllSearchHistory) {
+            AllSearchHistoryView(searchState: $searchState)
+        }
+    }
+
+    // MARK: - Search Results
+
+    @ViewBuilder
+    private var searchResultsContent: some View {
+        if let results = searchState.results {
+            SearchResultsGridView(list: results, searchState: $searchState)
+        }
+    }
+
+    // MARK: - Autocomplete
+
+    private var autocompleteContent: some View {
+        AutocompleteView(
+            searchState: $searchState,
+            suggestionLoadingState: $suggestionLoadingState,
+        )
+    }
+
+    // MARK: - Default Content (pinned, recent, examples)
+
+    private var defaultContent: some View {
+        DefaultSearchContent(
+            searchState: $searchState,
+            showAllSearchHistory: $showAllSearchHistory,
+        )
+    }
+}
+
+// MARK: - Default Search Content
+
+private struct DefaultSearchContent: View {
     @Environment(HistoryAndPinnedStore.self) private var historyAndPinnedStore
     @Binding var searchState: SearchState
+    @Binding var showAllSearchHistory: Bool
 
     @FetchAll(
         SearchHistoryEntry
@@ -40,124 +169,16 @@ struct HomeView: View {
             .limit(10)
     )
     private var recentSearches
-    
+
     @FetchAll(PinnedSearchEntry.order { $0.pinnedAt.desc() })
     var pinnedSearches
-    
-    @State private var cardFlipStates: [UUID: Bool] = [:]
-    @State private var selectedFeaturedCardIndex: Int?
-    @State private var showAllSearchHistory = false
-    
-    private let featuredList = FeaturedCardsObjectList.shared
-    private let featuredCardWidth: CGFloat = 120
 
     var body: some View {
         List {
-            featuredCardsSection()
             pinnedSearchesSection()
             recentSearchesSection()
             examplesSection()
         }
-        .task {
-            if isRunningTests() {
-                logger.info("skipping featured card load in test environment")
-            } else {
-                FeaturedCardsObjectList.shared.loadFirstPage()
-            }
-        }
-        .sheet(
-            item: Binding(
-                get: { selectedFeaturedCardIndex.map { IdentifiableIndex(index: $0) } },
-                set: { selectedFeaturedCardIndex = $0?.index }
-            )
-        ) { identifier in
-            SearchResultsDetailNavigator(
-                list: FeaturedCardsObjectList.shared,
-                initialIndex: identifier.index,
-                cardFlipStates: $cardFlipStates,
-                searchState: $searchState,
-            )
-        }
-        .sheet(isPresented: $showAllSearchHistory) {
-            AllSearchHistoryView(searchState: $searchState)
-        }
-        .onChange(of: searchState.searchNonce) {
-            showAllSearchHistory = false
-        }
-    }
-
-    @ViewBuilder
-    private func featuredCardsSection() -> some View {
-        Section {
-            ScrollView(.horizontal, showsIndicators: false) {
-                LazyHStack(spacing: 12) {
-                    switch FeaturedCardsObjectList.shared.value {
-                    case .loading(nil, _), .unloaded:
-                        ForEach(0..<15, id: \.self) { _ in
-                            CardPlaceholderView(name: nil, cornerRadius: 8, withSpinner: true)
-                                .frame(width: featuredCardWidth, height: featuredCardWidth / Card.aspectRatio)
-                        }
-                    case .loading(let results?, _), .loaded(let results, _), .errored(let results?, _):
-                        ForEach(Array(results.data.enumerated()), id: \.element.id) { index, card in
-                            Button {
-                                selectedFeaturedCardIndex = index
-                            } label: {
-                                CardView(
-                                    card: card,
-                                    quality: .small,
-                                    isFlipped: Binding(
-                                        get: { cardFlipStates[card.id] ?? false },
-                                        set: { cardFlipStates[card.id] = $0 }
-                                    ),
-                                    cornerRadius: 8,
-                                )
-                                .frame(width: featuredCardWidth)
-                            }
-                            .buttonStyle(.plain)
-                            .onAppear {
-                                if index == results.data.count - 3 {
-                                    featuredList.loadNextPage()
-                                }
-                            }
-                        }
-
-                        if case .loading = featuredList.value, results.hasMore ?? false {
-                            ProgressView()
-                                .frame(width: featuredCardWidth, height: featuredCardWidth / Card.aspectRatio)
-                        }
-                    case .errored(nil, let error):
-                        ContentUnavailableView(
-                            "Unable to Load Spoilers",
-                            systemImage: "exclamationmark.triangle",
-                            description: Text(error.description),
-                        )
-                        .frame(width: featuredCardWidth * 2, height: featuredCardWidth / Card.aspectRatio)
-                    }
-                }
-                .padding(.horizontal)
-            }
-        } header: {
-            HStack {
-                Label("Recent Spoilers", systemImage: "sparkles")
-
-                Spacer()
-
-                Button(action: {
-                    searchState.filters = [
-                        .term(.basic(.positive, "date", .greaterThanOrEqual, "today")),
-                        .term(.basic(.positive, "order", .including, SortMode.spoiled.rawValue)),
-                        .term(.basic(.positive, "dir", .including, SortDirection.desc.rawValue)),
-                        .term(.basic(.positive, "unique", .including, UniqueMode.prints.rawValue)),
-                    ]
-                    searchState.performSearch()
-                }) {
-                    Text("View All")
-                }
-            }
-            .padding(.horizontal)
-        }
-        .listRowInsets(.horizontal, 0)
-        .listSectionMargins(.horizontal, 0)
     }
 
     @ViewBuilder
@@ -245,9 +266,9 @@ struct HomeView: View {
             } header: {
                 HStack {
                     Label("Recent Searches", systemImage: "clock.arrow.circlepath")
-                    
+
                     Spacer()
-                    
+
                     Button(action: {
                         showAllSearchHistory = true
                     }) {
@@ -292,31 +313,5 @@ struct HomeView: View {
         }
         .listRowInsets(.horizontal, 0)
         .listSectionMargins(.horizontal, 0)
-    }
-}
-// MARK: - Featured Cards State
-
-@MainActor
-@Observable
-private class FeaturedCardsObjectList: ScryfallObjectList<Card> {
-    private static let scryfall = ScryfallClient(logger: logger)
-
-    static let shared = FeaturedCardsObjectList { page async throws in
-        return try await scryfall.searchCards(
-            query: "date>=today",
-            unique: .prints,
-            order: .spoiled,
-            sortDirection: .desc,
-            page: page,
-        )
-    }
-
-    // Since this object is long-lived and we might cause the home view to appear multiple times,
-    // we can't just blindly load the "next" (initial case: first) page. We have to specifically
-    // only load the first page!
-    func loadFirstPage() {
-        if case .unloaded = value {
-            loadNextPage()
-        }
     }
 }

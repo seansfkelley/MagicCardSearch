@@ -5,17 +5,17 @@ import NukeUI
 import GRDB
 import OSLog
 
-private let logger = Logger(subsystem: "MagicCardSearch", category: "BookmarkedCardsListView")
+private let logger = Logger(subsystem: "MagicCardSearch", category: "BookmarksTabView")
 
-struct BookmarkedCardsListView: View {
-    @Environment(\.dismiss) private var dismiss
+struct BookmarksTabView: View {
     @Binding var searchState: SearchState
+    @Binding var selectedTab: Tab
     @State private var editMode: EditMode = .inactive
     @State private var selectedCards: Set<UUID> = []
     @State private var detailSheetState: SheetState?
-    
+
     @Environment(BookmarkedCardsStore.self) private var bookmarkedCardsStore
-    @State @FetchAll private var bookmarks: [BookmarkedCard] = [] // Needs a default because of @State.
+    @State @FetchAll private var bookmarks: [BookmarkedCard] = []
     @AppStorage("bookmarkedCardsSortOption")
     private var sortMode: BookmarkSortMode = .name
 
@@ -72,14 +72,6 @@ struct BookmarkedCardsListView: View {
             .navigationTitle("Bookmarks")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button {
-                        dismiss()
-                    } label: {
-                        Image(systemName: "xmark")
-                    }
-                }
-
                 if isEditing {
                     ToolbarItem(placement: .topBarTrailing) {
                         Button {
@@ -91,7 +83,7 @@ struct BookmarkedCardsListView: View {
                             Text("Done")
                         }
                     }
-                    
+
                     ToolbarItemGroup(placement: .bottomBar) {
                         if selectedCards.count == bookmarks.count {
                             Button {
@@ -148,7 +140,7 @@ struct BookmarkedCardsListView: View {
                         }
                         .disabled(bookmarks.isEmpty)
                     }
-                    
+
                     ToolbarItem(placement: .topBarTrailing) {
                         Button {
                             withAnimation {
@@ -159,7 +151,7 @@ struct BookmarkedCardsListView: View {
                         }
                         .disabled(bookmarks.isEmpty)
                     }
-                    
+
                     ToolbarItem(placement: .topBarTrailing) {
                         ShareLink(
                             item: shareableText
@@ -176,6 +168,7 @@ struct BookmarkedCardsListView: View {
                 initialBookmarks: state.cards,
                 initialIndex: state.index,
                 searchState: $searchState,
+                selectedTab: $selectedTab,
             )
         }
         .task(id: sortMode) {
@@ -185,7 +178,6 @@ struct BookmarkedCardsListView: View {
         }
     }
 
-    // This was the only way to appease the compiler.
     private func ordering() -> SelectOf<BookmarkedCard> {
         switch sortMode {
         case .name:
@@ -239,16 +231,13 @@ struct BookmarkedCardsListView: View {
         let id: UUID
         let index: Int
         let cards: [BookmarkedCard]
-        
+
         init(index: Int, cards: [BookmarkedCard]) {
             self.index = index
             self.cards = cards
-            // Use the card ID at this index as a stable identifier
             self.id = cards.indices.contains(index) ? cards[index].id : UUID()
         }
     }
-
-    // MARK: - Shareable Text
 
     private var shareableText: String {
         bookmarks.map { "1 \($0.name) (\($0.setCode.uppercased()))" }.joined(separator: "\n")
@@ -261,13 +250,14 @@ private struct BookmarkedCardDetailNavigator: View {
     let initialBookmarks: [BookmarkedCard]
     let initialIndex: Int
     @Binding var searchState: SearchState
+    @Binding var selectedTab: Tab
 
     @State private var cardFlipStates: [UUID: Bool] = [:]
 
     @FetchAll private var allBookmarks: [BookmarkedCard]
     @Environment(BookmarkedCardsStore.self) private var bookmarkedCardsStore
     private let cardSearchService = CardSearchService()
-    
+
     var body: some View {
         LazyPagingDetailNavigator(
             items: initialBookmarks,
@@ -291,8 +281,6 @@ private struct BookmarkedCardDetailNavigator: View {
                 searchState: $searchState,
             )
         } toolbarContent: { card in
-            // n.b. we have to use allBookmarks here, not initialBookmarks, so we are reactive to
-            // any changes that this detail view causes.
             if let bookmark = allBookmarks.first(where: { $0.id == card.id }) {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
@@ -348,7 +336,7 @@ private struct BookmarkedCardRowView: View {
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                 }
-                
+
                 HStack(spacing: 4) {
                     SetIconView(setCode: SetCode(card.setCode), size: 12)
                     Text(card.setCode.uppercased())

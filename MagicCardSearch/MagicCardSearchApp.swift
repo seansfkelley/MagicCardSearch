@@ -29,7 +29,7 @@ struct MagicCardSearchApp: App {
     
     var body: some Scene {
         WindowGroup {
-            ContentView(searchState: $searchState)
+            MainTabView(searchState: $searchState)
                 .environment(bookmarkedCardsStore)
                 .environment(historyAndPinnedStore)
                 .environment(scryfallCatalogs)

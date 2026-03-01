@@ -104,7 +104,7 @@ struct SearchResultsGridView: View {
                 searchState: $searchState,
             )
         }
-        .onChange(of: searchState.searchNonce) {
+        .onChange(of: searchState.filters) {
             selectedCardIndex = nil
         }
     }
