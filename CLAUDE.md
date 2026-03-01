@@ -4,11 +4,17 @@ This is an iOS app for searching the library of Magic: The Gathering ("MTG" or "
 
 ## App Features
 
-- The entire app is heavily focused on search, with robust and ergonomic autocomplete behaviors.
+- The entire app is heavily focused on search, with extensive and ergonomic autocomplete behaviors.
 - Scryfall's query language is baked into the core UI of the app; this is a power-user tool and does not include guided "advanced search" features.
 - There are simple "bookmarking" features for basic list management.
 - Fluid navigation is a must; most interactions are scroll and swipe, and navigation must be easily dismissed/backtracked.
 - Most views include a share button to enable easy sharing of state with other apps or people.
+
+## Target Audience
+
+- This is a power user app. Familiarity with the text-based Scryfall query language is assumed.
+- This app does not attempt to teach anyone about Magic or its rules.
+- When in doubt, show more information (though still keep it clean and organized).
 
 ## Tools, Workflow and Style
 
