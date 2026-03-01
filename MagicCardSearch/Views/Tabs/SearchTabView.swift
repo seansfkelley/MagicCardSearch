@@ -21,13 +21,14 @@ struct SearchTabView: View {
     @State private var showDisplaySheet = false
     @State private var pendingSearchConfig: SearchConfiguration?
     @State private var showAllSearchHistory = false
+    @State private var isSearchBarFocused = false
 
     private var hasActiveSearch: Bool {
-        searchState.results != nil && !searchState.filters.isEmpty
+        searchState.results != nil && !searchState.filters.isEmpty && searchState.searchText.isEmpty
     }
 
     private var showAutocomplete: Bool {
-        !searchState.searchText.isEmpty || !searchState.filters.isEmpty
+        isSearchBarFocused || !searchState.searchText.isEmpty || (!searchState.filters.isEmpty && searchState.results == nil)
     }
 
     var body: some View {
@@ -47,6 +48,7 @@ struct SearchTabView: View {
             .safeAreaInset(edge: .bottom) {
                 SearchBarAndPillsView(
                     searchState: $searchState,
+                    isFocused: $isSearchBarFocused,
                     isAutocompleteLoading: suggestionLoadingState.isLoadingDebounced,
                 )
             }
@@ -67,17 +69,6 @@ struct SearchTabView: View {
                         showSyntaxReference = true
                     } label: {
                         Image(systemName: "book")
-                    }
-                }
-
-                if !hasActiveSearch {
-                    ToolbarItem(placement: .confirmationAction) {
-                        Button {
-                            searchState.performSearch()
-                        } label: {
-                            Image(systemName: "checkmark")
-                        }
-                        .buttonStyle(.glassProminent)
                     }
                 }
 

@@ -7,13 +7,16 @@ private let logger = Logger(subsystem: "MagicCardSearch", category: "SearchBarVi
 
 struct SearchBarView: View {
     @Binding var searchState: SearchState
+    @Binding var isFocused: Bool
     let isAutocompleteLoading: Bool
 
+    @FocusState private var fieldFocused: Bool
     @State private var showSymbolPicker = false
     private let textFieldDelegate: SearchTextFieldDelegate
 
-    init(searchState: Binding<SearchState>, isAutocompleteLoading: Bool) {
+    init(searchState: Binding<SearchState>, isFocused: Binding<Bool>, isAutocompleteLoading: Bool) {
         self._searchState = searchState
+        self._isFocused = isFocused
         self.isAutocompleteLoading = isAutocompleteLoading
 
         // The only reason this is here is because UITextField.delegate is weak, so we need to
@@ -51,17 +54,18 @@ struct SearchBarView: View {
             // preceding options (textContentType? autocorrectionDisabled?) it does successfully get
             // rid of the predictive text bar that is not very useful.
             // .keyboardType(.asciiCapable)
+            .focused($fieldFocused)
             .introspect(.textField, on: .iOS(.v26)) { textField in
                 textField.smartDashesType = .no
                 textField.smartQuotesType = .no
                 textField.smartInsertDeleteType = .no
                 textField.delegate = textFieldDelegate
             }
-            .focusOnAppear(config: .init(
-                returnKeyType: .go,
-                autocorrectionType: .no,
-                autocapitalizationType: .none,
-            ))
+//            .focusOnAppear(config: .init(
+//                returnKeyType: .go,
+//                autocorrectionType: .no,
+//                autocapitalizationType: .none,
+//            ))
             .frame(maxWidth: .infinity)
 
             if !searchState.searchText.isEmpty {
@@ -141,6 +145,9 @@ struct SearchBarView: View {
             // didn't 100% test that this was necessary, but it does work as written and I spent way
             // too long fucking about with selection so I left it as-is.
             searchState.desiredSearchSelection = nil
+        }
+        .onChange(of: fieldFocused) {
+            isFocused = fieldFocused
         }
     }
 

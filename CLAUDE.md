@@ -22,6 +22,7 @@ This is an iOS app for searching the library of Magic: The Gathering ("MTG" or "
 - ScryfallKit is a Swift package that implements the Scryfall API. Use it for Scryfall-related behavior by default instead of reimplementing things.
 - Run SwiftLint after your changes and ensure they adhere to the style.
 - Don't leave excessive comments.
+- The linter is run as part of the build. There is no need to try to run it separately.
 
 ## Code Layout
 

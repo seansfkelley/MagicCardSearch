@@ -69,8 +69,6 @@ struct BookmarksTabView: View {
                     .environment(\.editMode, $editMode)
                 }
             }
-            .navigationTitle("Bookmarks")
-            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 if isEditing {
                     ToolbarItem(placement: .topBarTrailing) {

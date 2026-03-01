@@ -8,8 +8,7 @@ struct RandomCardView: View {
                 systemImage: "shuffle",
                 description: Text("Random card discovery will be available in a future update.")
             )
-            .navigationTitle("Random")
-            .navigationBarTitleDisplayMode(.inline)
+            .toolbar(.hidden, for: .navigationBar)
         }
     }
 }

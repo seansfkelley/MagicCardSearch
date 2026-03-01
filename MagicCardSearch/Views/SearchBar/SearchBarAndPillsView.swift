@@ -2,6 +2,7 @@ import SwiftUI
 
 struct SearchBarAndPillsView: View {
     @Binding var searchState: SearchState
+    @Binding var isFocused: Bool
     let isAutocompleteLoading: Bool
 
     @State var showWarningsPopover: Bool = false
@@ -56,6 +57,7 @@ struct SearchBarAndPillsView: View {
 
                 SearchBarView(
                     searchState: $searchState,
+                    isFocused: $isFocused,
                     isAutocompleteLoading: isAutocompleteLoading,
                 )
             }

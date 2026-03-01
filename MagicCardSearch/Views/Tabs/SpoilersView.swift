@@ -50,17 +50,7 @@ struct SpoilersView: View {
                     }
                 }
             }
-            .navigationTitle("Spoilers")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .principal) {
-                    Image("HeaderIcon")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 32, height: 32)
-                }
-            }
-            .toolbarBackground(.hidden, for: .navigationBar)
+            .toolbar(.hidden, for: .navigationBar)
         }
         .task {
             if isRunningTests() {
