@@ -12,13 +12,22 @@ struct SearchResultsDetailNavigator: View {
     @Binding var searchState: SearchState
 
     @FetchAll private var bookmarks: [BookmarkedCard]
+    @State private var navigatorIndex: Int
+
+    init(list: ScryfallObjectList<Card>, initialIndex: Int, cardFlipStates: Binding<[UUID: Bool]>, searchState: Binding<SearchState>) {
+        self.list = list
+        self.initialIndex = initialIndex
+        self._cardFlipStates = cardFlipStates
+        self._searchState = searchState
+        self._navigatorIndex = State(initialValue: initialIndex)
+    }
 
     var body: some View {
         let totalCount = list.value.latestValue?.totalCards ?? 0
 
         LazyPagingDetailNavigator(
             items: list.value.latestValue?.data ?? [],
-            initialIndex: initialIndex,
+            currentIndex: $navigatorIndex,
             hasMorePages: list.value.latestValue?.hasMore ?? false,
             isLoadingNextPage: list.value.isLoadingNextPage,
             nextPageError: list.value.nextPageError,

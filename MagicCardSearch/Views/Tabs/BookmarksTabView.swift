@@ -254,16 +254,25 @@ private struct BookmarkedCardDetailNavigator: View {
     @Binding var selectedTab: Tab
 
     @State private var cardFlipStates: [UUID: Bool] = [:]
+    @State private var navigatorIndex: Int
 
     @FetchAll private var allBookmarks: [BookmarkedCard]
     @Environment(BookmarkedCardsStore.self) private var bookmarkedCardsStore
     @Environment(\.dismiss) private var dismiss
     private let cardSearchService = CardSearchService()
 
+    init(initialBookmarks: [BookmarkedCard], initialIndex: Int, searchState: Binding<SearchState>, selectedTab: Binding<Tab>) {
+        self.initialBookmarks = initialBookmarks
+        self.initialIndex = initialIndex
+        self._searchState = searchState
+        self._selectedTab = selectedTab
+        self._navigatorIndex = State(initialValue: initialIndex)
+    }
+
     var body: some View {
         LazyPagingDetailNavigator(
             items: initialBookmarks,
-            initialIndex: initialIndex,
+            currentIndex: $navigatorIndex,
             loadDistance: 1,
             loader: { card in
                 logger.info("fetching card cardName=\(card.name) cardId=\(card.id)")

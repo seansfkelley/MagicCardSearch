@@ -25,7 +25,6 @@ struct LazyPagingDetailNavigator<ItemReference: Nameable & Identifiable, Item: I
     // MARK: - Properties
     
     let items: [ItemReference]
-    let initialIndex: Int
     let hasMorePages: Bool
     let isLoadingNextPage: Bool
     let nextPageError: SearchErrorState?
@@ -38,14 +37,14 @@ struct LazyPagingDetailNavigator<ItemReference: Nameable & Identifiable, Item: I
     var onRetryNextPage: (() -> Void)?
     
     @State private var loadedItems: [Item.ID: LoadingState] = [:]
-    @State private var currentIndex: Int
+    @Binding var currentIndex: Int
     @State private var scrollPosition: Int?
     
     // MARK: - Initialization
     
     init(
         items: [ItemReference],
-        initialIndex: Int,
+        currentIndex: Binding<Int>,
         hasMorePages: Bool = false,
         isLoadingNextPage: Bool = false,
         nextPageError: SearchErrorState? = nil,
@@ -58,7 +57,6 @@ struct LazyPagingDetailNavigator<ItemReference: Nameable & Identifiable, Item: I
         @ViewBuilder bottomContent: @escaping (_ currentIndex: Int, _ totalCount: Int) -> BottomContent
     ) {
         self.items = items
-        self.initialIndex = initialIndex
         self.hasMorePages = hasMorePages
         self.isLoadingNextPage = isLoadingNextPage
         self.nextPageError = nextPageError
@@ -69,13 +67,13 @@ struct LazyPagingDetailNavigator<ItemReference: Nameable & Identifiable, Item: I
         self.bottomContent = bottomContent
         self.onNearEnd = onNearEnd
         self.onRetryNextPage = onRetryNextPage
-        self._currentIndex = State(initialValue: initialIndex)
-        self._scrollPosition = State(initialValue: initialIndex)
+        self._currentIndex = currentIndex
+        self._scrollPosition = State(initialValue: currentIndex.wrappedValue)
     }
     
     init(
         items: [ItemReference],
-        initialIndex: Int,
+        currentIndex: Binding<Int>,
         hasMorePages: Bool = false,
         isLoadingNextPage: Bool = false,
         nextPageError: SearchErrorState? = nil,
@@ -88,7 +86,7 @@ struct LazyPagingDetailNavigator<ItemReference: Nameable & Identifiable, Item: I
     ) where BottomContent == EmptyView {
         self.init(
             items: items,
-            initialIndex: initialIndex,
+            currentIndex: currentIndex,
             hasMorePages: hasMorePages,
             isLoadingNextPage: isLoadingNextPage,
             nextPageError: nextPageError,
@@ -140,7 +138,7 @@ struct LazyPagingDetailNavigator<ItemReference: Nameable & Identifiable, Item: I
             }
         }
         .onAppear {
-            scrollPosition = initialIndex
+            scrollPosition = currentIndex
             updateLoadingWindow()
         }
         .onChange(of: scrollPosition) { _, newValue in

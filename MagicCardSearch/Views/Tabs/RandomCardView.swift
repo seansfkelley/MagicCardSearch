@@ -48,6 +48,7 @@ struct RandomCardView: View {
     @Binding var searchState: SearchState
 
     @State private var history: [Card] = []
+    @State private var currentIndex = 0
     @State private var isLoadingNext = false
     @State private var loadError: Error?
     @State private var filters = RandomCardFilters()
@@ -82,7 +83,7 @@ struct RandomCardView: View {
     private var navigatorView: some View {
         LazyPagingDetailNavigator(
             items: history,
-            initialIndex: 0,
+            currentIndex: $currentIndex,
             hasMorePages: true,
             isLoadingNextPage: isLoadingNext,
             nextPageError: loadError.map { SearchErrorState(from: $0) },
@@ -197,14 +198,9 @@ struct RandomCardView: View {
 
     private func applyFilters(_ newFilters: RandomCardFilters) {
         filters = newFilters
-        // Keep only cards up to and including the current visible card.
-        // LazyPagingDetailNavigator's onChange(of: items.count) handles scroll clamping.
-        // We can't easily read the navigator's currentIndex from here, so we truncate
-        // forward history conservatively by keeping all existing cards and just fetching
-        // new ones with the updated filters.
-        // Actually per the design doc: truncate to history[0...currentIndex]. Since we
-        // don't have direct access to currentIndex, we keep all history (the user sees
-        // what they've already seen) and just fetch the next card with new filters.
+        if currentIndex < history.count {
+            history = Array(history[0...currentIndex])
+        }
         fetchNextCard()
     }
 }
