@@ -19,7 +19,6 @@ This is an iOS app for searching the library of Magic: The Gathering ("MTG" or "
 ## Tools, Workflow and Style
 
 - Overwhelmingly prefer using library functionality for basic algorithms or unoriginal UI patterns. It is better to make 80% of the requested feature with 20% of the code, unless told otherwise.
-- ScryfallKit is a Swift package that implements the Scryfall API. Use it for Scryfall-related behavior by default instead of reimplementing things.
 - Run SwiftLint after your changes and ensure they adhere to the style.
 - Don't leave excessive comments.
 - The linter is run as part of the build. There is no need to try to run it separately.
@@ -36,4 +35,7 @@ All unit tests go in `MagicCardSearchTests`, not in `MagicCardSearch` itself.
 ## Scryfall
 
 - Scryfall is an advanced MTG search engine with a robust query language.  
-- The API documentation can be found at https://scryfall.com/docs/api.
+    - The API documentation can be found at https://scryfall.com/docs/api.
+- ScryfallKit is a Swift package that implements the Scryfall API.
+    - Use ScryfallKit for Scryfall-related behavior by default instead of reimplementing things.
+    - The API documentation can be found at https://hearst.dev/ScryfallKit/documentation/scryfallkit/. 
