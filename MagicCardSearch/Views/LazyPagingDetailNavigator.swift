@@ -12,7 +12,7 @@ extension BookmarkedCard: Nameable {}
 
 /// A generic lazy-loading detail navigator that supports paging through items with automatic loading
 /// of items within a specified range of the current position.
-struct LazyPagingDetailNavigator<ItemReference: Nameable & Identifiable, Item: Identifiable, Content: View, Toolbar: ToolbarContent>: View where ItemReference.ID == Item.ID {
+struct LazyPagingDetailNavigator<ItemReference: Nameable & Identifiable, Item: Identifiable, Content: View, Toolbar: ToolbarContent, BottomContent: View>: View where ItemReference.ID == Item.ID {
     // MARK: - Types
     
     enum LoadingState {
@@ -26,7 +26,6 @@ struct LazyPagingDetailNavigator<ItemReference: Nameable & Identifiable, Item: I
     
     let items: [ItemReference]
     let initialIndex: Int
-    let totalCount: Int
     let hasMorePages: Bool
     let isLoadingNextPage: Bool
     let nextPageError: SearchErrorState?
@@ -34,6 +33,8 @@ struct LazyPagingDetailNavigator<ItemReference: Nameable & Identifiable, Item: I
     let loader: (ItemReference) async throws -> Item
     let content: (Item) -> Content
     let toolbarContent: ((Item) -> Toolbar)?
+    let bottomContent: ((_ currentIndex: Int, _ totalCount: Int) -> BottomContent)?
+    let showDismissButton: Bool
     var onNearEnd: (() -> Void)?
     var onRetryNextPage: (() -> Void)?
     
@@ -47,20 +48,20 @@ struct LazyPagingDetailNavigator<ItemReference: Nameable & Identifiable, Item: I
     init(
         items: [ItemReference],
         initialIndex: Int,
-        totalCount: Int = 0,
         hasMorePages: Bool = false,
         isLoadingNextPage: Bool = false,
         nextPageError: SearchErrorState? = nil,
         loadDistance: Int = 1,
         loader: @escaping (ItemReference) async throws -> Item,
+        showDismissButton: Bool = true,
         onNearEnd: (() -> Void)? = nil,
         onRetryNextPage: (() -> Void)? = nil,
         @ViewBuilder content: @escaping (Item) -> Content,
-        @ToolbarContentBuilder toolbarContent: @escaping (Item) -> Toolbar
+        @ToolbarContentBuilder toolbarContent: @escaping (Item) -> Toolbar,
+        @ViewBuilder bottomContent: @escaping (_ currentIndex: Int, _ totalCount: Int) -> BottomContent
     ) {
         self.items = items
         self.initialIndex = initialIndex
-        self.totalCount = totalCount
         self.hasMorePages = hasMorePages
         self.isLoadingNextPage = isLoadingNextPage
         self.nextPageError = nextPageError
@@ -68,6 +69,8 @@ struct LazyPagingDetailNavigator<ItemReference: Nameable & Identifiable, Item: I
         self.loader = loader
         self.content = content
         self.toolbarContent = toolbarContent
+        self.bottomContent = bottomContent
+        self.showDismissButton = showDismissButton
         self.onNearEnd = onNearEnd
         self.onRetryNextPage = onRetryNextPage
         self._currentIndex = State(initialValue: initialIndex)
@@ -103,11 +106,13 @@ struct LazyPagingDetailNavigator<ItemReference: Nameable & Identifiable, Item: I
             .navigationTitle(navigationTitle)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button {
-                        dismiss()
-                    } label: {
-                        Image(systemName: "xmark")
+                if showDismissButton {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button {
+                            dismiss()
+                        } label: {
+                            Image(systemName: "xmark")
+                        }
                     }
                 }
                 
@@ -121,13 +126,9 @@ struct LazyPagingDetailNavigator<ItemReference: Nameable & Identifiable, Item: I
                 }
             }
             .safeAreaInset(edge: .bottom) {
-                Text(counterText)
-                    .font(.caption)
-                    .foregroundStyle(.primary)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
-                    .glassEffect(.regular, in: .capsule)
-                    .padding(.bottom, 20)
+                if let bottomContent {
+                    bottomContent(currentIndex, items.count)
+                }
             }
         }
         .onAppear {
@@ -143,6 +144,12 @@ struct LazyPagingDetailNavigator<ItemReference: Nameable & Identifiable, Item: I
                 if newValue >= items.count - 3 {
                     onNearEnd?()
                 }
+            }
+        }
+        .onChange(of: items.count) { _, newCount in
+            if currentIndex >= newCount {
+                currentIndex = max(0, newCount - 1)
+                scrollPosition = currentIndex
             }
         }
     }
@@ -263,27 +270,13 @@ struct LazyPagingDetailNavigator<ItemReference: Nameable & Identifiable, Item: I
         .containerRelativeFrame(.horizontal)
     }
     
-    // MARK: - Navigation Title and Counter
+    // MARK: - Navigation Title
     
     private var navigationTitle: String {
         if currentIndex >= 0 && currentIndex < items.count {
-            let itemRef = items[currentIndex]
-            if case .loaded = loadedItems[itemRef.id] {
-                // If we have access to the loaded item, we could potentially show more info
-                // For now, just use the display name
-                return itemRef.name
-            }
-            return itemRef.name
+            return items[currentIndex].name
         } else {
             return "Loading..."
-        }
-    }
-    
-    private var counterText: String {
-        if currentIndex >= 0 && currentIndex < items.count {
-            return "\(currentIndex + 1) of \(totalCount > 0 ? totalCount : items.count)"
-        } else {
-            return "Loading more..."
         }
     }
     

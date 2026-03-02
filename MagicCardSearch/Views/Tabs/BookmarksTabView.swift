@@ -263,10 +263,6 @@ private struct BookmarkedCardDetailNavigator: View {
         LazyPagingDetailNavigator(
             items: initialBookmarks,
             initialIndex: initialIndex,
-            totalCount: initialBookmarks.count,
-            hasMorePages: false,
-            isLoadingNextPage: false,
-            nextPageError: nil,
             loadDistance: 1,
             loader: { card in
                 logger.info("fetching card cardName=\(card.name) cardId=\(card.id)")
@@ -305,6 +301,14 @@ private struct BookmarkedCardDetailNavigator: View {
                     ShareLink(item: url)
                 }
             }
+        } bottomContent: { index, count in
+            Text("\(index + 1) of \(count)")
+                .font(.caption)
+                .foregroundStyle(.primary)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+                .glassEffect(.regular, in: .capsule)
+                .padding(.bottom, 20)
         }
     }
 }

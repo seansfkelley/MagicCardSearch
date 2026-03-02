@@ -13,10 +13,11 @@ struct SearchResultsDetailNavigator: View {
     @FetchAll private var bookmarks: [BookmarkedCard]
 
     var body: some View {
+        let totalCount = list.value.latestValue?.totalCards ?? 0
+
         LazyPagingDetailNavigator(
             items: list.value.latestValue?.data ?? [],
             initialIndex: initialIndex,
-            totalCount: list.value.latestValue?.totalCards ?? 0,
             hasMorePages: list.value.latestValue?.hasMore ?? false,
             isLoadingNextPage: list.value.isLoadingNextPage,
             nextPageError: list.value.nextPageError,
@@ -57,6 +58,14 @@ struct SearchResultsDetailNavigator: View {
                     ShareLink(item: url)
                 }
             }
+        } bottomContent: { index, count in
+            Text("\(index + 1) of \(totalCount > 0 ? totalCount : count)")
+                .font(.caption)
+                .foregroundStyle(.primary)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+                .glassEffect(.regular, in: .capsule)
+                .padding(.bottom, 20)
         }
     }
 }

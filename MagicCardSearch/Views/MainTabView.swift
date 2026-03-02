@@ -23,7 +23,7 @@ struct MainTabView: View {
             }
 
             SwiftUI.Tab("Random", systemImage: "shuffle", value: Tab.random) {
-                RandomCardView()
+                RandomCardView(searchState: $searchState)
             }
 
             SwiftUI.Tab("Search", systemImage: "magnifyingglass", value: Tab.search) {
