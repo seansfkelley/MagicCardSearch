@@ -32,16 +32,14 @@ struct LazyPagingDetailNavigator<ItemReference: Nameable & Identifiable, Item: I
     let loadDistance: Int
     let loader: (ItemReference) async throws -> Item
     let content: (Item) -> Content
-    let toolbarContent: ((Item) -> Toolbar)?
-    let bottomContent: ((_ currentIndex: Int, _ totalCount: Int) -> BottomContent)?
-    let showDismissButton: Bool
+    let toolbarContent: (Item?) -> Toolbar
+    let bottomContent: ((_ currentIndex: Int, _ totalCount: Int) -> BottomContent?)?
     var onNearEnd: (() -> Void)?
     var onRetryNextPage: (() -> Void)?
     
     @State private var loadedItems: [Item.ID: LoadingState] = [:]
     @State private var currentIndex: Int
     @State private var scrollPosition: Int?
-    @Environment(\.dismiss) private var dismiss
     
     // MARK: - Initialization
     
@@ -53,11 +51,10 @@ struct LazyPagingDetailNavigator<ItemReference: Nameable & Identifiable, Item: I
         nextPageError: SearchErrorState? = nil,
         loadDistance: Int = 1,
         loader: @escaping (ItemReference) async throws -> Item,
-        showDismissButton: Bool = true,
         onNearEnd: (() -> Void)? = nil,
         onRetryNextPage: (() -> Void)? = nil,
         @ViewBuilder content: @escaping (Item) -> Content,
-        @ToolbarContentBuilder toolbarContent: @escaping (Item) -> Toolbar,
+        @ToolbarContentBuilder toolbarContent: @escaping (Item?) -> Toolbar,
         @ViewBuilder bottomContent: @escaping (_ currentIndex: Int, _ totalCount: Int) -> BottomContent
     ) {
         self.items = items
@@ -70,11 +67,39 @@ struct LazyPagingDetailNavigator<ItemReference: Nameable & Identifiable, Item: I
         self.content = content
         self.toolbarContent = toolbarContent
         self.bottomContent = bottomContent
-        self.showDismissButton = showDismissButton
         self.onNearEnd = onNearEnd
         self.onRetryNextPage = onRetryNextPage
         self._currentIndex = State(initialValue: initialIndex)
         self._scrollPosition = State(initialValue: initialIndex)
+    }
+    
+    init(
+        items: [ItemReference],
+        initialIndex: Int,
+        hasMorePages: Bool = false,
+        isLoadingNextPage: Bool = false,
+        nextPageError: SearchErrorState? = nil,
+        loadDistance: Int = 1,
+        loader: @escaping (ItemReference) async throws -> Item,
+        onNearEnd: (() -> Void)? = nil,
+        onRetryNextPage: (() -> Void)? = nil,
+        @ViewBuilder content: @escaping (Item) -> Content,
+        @ToolbarContentBuilder toolbarContent: @escaping (Item?) -> Toolbar
+    ) where BottomContent == EmptyView {
+        self.init(
+            items: items,
+            initialIndex: initialIndex,
+            hasMorePages: hasMorePages,
+            isLoadingNextPage: isLoadingNextPage,
+            nextPageError: nextPageError,
+            loadDistance: loadDistance,
+            loader: loader,
+            onNearEnd: onNearEnd,
+            onRetryNextPage: onRetryNextPage,
+            content: content,
+            toolbarContent: toolbarContent,
+            bottomContent: { _, _ in EmptyView() }
+        )
     }
     
     // MARK: - Body
@@ -106,24 +131,7 @@ struct LazyPagingDetailNavigator<ItemReference: Nameable & Identifiable, Item: I
             .navigationTitle(navigationTitle)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                if showDismissButton {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button {
-                            dismiss()
-                        } label: {
-                            Image(systemName: "xmark")
-                        }
-                    }
-                }
-                
-                // Add item-specific toolbar content for the current item
-                if let toolbarContent = toolbarContent,
-                   currentIndex >= 0,
-                   currentIndex < items.count,
-                   let itemRef = items[safe: currentIndex],
-                   case .loaded(let item) = loadedItems[itemRef.id] {
-                    toolbarContent(item)
-                }
+                toolbarContent(currentLoadedItem)
             }
             .safeAreaInset(edge: .bottom) {
                 if let bottomContent {
@@ -278,6 +286,15 @@ struct LazyPagingDetailNavigator<ItemReference: Nameable & Identifiable, Item: I
         } else {
             return "Loading..."
         }
+    }
+    
+    private var currentLoadedItem: Item? {
+        guard currentIndex >= 0,
+              currentIndex < items.count,
+              let itemRef = items[safe: currentIndex],
+              case .loaded(let item) = loadedItems[itemRef.id]
+        else { return nil }
+        return item
     }
     
     // MARK: - Loading Logic

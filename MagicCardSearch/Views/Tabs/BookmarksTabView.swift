@@ -257,6 +257,7 @@ private struct BookmarkedCardDetailNavigator: View {
 
     @FetchAll private var allBookmarks: [BookmarkedCard]
     @Environment(BookmarkedCardsStore.self) private var bookmarkedCardsStore
+    @Environment(\.dismiss) private var dismiss
     private let cardSearchService = CardSearchService()
 
     var body: some View {
@@ -278,27 +279,35 @@ private struct BookmarkedCardDetailNavigator: View {
                 searchState: $searchState,
             )
         } toolbarContent: { card in
-            if let bookmark = allBookmarks.first(where: { $0.id == card.id }) {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        bookmarkedCardsStore.unbookmark(id: bookmark.id)
-                    } label: {
-                        Image(systemName: "bookmark.fill")
-                    }
-                }
-            } else {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        bookmarkedCardsStore.bookmark(card: card)
-                    } label: {
-                        Image(systemName: "bookmark")
-                    }
+            ToolbarItem(placement: .cancellationAction) {
+                Button { dismiss() } label: {
+                    Image(systemName: "xmark")
                 }
             }
 
-            if let url = URL(string: card.scryfallUri) {
-                ToolbarItem(placement: .topBarTrailing) {
-                    ShareLink(item: url)
+            if let card {
+                if let bookmark = allBookmarks.first(where: { $0.id == card.id }) {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            bookmarkedCardsStore.unbookmark(id: bookmark.id)
+                        } label: {
+                            Image(systemName: "bookmark.fill")
+                        }
+                    }
+                } else {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            bookmarkedCardsStore.bookmark(card: card)
+                        } label: {
+                            Image(systemName: "bookmark")
+                        }
+                    }
+                }
+
+                if let url = URL(string: card.scryfallUri) {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        ShareLink(item: url)
+                    }
                 }
             }
         } bottomContent: { index, count in

@@ -88,7 +88,6 @@ struct RandomCardView: View {
             nextPageError: loadError.map { SearchErrorState(from: $0) },
             loadDistance: 1,
             loader: { card in card },
-            showDismissButton: false,
             onNearEnd: fetchNextCard,
             onRetryNextPage: fetchNextCard
         ) { card in
@@ -106,42 +105,36 @@ struct RandomCardView: View {
                     showingFilterSheet = true
                 } label: {
                     Image(systemName: hasActiveFilters
-                        ? "line.3.horizontal.decrease.circle.fill"
-                        : "line.3.horizontal.decrease.circle")
+                          ? "line.3.horizontal.decrease.circle.fill"
+                          : "line.3.horizontal.decrease.circle")
                 }
             }
 
-            if bookmarks.contains(where: { $0.id == card.id }) {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        bookmarkedCardsStore.unbookmark(id: card.id)
-                    } label: {
-                        Image(systemName: "bookmark.fill")
+            if let card {
+                if bookmarks.contains(where: { $0.id == card.id }) {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            bookmarkedCardsStore.unbookmark(id: card.id)
+                        } label: {
+                            Image(systemName: "bookmark.fill")
+                        }
+                    }
+                } else {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            bookmarkedCardsStore.bookmark(card: card)
+                        } label: {
+                            Image(systemName: "bookmark")
+                        }
                     }
                 }
-            } else {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        bookmarkedCardsStore.bookmark(card: card)
-                    } label: {
-                        Image(systemName: "bookmark")
-                    }
-                }
-            }
 
-            if let url = URL(string: card.scryfallUri) {
-                ToolbarItem(placement: .topBarTrailing) {
-                    ShareLink(item: url)
+                if let url = URL(string: card.scryfallUri) {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        ShareLink(item: url)
+                    }
                 }
             }
-        } bottomContent: { index, total in
-            Text("\(index + 1) of \(total) in session")
-                .font(.caption)
-                .foregroundStyle(.primary)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 8)
-                .glassEffect(.regular, in: .capsule)
-                .padding(.bottom, 20)
         }
         .sheet(isPresented: $showingFilterSheet) {
             RandomCardFilterSheet(filters: filters) { newFilters in

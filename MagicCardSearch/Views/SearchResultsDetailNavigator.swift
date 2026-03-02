@@ -4,6 +4,7 @@ import ScryfallKit
 
 struct SearchResultsDetailNavigator: View {
     @Environment(BookmarkedCardsStore.self) private var bookmarkedCardsStore
+    @Environment(\.dismiss) private var dismiss
 
     let list: ScryfallObjectList<Card>
     let initialIndex: Int
@@ -35,27 +36,35 @@ struct SearchResultsDetailNavigator: View {
                 searchState: $searchState,
             )
         } toolbarContent: { card in
-            if bookmarks.contains(where: { $0.id == card.id }) {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        bookmarkedCardsStore.unbookmark(id: card.id)
-                    } label: {
-                        Image(systemName: "bookmark.fill")
-                    }
-                }
-            } else {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        bookmarkedCardsStore.bookmark(card: card)
-                    } label: {
-                        Image(systemName: "bookmark")
-                    }
+            ToolbarItem(placement: .cancellationAction) {
+                Button { dismiss() } label: {
+                    Image(systemName: "xmark")
                 }
             }
 
-            if let url = URL(string: card.scryfallUri) {
-                ToolbarItem(placement: .topBarTrailing) {
-                    ShareLink(item: url)
+            if let card {
+                if bookmarks.contains(where: { $0.id == card.id }) {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            bookmarkedCardsStore.unbookmark(id: card.id)
+                        } label: {
+                            Image(systemName: "bookmark.fill")
+                        }
+                    }
+                } else {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            bookmarkedCardsStore.bookmark(card: card)
+                        } label: {
+                            Image(systemName: "bookmark")
+                        }
+                    }
+                }
+
+                if let url = URL(string: card.scryfallUri) {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        ShareLink(item: url)
+                    }
                 }
             }
         } bottomContent: { index, count in
