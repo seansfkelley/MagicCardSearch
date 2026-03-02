@@ -69,20 +69,10 @@ struct BookmarksTabView: View {
                     .environment(\.editMode, $editMode)
                 }
             }
+            .toolbarVisibility(isEditing ? .hidden : .automatic, for: .tabBar)
             .toolbar {
                 if isEditing {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button {
-                            withAnimation {
-                                editMode = .inactive
-                                selectedCards.removeAll()
-                            }
-                        } label: {
-                            Text("Done")
-                        }
-                    }
-
-                    ToolbarItemGroup(placement: .bottomBar) {
+                    ToolbarItem(placement: .topBarLeading) {
                         if selectedCards.count == bookmarks.count {
                             Button {
                                 withAnimation {
@@ -100,7 +90,20 @@ struct BookmarksTabView: View {
                                 Text("Select All")
                             }
                         }
+                    }
 
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            withAnimation {
+                                editMode = .inactive
+                                selectedCards.removeAll()
+                            }
+                        } label: {
+                            Text("Done")
+                        }
+                    }
+
+                    ToolbarItemGroup(placement: .bottomBar) {
                         Spacer()
 
                         Button(role: .destructive) {
@@ -115,7 +118,7 @@ struct BookmarksTabView: View {
                         .disabled(selectedCards.isEmpty)
                     }
                 } else {
-                    ToolbarItem(placement: .topBarTrailing) {
+                    ToolbarItem(placement: .topBarLeading) {
                         Menu {
                             Picker("Sort Order", selection: $sortMode) {
                                 ForEach(BookmarkSortMode.allCases) { mode in
@@ -139,7 +142,7 @@ struct BookmarksTabView: View {
                         .disabled(bookmarks.isEmpty)
                     }
 
-                    ToolbarItem(placement: .topBarTrailing) {
+                    ToolbarItem(placement: .topBarLeading) {
                         Button {
                             withAnimation {
                                 editMode = .active

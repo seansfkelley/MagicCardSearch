@@ -142,6 +142,7 @@ struct AutocompleteView: View {
             }
         }
         .listStyle(.plain)
+        .scrollDismissesKeyboard(.interactively)
         .task(id: searchSuggestionKey) {
             for await newSuggestions in searchState.suggestionProvider.getSuggestions(
                 for: searchState.selectedFilter.text,

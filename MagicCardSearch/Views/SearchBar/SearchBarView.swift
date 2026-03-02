@@ -72,6 +72,7 @@ struct SearchBarView: View {
                 Button(action: {
                     searchState.searchText = ""
                     searchState.desiredSearchSelection = nil
+                    fieldFocused = true
                 }) {
                     Image(systemName: "xmark.circle.fill")
                         .foregroundStyle(.secondary)

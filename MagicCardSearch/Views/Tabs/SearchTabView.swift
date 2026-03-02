@@ -37,10 +37,10 @@ struct SearchTabView: View {
                 Color(uiColor: .systemBackground)
                     .ignoresSafeArea()
 
-                if hasActiveSearch {
-                    searchResultsContent
-                } else if showAutocomplete {
+                if showAutocomplete {
                     autocompleteContent
+                } else if hasActiveSearch {
+                    searchResultsContent
                 } else {
                     defaultContent
                 }
