@@ -369,7 +369,7 @@ private struct RandomCardFilterSheet: View {
     // MARK: - Type Section
 
     private static let cardTypes = [
-        "Artifact", "Creature", "Enchantment", "Instant", "Land", "Planeswalker", "Sorcery",
+        "Artifact", "Creature", "Enchantment", "Instant", "Land", "Legendary", "Planeswalker", "Sorcery",
     ]
 
     @ViewBuilder
@@ -397,8 +397,6 @@ private struct RandomCardFilterSheet: View {
         (.uncommon, "Uncommon"),
         (.rare, "Rare"),
         (.mythic, "Mythic"),
-        (.special, "Special"),
-        (.bonus, "Bonus"),
     ]
 
     @ViewBuilder

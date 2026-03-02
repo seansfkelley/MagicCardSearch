@@ -15,7 +15,7 @@ extension BookmarkedCard: Nameable {}
 struct LazyPagingDetailNavigator<ItemReference: Nameable & Identifiable, Item: Identifiable, Content: View, Toolbar: ToolbarContent, BottomContent: View>: View where ItemReference.ID == Item.ID {
     // MARK: - Types
     
-    enum LoadingState {
+    private enum LoadingState {
         case unloaded
         case loading(Task<Void, Never>)
         case loaded(Item)
@@ -352,24 +352,5 @@ struct LazyPagingDetailNavigator<ItemReference: Nameable & Identifiable, Item: I
         }
         
         loadedItems[itemRef.id] = .loading(task)
-    }
-}
-
-// MARK: - LoadingState Equatable
-
-extension LazyPagingDetailNavigator.LoadingState: Equatable where Item: Equatable {
-    static func == (lhs: Self, rhs: Self) -> Bool {
-        switch (lhs, rhs) {
-        case (.unloaded, .unloaded):
-            return true
-        case (.loading, .loading):
-            return true // We consider all loading states equal
-        case (.loaded(let lhsItem), .loaded(let rhsItem)):
-            return lhsItem == rhsItem
-        case (.failed(let lhsError), .failed(let rhsError)):
-            return lhsError.localizedDescription == rhsError.localizedDescription
-        default:
-            return false
-        }
     }
 }
