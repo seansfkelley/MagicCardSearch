@@ -19,62 +19,95 @@ struct CardPlaceholderView: View {
     
     var body: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: cornerRadius)
-                .fill(Color.gray.opacity(0.2))
+            cardShape
                 .aspectRatio(Card.aspectRatio, contentMode: .fit)
-                .overlay(
-                    VStack(spacing: 16) {
-                        Image(systemName: "photo")
-                            .font(.system(size: 60))
-                            .foregroundStyle(.secondary)
-                        
-                        if let name {
-                            Text(name)
-                                .font(.title3)
-                                .foregroundStyle(.primary)
-                                .multilineTextAlignment(.center)
-                                .padding(.horizontal)
+                .overlay { decorationOverlay }
+        }
+    }
+
+    private var cardShape: some View {
+        GeometryReader { geometry in
+            let width = geometry.size.width
+            let height = geometry.size.height
+            let inset = width * 0.05
+            let artHeight = height * 0.45
+            let textBoxHeight = height * 0.35
+
+            ZStack(alignment: .top) {
+                RoundedRectangle(cornerRadius: cornerRadius)
+                    .fill(Color.gray.opacity(0.2))
+
+                VStack(spacing: inset * 0.6) {
+                    // Name bar
+                    if let name {
+                        Text(name)
+                            .font(.system(size: height * 0.04, weight: .semibold))
+                            .lineLimit(1)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, inset * 0.5)
+                            .padding(.vertical, inset * 0.3)
+                            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: cornerRadius * 0.3))
+                    }
+
+                    // Art frame
+                    Rectangle()
+                        .fill(Color.gray.opacity(0.15))
+                        .frame(height: artHeight)
+                        .overlay {
+                            Image(systemName: "photo")
+                                .font(.system(size: height * 0.1))
+                                .foregroundStyle(.tertiary)
                         }
-                    }
-                    .padding()
-                )
 
-            switch decoration {
-            case .none:
-                EmptyView()
-            case .spinner:
-                ProgressView()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .aspectRatio(Card.aspectRatio, contentMode: .fit)
-                    .background(Color(.systemGray6).opacity(0.4))
-                    .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
-            case .error(let error, let retry):
-                VStack(spacing: 20) {
-                    Image(systemName: "exclamationmark.triangle")
-                        .font(.system(size: 50))
-                        .foregroundStyle(.secondary)
-
-                    VStack(spacing: 8) {
-                        if let name {
-                            Text("Failed to load \(name)")
-                                .font(.title2)
-                                .fontWeight(.semibold)
+                    // Text box
+                    RoundedRectangle(cornerRadius: cornerRadius * 0.3)
+                        .fill(Color.gray.opacity(0.1))
+                        .frame(height: textBoxHeight)
+                        .overlay(alignment: .topLeading) {
+                            VStack(alignment: .leading, spacing: height * 0.015) {
+                                ForEach(0..<3, id: \.self) { i in
+                                    RoundedRectangle(cornerRadius: 2)
+                                        .fill(Color.gray.opacity(0.15))
+                                        .frame(
+                                            width: width * (i == 2 ? 0.5 : 0.8),
+                                            height: height * 0.02
+                                        )
+                                }
+                            }
+                            .padding(inset * 0.8)
                         }
-                        Text(error.localizedDescription)
-                            .font(.body)
-                            .foregroundStyle(.secondary)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, 40)
-                    }
-
-                    Button("Retry") {
-                        retry()
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.large)
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .padding(inset)
             }
+        }
+    }
+
+    @ViewBuilder
+    private var decorationOverlay: some View {
+        switch decoration {
+        case .none:
+            EmptyView()
+        case .spinner:
+            ProgressView()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Color(.systemGray6).opacity(0.4))
+                .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+        case .error(let error, let retry):
+            VStack {
+                Image(systemName: "exclamationmark.triangle")
+                    .foregroundStyle(.secondary)
+                    .imageScale(.large)
+                if let name {
+                    Text("Failed to load \(name)")
+                        .fontWeight(.semibold)
+                }
+                Text(error.localizedDescription)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                Button("Retry") { retry() }
+                    .buttonStyle(.borderedProminent)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
 }
@@ -82,6 +115,7 @@ struct CardPlaceholderView: View {
 private struct PreviewError: LocalizedError {
     var errorDescription: String? { "Could not connect to Scryfall." }
 }
+
 #Preview {
     let names: [String?] = [nil, "Lightning Bolt"]
     let decorations: [(String, CardPlaceholderView.Decoration)] = [
@@ -91,24 +125,13 @@ private struct PreviewError: LocalizedError {
     ]
 
     ScrollView {
-        Grid(horizontalSpacing: 12, verticalSpacing: 24) {
-            GridRow {
-                Color.clear.gridCellUnsizedAxes(.vertical)
-                ForEach(names, id: \.self) { name in
-                    Text(name ?? "nil")
+        ForEach(decorations, id: \.0) { label, decoration in
+            ForEach(names, id: \.self) { name in
+                VStack(alignment: .leading) {
+                    Text("name: \(name ?? "nil"), decoration: \(label)")
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                }
-            }
-            ForEach(decorations, id: \.0) { label, decoration in
-                GridRow {
-                    Text(label)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .gridCellAnchor(.trailing)
-                    ForEach(names, id: \.self) { name in
-                        CardPlaceholderView(name: name, cornerRadius: 16, with: decoration)
-                    }
+                    CardPlaceholderView(name: name, cornerRadius: 16, with: decoration)
                 }
             }
         }
