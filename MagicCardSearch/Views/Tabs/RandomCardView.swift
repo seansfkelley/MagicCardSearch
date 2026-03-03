@@ -18,23 +18,23 @@ struct RandomCardFilters: Equatable {
         var groups: [String] = []
 
         if !colors.isEmpty {
-            let key = useColorIdentity ? "id" : "c"
+            let key = useColorIdentity ? "id" : "color"
             let clause = colors.map { "\(key):\($0.rawValue.lowercased())" }.joined(separator: " OR ")
             groups.append("(\(clause))")
         }
 
         if !formats.isEmpty {
-            let clause = formats.map { "f:\($0.rawValue)" }.joined(separator: " OR ")
+            let clause = formats.map { "format:\($0.rawValue)" }.joined(separator: " OR ")
             groups.append("(\(clause))")
         }
 
         if !types.isEmpty {
-            let clause = types.map { "t:\($0.lowercased())" }.joined(separator: " OR ")
+            let clause = types.map { "type:\($0.lowercased())" }.joined(separator: " OR ")
             groups.append("(\(clause))")
         }
 
         if !rarities.isEmpty {
-            let clause = rarities.map { "r:\($0.rawValue)" }.joined(separator: " OR ")
+            let clause = rarities.map { "rarity:\($0.rawValue)" }.joined(separator: " OR ")
             groups.append("(\(clause))")
         }
 
@@ -44,147 +44,91 @@ struct RandomCardFilters: Equatable {
 
 // MARK: - RandomCardView
 
+enum 
+
 struct RandomCardView: View {
     @Binding var searchState: SearchState
 
     @State private var history: [Card] = []
-    @State private var currentIndex = 0
-    @State private var isLoadingNext = false
-    @State private var loadError: Error?
+    @State private var scrollIndex: Int?
+    @State private var cardFlipStates: [UUID: Bool] = [:]
     @State private var filters = RandomCardFilters()
     @State private var showingFilterSheet = false
-    @State private var cardFlipStates: [UUID: Bool] = [:]
+    @State private var fetchTask: Task<Void, Never>?
 
     @Environment(BookmarkedCardsStore.self) private var bookmarkedCardsStore
     @FetchAll private var bookmarks: [BookmarkedCard]
 
     private let client = ScryfallClient()
 
-    var body: some View {
-        Group {
-            if !history.isEmpty {
-                navigatorView
-            } else if let error = loadError {
-                initialErrorView(error: error)
-            } else {
-                ProgressView()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            }
-        }
-        .task {
-            if history.isEmpty && !isLoadingNext {
-                fetchNextCard()
-            }
-        }
-    }
-
     // MARK: - Navigator
 
-    private var navigatorView: some View {
+    var body: some View {
         LazyCardDetailNavigator(
-            items: history,
-            currentIndex: $currentIndex,
-            hasMorePages: true,
-            isLoadingNextPage: isLoadingNext,
-            nextPageError: loadError.map { SearchErrorState(from: $0) },
-            loadDistance: 1,
+            history,
+            scrollIndex: $scrollIndex,
+            cardFlipStates: $cardFlipStates,
+            searchState: $searchState,
             loader: { card in card },
-            onNearEnd: fetchNextCard,
-            onRetryNextPage: fetchNextCard
-        ) { card in
-            CardDetailView(
-                card: card,
-                isFlipped: Binding(
-                    get: { cardFlipStates[card.id] ?? false },
-                    set: { cardFlipStates[card.id] = $0 }
-                ),
-                searchState: $searchState
-            )
-        } toolbarContent: { card in
-            ToolbarItem(placement: .topBarLeading) {
-                Button {
-                    showingFilterSheet = true
-                } label: {
-                    Image(systemName: hasActiveFilters
-                          ? "line.3.horizontal.decrease.circle.fill"
-                          : "line.3.horizontal.decrease.circle")
+            toolbarContent: { card in
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        showingFilterSheet = true
+                    } label: {
+                        Image(systemName: filters != RandomCardFilters()
+                              ? "line.3.horizontal.decrease.circle.fill"
+                              : "line.3.horizontal.decrease.circle")
+                    }
+                }
+
+                if let card {
+                    if bookmarks.contains(where: { $0.id == card.id }) {
+                        ToolbarItem(placement: .topBarTrailing) {
+                            Button {
+                                bookmarkedCardsStore.unbookmark(id: card.id)
+                            } label: {
+                                Image(systemName: "bookmark.fill")
+                            }
+                        }
+                    } else {
+                        ToolbarItem(placement: .topBarTrailing) {
+                            Button {
+                                bookmarkedCardsStore.bookmark(card: card)
+                            } label: {
+                                Image(systemName: "bookmark")
+                            }
+                        }
+                    }
+
+                    if let url = URL(string: card.scryfallUri) {
+                        ToolbarItem(placement: .topBarTrailing) {
+                            ShareLink(item: url)
+                        }
+                    }
                 }
             }
-
-            if let card {
-                if bookmarks.contains(where: { $0.id == card.id }) {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button {
-                            bookmarkedCardsStore.unbookmark(id: card.id)
-                        } label: {
-                            Image(systemName: "bookmark.fill")
-                        }
-                    }
-                } else {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button {
-                            bookmarkedCardsStore.bookmark(card: card)
-                        } label: {
-                            Image(systemName: "bookmark")
-                        }
-                    }
-                }
-
-                if let url = URL(string: card.scryfallUri) {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        ShareLink(item: url)
-                    }
-                }
+        )
+        .onAppear {
+            if history.isEmpty {
+                fetchNextCard()
             }
         }
         .sheet(isPresented: $showingFilterSheet) {
             RandomCardFilterSheet(filters: filters) { newFilters in
-                applyFilters(newFilters)
-            }
-        }
-    }
-
-    // MARK: - Initial Error View
-
-    private func initialErrorView(error: Error) -> some View {
-        let errorState = SearchErrorState(from: error)
-        return VStack(spacing: 20) {
-            Image(systemName: errorState.iconName)
-                .font(.system(size: 50))
-                .foregroundStyle(.secondary)
-
-            VStack(spacing: 8) {
-                Text(errorState.title)
-                    .font(.title2)
-                    .fontWeight(.semibold)
-                Text(errorState.description)
-                    .font(.body)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 40)
-            }
-
-            Button("Retry") {
+                filters = newFilters
+                let index = scrollIndex ?? 0
+                if index < history.count {
+                    history = Array(history[0...index])
+                }
                 fetchNextCard()
             }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.large)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-
-    // MARK: - Helpers
-
-    private var hasActiveFilters: Bool {
-        filters != RandomCardFilters()
     }
 
     private func fetchNextCard() {
-        guard !isLoadingNext else { return }
-        isLoadingNext = true
-        loadError = nil
-
-        Task {
+        fetchTask?.cancel()
+        fetchTask = Task {
+            loadError = nil
             do {
                 let card = try await client.getRandomCard(query: filters.queryString)
                 history.append(card)
@@ -192,16 +136,7 @@ struct RandomCardView: View {
                 logger.error("Error fetching random card: \(error)")
                 loadError = error
             }
-            isLoadingNext = false
         }
-    }
-
-    private func applyFilters(_ newFilters: RandomCardFilters) {
-        filters = newFilters
-        if currentIndex < history.count {
-            history = Array(history[0...currentIndex])
-        }
-        fetchNextCard()
     }
 }
 
@@ -274,7 +209,9 @@ private struct RandomCardFilterSheet: View {
         } header: {
             Text("Color")
         } footer: {
-            Text("Show cards containing any of these colors.")
+            draft.useColorIdentity
+                ? Text("Show cards with a color identity .")
+                : Text("Show cards matching any of these colors.")
         }
     }
 
@@ -291,19 +228,8 @@ private struct RandomCardFilterSheet: View {
                 .opacity(isSelected ? 1.0 : 0.3)
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(colorLabel(for: color))
+        .accessibilityLabel(color.name)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
-    }
-
-    private func colorLabel(for color: Card.Color) -> String {
-        switch color {
-        case .W: "White"
-        case .U: "Blue"
-        case .B: "Black"
-        case .R: "Red"
-        case .G: "Green"
-        case .C: "Colorless"
-        }
     }
 
     // MARK: - Format Section

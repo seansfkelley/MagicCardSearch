@@ -12,4 +12,15 @@ extension Card.Color {
         case .C: nil
         }
     }
+
+    var name: String {
+        switch self {
+        case .W: "White"
+        case .U: "Blue"
+        case .B: "Black"
+        case .R: "Red"
+        case .G: "Green"
+        case .C: "Colorless"
+        }
+    }
 }

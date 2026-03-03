@@ -13,7 +13,7 @@ struct LazyPagingCardDetailNavigator: View {
     @FetchAll private var bookmarks: [BookmarkedCard]
     @State private var scrollIndex: Int?
 
-    let loadDistance = 3
+    private let pagePreloadDistance = 3
 
     init(list: ScryfallObjectList<Card>, initialIndex: Int, cardFlipStates: Binding<[UUID: Bool]>, searchState: Binding<SearchState>) {
         self.list = list
@@ -95,12 +95,12 @@ struct LazyPagingCardDetailNavigator: View {
             }
         }
         .onAppear {
-            if let scrollIndex, scrollIndex > items.count - loadDistance {
+            if let scrollIndex, scrollIndex > items.count - pagePreloadDistance {
                 list.loadNextPage()
             }
         }
         .onChange(of: scrollIndex) {
-            if let scrollIndex, scrollIndex > items.count - loadDistance {
+            if let scrollIndex, scrollIndex > items.count - pagePreloadDistance {
                 list.loadNextPage()
             }
         }
