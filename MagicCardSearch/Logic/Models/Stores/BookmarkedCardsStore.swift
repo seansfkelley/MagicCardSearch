@@ -24,6 +24,14 @@ class BookmarkedCardsStore {
         }
     }
 
+    public func bookmark(card: BookmarkedCard) {
+        write("bookmarking card") { db in
+            try BookmarkedCard
+                .insert { card }
+                .execute(db)
+        }
+    }
+
     public func unbookmark(id: UUID) {
         write("unbookmarking card") { db in
             try BookmarkedCard

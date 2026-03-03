@@ -30,7 +30,7 @@ struct LazyCardDetailNavigator<
     @Binding var searchState: SearchState
     let loader: (CardReference) async throws -> Card
     let toolbarContent: (Card?) -> Toolbar
-    let bottomContent: (() -> BottomContent?)? = nil
+    let bottomContent: (() -> BottomContent?)?
 
     @State private var loadedCards: [Card.ID: LoadingState] = [:]
     @Binding private var scrollIndex: Int?
@@ -71,77 +71,74 @@ struct LazyCardDetailNavigator<
         self._searchState = searchState
         self.loader = loader
         self.toolbarContent = toolbarContent
+        self.bottomContent = nil
     }
     
     // MARK: - Body
     
     var body: some View {
-        NavigationStack {
-            GeometryReader { geometry in
-                ScrollView(.horizontal) {
-                    LazyHStack(spacing: 0) {
-                        ForEach(Array(references.enumerated()), id: \.element.id) { index, itemRef in
-                            itemView(at: index, itemRef: itemRef, geometry: geometry)
-                                .frame(width: geometry.size.width, height: geometry.size.height)
-                                .containerRelativeFrame(.horizontal)
-                                .id(index)
-                        }
-                    }
-                    .scrollTargetLayout()
-                }
-                .scrollTargetBehavior(.paging)
-                .scrollPosition(id: scrollIndex)
-                .scrollIndicators(.hidden)
-            }
-            .navigationTitle(references[safe: scrollIndex ?? -1]?.name ?? "Loading...")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                if let ref = references[safe: scrollIndex ?? -1], case .loaded(let card) = loadedCards[ref] {
-                    toolbarContent(card)
-                } else {
-                    toolbarContent(nil)
-                }
-            }
-            .safeAreaInset(edge: .bottom) {
-                bottomContent?()
-            }
-        }
-        .onAppear {
-            loadCardsInWindow()
-        }
-        .onChange(of: scrollPosition) {
-            loadCardsInWindow()
-        }
-        .onChange(of: references.count) { _, newCount in
-            if let scrollIndex, scrollIndex > newCount {
-                scrollPosition = newCount
-                loadCardsInWindow()
-            }
-        }
+//        NavigationStack {
+//            GeometryReader { geometry in
+//                ScrollView(.horizontal) {
+//                    LazyHStack(spacing: 0) {
+//                        ForEach(Array(references.enumerated()), id: \.element.id) { index, itemRef in
+//                            itemView(at: index, itemRef: itemRef, geometry: geometry)
+//                                .frame(width: geometry.size.width, height: geometry.size.height)
+//                                .containerRelativeFrame(.horizontal)
+//                                .id(index)
+//                        }
+//                    }
+//                    .scrollTargetLayout()
+//                }
+//                .scrollTargetBehavior(.paging)
+//                .scrollPosition(id: scrollIndex)
+//                .scrollIndicators(.hidden)
+//            }
+//            .navigationTitle(references[safe: scrollIndex ?? -1]?.name ?? "Loading...")
+//            .navigationBarTitleDisplayMode(.inline)
+//            .toolbar {
+//                if let ref = references[safe: scrollIndex ?? -1], case .loaded(let card) = loadedCards[ref] {
+//                    toolbarContent(card)
+//                } else {
+//                    toolbarContent(nil)
+//                }
+//            }
+//            .safeAreaInset(edge: .bottom) {
+//                bottomContent?()
+//            }
+//        }
+//        .onAppear {
+//            loadCardsInWindow()
+//        }
+//        .onChange(of: scrollPosition) {
+//            loadCardsInWindow()
+//        }
+//        .onChange(of: references.count) { _, newCount in
+//            if let scrollIndex, scrollIndex > newCount {
+//                scrollPosition = newCount
+//                loadCardsInWindow()
+//            }
+//        }
     }
     
     // MARK: - Item View
     
     @ViewBuilder
     private func itemView(at index: Int, geometry: GeometryProxy) -> some View {
-        guard let ref = references[safe: index] else { return EmptyView() }
-
-        return switch loadedCards[ref.id] {
-        case .loaded(let card):
-            CardDetailView(card: card, isFlipped: $cardFlipStates.for(card.id), searchState: $searchState)
-        case .loading:
-            CardPlaceholderView(name: ref.name, cornerRadius: 16, withSpinner: true)
-        case .failed(let error):
-            // TODO: use CardPlaceholderView?
-            errorView(for: ref.name, error: error) {
-                loadCard(at: index)
+        if let ref = references[safe: index] {
+            switch loadedCards[ref.id] {
+            case .loaded(let card):
+                CardDetailView(card: card, isFlipped: $cardFlipStates.for(card.id), searchState: $searchState)
+            case .loading:
+                CardPlaceholderView(name: ref.name, cornerRadius: 16, with: .spinner)
+            case .failed(let error):
+                CardPlaceholderView(name: ref.name, cornerRadius: 16, with: .error(error, { loadCard(at: index) }))
+            case nil:
+                CardPlaceholderView(name: ref.name, cornerRadius: 16, with: .spinner)
+                    .onAppear {
+                        loadCard(at: index)
+                    }
             }
-        case nil:
-            CardPlaceholderView(name: ref.name, cornerRadius: 16, withSpinner: true)
-                .onAppear {
-                    // This really shouldn't happen, but I guess just in case...
-                    loadCard(at: index)
-                }
         }
     }
     
@@ -173,8 +170,8 @@ struct LazyCardDetailNavigator<
     }
     
     // MARK: - Loading Logic
-    
-    private func loadCardsInWindow() {
+
+    private func loadCardsInWindow() async {
         guard let scrollIndex else { return }
 
         let start = max(0, scrollIndex - preloadDistance)
@@ -190,7 +187,7 @@ struct LazyCardDetailNavigator<
         for ref in references[..<start] + references[(end + 1)...] {
             if case .loading(let task) = loadedCards[ref.id] {
                 task.cancel()
-                MainActor.run {
+                _ = await MainActor.run {
                     loadedCards.removeValue(forKey: ref.id)
                 }
             }

@@ -129,55 +129,11 @@ private struct CardFaceView: View {
                 } else if state.error != nil {
                     CardPlaceholderView(name: face.name, cornerRadius: cornerRadius)
                 } else {
-                    CardPlaceholderView(name: face.name, cornerRadius: cornerRadius, withSpinner: true)
+                    CardPlaceholderView(name: face.name, cornerRadius: cornerRadius, with: .spinner)
                 }
             }
         } else {
             CardPlaceholderView(name: face.name, cornerRadius: cornerRadius)
-        }
-    }
-}
-
-struct CardPlaceholderView: View {
-    let name: String?
-    let cornerRadius: CGFloat
-    let withSpinner: Bool
-    
-    init(name: String?, cornerRadius: CGFloat, withSpinner: Bool = false) {
-        self.name = name
-        self.cornerRadius = cornerRadius
-        self.withSpinner = withSpinner
-    }
-    
-    var body: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: cornerRadius)
-                .fill(Color.gray.opacity(0.2))
-                .aspectRatio(Card.aspectRatio, contentMode: .fit)
-                .overlay(
-                    VStack(spacing: 16) {
-                        Image(systemName: "photo")
-                            .font(.system(size: 60))
-                            .foregroundStyle(.secondary)
-                        
-                        if let name {
-                            Text(name)
-                                .font(.title3)
-                                .foregroundStyle(.primary)
-                                .multilineTextAlignment(.center)
-                                .padding(.horizontal)
-                        }
-                    }
-                    .padding()
-                )
-            
-            if withSpinner {
-                ProgressView()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .aspectRatio(Card.aspectRatio, contentMode: .fit)
-                    .background(Color(.systemGray6).opacity(0.4))
-                    .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
-            }
         }
     }
 }

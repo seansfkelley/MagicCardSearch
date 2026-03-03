@@ -85,7 +85,7 @@ struct LazyPagingCardDetailNavigator: View {
                 }
             }
             .safeAreaInset(edge: .bottom) {
-                Text("\(scrollIndex ?? 0 + 1) of \(list.value.latestValue?.totalCards ?? items.count)")
+                Text("\((scrollIndex ?? 0) + 1) of \(list.value.latestValue?.totalCards ?? items.count)")
                     .font(.caption)
                     .foregroundStyle(.primary)
                     .padding(.horizontal, 16)

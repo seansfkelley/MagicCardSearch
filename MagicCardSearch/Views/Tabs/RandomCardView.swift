@@ -44,8 +44,6 @@ struct RandomCardFilters: Equatable {
 
 // MARK: - RandomCardView
 
-enum 
-
 struct RandomCardView: View {
     @Binding var searchState: SearchState
 
@@ -128,13 +126,13 @@ struct RandomCardView: View {
     private func fetchNextCard() {
         fetchTask?.cancel()
         fetchTask = Task {
-            loadError = nil
+//            loadError = nil
             do {
                 let card = try await client.getRandomCard(query: filters.queryString)
                 history.append(card)
             } catch {
                 logger.error("Error fetching random card: \(error)")
-                loadError = error
+//                loadError = error
             }
         }
     }

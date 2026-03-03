@@ -248,13 +248,19 @@ struct BookmarksTabView: View {
 // MARK: - Card Detail Navigator From List
 
 private struct BookmarkedCardDetailNavigator: View {
+    private enum LoadingState {
+        case loading(Task<Void, Never>)
+        case loaded(Card)
+        case failed(Error)
+    }
+    
     let initialBookmarks: [BookmarkedCard]
-    let initialIndex: Int
     @Binding var searchState: SearchState
     @Binding var selectedTab: Tab
 
     @State private var cardFlipStates: [UUID: Bool] = [:]
-    @State private var navigatorIndex: Int
+    @State private var scrollIndex: Int?
+    @State private var loadedCards: [Card.ID: LoadingState] = [:]
 
     @FetchAll private var allBookmarks: [BookmarkedCard]
     @Environment(BookmarkedCardsStore.self) private var bookmarkedCardsStore
@@ -263,71 +269,142 @@ private struct BookmarkedCardDetailNavigator: View {
 
     init(initialBookmarks: [BookmarkedCard], initialIndex: Int, searchState: Binding<SearchState>, selectedTab: Binding<Tab>) {
         self.initialBookmarks = initialBookmarks
-        self.initialIndex = initialIndex
         self._searchState = searchState
         self._selectedTab = selectedTab
-        self._navigatorIndex = State(initialValue: initialIndex)
+        self._scrollIndex = State(initialValue: initialIndex)
     }
 
     var body: some View {
-        LazyCardDetailNavigator(
-            items: initialBookmarks,
-            currentIndex: $navigatorIndex,
-            loadDistance: 1,
-            loader: { card in
-                logger.info("fetching card cardName=\(card.name) cardId=\(card.id)")
-                return try await cardSearchService.fetchCard(byScryfallId: card.id)
-            }
-        ) { card in
-            CardDetailView(
-                card: card,
-                isFlipped: Binding(
-                    get: { cardFlipStates[card.id] ?? false },
-                    set: { cardFlipStates[card.id] = $0 }
-                ),
-                searchState: $searchState,
-            )
-        } toolbarContent: { card in
-            ToolbarItem(placement: .cancellationAction) {
-                Button { dismiss() } label: {
-                    Image(systemName: "xmark")
-                }
-            }
-
-            if let card {
-                if let bookmark = allBookmarks.first(where: { $0.id == card.id }) {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button {
-                            bookmarkedCardsStore.unbookmark(id: bookmark.id)
-                        } label: {
-                            Image(systemName: "bookmark.fill")
+        NavigationStack {
+            GeometryReader { geometry in
+                ScrollView(.horizontal) {
+                    LazyHStack(spacing: 0) {
+                        ForEach(Array(initialBookmarks.enumerated()), id: \.element.id) { index, bookmarkedCard in
+                            cardView(for: bookmarkedCard, with: geometry)
+                                .frame(width: geometry.size.width, height: geometry.size.height)
+                                .containerRelativeFrame(.horizontal)
+                                .id(index)
                         }
                     }
-                } else {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button {
-                            bookmarkedCardsStore.bookmark(card: card)
-                        } label: {
-                            Image(systemName: "bookmark")
-                        }
+                    .scrollTargetLayout()
+                }
+                .scrollTargetBehavior(.paging)
+                .scrollPosition(id: $scrollIndex)
+                .scrollIndicators(.hidden)
+            }
+            .navigationTitle(initialBookmarks[safe: scrollIndex ?? -1]?.name ?? "Loading...")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button { dismiss() } label: {
+                        Image(systemName: "xmark")
                     }
                 }
 
-                if let url = URL(string: card.scryfallUri) {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        ShareLink(item: url)
+                if let bookmarkedCard = initialBookmarks[safe: scrollIndex ?? -1] {
+                    if let bookmark = allBookmarks.first(where: { $0.id == bookmarkedCard.id }) {
+                        ToolbarItem(placement: .topBarTrailing) {
+                            Button {
+                                bookmarkedCardsStore.unbookmark(id: bookmark.id)
+                            } label: {
+                                Image(systemName: "bookmark.fill")
+                            }
+                        }
+                    } else {
+                        ToolbarItem(placement: .topBarTrailing) {
+                            Button {
+                                bookmarkedCardsStore.bookmark(card: bookmarkedCard)
+                            } label: {
+                                Image(systemName: "bookmark")
+                            }
+                        }
+                    }
+
+                    if let loadable = loadedCards[bookmarkedCard.id],
+                       case .loaded(let card) = loadable,
+                        let url = URL(string: card.scryfallUri) {
+                        ToolbarItem(placement: .topBarTrailing) {
+                            ShareLink(item: url)
+                        }
                     }
                 }
             }
-        } bottomContent: { index, count in
-            Text("\(index + 1) of \(count)")
-                .font(.caption)
-                .foregroundStyle(.primary)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 8)
-                .glassEffect(.regular, in: .capsule)
-                .padding(.bottom, 20)
+            .safeAreaInset(edge: .bottom) {
+                Text("\((scrollIndex ?? 0) + 1) of \(initialBookmarks.count)")
+                    .font(.caption)
+                    .foregroundStyle(.primary)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .glassEffect(.regular, in: .capsule)
+                    .padding(.bottom, 20)
+            }
         }
+        .onAppear {
+            if let scrollIndex, let card = initialBookmarks[safe: scrollIndex] {
+                load(card: card)
+            }
+        }
+        .onChange(of: scrollIndex) {
+            if let scrollIndex, let card = initialBookmarks[safe: scrollIndex] {
+                load(card: card)
+            }
+        }
+        .onChange(of: initialBookmarks.count) { _, newCount in
+            if let scrollIndex, scrollIndex > newCount {
+                self.scrollIndex = newCount
+                if let card = initialBookmarks[safe: newCount] {
+                    load(card: card)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func cardView(for card: BookmarkedCard, with geometry: GeometryProxy) -> some View {
+        switch loadedCards[card.id] {
+        case .loaded(let card):
+            CardDetailView(card: card, isFlipped: $cardFlipStates.for(card.id), searchState: $searchState)
+        case .loading:
+            CardPlaceholderView(name: card.name, cornerRadius: 16, with: .spinner)
+        case .failed(let error):
+            CardPlaceholderView(name: card.name, cornerRadius: 16, with: .error(error, { load(card: card) }))
+        case nil:
+            CardPlaceholderView(name: card.name, cornerRadius: 16, with: .spinner)
+                .onAppear {
+                    // This really shouldn't happen, but I guess just in case...
+                    load(card: card)
+                }
+        }
+    }
+
+    private func load(card: BookmarkedCard) {
+        switch loadedCards[card.id] {
+        case .loaded, .loading:
+            return
+        default:
+            break
+        }
+
+        let task = Task {
+            do {
+                logger.info("fetching card cardName=\(card.name) cardId=\(card.id)")
+                let loadedCard = try await cardSearchService.fetchCard(byScryfallId: card.id)
+
+                guard !Task.isCancelled else { return }
+
+                await MainActor.run {
+                    loadedCards[card.id] = .loaded(loadedCard)
+                }
+            } catch is CancellationError {
+                // nop
+            } catch {
+                await MainActor.run {
+                    loadedCards[card.id] = .failed(error)
+                }
+            }
+        }
+
+        loadedCards[card.id] = .loading(task)
     }
 }
 
