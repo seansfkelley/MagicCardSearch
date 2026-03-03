@@ -65,7 +65,7 @@ struct SpoilersView: View {
                 set: { selectedCardIndex = $0?.index }
             )
         ) { identifier in
-            SearchResultsDetailNavigator(
+            LazyPagingCardDetailNavigator(
                 list: SpoilersObjectList.shared,
                 initialIndex: identifier.index,
                 cardFlipStates: $cardFlipStates,

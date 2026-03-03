@@ -10,9 +10,7 @@ protocol Nameable {
 extension Card: Nameable {}
 extension BookmarkedCard: Nameable {}
 
-/// A generic lazy-loading detail navigator that supports paging through items with automatic loading
-/// of items within a specified range of the current position.
-struct LazyPagingDetailNavigator<ItemReference: Nameable & Identifiable, Item: Identifiable, Content: View, Toolbar: ToolbarContent, BottomContent: View>: View where ItemReference.ID == Item.ID {
+struct LazyCardDetailNavigator<ItemReference: Nameable & Identifiable, Item: Identifiable, Content: View, Toolbar: ToolbarContent, BottomContent: View>: View where ItemReference.ID == Item.ID {
     // MARK: - Types
     
     private enum LoadingState {

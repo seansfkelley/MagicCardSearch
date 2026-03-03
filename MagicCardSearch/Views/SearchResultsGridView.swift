@@ -97,7 +97,7 @@ struct SearchResultsGridView: View {
                 set: { selectedCardIndex = $0?.index }
             )
         ) { identifier in
-            SearchResultsDetailNavigator(
+            LazyPagingCardDetailNavigator(
                 list: list,
                 initialIndex: identifier.index,
                 cardFlipStates: $cardFlipStates,

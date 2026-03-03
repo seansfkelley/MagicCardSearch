@@ -81,7 +81,7 @@ struct RandomCardView: View {
     // MARK: - Navigator
 
     private var navigatorView: some View {
-        LazyPagingDetailNavigator(
+        LazyCardDetailNavigator(
             items: history,
             currentIndex: $currentIndex,
             hasMorePages: true,

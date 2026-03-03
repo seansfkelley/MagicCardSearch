@@ -270,7 +270,7 @@ private struct BookmarkedCardDetailNavigator: View {
     }
 
     var body: some View {
-        LazyPagingDetailNavigator(
+        LazyCardDetailNavigator(
             items: initialBookmarks,
             currentIndex: $navigatorIndex,
             loadDistance: 1,
