@@ -99,8 +99,13 @@ struct RandomCardView: View {
                                 case .success(let card):
                                     CardDetailView(card: card, isFlipped: $cardFlipStates.for(card.id), searchState: nil)
                                 case .failure(let error):
-                                    CardPlaceholderView(name: nil, cornerRadius: 16, with: .error(error, nil))
-                                        .padding(.horizontal)
+                                    // VStack mimics the pinned-to-top visuals of the real CardDetailView.
+                                    VStack(spacing: 0) {
+                                        CardPlaceholderView(name: nil, cornerRadius: 16, with: .error(error, nil))
+                                            .padding(.horizontal)
+                                        Spacer()
+                                    }
+                                    .padding(.top)
                                 }
                             }
                             .frame(width: geometry.size.width, height: geometry.size.height)
@@ -108,11 +113,13 @@ struct RandomCardView: View {
                             .id(ScrollItem.entry(entry.id, index))
                         }
 
-                        VStack {
+                        // VStack mimics the pinned-to-top visuals of the real CardDetailView.
+                        VStack(spacing: 0) {
                             CardPlaceholderView(name: nil, cornerRadius: 16, with: .spinner)
                                 .padding(.horizontal)
                             Spacer()
                         }
+                        .padding(.top)
                         .frame(width: geometry.size.width, height: geometry.size.height)
                         .containerRelativeFrame(.horizontal)
                         .id(ScrollItem.placeholder)
