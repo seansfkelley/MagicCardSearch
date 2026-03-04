@@ -88,7 +88,7 @@ struct RandomCardView: View {
             GeometryReader { geometry in
                 ScrollView(.horizontal) {
                     LazyHStack(spacing: 0) {
-                        RandomCardIntroView()
+                        RandomCardOnboardingView()
                             .frame(width: geometry.size.width, height: geometry.size.height)
                             .containerRelativeFrame(.horizontal)
                             .id(ScrollItem.intro)

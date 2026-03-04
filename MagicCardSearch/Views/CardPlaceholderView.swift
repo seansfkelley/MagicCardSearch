@@ -4,6 +4,7 @@ import ScryfallKit
 struct CardPlaceholderView: View {
     enum Decoration {
         case none, spinner
+        case image(String)
         case error(any Error, (() -> Void)?)
     }
 
@@ -51,6 +52,10 @@ struct CardPlaceholderView: View {
                             switch decoration {
                             case .none:
                                 EmptyView()
+                            case .image(let name):
+                                Image(systemName: name)
+                                    .font(.system(size: width * 0.33))
+                                    .foregroundStyle(Color(.systemGray3))
                             case .spinner:
                                 ProgressView()
                                     .controlSize(.large)
@@ -128,6 +133,7 @@ private struct PreviewError: LocalizedError {
     ScrollView {
         VStack {
             CardPlaceholderView(name: nil, cornerRadius: 16, with: .none)
+            CardPlaceholderView(name: nil, cornerRadius: 16, with: .image("shuffle"))
             CardPlaceholderView(name: "Lightning Bolt", cornerRadius: 16, with: .spinner)
             CardPlaceholderView(name: "Lightning Bolt", cornerRadius: 16, with: .error(PreviewError("Could not connect to Scryfall."), nil))
             CardPlaceholderView(name: "Lightning Bolt", cornerRadius: 16, with: .error(PreviewError("The Internet connection appears to be offline."), {}))
