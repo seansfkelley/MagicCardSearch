@@ -15,7 +15,7 @@ struct RandomCardFilters: Equatable {
     var rarities: Set<Card.Rarity> = []
 
     var queryString: String? {
-        var groups: [String] = []
+        var groups: [String] = ["language:en"]
 
         if !colors.isEmpty {
             let key = useColorIdentity ? "id" : "color"
@@ -42,13 +42,32 @@ struct RandomCardFilters: Equatable {
     }
 }
 
+// MARK: - History Entry
+
+private struct HistoryEntry: Identifiable {
+    let id = UUID()
+    let result: Result<Card, Error>
+
+    var card: Card? {
+        try? result.get()
+    }
+}
+
+// MARK: - Scroll Item
+
+private enum ScrollItem: Hashable {
+    case intro
+    case entry(UUID, Int)
+    case placeholder
+}
+
 // MARK: - RandomCardView
 
 struct RandomCardView: View {
     @Binding var searchState: SearchState
 
-    @State private var history: [Card] = []
-    @State private var scrollIndex: Int?
+    @State private var history: [HistoryEntry] = []
+    @State private var scrollPosition: ScrollItem?
     @State private var cardFlipStates: [UUID: Bool] = [:]
     @State private var filters = RandomCardFilters()
     @State private var showingFilterSheet = false
@@ -59,16 +78,53 @@ struct RandomCardView: View {
 
     private let client = ScryfallClient()
 
+    private var currentCard: Card? {
+        guard case .entry(_, let index) = scrollPosition else { return nil }
+        return history[safe: index]?.card
+    }
+
     // MARK: - Navigator
 
     var body: some View {
-        LazyCardDetailNavigator(
-            history,
-            scrollIndex: $scrollIndex,
-            cardFlipStates: $cardFlipStates,
-            searchState: $searchState,
-            loader: { card in card },
-            toolbarContent: { card in
+        NavigationStack {
+            GeometryReader { geometry in
+                ScrollView(.horizontal) {
+                    LazyHStack(spacing: 0) {
+                        RandomCardIntroView()
+                            .frame(width: geometry.size.width, height: geometry.size.height)
+                            .containerRelativeFrame(.horizontal)
+                            .id(ScrollItem.intro)
+
+                        ForEach(Array(history.enumerated()), id: \.element.id) { index, entry in
+                            Group {
+                                switch entry.result {
+                                case .success(let card):
+                                    CardDetailView(card: card, isFlipped: $cardFlipStates.for(card.id), searchState: $searchState)
+                                case .failure(let error):
+                                    CardPlaceholderView(name: nil, cornerRadius: 16, with: .error(error, nil))
+                                        .padding(.horizontal)
+                                }
+                            }
+                            .frame(width: geometry.size.width, height: geometry.size.height)
+                            .containerRelativeFrame(.horizontal)
+                            .id(ScrollItem.entry(entry.id, index))
+                        }
+
+                        CardPlaceholderView(name: nil, cornerRadius: 16, with: .spinner)
+                            .padding(.horizontal)
+                            .frame(width: geometry.size.width, height: geometry.size.height)
+                            .containerRelativeFrame(.horizontal)
+                            .id(ScrollItem.placeholder)
+                    }
+                    .scrollTargetLayout()
+                }
+                .scrollTargetBehavior(.paging)
+                .scrollPosition(id: $scrollPosition)
+                .scrollIndicators(.hidden)
+            }
+            .navigationTitle(currentCard?.name ?? "")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button {
                         showingFilterSheet = true
@@ -79,7 +135,7 @@ struct RandomCardView: View {
                     }
                 }
 
-                if let card {
+                if let card = currentCard {
                     if bookmarks.contains(where: { $0.id == card.id }) {
                         ToolbarItem(placement: .topBarTrailing) {
                             Button {
@@ -105,19 +161,36 @@ struct RandomCardView: View {
                     }
                 }
             }
-        )
+        }
         .onAppear {
             if history.isEmpty {
+                fetchNextCard()
+            }
+        }
+        .onChange(of: scrollPosition) {
+            switch scrollPosition {
+            case .intro, nil:
+                break
+            case .entry(_, let index):
+                if index == history.count - 1 {
+                    fetchNextCard()
+                }
+            case .placeholder:
                 fetchNextCard()
             }
         }
         .sheet(isPresented: $showingFilterSheet) {
             RandomCardFilterSheet(filters: filters) { newFilters in
                 filters = newFilters
-                let index = scrollIndex ?? 0
-                if index < history.count {
-                    history = Array(history[0...index])
+                history = switch scrollPosition {
+                case .intro, nil:
+                    []
+                case .entry(_, let index):
+                    Array(history[0...index])
+                case .placeholder:
+                    history
                 }
+                scrollPosition = .placeholder
                 fetchNextCard()
             }
         }
@@ -126,15 +199,54 @@ struct RandomCardView: View {
     private func fetchNextCard() {
         fetchTask?.cancel()
         fetchTask = Task {
-//            loadError = nil
+            let entry: HistoryEntry
             do {
                 let card = try await client.getRandomCard(query: filters.queryString)
-                history.append(card)
+                entry = HistoryEntry(result: .success(card))
             } catch {
-                logger.error("Error fetching random card: \(error)")
-//                loadError = error
+                entry = HistoryEntry(result: .failure(error))
+            }
+            history.append(entry)
+            if case .placeholder = scrollPosition {
+                scrollPosition = .entry(entry.id, history.count - 1)
             }
         }
+    }
+}
+
+// MARK: - Intro View
+
+private struct RandomCardIntroView: View {
+    var body: some View {
+        VStack(spacing: 24) {
+            Spacer()
+
+            Image(systemName: "shuffle")
+                .font(.system(size: 48))
+                .foregroundStyle(.tertiary)
+
+            VStack(spacing: 8) {
+                Text("Random Cards")
+                    .font(.title2)
+                    .fontWeight(.semibold)
+
+                Text("Swipe right to discover random cards.")
+                    .foregroundStyle(.secondary)
+            }
+
+            HStack(spacing: 6) {
+                Image(systemName: "line.3.horizontal.decrease.circle")
+                    .foregroundStyle(Color.accentColor)
+                Text("Use filters to narrow the pool.")
+                    .foregroundStyle(.secondary)
+            }
+            .font(.subheadline)
+
+            Spacer()
+            Spacer()
+        }
+        .multilineTextAlignment(.center)
+        .padding(.horizontal, 40)
     }
 }
 

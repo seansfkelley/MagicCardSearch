@@ -4,7 +4,7 @@ import ScryfallKit
 struct CardPlaceholderView: View {
     enum Decoration {
         case none, spinner
-        case error(any Error, () -> Void)
+        case error(any Error, (() -> Void)?)
     }
 
     let name: String?
@@ -104,8 +104,10 @@ struct CardPlaceholderView: View {
                 Text(error.localizedDescription)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
-                Button("Retry") { retry() }
-                    .buttonStyle(.borderedProminent)
+                if let retry {
+                    Button("Retry") { retry() }
+                        .buttonStyle(.borderedProminent)
+                }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
@@ -121,7 +123,8 @@ private struct PreviewError: LocalizedError {
     let decorations: [(String, CardPlaceholderView.Decoration)] = [
         ("none", .none),
         ("spinner", .spinner),
-        ("error", .error(PreviewError(), {})),
+        ("error", .error(PreviewError(), nil)),
+        ("error with retry", .error(PreviewError(), {})),
     ]
 
     ScrollView {
