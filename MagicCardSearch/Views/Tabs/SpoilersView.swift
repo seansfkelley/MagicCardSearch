@@ -5,7 +5,6 @@ import OSLog
 private let logger = Logger(subsystem: "MagicCardSearch", category: "SpoilersView")
 
 struct SpoilersView: View {
-    @Binding var searchState: SearchState
     @Binding var selectedTab: Tab
 
     @State private var selectedCardIndex: Int?
@@ -69,7 +68,7 @@ struct SpoilersView: View {
                 list: SpoilersObjectList.shared,
                 initialIndex: identifier.index,
                 cardFlipStates: $cardFlipStates,
-                searchState: $searchState,
+                searchState: nil,
             )
         }
     }

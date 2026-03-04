@@ -16,7 +16,7 @@ private enum LoadError: Error, LocalizedError {
 }
 
 struct CardTagsSection: View {
-    @Binding var searchState: SearchState
+    var searchState: Binding<SearchState>?
     let setCode: String
     let collectorNumber: String
     @State private var isExpanded = false
@@ -62,7 +62,7 @@ struct CardTagsSection: View {
                     TagListView(
                         card: cardValue,
                         loadingRelationshipId: loadingRelationshipId,
-                        searchState: $searchState,
+                        searchState: searchState,
                     ) { relationshipId, foreignKeyId, foreignKey in
                         Task {
                             await loadRelatedCard(
@@ -94,7 +94,7 @@ struct CardTagsSection: View {
                 CardDetailView(
                     card: relatedCard,
                     isFlipped: .constant(false),
-                    searchState: $searchState,
+                    searchState: searchState,
                 )
                 .navigationTitle(relatedCard.name)
                 .navigationBarTitleDisplayMode(.inline)
@@ -159,7 +159,7 @@ struct CardTagsSection: View {
 private struct TagListView: View {
     let card: TaggerCard
     let loadingRelationshipId: UUID?
-    @Binding var searchState: SearchState
+    var searchState: Binding<SearchState>?
     let onRelationshipTapped: (UUID, UUID, TaggerCard.ForeignKey) -> Void
 
     private func tags(for namespace: TaggerCard.Tagging.Tag.Namespace) -> [TaggerCard.Tagging] {
@@ -199,7 +199,7 @@ private struct TagListView: View {
                     relationships: gameplayRelationships,
                     card: card,
                     loadingRelationshipId: loadingRelationshipId,
-                    searchState: $searchState,
+                    searchState: searchState,
                     onRelationshipTapped: onRelationshipTapped
                 )
             }
@@ -216,7 +216,7 @@ private struct TagListView: View {
                     relationships: artworkRelationships,
                     card: card,
                     loadingRelationshipId: loadingRelationshipId,
-                    searchState: $searchState,
+                    searchState: searchState,
                     onRelationshipTapped: onRelationshipTapped
                 )
             }
@@ -233,7 +233,7 @@ private struct TagListView: View {
                     relationships: printingRelationships,
                     card: card,
                     loadingRelationshipId: loadingRelationshipId,
-                    searchState: $searchState,
+                    searchState: searchState,
                     onRelationshipTapped: onRelationshipTapped
                 )
             }
@@ -248,7 +248,7 @@ private struct CombinedSectionView: View {
     let relationships: [TaggerCard.Relationship]
     let card: TaggerCard
     let loadingRelationshipId: UUID?
-    @Binding var searchState: SearchState
+    var searchState: Binding<SearchState>?
     let onRelationshipTapped: (UUID, UUID, TaggerCard.ForeignKey) -> Void
 
     private let spacing: CGFloat = 12
@@ -267,7 +267,7 @@ private struct CombinedSectionView: View {
                     TagRow(
                         tagging: tagging,
                         iconName: tagIconName,
-                        searchState: $searchState
+                        searchState: searchState
                     )
 
                     if tagging.tag.id != tags.last?.tag.id || !relationships.isEmpty {
@@ -296,7 +296,7 @@ private struct CombinedSectionView: View {
 private struct TagRow: View {
     let tagging: TaggerCard.Tagging
     let iconName: String
-    @Binding var searchState: SearchState
+    var searchState: Binding<SearchState>?
     @State private var showAnnotation = false
 
     private var filterTerm: FilterTerm? {
@@ -352,25 +352,27 @@ private struct TagRow: View {
                         Label("Copy as Filter", systemImage: "doc.on.clipboard.fill")
                     }
 
-                    if searchState.filters.isEmpty {
-                        Button {
-                            searchState.filters = [.term(filterTerm)]
-                            searchState.performSearch()
-                        } label: {
-                            Label("Search for this Tag", systemImage: "magnifyingglass")
-                        }
-                    } else {
-                        Button {
-                            searchState.filters.append(.term(filterTerm))
-                            searchState.performSearch()
-                        } label: {
-                            Label("Add to Current Search", systemImage: "plus.magnifyingglass")
-                        }
-                        Button {
-                            searchState.filters = [.term(filterTerm)]
-                            searchState.performSearch()
-                        } label: {
-                            Label("Replace Current Search", systemImage: "magnifyingglass")
+                    if let searchState {
+                        if searchState.wrappedValue.filters.isEmpty {
+                            Button {
+                                searchState.wrappedValue.filters = [.term(filterTerm)]
+                                searchState.wrappedValue.performSearch()
+                            } label: {
+                                Label("Search for this Tag", systemImage: "magnifyingglass")
+                            }
+                        } else {
+                            Button {
+                                searchState.wrappedValue.filters.append(.term(filterTerm))
+                                searchState.wrappedValue.performSearch()
+                            } label: {
+                                Label("Add to Current Search", systemImage: "plus.magnifyingglass")
+                            }
+                            Button {
+                                searchState.wrappedValue.filters = [.term(filterTerm)]
+                                searchState.wrappedValue.performSearch()
+                            } label: {
+                                Label("Replace Current Search", systemImage: "magnifyingglass")
+                            }
                         }
                     }
                 } label: {

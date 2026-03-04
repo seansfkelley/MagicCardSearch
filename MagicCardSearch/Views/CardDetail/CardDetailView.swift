@@ -40,7 +40,7 @@ extension Card: CardDetailDisplayable {
 struct CardDetailView: View {
     let card: Card
     @Binding var isFlipped: Bool
-    @Binding var searchState: SearchState
+    var searchState: Binding<SearchState>?
 
     @State private var relatedCardToShow: Card?
     @State private var isLoadingRelatedCard = false
@@ -108,7 +108,7 @@ struct CardDetailView: View {
 
                 Divider().padding(.horizontal)
                 CardTagsSection(
-                    searchState: $searchState,
+                    searchState: searchState,
                     setCode: card.set,
                     collectorNumber: card.collectorNumber,
                 )
@@ -165,7 +165,7 @@ struct CardDetailView: View {
                 CardDetailView(
                     card: relatedCard,
                     isFlipped: $isFlipped,
-                    searchState: $searchState,
+                    searchState: searchState,
                 )
                     .navigationTitle(relatedCard.name)
                     .navigationBarTitleDisplayMode(.inline)

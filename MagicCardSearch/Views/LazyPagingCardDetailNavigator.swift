@@ -8,17 +8,17 @@ struct LazyPagingCardDetailNavigator: View {
 
     let list: ScryfallObjectList<Card>
     @Binding var cardFlipStates: [UUID: Bool]
-    @Binding var searchState: SearchState
+    var searchState: Binding<SearchState>?
 
     @FetchAll private var bookmarks: [BookmarkedCard]
     @State private var scrollIndex: Int?
 
     private let pagePreloadDistance = 3
 
-    init(list: ScryfallObjectList<Card>, initialIndex: Int, cardFlipStates: Binding<[UUID: Bool]>, searchState: Binding<SearchState>) {
+    init(list: ScryfallObjectList<Card>, initialIndex: Int, cardFlipStates: Binding<[UUID: Bool]>, searchState: Binding<SearchState>?) {
         self.list = list
         self._cardFlipStates = cardFlipStates
-        self._searchState = searchState
+        self.searchState = searchState
         self._scrollIndex = State(initialValue: initialIndex)
     }
 
@@ -32,7 +32,7 @@ struct LazyPagingCardDetailNavigator: View {
                             CardDetailView(
                                 card: card,
                                 isFlipped: $cardFlipStates.for(card.id),
-                                searchState: $searchState,
+                                searchState: searchState,
                             )
                             .frame(width: geometry.size.width, height: geometry.size.height)
                             .containerRelativeFrame(.horizontal)

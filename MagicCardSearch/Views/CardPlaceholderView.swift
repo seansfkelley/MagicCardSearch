@@ -29,7 +29,7 @@ struct CardPlaceholderView: View {
                 VStack(spacing: 0) {
                     // Name bar
                     Text(name ?? " ")
-                        .font(.system(size: height * 0.04, weight: .semibold))
+                        .font(.system(size: height * 0.035, weight: .semibold))
                         .foregroundStyle(Color.gray.opacity(0.8))
                         .lineLimit(1)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -37,7 +37,7 @@ struct CardPlaceholderView: View {
                         .padding(.vertical, height * 0.01)
                         .background(Color.gray.opacity(0.10), in: .rect(cornerRadius: height * 0.025, style: .continuous))
                         .overlay(RoundedRectangle(cornerRadius: height * 0.025, style: .continuous).stroke(Color.gray.opacity(0.2), lineWidth: 2))
-                        .padding(.horizontal, width * 0.03)
+                        .padding(.horizontal, width * 0.04)
                         .padding(.top, width * 0.05)
 
                     // Art frame
@@ -45,8 +45,8 @@ struct CardPlaceholderView: View {
                         .fill(Color.gray.opacity(0.1))
                         .overlay(alignment: .leading) { Color.gray.opacity(0.2).frame(width: 2) }
                         .overlay(alignment: .trailing) { Color.gray.opacity(0.2).frame(width: 2) }
-                        .frame(height: height * 0.44)
-                        .padding(.horizontal, width * 0.04)
+                        .frame(height: height * 0.46)
+                        .padding(.horizontal, width * 0.05)
                         .overlay {
                             switch decoration {
                             case .none:
@@ -56,8 +56,8 @@ struct CardPlaceholderView: View {
                                     .controlSize(.large)
                                     .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-                            case .error(let error, _):
-                                VStack(spacing: 8) {
+                            case .error(let error, let retry):
+                                VStack(spacing: 12) {
                                     Image(systemName: "exclamationmark.triangle")
                                         .foregroundStyle(.secondary)
                                         .imageScale(.large)
@@ -65,13 +65,19 @@ struct CardPlaceholderView: View {
                                     Text(error.localizedDescription)
                                         .foregroundStyle(.secondary)
                                         .multilineTextAlignment(.center)
+                                        .padding(.horizontal, width * 0.12)
+
+                                    if let retry {
+                                        Button("Retry") { retry() }
+                                            .buttonStyle(.borderedProminent)
+                                    }
                                 }
                             }
                         }
 
                     // Type line
                     Text(" ")
-                        .font(.system(size: height * 0.04, weight: .semibold))
+                        .font(.system(size: height * 0.035, weight: .semibold))
                         .foregroundStyle(Color.gray.opacity(0.5))
                         .lineLimit(1)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -79,7 +85,7 @@ struct CardPlaceholderView: View {
                         .padding(.vertical, height * 0.01)
                         .background(Color.gray.opacity(0.10), in: .rect(cornerRadius: height * 0.025, style: .continuous))
                         .overlay(RoundedRectangle(cornerRadius: height * 0.025, style: .continuous).stroke(Color.gray.opacity(0.2), lineWidth: 2))
-                        .padding(.horizontal, width * 0.03)
+                        .padding(.horizontal, width * 0.04)
 
                     // Text box
                     Rectangle()
@@ -88,7 +94,7 @@ struct CardPlaceholderView: View {
                         .overlay(alignment: .trailing) { Color.gray.opacity(0.2).frame(width: 2) }
                         .overlay(alignment: .bottom) { Color.gray.opacity(0.2).frame(height: 2) }
                         .frame(height: height * 0.32)
-                        .padding(.horizontal, width * 0.04)
+                        .padding(.horizontal, width * 0.05)
                         .overlay(alignment: .topLeading) {
                             VStack(alignment: .leading, spacing: height * 0.02) {
                                 ForEach(0..<3, id: \.self) { i in
@@ -103,12 +109,6 @@ struct CardPlaceholderView: View {
                             .padding(.leading, width * 0.1)
                             .padding(.top, height * 0.05)
                         }
-                        .overlay {
-                            if case .error(_, let retry) = decoration, let retry {
-                                Button("Retry") { retry() }
-                                    .buttonStyle(.borderedProminent)
-                            }
-                        }
                 }
             }
         }
@@ -117,28 +117,20 @@ struct CardPlaceholderView: View {
 }
 
 private struct PreviewError: LocalizedError {
-    var errorDescription: String? { "Could not connect to Scryfall." }
+    var errorDescription: String?
+
+    init(_ errorDescription: String) {
+        self.errorDescription = errorDescription
+    }
 }
 
 #Preview {
-    let names: [String?] = [nil, "Lightning Bolt"]
-    let decorations: [(String, CardPlaceholderView.Decoration)] = [
-        ("none", .none),
-        ("spinner", .spinner),
-        ("error", .error(PreviewError(), nil)),
-        ("error with retry", .error(PreviewError(), {})),
-    ]
-
     ScrollView {
-        ForEach(decorations, id: \.0) { label, decoration in
-            ForEach(names, id: \.self) { name in
-                VStack(alignment: .leading) {
-                    Text("name: \(name ?? "nil"), decoration: \(label)")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    CardPlaceholderView(name: name, cornerRadius: 16, with: decoration)
-                }
-            }
+        VStack {
+            CardPlaceholderView(name: nil, cornerRadius: 16, with: .none)
+            CardPlaceholderView(name: "Lightning Bolt", cornerRadius: 16, with: .spinner)
+            CardPlaceholderView(name: "Lightning Bolt", cornerRadius: 16, with: .error(PreviewError("Could not connect to Scryfall."), nil))
+            CardPlaceholderView(name: "Lightning Bolt", cornerRadius: 16, with: .error(PreviewError("The Internet connection appears to be offline."), {}))
         }
         .padding()
     }

@@ -8,7 +8,6 @@ import OSLog
 private let logger = Logger(subsystem: "MagicCardSearch", category: "BookmarksTabView")
 
 struct BookmarksTabView: View {
-    @Binding var searchState: SearchState
     @Binding var selectedTab: Tab
     @State private var editMode: EditMode = .inactive
     @State private var selectedCards: Set<UUID> = []
@@ -168,7 +167,7 @@ struct BookmarksTabView: View {
             BookmarkedCardDetailNavigator(
                 initialBookmarks: state.cards,
                 initialIndex: state.index,
-                searchState: $searchState,
+                searchState: nil,
                 selectedTab: $selectedTab,
             )
         }
@@ -255,7 +254,7 @@ private struct BookmarkedCardDetailNavigator: View {
     }
     
     let initialBookmarks: [BookmarkedCard]
-    @Binding var searchState: SearchState
+    var searchState: Binding<SearchState>?
     @Binding var selectedTab: Tab
 
     @State private var cardFlipStates: [UUID: Bool] = [:]
@@ -267,9 +266,9 @@ private struct BookmarkedCardDetailNavigator: View {
     @Environment(\.dismiss) private var dismiss
     private let cardSearchService = CardSearchService()
 
-    init(initialBookmarks: [BookmarkedCard], initialIndex: Int, searchState: Binding<SearchState>, selectedTab: Binding<Tab>) {
+    init(initialBookmarks: [BookmarkedCard], initialIndex: Int, searchState: Binding<SearchState>?, selectedTab: Binding<Tab>) {
         self.initialBookmarks = initialBookmarks
-        self._searchState = searchState
+        self.searchState = searchState
         self._selectedTab = selectedTab
         self._scrollIndex = State(initialValue: initialIndex)
     }
@@ -363,7 +362,7 @@ private struct BookmarkedCardDetailNavigator: View {
     private func cardView(for card: BookmarkedCard, with geometry: GeometryProxy) -> some View {
         switch loadedCards[card.id] {
         case .loaded(let card):
-            CardDetailView(card: card, isFlipped: $cardFlipStates.for(card.id), searchState: $searchState)
+            CardDetailView(card: card, isFlipped: $cardFlipStates.for(card.id), searchState: searchState)
         case .loading:
             CardPlaceholderView(name: card.name, cornerRadius: 16, with: .spinner)
         case .failed(let error):

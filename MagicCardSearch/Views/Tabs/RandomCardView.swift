@@ -64,8 +64,6 @@ private enum ScrollItem: Hashable {
 // MARK: - RandomCardView
 
 struct RandomCardView: View {
-    @Binding var searchState: SearchState
-
     @State private var history: [HistoryEntry] = []
     @State private var scrollPosition: ScrollItem?
     @State private var cardFlipStates: [UUID: Bool] = [:]
@@ -99,7 +97,7 @@ struct RandomCardView: View {
                             Group {
                                 switch entry.result {
                                 case .success(let card):
-                                    CardDetailView(card: card, isFlipped: $cardFlipStates.for(card.id), searchState: $searchState)
+                                    CardDetailView(card: card, isFlipped: $cardFlipStates.for(card.id), searchState: nil)
                                 case .failure(let error):
                                     CardPlaceholderView(name: nil, cornerRadius: 16, with: .error(error, nil))
                                         .padding(.horizontal)
