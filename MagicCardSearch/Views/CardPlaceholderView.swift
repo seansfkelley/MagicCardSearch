@@ -16,101 +16,103 @@ struct CardPlaceholderView: View {
         self.cornerRadius = cornerRadius
         self.decoration = decoration
     }
-    
-    var body: some View {
-        ZStack {
-            cardShape
-                .aspectRatio(Card.aspectRatio, contentMode: .fit)
-                .overlay { decorationOverlay }
-        }
-    }
 
-    private var cardShape: some View {
+    var body: some View {
         GeometryReader { geometry in
             let width = geometry.size.width
             let height = geometry.size.height
-            let inset = width * 0.05
-            let artHeight = height * 0.45
-            let textBoxHeight = height * 0.35
 
             ZStack(alignment: .top) {
                 RoundedRectangle(cornerRadius: cornerRadius)
-                    .fill(Color.gray.opacity(0.2))
+                    .fill(Color.gray.opacity(0.1))
 
-                VStack(spacing: inset * 0.6) {
+                VStack(spacing: 0) {
                     // Name bar
-                    if let name {
-                        Text(name)
-                            .font(.system(size: height * 0.04, weight: .semibold))
-                            .lineLimit(1)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.horizontal, inset * 0.5)
-                            .padding(.vertical, inset * 0.3)
-                            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: cornerRadius * 0.3))
-                    }
+                    Text(name ?? " ")
+                        .font(.system(size: height * 0.04, weight: .semibold))
+                        .foregroundStyle(Color.gray.opacity(0.8))
+                        .lineLimit(1)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, width * 0.02)
+                        .padding(.vertical, height * 0.01)
+                        .background(Color.gray.opacity(0.10), in: .rect(cornerRadius: height * 0.025, style: .continuous))
+                        .overlay(RoundedRectangle(cornerRadius: height * 0.025, style: .continuous).stroke(Color.gray.opacity(0.2), lineWidth: 2))
+                        .padding(.horizontal, width * 0.03)
+                        .padding(.top, width * 0.05)
 
                     // Art frame
                     Rectangle()
-                        .fill(Color.gray.opacity(0.15))
-                        .frame(height: artHeight)
+                        .fill(Color.gray.opacity(0.1))
+                        .overlay(alignment: .leading) { Color.gray.opacity(0.2).frame(width: 2) }
+                        .overlay(alignment: .trailing) { Color.gray.opacity(0.2).frame(width: 2) }
+                        .frame(height: height * 0.44)
+                        .padding(.horizontal, width * 0.04)
                         .overlay {
-                            Image(systemName: "photo")
-                                .font(.system(size: height * 0.1))
-                                .foregroundStyle(.tertiary)
+                            switch decoration {
+                            case .none:
+                                EmptyView()
+                            case .spinner:
+                                ProgressView()
+                                    .controlSize(.large)
+                                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+                            case .error(let error, _):
+                                VStack(spacing: 8) {
+                                    Image(systemName: "exclamationmark.triangle")
+                                        .foregroundStyle(.secondary)
+                                        .imageScale(.large)
+
+                                    Text(error.localizedDescription)
+                                        .foregroundStyle(.secondary)
+                                        .multilineTextAlignment(.center)
+                                }
+                            }
                         }
 
+                    // Type line
+                    Text(" ")
+                        .font(.system(size: height * 0.04, weight: .semibold))
+                        .foregroundStyle(Color.gray.opacity(0.5))
+                        .lineLimit(1)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, width * 0.01)
+                        .padding(.vertical, height * 0.01)
+                        .background(Color.gray.opacity(0.10), in: .rect(cornerRadius: height * 0.025, style: .continuous))
+                        .overlay(RoundedRectangle(cornerRadius: height * 0.025, style: .continuous).stroke(Color.gray.opacity(0.2), lineWidth: 2))
+                        .padding(.horizontal, width * 0.03)
+
                     // Text box
-                    RoundedRectangle(cornerRadius: cornerRadius * 0.3)
+                    Rectangle()
                         .fill(Color.gray.opacity(0.1))
-                        .frame(height: textBoxHeight)
+                        .overlay(alignment: .leading) { Color.gray.opacity(0.2).frame(width: 2) }
+                        .overlay(alignment: .trailing) { Color.gray.opacity(0.2).frame(width: 2) }
+                        .overlay(alignment: .bottom) { Color.gray.opacity(0.2).frame(height: 2) }
+                        .frame(height: height * 0.32)
+                        .padding(.horizontal, width * 0.04)
                         .overlay(alignment: .topLeading) {
-                            VStack(alignment: .leading, spacing: height * 0.015) {
+                            VStack(alignment: .leading, spacing: height * 0.02) {
                                 ForEach(0..<3, id: \.self) { i in
                                     RoundedRectangle(cornerRadius: 2)
-                                        .fill(Color.gray.opacity(0.15))
+                                        .fill(Color.gray.opacity(0.1))
                                         .frame(
                                             width: width * (i == 2 ? 0.5 : 0.8),
-                                            height: height * 0.02
+                                            height: height * 0.03
                                         )
                                 }
                             }
-                            .padding(inset * 0.8)
+                            .padding(.leading, width * 0.1)
+                            .padding(.top, height * 0.05)
+                        }
+                        .overlay {
+                            if case .error(_, let retry) = decoration, let retry {
+                                Button("Retry") { retry() }
+                                    .buttonStyle(.borderedProminent)
+                            }
                         }
                 }
-                .padding(inset)
             }
         }
-    }
-
-    @ViewBuilder
-    private var decorationOverlay: some View {
-        switch decoration {
-        case .none:
-            EmptyView()
-        case .spinner:
-            ProgressView()
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(Color(.systemGray6).opacity(0.4))
-                .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
-        case .error(let error, let retry):
-            VStack {
-                Image(systemName: "exclamationmark.triangle")
-                    .foregroundStyle(.secondary)
-                    .imageScale(.large)
-                if let name {
-                    Text("Failed to load \(name)")
-                        .fontWeight(.semibold)
-                }
-                Text(error.localizedDescription)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                if let retry {
-                    Button("Retry") { retry() }
-                        .buttonStyle(.borderedProminent)
-                }
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-        }
+        .aspectRatio(Card.aspectRatio, contentMode: .fit)
     }
 }
 

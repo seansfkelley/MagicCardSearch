@@ -110,11 +110,14 @@ struct RandomCardView: View {
                             .id(ScrollItem.entry(entry.id, index))
                         }
 
-                        CardPlaceholderView(name: nil, cornerRadius: 16, with: .spinner)
-                            .padding(.horizontal)
-                            .frame(width: geometry.size.width, height: geometry.size.height)
-                            .containerRelativeFrame(.horizontal)
-                            .id(ScrollItem.placeholder)
+                        VStack {
+                            CardPlaceholderView(name: nil, cornerRadius: 16, with: .spinner)
+                                .padding(.horizontal)
+                            Spacer()
+                        }
+                        .frame(width: geometry.size.width, height: geometry.size.height)
+                        .containerRelativeFrame(.horizontal)
+                        .id(ScrollItem.placeholder)
                     }
                     .scrollTargetLayout()
                 }
