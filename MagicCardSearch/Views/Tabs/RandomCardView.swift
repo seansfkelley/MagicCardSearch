@@ -222,42 +222,6 @@ struct RandomCardView: View {
     }
 }
 
-// MARK: - Intro View
-
-private struct RandomCardIntroView: View {
-    var body: some View {
-        VStack(spacing: 24) {
-            Spacer()
-
-            Image(systemName: "shuffle")
-                .font(.system(size: 48))
-                .foregroundStyle(.tertiary)
-
-            VStack(spacing: 8) {
-                Text("Random Cards")
-                    .font(.title2)
-                    .fontWeight(.semibold)
-
-                Text("Swipe right to discover random cards.")
-                    .foregroundStyle(.secondary)
-            }
-
-            HStack(spacing: 6) {
-                Image(systemName: "line.3.horizontal.decrease.circle")
-                    .foregroundStyle(Color.accentColor)
-                Text("Use filters to narrow the pool.")
-                    .foregroundStyle(.secondary)
-            }
-            .font(.subheadline)
-
-            Spacer()
-            Spacer()
-        }
-        .multilineTextAlignment(.center)
-        .padding(.horizontal, 40)
-    }
-}
-
 // MARK: - Filter Sheet
 
 private struct RandomCardFilterSheet: View {
