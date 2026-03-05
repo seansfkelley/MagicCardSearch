@@ -198,6 +198,7 @@ private struct DefaultSearchContent: View {
                                 .lineLimit(2)
                             Spacer()
                         }
+                        .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                     .swipeActions(edge: .leading, allowsFullSwipe: true) {
@@ -239,6 +240,7 @@ private struct DefaultSearchContent: View {
                                 .lineLimit(2)
                             Spacer()
                         }
+                        .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                     .swipeActions(edge: .trailing, allowsFullSwipe: true) {
@@ -291,6 +293,7 @@ private struct DefaultSearchContent: View {
                         }
                         Spacer()
                     }
+                    .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .id("example-\(example.title)")
