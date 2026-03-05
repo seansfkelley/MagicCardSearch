@@ -120,8 +120,12 @@ struct SetIconView: View {
                 throw LoadError.failedToRenderUIImage
             }
 
-            logger.trace("set cache for rendered SVG icon for key=\(renderedImageCacheKey)")
-            try Self.renderedImageCache.setObject(uiImage, forKey: renderedImageCacheKey, expiry: nil)
+            do {
+                try Self.renderedImageCache.setObject(uiImage, forKey: renderedImageCacheKey, expiry: nil)
+                logger.trace("set cache for rendered SVG icon for key=\(renderedImageCacheKey)")
+            } catch {
+                logger.warning("failed to set cache for rendered SVG icon for key=\(renderedImageCacheKey) with error=\(error)")
+            }
 
             self.imageResult = .loaded(uiImage, nil)
         } catch {

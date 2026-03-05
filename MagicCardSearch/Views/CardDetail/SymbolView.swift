@@ -1,6 +1,10 @@
 import SwiftUI
 import ScryfallKit
 import SVGKit
+import Cache
+import OSLog
+
+private let logger = Logger(subsystem: "MagicCardSearch", category: "SymbolView")
 
 struct SymbolView: View {
     @Environment(ScryfallCatalogs.self) private var scryfallCatalogs
@@ -11,12 +15,18 @@ struct SymbolView: View {
         SymbolCode("E"), SymbolCode("CHAOS"), SymbolCode("P"), SymbolCode("H"),
     ])
     
-    private struct RenderedImageCacheKey: Hashable {
+    private struct RenderedImageCacheKey: Hashable, CustomStringConvertible {
         let symbol: SymbolCode
         let targetSize: CGFloat
+        
+        var description: String { "\(symbol.normalized)@\(targetSize)" }
     }
-    
-    private static var renderedImageCache = MemoryCache<RenderedImageCacheKey, UIImage>()
+
+    private static let renderedImageCache: any StorageAware<RenderedImageCacheKey, UIImage> = bestEffortCache(
+        memory: MemoryConfig(expiry: .never, countLimit: 10),
+        disk: DiskConfig(name: "SymbolViewUIImage", expiry: .seconds(60 * 60 * 24 * 30)),
+        transformer: .init(toData: { img in img.pngData()! }, fromData: { data in UIImage(data: data)! }),
+    )
     
     private var renderedImageCacheKey: RenderedImageCacheKey {
         RenderedImageCacheKey(symbol: symbol, targetSize: targetSize)
@@ -67,15 +77,18 @@ struct SymbolView: View {
     }
     
     private func renderImage() -> UIImage? {
-        if let cachedImage = Self.renderedImageCache[renderedImageCacheKey] {
-            return cachedImage
+        if let renderedImage = try? Self.renderedImageCache.entry(forKey: renderedImageCacheKey) {
+            logger.trace("hit cache for rendered symbol for key=\(renderedImageCacheKey)")
+            return renderedImage.object
         }
-        
+
         guard let svgData = scryfallCatalogs.symbolSvgs?[symbol] else {
+            logger.warning("no symbol exists for symbol=\(symbol)")
             return nil
         }
         
         guard let svgImage = SVGKImage(data: svgData) else {
+            logger.warning("failed to parse SVG for symbol=\(symbol)")
             return nil
         }
         
@@ -92,11 +105,17 @@ struct SymbolView: View {
         svgImage.size = scaledSize
         
         guard let uiImage = svgImage.uiImage else {
+            logger.warning("failed to rasterize SVG for symbol=\(symbol)")
             return nil
         }
-        
-        Self.renderedImageCache[renderedImageCacheKey] = uiImage
-        
+
+        do {
+            try Self.renderedImageCache.setObject(uiImage, forKey: renderedImageCacheKey, expiry: nil)
+            logger.trace("set cache for rendered SVG icon for key=\(renderedImageCacheKey)")
+        } catch {
+            logger.warning("failed to set cache for rendered SVG icon for key=\(renderedImageCacheKey) with error=\(error)")
+        }
+
         return uiImage
     }
 }
