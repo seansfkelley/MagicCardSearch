@@ -96,6 +96,9 @@ struct SearchTabView: View {
                 searchState.results = nil
             }
         }
+        .onChange(of: searchState.searchNonce) {
+            isSearchBarFocused = false
+        }
         .sheet(isPresented: $showDisplaySheet, onDismiss: {
             if let pending = pendingSearchConfig, pending != searchState.configuration {
                 searchState.configuration = pending

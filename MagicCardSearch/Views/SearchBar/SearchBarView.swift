@@ -150,6 +150,9 @@ struct SearchBarView: View {
         .onChange(of: fieldFocused) {
             isFocused = fieldFocused
         }
+        .onChange(of: isFocused) {
+            fieldFocused = isFocused
+        }
     }
 
     private static func didAppend(

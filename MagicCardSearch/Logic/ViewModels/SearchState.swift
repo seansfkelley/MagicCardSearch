@@ -37,6 +37,7 @@ class SearchState {
     public var filters: [FilterQuery<FilterTerm>] = []
     public var configuration = SearchConfiguration.load()
     public var results: ScryfallObjectList<Card>?
+    public private(set) var searchNonce = 0
     // TODO: This should eventually be private and only expose the suggestions themselves.
     public let suggestionProvider: CombinedSuggestionProvider
 
@@ -72,6 +73,8 @@ class SearchState {
 
     public func performSearch() {
         logger.info("starting new search filters=\(self.filters) configuration=\(self.configuration)")
+
+        searchNonce += 1
 
         guard !filters.isEmpty else {
             logger.info("no search filters; skipping to empty result")
