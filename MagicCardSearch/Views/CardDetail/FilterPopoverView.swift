@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct PrintFilterSettings: Equatable, Hashable {
+struct PrintFilterSettings: Equatable, Hashable, CustomStringConvertible {
     enum FrameFilter: String, CaseIterable {
         case any = "Any"
         case retro = "Retro"
@@ -31,6 +31,10 @@ struct PrintFilterSettings: Equatable, Hashable {
         frame = .any
         text = .any
         game = .any
+    }
+    
+    var description: String {
+        "PrintFilterSettings(frame: .\(frame), text: .\(text), game: .\(game))"
     }
     
     func toQueryFor(oracleId: String) -> String {
