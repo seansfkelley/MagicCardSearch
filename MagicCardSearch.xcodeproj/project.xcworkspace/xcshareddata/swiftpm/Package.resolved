@@ -1,6 +1,15 @@
 {
-  "originHash" : "35a3da485bb04574328aaa9a7e25fdd8c1386cd281dc5d8d128d193dc5037f50",
+  "originHash" : "9bc3ccac1129f4afed6315878a17d5cefe0830a798ac65d83250141ea4cacb15",
   "pins" : [
+    {
+      "identity" : "cache",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/seansfkelley/Cache",
+      "state" : {
+        "branch" : "master",
+        "revision" : "2956595abbcbd1f3d50d0cf1e71e23e5f2d9eaf7"
+      }
+    },
     {
       "identity" : "cocoalumberjack",
       "kind" : "remoteSourceControl",

@@ -2,6 +2,7 @@ import SwiftUI
 import SVGKit
 import ScryfallKit
 import OSLog
+import Cache
 
 private let logger = Logger(subsystem: "MagicCardSearch", category: "SetIconView")
 
@@ -22,14 +23,22 @@ private enum LoadError: Error, LocalizedError {
 struct SetIconView: View {
     @Environment(ScryfallCatalogs.self) private var scryfallCatalogs
 
-    private struct RenderedImageCacheKey: Hashable {
+    private struct RenderedImageCacheKey: Hashable, CustomStringConvertible {
         let setCode: SetCode
         let size: CGFloat
+
+        var description: String { "\(setCode.normalized)@\(size)" }
     }
 
-    // TODO: Make this a SQLite-backed disk cache too, I guess.
-    private static let svgDataCache = MemoryCache<SetCode, Data>()
-    private static var renderedImageCache = MemoryCache<RenderedImageCacheKey, UIImage>()
+    private static let svgDataCache: any StorageAware<SetCode, Data> = bestEffortCache(
+        memory: MemoryConfig(expiry: .never, countLimit: 10),
+        disk: DiskConfig(name: "SetIconSvg", expiry: .seconds(60 * 60 * 24 * 30)),
+    )
+    private static let renderedImageCache: any StorageAware<RenderedImageCacheKey, UIImage> = bestEffortCache(
+        memory: MemoryConfig(expiry: .never, countLimit: 10),
+        disk: DiskConfig(name: "SetIconUIImage", expiry: .seconds(60 * 60 * 24 * 30)),
+        transformer: .init(toData: { img in img.pngData()! }, fromData: { data in UIImage(data: data)! }),
+    )
 
     let setCode: SetCode
     var size: CGFloat = 32
@@ -66,8 +75,9 @@ struct SetIconView: View {
             return
         }
         
-        if let renderedImage = Self.renderedImageCache[renderedImageCacheKey] {
-            self.imageResult = .loaded(renderedImage, nil)
+        if let renderedImage = try? Self.renderedImageCache.entry(forKey: renderedImageCacheKey) {
+            logger.trace("hit cache for rendered SVG icon for key=\(renderedImageCacheKey)")
+            self.imageResult = .loaded(renderedImage.object, nil)
             return
         }
 
@@ -79,10 +89,14 @@ struct SetIconView: View {
                 throw LoadError.missingSetMetadata
             }
 
-            let svgData = try await Self.svgDataCache.get(setCode) {
-                logger.info("requesting set icon for set=\(setCode.normalized) from url=\(url)")
+            var svgData = (try? Self.svgDataCache.entry(forKey: setCode))?.object
+            if svgData != nil {
+                logger.trace("hit cache for SVG data for icon with key=\(renderedImageCacheKey)")
+            } else {
+                logger.info("requesting SVG data for icon for set=\(setCode.normalized) from url=\(url)")
                 let (data, _) = try await URLSession.shared.data(from: url)
-                return data
+                svgData = data
+                try Self.svgDataCache.setObject(data, forKey: setCode, expiry: nil)
             }
             
             guard let svgImage = SVGKImage(data: svgData) else {
@@ -105,9 +119,10 @@ struct SetIconView: View {
             guard let uiImage = svgImage.uiImage else {
                 throw LoadError.failedToRenderUIImage
             }
-            
-            Self.renderedImageCache[renderedImageCacheKey] = uiImage
-            
+
+            logger.trace("set cache for rendered SVG icon for key=\(renderedImageCacheKey)")
+            try Self.renderedImageCache.setObject(uiImage, forKey: renderedImageCacheKey, expiry: nil)
+
             self.imageResult = .loaded(uiImage, nil)
         } catch {
             self.imageResult = .errored(nil, error)
