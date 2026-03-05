@@ -148,26 +148,7 @@ struct AllSearchHistoryView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button {
-                        dismiss()
-                    } label: {
-                        Image(systemName: "xmark")
-                    }
-                }
-                
-                if isEditing {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button {
-                            withAnimation {
-                                editMode = .inactive
-                                selectedSearches.removeAll()
-                            }
-                        } label: {
-                            Text("Done")
-                        }
-                    }
-                    
-                    ToolbarItemGroup(placement: .bottomBar) {
+                    if isEditing {
                         if selectedSearches.count == searchHistory.count {
                             Button {
                                 withAnimation {
@@ -185,7 +166,28 @@ struct AllSearchHistoryView: View {
                                 Text("Select All")
                             }
                         }
-                        
+                    } else {
+                        Button {
+                            dismiss()
+                        } label: {
+                            Image(systemName: "xmark")
+                        }
+                    }
+                }
+                
+                if isEditing {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            withAnimation {
+                                editMode = .inactive
+                                selectedSearches.removeAll()
+                            }
+                        } label: {
+                            Text("Done")
+                        }
+                    }
+                    
+                    ToolbarItemGroup(placement: .bottomBar) {
                         Spacer()
                         
                         Button(role: .destructive) {
