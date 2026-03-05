@@ -65,8 +65,10 @@ struct SetIconView: View {
                     .foregroundStyle(.secondary)
             }
         }
-        .task {
-            await loadAndRender()
+        .onFirstAppear {
+            Task {
+                await loadAndRender()
+            }
         }
     }
     
