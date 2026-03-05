@@ -27,7 +27,7 @@ private let logger = Logger(subsystem: "MagicCardSearch", category: "Enumeration
 
 @MainActor
 struct EnumerationSuggestionProvider {
-    private let cache = MemoryStorage<CacheKey, IndexedEnumerationValues<String>>(
+    private let cache = StrongMemoryStorage<CacheKey, IndexedEnumerationValues<String>>(
         config: .init(expiry: .never, countLimit: 100),
     )
 

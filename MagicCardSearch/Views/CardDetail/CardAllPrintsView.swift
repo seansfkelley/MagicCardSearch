@@ -3,14 +3,18 @@ import SwiftUI
 import SQLiteData
 import NukeUI
 import OSLog
-import LRUCache
+import Cache
 
 private let logger = Logger(subsystem: "MagicCardSearch", category: "CardAllPrintsView")
 
 struct CardAllPrintsView: View {
-    private struct CacheKey: Hashable {
+    private struct CacheKey: Hashable, CustomStringConvertible {
         let oracleId: String
         let filterSettings: PrintFilterSettings
+
+        var description: String {
+            "CacheKey(oracleId: \(oracleId), filterSettings: \(filterSettings))"
+        }
 
         init(_ oracleId: String, _ filterSettings: PrintFilterSettings) {
             self.oracleId = oracleId
@@ -29,7 +33,9 @@ struct CardAllPrintsView: View {
     // reason. Sprinkling in Self._printChanges() indicated that the @identity of the view was
     // changing and presumably the culprit, but in most of those cases the parent views reported no
     // changes at all! So why did this one change identity? Something to do with being in a sheet?
-    private static let objectListCache: LRUCache<CacheKey, ScryfallObjectList<Card>> = .init(countLimit: 20)
+    private static let objectListCache = StrongMemoryStorage<CacheKey, ScryfallObjectList<Card>>(
+        config: .init(expiry: .seconds(60.0 * 60), countLimit: 20),
+    )
 
     let oracleId: String
     let initialCardId: UUID
@@ -212,8 +218,9 @@ struct CardAllPrintsView: View {
     private func reloadAllPrints() async {
         let cacheKey = CacheKey(oracleId, printFilterSettings)
 
-        if let cachedList = Self.objectListCache.value(forKey: cacheKey) {
-            objectList = cachedList
+        if let cachedList = try? Self.objectListCache.entry(forKey: cacheKey) {
+            logger.trace("hit cache for object list key=\(cacheKey)")
+            objectList = cachedList.object
         } else {
             let searchQuery = printFilterSettings.toQueryFor(oracleId: oracleId)
             let client = ScryfallClient(logger: logger)
@@ -223,7 +230,8 @@ struct CardAllPrintsView: View {
                     page: page,
                 )
             }
-            Self.objectListCache.setValue(objectList, forKey: cacheKey)
+            Self.objectListCache.setObject(objectList, forKey: cacheKey)
+            logger.trace("set cache for object list key=\(cacheKey)")
 
             let targetCardId = if case .unloaded = objectList.value {
                 initialCardId

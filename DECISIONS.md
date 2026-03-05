@@ -39,7 +39,7 @@ The caching landscape in Swift seems poor. There is no obviously-best robust/ele
 
 Originally I had given up and implemented a wrapper around `NSCache` but it seems like it evicts everything on app minimize very aggressively, which I don't want because I'm not caching _that_ much stuff and the things that are cached are hit a lot.
 
-I settled on `Cache` because it offered an acceptable API (after a small tweak in a fork) while also providing the knobs I actually need around size limits, eviction policy and memory/disk splits.  
+I settled on `Cache` because it offered an acceptable API (after a small fork) while also providing the knobs I actually need around size limits, eviction policy and memory/disk splits. I did have to implement `StrongMemoryStorage` because the one provided by `Cache` depended internally on `NSCache` with all the same issues.
 
 ## `Polarity`
 

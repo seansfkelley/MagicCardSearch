@@ -24,5 +24,5 @@ func bestEffortCache<Key: Hashable, Value>(
             fileManager: .default,
             transformer: transformer,
         )
-    ) ?? MemoryStorage<Key, Value>(config: memory)
+    ) ?? StrongMemoryStorage<Key, Value>(config: memory)
 }
