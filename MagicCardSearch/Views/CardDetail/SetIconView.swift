@@ -37,7 +37,7 @@ struct SetIconView: View {
     private static let renderedImageCache: any StorageAware<RenderedImageCacheKey, UIImage> = bestEffortCache(
         memory: .init(expiry: .never, countLimit: 10),
         disk: .init(name: "SetIconUIImage", expiry: .seconds(60.0 * 60 * 24 * 30)),
-        transformer: .init(toData: { img in img.pngData()! }, fromData: { data in UIImage(data: data)! }),
+        transformer: uiImagePngTransformer(),
     )
 
     let setCode: SetCode

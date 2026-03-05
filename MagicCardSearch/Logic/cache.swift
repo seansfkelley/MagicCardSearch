@@ -1,5 +1,6 @@
 import Foundation
 import Cache
+import SwiftUI
 
 func bestEffortCache<Key: Hashable>(
     memory: MemoryConfig,
@@ -25,4 +26,21 @@ func bestEffortCache<Key: Hashable, Value>(
             transformer: transformer,
         )
     ) ?? StrongMemoryStorage<Key, Value>(config: memory)
+}
+
+func uiImagePngTransformer() -> Transformer<UIImage> {
+    return .init(
+        toData: { img in
+            guard let data = img.pngData() else {
+                throw StorageError.transformerFail
+            }
+            return data
+        },
+        fromData: { data in
+            guard let image = UIImage(data: data) else {
+                throw StorageError.transformerFail
+            }
+            return image
+        },
+    )
 }
