@@ -198,8 +198,6 @@ private struct DefaultSearchContent: View {
                                 .lineLimit(2)
                             Spacer()
                         }
-                        .padding(.horizontal)
-                        .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                     .swipeActions(edge: .leading, allowsFullSwipe: true) {
@@ -221,10 +219,7 @@ private struct DefaultSearchContent: View {
                 }
             } header: {
                 Label("Pinned Searches", systemImage: "pin.fill")
-                    .padding(.horizontal)
             }
-            .listRowInsets(.horizontal, 0)
-            .listSectionMargins(.horizontal, 0)
         }
     }
 
@@ -244,8 +239,6 @@ private struct DefaultSearchContent: View {
                                 .lineLimit(2)
                             Spacer()
                         }
-                        .padding(.horizontal)
-                        .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                     .swipeActions(edge: .trailing, allowsFullSwipe: true) {
@@ -276,10 +269,7 @@ private struct DefaultSearchContent: View {
                         Text("View All")
                     }
                 }
-                .padding(.horizontal)
             }
-            .listRowInsets(.horizontal, 0)
-            .listSectionMargins(.horizontal, 0)
         }
     }
 
@@ -301,17 +291,12 @@ private struct DefaultSearchContent: View {
                         }
                         Spacer()
                     }
-                    .padding(.horizontal)
-                    .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .id("example-\(example.title)")
             }
         } header: {
             Label("Need Inspiration?", systemImage: "lightbulb.max")
-                .padding(.horizontal)
         }
-        .listRowInsets(.horizontal, 0)
-        .listSectionMargins(.horizontal, 0)
     }
 }
