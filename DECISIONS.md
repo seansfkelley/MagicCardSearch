@@ -33,9 +33,13 @@ There have been some mild annoyances beyond the fact that it's slightly out of d
 
 Scryfall's name-autocomplete API doesn't seem meaningfully better than what I can bang together using a list of strings, and since we Scryfall provides the complete list of card names in the same fashion as other catalogs I need for other purposes, there's no much reason to introduce network latency where not required to implement the feature. 30,000 names is small for pocket supercomputers.
 
-## Home-rolled `NSCache` Wrapper (`MemoryCache`)
+## Caching
 
-It was simple enough, and I wasn't able to find any promising caching libraries that had the features I actually needed. Most were focused on things like fine-tuned eviction rules but didn't provide complexities I would actually want (such as get-through-cache while guaranteeing a cache miss would only trigger a single fetch, even if concurrent). 
+The caching landscape in Swift seems poor. There is no obviously-best robust/elegant/configurable library, only a few okay options with varying overlap and varying degrees of good design.
+
+Originally I had given up and implemented a wrapper around `NSCache` but it seems like it evicts everything on app minimize very aggressively, which I don't want because I'm not caching _that_ much stuff and the things that are cached are hit a lot.
+
+I settled on `Cache` because it offered an acceptable API (after a small tweak in a fork) while also providing the knobs I actually need around size limits, eviction policy and memory/disk splits.  
 
 ## `Polarity`
 

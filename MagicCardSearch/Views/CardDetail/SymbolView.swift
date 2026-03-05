@@ -23,8 +23,8 @@ struct SymbolView: View {
     }
 
     private static let renderedImageCache: any StorageAware<RenderedImageCacheKey, UIImage> = bestEffortCache(
-        memory: MemoryConfig(expiry: .never, countLimit: 10),
-        disk: DiskConfig(name: "SymbolViewUIImage", expiry: .seconds(60 * 60 * 24 * 30)),
+        memory: .init(expiry: .never, countLimit: 10),
+        disk: .init(name: "SymbolViewUIImage", expiry: .seconds(60.0 * 60 * 24 * 30)),
         transformer: .init(toData: { img in img.pngData()! }, fromData: { data in UIImage(data: data)! }),
     )
     

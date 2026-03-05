@@ -2,6 +2,7 @@ import Foundation
 import ScryfallKit
 import OSLog
 import Algorithms
+import Cache
 
 struct EnumerationSuggestion: Equatable, Hashable, Sendable, ScorableSuggestion {
     let filter: FilterTerm
@@ -26,7 +27,9 @@ private let logger = Logger(subsystem: "MagicCardSearch", category: "Enumeration
 
 @MainActor
 struct EnumerationSuggestionProvider {
-    private let cache = MemoryCache<CacheKey, IndexedEnumerationValues<String>>()
+    private let cache = MemoryStorage<CacheKey, IndexedEnumerationValues<String>>(
+        config: .init(expiry: .never, countLimit: 100),
+    )
 
     let scryfallCatalogs: ScryfallCatalogs
 
@@ -121,10 +124,10 @@ struct EnumerationSuggestionProvider {
     }
 
     private func getCachedOptions(for key: CacheKey) -> IndexedEnumerationValues<String>? {
-        if let value = cache[key] {
-            return value
+        if let value = try? cache.entry(forKey: key) {
+            return value.object
         } else if let value = getOptions(for: key) {
-            cache[key] = value
+            cache.setObject(value, forKey: key)
             return value
         } else {
             return nil

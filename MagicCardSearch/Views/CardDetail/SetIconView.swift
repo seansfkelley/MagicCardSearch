@@ -31,12 +31,12 @@ struct SetIconView: View {
     }
 
     private static let svgDataCache: any StorageAware<SetCode, Data> = bestEffortCache(
-        memory: MemoryConfig(expiry: .never, countLimit: 10),
-        disk: DiskConfig(name: "SetIconSvg", expiry: .seconds(60 * 60 * 24 * 30)),
+        memory: .init(expiry: .never, countLimit: 10),
+        disk: .init(name: "SetIconSvg", expiry: .seconds(60 * 60 * 24 * 30)),
     )
     private static let renderedImageCache: any StorageAware<RenderedImageCacheKey, UIImage> = bestEffortCache(
-        memory: MemoryConfig(expiry: .never, countLimit: 10),
-        disk: DiskConfig(name: "SetIconUIImage", expiry: .seconds(60 * 60 * 24 * 30)),
+        memory: .init(expiry: .never, countLimit: 10),
+        disk: .init(name: "SetIconUIImage", expiry: .seconds(60.0 * 60 * 24 * 30)),
         transformer: .init(toData: { img in img.pngData()! }, fromData: { data in UIImage(data: data)! }),
     )
 
