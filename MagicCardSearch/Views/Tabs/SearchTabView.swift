@@ -157,6 +157,9 @@ private struct SearchSheetView: View {
 
 // MARK: - Default Search Content
 
+private let recentSearchesSoftLimit = 8
+private let recentSearchesHardLimit = 12
+
 private struct DefaultSearchContent: View {
     @Environment(HistoryAndPinnedStore.self) private var historyAndPinnedStore
     @Binding var searchState: SearchState
@@ -166,9 +169,12 @@ private struct DefaultSearchContent: View {
         SearchHistoryEntry
             .order { $0.lastUsedAt.desc() }
             .where { !PinnedSearchEntry.select { $0.filters }.contains($0.filters) }
-            .limit(10)
+            .limit(recentSearchesHardLimit)
     )
     private var recentSearches
+
+    @FetchOne(SearchHistoryEntry.count())
+    private var recentSearchCount
 
     @FetchAll(PinnedSearchEntry.order { $0.pinnedAt.desc() })
     var pinnedSearches
@@ -224,11 +230,22 @@ private struct DefaultSearchContent: View {
         }
     }
 
+    private var isTruncatingRecentSearches: Bool {
+        recentSearches.count >= recentSearchesHardLimit
+    }
+
+    private var visibleRecentSearches: [SearchHistoryEntry] {
+        if isTruncatingRecentSearches {
+            return Array(recentSearches.prefix(recentSearchesSoftLimit))
+        }
+        return recentSearches
+    }
+
     @ViewBuilder
     private var recentSearchesSection: some View {
         if !recentSearches.isEmpty {
             Section {
-                ForEach(recentSearches, id: \.listId) { entry in
+                ForEach(visibleRecentSearches, id: \.listId) { entry in
                     Button {
                         searchState.filters = entry.filters
                         searchState.performSearch()
@@ -259,12 +276,27 @@ private struct DefaultSearchContent: View {
                         .tint(.orange)
                     }
                 }
+
+                if isTruncatingRecentSearches {
+                    Button {
+                        showAllSearchHistory = true
+                    } label: {
+                        HStack {
+                            Text("See all \(recentSearchCount ?? 0) searches...")
+                                .foregroundStyle(.secondary)
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
+                        }
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                }
             } header: {
                 HStack {
                     Label("Recent Searches", systemImage: "clock.arrow.circlepath")
-
                     Spacer()
-
                     Button(action: {
                         showAllSearchHistory = true
                     }) {
