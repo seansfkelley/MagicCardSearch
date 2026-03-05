@@ -3,15 +3,41 @@ import SwiftUI
 import SQLiteData
 import NukeUI
 import OSLog
+import LRUCache
 
 private let logger = Logger(subsystem: "MagicCardSearch", category: "CardAllPrintsView")
 
 struct CardAllPrintsView: View {
+    private struct CacheKey: Hashable {
+        let oracleId: String
+        let filterSettings: PrintFilterSettings
+
+        init(_ oracleId: String, _ filterSettings: PrintFilterSettings) {
+            self.oracleId = oracleId
+            self.filterSettings = filterSettings
+        }
+    }
+
+    // This was initially put in because of my inability to figure out proper request lifecycling,
+    // but I eventually decided that it's probably a good idea regardless since.
+    //
+    // The problem with lifecycling was that I cannot figure out how, for a view like this deeply
+    // nested in the view hierarchy, how to ensure it only makes the request only if something
+    // actually changed. I started trying task/onAppear/onFirstAppear and while each one was better
+    // than the last, I still had issues where returning to the home screen would trigger the view
+    // to be rebuilt (?!) and sometimes it would happen _again_ on reentry or for no discernible
+    // reason. Sprinkling in Self._printChanges() indicated that the @identity of the view was
+    // changing and presumably the culprit, but in most of those cases the parent views reported no
+    // changes at all! So why did this one change identity? Something to do with being in a sheet?
+    private static let objectListCache: LRUCache<CacheKey, ScryfallObjectList<Card>> = .init(countLimit: 20)
+
     let oracleId: String
     let initialCardId: UUID
 
     @State private var objectList: ScryfallObjectList<Card> = .empty()
-    @State private var currentIndex: Int = 0
+    // This is scene storage for the reasons outlined above -- we want to restore our position when
+    // we re-foreground the app.
+    @SceneStorage("allPrintsIndex") private var currentIndex: Int = 0
     @State private var showFilterPopover = false
     @State private var printFilterSettings = PrintFilterSettings()
     
@@ -171,8 +197,10 @@ struct CardAllPrintsView: View {
                 }
             }
         }
-        .task {
-            await reloadAllPrints()
+        .onFirstAppear {
+            Task {
+                await reloadAllPrints()
+            }
         }
         .onChange(of: printFilterSettings) {
             Task {
@@ -182,28 +210,35 @@ struct CardAllPrintsView: View {
     }
 
     private func reloadAllPrints() async {
-        let searchQuery = printFilterSettings.toQueryFor(oracleId: oracleId)
-        let targetCardId = if case .unloaded = objectList.value {
-            initialCardId
-        } else {
-            currentPrints[safe: currentIndex]?.id
-        }
+        let cacheKey = CacheKey(oracleId, printFilterSettings)
 
-        let client = ScryfallClient(logger: logger)
-        objectList = ScryfallObjectList { page in
-            try await client.searchCards(
-                query: searchQuery,
-                page: page,
-            )
-        }
-        
-        await objectList.loadAllRemainingPages().value
-        
-        if let targetCardId,
-           let index = currentPrints.firstIndex(where: { $0.id == targetCardId }) {
-            currentIndex = index
-        } else if !currentPrints.isEmpty {
-            currentIndex = 0
+        if let cachedList = Self.objectListCache.value(forKey: cacheKey) {
+            objectList = cachedList
+        } else {
+            let searchQuery = printFilterSettings.toQueryFor(oracleId: oracleId)
+            let client = ScryfallClient(logger: logger)
+            objectList = ScryfallObjectList { page in
+                try await client.searchCards(
+                    query: searchQuery,
+                    page: page,
+                )
+            }
+            Self.objectListCache.setValue(objectList, forKey: cacheKey)
+
+            let targetCardId = if case .unloaded = objectList.value {
+                initialCardId
+            } else {
+                currentPrints[safe: currentIndex]?.id
+            }
+            
+            await objectList.loadAllRemainingPages().value
+
+            if let targetCardId,
+               let index = currentPrints.firstIndex(where: { $0.id == targetCardId }) {
+                currentIndex = index
+            } else if !currentPrints.isEmpty {
+                currentIndex = 0
+            }
         }
     }
 }

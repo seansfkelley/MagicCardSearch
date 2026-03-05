@@ -1,6 +1,7 @@
 import Foundation
 
-final class MemoryCache<Key: Hashable & Sendable, Value: Sendable>: @unchecked Sendable {
+@MainActor
+class MemoryCache<Key: Hashable & Sendable, Value: Sendable> {
     private final class KeyWrapper: NSObject {
         let key: Key
         init(_ key: Key) { self.key = key }
@@ -31,7 +32,7 @@ final class MemoryCache<Key: Hashable & Sendable, Value: Sendable>: @unchecked S
         }
     }
     
-    func get(_ key: Key, fetch: @Sendable () throws -> Value) rethrows -> Value {
+    func get(_ key: Key, fetch: @MainActor () throws -> Value) rethrows -> Value {
         if let cached = self[key] {
             return cached
         }
@@ -40,7 +41,7 @@ final class MemoryCache<Key: Hashable & Sendable, Value: Sendable>: @unchecked S
         return value
     }
     
-    func get(_ key: Key, fetch: @Sendable () async throws -> Value) async rethrows -> Value {
+    func get(_ key: Key, fetch: @MainActor () async throws -> Value) async rethrows -> Value {
         if let cached = self[key] {
             return cached
         }

@@ -14,6 +14,7 @@
 		21332B992EF5D04100C80208 /* Algorithms in Frameworks */ = {isa = PBXBuildFile; productRef = 21332B982EF5D04100C80208 /* Algorithms */; };
 		213F299A2EE9285400E058DB /* SVGKitSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 213F29992EE9285400E058DB /* SVGKitSwift */; };
 		21874B3A2F07045300E07D9A /* SQLiteData in Frameworks */ = {isa = PBXBuildFile; productRef = 21874B392F07045300E07D9A /* SQLiteData */; };
+		218E3DE72F59407600AA066E /* LRUCache in Frameworks */ = {isa = PBXBuildFile; productRef = 218E3DE62F59407600AA066E /* LRUCache */; };
 		21A856BD2EE3AAE400E72541 /* ScryfallKit in Frameworks */ = {isa = PBXBuildFile; productRef = 21A856BC2EE3AAE400E72541 /* ScryfallKit */; };
 		21B334122F0C53CA0048627E /* CARD_EXAMPLES.md in Resources */ = {isa = PBXBuildFile; fileRef = 21B334112F0C53C50048627E /* CARD_EXAMPLES.md */; };
 		21B726BE2F0AFCDD00D2F951 /* DECISIONS.md in Resources */ = {isa = PBXBuildFile; fileRef = 21B726BD2F0AFCDA00D2F951 /* DECISIONS.md */; };
@@ -130,6 +131,7 @@
 				210115BE2EEF9543000D6D32 /* NukeUI in Frameworks */,
 				213F299A2EE9285400E058DB /* SVGKitSwift in Frameworks */,
 				210E14922EFDE5FB009D9FE0 /* SwiftUIIntrospect in Frameworks */,
+				218E3DE72F59407600AA066E /* LRUCache in Frameworks */,
 				210E13AA2EFC66C4009D9FE0 /* FocusOnAppear in Frameworks */,
 				21332B992EF5D04100C80208 /* Algorithms in Frameworks */,
 				21A856BD2EE3AAE400E72541 /* ScryfallKit in Frameworks */,
@@ -243,6 +245,7 @@
 				210E14912EFDE5FB009D9FE0 /* SwiftUIIntrospect */,
 				21874B392F07045300E07D9A /* SQLiteData */,
 				21B726C02F0B101300D2F951 /* SwiftSoup */,
+				218E3DE62F59407600AA066E /* LRUCache */,
 			);
 			productName = MagicCardSearch;
 			productReference = 2137B5AD2EE139C60066BF7E /* MagicCardSearch.app */;
@@ -343,6 +346,7 @@
 				21874B382F07045300E07D9A /* XCRemoteSwiftPackageReference "sqlite-data" */,
 				210E24562F0858DC008C05C1 /* XCRemoteSwiftPackageReference "swift-dependencies" */,
 				21B726BF2F0B101300D2F951 /* XCRemoteSwiftPackageReference "SwiftSoup" */,
+				218E3DE52F59407600AA066E /* XCRemoteSwiftPackageReference "LRUCache" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 2137B5AE2EE139C60066BF7E /* Products */;
@@ -869,6 +873,14 @@
 				minimumVersion = 1.4.2;
 			};
 		};
+		218E3DE52F59407600AA066E /* XCRemoteSwiftPackageReference "LRUCache" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/nicklockwood/LRUCache";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.2.1;
+			};
+		};
 		21A5FCA72EE9E7FA0034E695 /* XCRemoteSwiftPackageReference "SwiftLintPlugins" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/SimplyDanny/SwiftLintPlugins";
@@ -930,6 +942,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 21874B382F07045300E07D9A /* XCRemoteSwiftPackageReference "sqlite-data" */;
 			productName = SQLiteData;
+		};
+		218E3DE62F59407600AA066E /* LRUCache */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 218E3DE52F59407600AA066E /* XCRemoteSwiftPackageReference "LRUCache" */;
+			productName = LRUCache;
 		};
 		21A5FCA82EE9E81E0034E695 /* SwiftLintBuildToolPlugin */ = {
 			isa = XCSwiftPackageProductDependency;

@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct PrintFilterSettings: Equatable {
+struct PrintFilterSettings: Equatable, Hashable {
     enum FrameFilter: String, CaseIterable {
         case any = "Any"
         case retro = "Retro"
