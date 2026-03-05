@@ -17,62 +17,42 @@ struct SearchTabView: View {
     @Binding var searchState: SearchState
 
     @State private var suggestionLoadingState = DebouncedLoadingState()
-    @State private var showSyntaxReference = false
-    @State private var showDisplaySheet = false
+    @State private var showSearchSheet = false
+    @State private var showDisplayOptionsSheet = false
     @State private var pendingSearchConfig: SearchConfiguration?
     @State private var showAllSearchHistory = false
     @State private var isSearchBarFocused = false
 
-    private var hasActiveSearch: Bool {
-        searchState.results != nil && !searchState.filters.isEmpty && searchState.searchText.isEmpty
-    }
-
-    private var showAutocomplete: Bool {
-        isSearchBarFocused || !searchState.searchText.isEmpty || (!searchState.filters.isEmpty && searchState.results == nil)
-    }
-
     var body: some View {
         NavigationStack {
-            ZStack {
-                Color(uiColor: .systemBackground)
-                    .ignoresSafeArea()
-
-                if showAutocomplete {
-                    autocompleteContent
-                } else if hasActiveSearch {
-                    searchResultsContent
+            Group {
+                if let results = searchState.results {
+                    SearchResultsGridView(list: results, searchState: $searchState)
                 } else {
-                    defaultContent
+                    DefaultSearchContent(
+                        searchState: $searchState,
+                        showAllSearchHistory: $showAllSearchHistory,
+                    )
                 }
             }
             .safeAreaInset(edge: .bottom) {
-                SearchBarAndPillsView(
-                    searchState: $searchState,
-                    isFocused: $isSearchBarFocused,
-                    isAutocompleteLoading: suggestionLoadingState.isLoadingDebounced,
-                )
+                FakeSearchBarButtonView(searchState: $searchState) {
+                    showSearchSheet = true
+                }
+                .padding(.bottom)
+                .padding(.horizontal, 20) // trying to match the tab bar width
             }
             .toolbar {
-                if hasActiveSearch {
+                if searchState.results != nil {
                     ToolbarItem(placement: .topBarLeading) {
                         Button {
                             pendingSearchConfig = searchState.configuration
-                            showDisplaySheet = true
+                            showDisplayOptionsSheet = true
                         } label: {
                             Image(systemName: "arrow.up.arrow.down")
                         }
                     }
-                }
 
-                ToolbarItem(placement: .topBarLeading) {
-                    Button {
-                        showSyntaxReference = true
-                    } label: {
-                        Image(systemName: "book")
-                    }
-                }
-
-                if hasActiveSearch {
                     ToolbarItem(placement: .topBarTrailing) {
                         ShareLink(
                             item: CardSearchService
@@ -97,9 +77,16 @@ struct SearchTabView: View {
             }
         }
         .onChange(of: searchState.searchNonce) {
-            isSearchBarFocused = false
+            showSearchSheet = false
         }
-        .sheet(isPresented: $showDisplaySheet, onDismiss: {
+        .sheet(isPresented: $showSearchSheet) {
+            SearchSheetView(
+                searchState: $searchState,
+                suggestionLoadingState: $suggestionLoadingState,
+                isSearchBarFocused: $isSearchBarFocused,
+            )
+        }
+        .sheet(isPresented: $showDisplayOptionsSheet, onDismiss: {
             if let pending = pendingSearchConfig, pending != searchState.configuration {
                 searchState.configuration = pending
                 searchState.performSearch()
@@ -113,39 +100,58 @@ struct SearchTabView: View {
             ))
             .presentationDetents([.medium])
         }
-        .sheet(isPresented: $showSyntaxReference) {
-            SyntaxReferenceView()
-        }
         .sheet(isPresented: $showAllSearchHistory) {
             AllSearchHistoryView(searchState: $searchState)
         }
     }
+}
 
-    // MARK: - Search Results
+// MARK: - Search Sheet
 
-    @ViewBuilder
-    private var searchResultsContent: some View {
-        if let results = searchState.results {
-            SearchResultsGridView(list: results, searchState: $searchState)
+private struct SearchSheetView: View {
+    @Environment(\.dismiss) private var dismiss
+
+    @Binding var searchState: SearchState
+    @Binding var suggestionLoadingState: DebouncedLoadingState
+    @Binding var isSearchBarFocused: Bool
+
+    @State private var showSyntaxReference = false
+
+    var body: some View {
+        NavigationStack {
+            AutocompleteView(
+                searchState: $searchState,
+                suggestionLoadingState: $suggestionLoadingState,
+            )
+            .safeAreaInset(edge: .bottom) {
+                SearchBarAndPillsView(
+                    searchState: $searchState,
+                    isFocused: $isSearchBarFocused,
+                    isAutocompleteLoading: suggestionLoadingState.isLoadingDebounced,
+                )
+            }
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        dismiss()
+                    } label: {
+                        Image(systemName: "xmark")
+                    }
+                }
+
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        showSyntaxReference = true
+                    } label: {
+                        Image(systemName: "book")
+                    }
+                }
+            }
+            .navigationBarTitleDisplayMode(.inline)
         }
-    }
-
-    // MARK: - Autocomplete
-
-    private var autocompleteContent: some View {
-        AutocompleteView(
-            searchState: $searchState,
-            suggestionLoadingState: $suggestionLoadingState,
-        )
-    }
-
-    // MARK: - Default Content (pinned, recent, examples)
-
-    private var defaultContent: some View {
-        DefaultSearchContent(
-            searchState: $searchState,
-            showAllSearchHistory: $showAllSearchHistory,
-        )
+        .sheet(isPresented: $showSyntaxReference) {
+            SyntaxReferenceView()
+        }
     }
 }
 
@@ -169,14 +175,15 @@ private struct DefaultSearchContent: View {
 
     var body: some View {
         List {
-            pinnedSearchesSection()
-            recentSearchesSection()
-            examplesSection()
+            pinnedSearchesSection
+            recentSearchesSection
+            examplesSection
         }
+        .contentMargins(.top, 20)
     }
 
     @ViewBuilder
-    private func pinnedSearchesSection() -> some View {
+    private var pinnedSearchesSection: some View {
         if !pinnedSearches.isEmpty {
             Section {
                 ForEach(pinnedSearches, id: \.listId) { entry in
@@ -222,7 +229,7 @@ private struct DefaultSearchContent: View {
     }
 
     @ViewBuilder
-    private func recentSearchesSection() -> some View {
+    private var recentSearchesSection: some View {
         if !recentSearches.isEmpty {
             Section {
                 ForEach(recentSearches, id: \.listId) { entry in
@@ -276,8 +283,7 @@ private struct DefaultSearchContent: View {
         }
     }
 
-    @ViewBuilder
-    private func examplesSection() -> some View {
+    private var examplesSection: some View {
         Section {
             ForEach(ExampleSearch.dailyExamples, id: \.title) { example in
                 Button {

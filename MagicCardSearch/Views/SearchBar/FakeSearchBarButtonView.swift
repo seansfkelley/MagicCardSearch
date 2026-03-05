@@ -1,9 +1,7 @@
 import SwiftUI
 
 struct FakeSearchBarButtonView: View {
-    var filters: [FilterQuery<FilterTerm>]
-    let warnings: [String]
-    var onClearAll: () -> Void
+    @Binding var searchState: SearchState
     var onTap: () -> Void
 
     @State var showWarningsPopover: Bool = false
@@ -14,6 +12,8 @@ struct FakeSearchBarButtonView: View {
     private let searchIconFadeExtent: CGFloat = 24
 
     var body: some View {
+        let warnings = searchState.results?.value.latestValue?.warnings ?? []
+
         VStack(spacing: 0) {
             HStack(alignment: .bottom) {
                 if showWarningsPopover {
@@ -39,13 +39,13 @@ struct FakeSearchBarButtonView: View {
                 
                 ZStack {
                     SearchBarLayout(icon: .opacity(searchIconOpacity)) {
-                        TextField(filters.isEmpty ? "Search for cards..." : "", text: .constant(""))
+                        TextField(searchState.filters.isEmpty ? "Search for cards..." : "", text: .constant(""))
                             .disabled(true)
                     }
 
                     ScrollView(.horizontal, showsIndicators: false) {
                         SearchBarLayout(icon: .hidden) {
-                            ForEach(filters, id: \.self) { filter in
+                            ForEach(searchState.filters, id: \.self) { filter in
                                 FilterPillView(filter: filter)
                             }
                         }
@@ -67,9 +67,9 @@ struct FakeSearchBarButtonView: View {
                 .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 20))
                 .simultaneousGesture(TapGesture().onEnded { onTap() })
 
-                if !filters.isEmpty {
+                if !searchState.filters.isEmpty {
                     Spacer()
-                    Button(role: .destructive, action: onClearAll) {
+                    Button(role: .destructive, action: searchState.clearAll) {
                         Image(systemName: "xmark")
                             .foregroundStyle(.red)
                             .font(.system(size: 20))
@@ -79,6 +79,5 @@ struct FakeSearchBarButtonView: View {
                 }
             }
         }
-        .padding(.horizontal)
     }
 }

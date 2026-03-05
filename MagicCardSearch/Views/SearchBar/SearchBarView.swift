@@ -61,11 +61,11 @@ struct SearchBarView: View {
                 textField.smartInsertDeleteType = .no
                 textField.delegate = textFieldDelegate
             }
-//            .focusOnAppear(config: .init(
-//                returnKeyType: .go,
-//                autocorrectionType: .no,
-//                autocapitalizationType: .none,
-//            ))
+            .focusOnAppear(config: .init(
+                returnKeyType: .go,
+                autocorrectionType: .no,
+                autocapitalizationType: .none,
+            ))
             .frame(maxWidth: .infinity)
 
             if !searchState.searchText.isEmpty {
