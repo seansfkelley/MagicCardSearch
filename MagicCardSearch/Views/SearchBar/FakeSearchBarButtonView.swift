@@ -69,7 +69,10 @@ struct FakeSearchBarButtonView: View {
 
                 if !searchState.filters.isEmpty {
                     Spacer()
-                    Button(role: .destructive, action: searchState.clearAll) {
+                    Button(role: .destructive, action: {
+                        searchState.clearAll()
+                        onTap()
+                    }) {
                         Image(systemName: "xmark")
                             .foregroundStyle(.red)
                             .font(.system(size: 20))

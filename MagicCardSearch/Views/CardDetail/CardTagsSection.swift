@@ -298,6 +298,7 @@ private struct TagRow: View {
     let iconName: String
     var searchState: Binding<SearchState>?
     @State private var showAnnotation = false
+    @State private var showWeightTooltip = false
 
     private var filterTerm: FilterTerm? {
         switch tagging.tag.namespace {
@@ -331,16 +332,19 @@ private struct TagRow: View {
                 .padding(.leading, 8)
             }
 
-            Group {
-                switch tagging.weight {
-                case .weak: Image(systemName: "arrowtriangle.down.fill").foregroundStyle(.red)
-                case .median: EmptyView()
-                case .strong: Image(systemName: "arrowtriangle.up.fill").foregroundStyle(.green)
-                case .veryStrong: Image(systemName: "star.fill").foregroundStyle(.yellow)
-                case .unknown: EmptyView()
+            if let explanation = TagWeightExplanation(tagging.weight) {
+                Button {
+                    showWeightTooltip = true
+                } label: {
+                    Image(systemName: explanation.iconName)
+                        .foregroundStyle(explanation.color)
                 }
+                .buttonStyle(.plain)
+                .popover(isPresented: $showWeightTooltip) {
+                    AnnotationPopover(annotation: explanation.tooltip)
+                }
+                .padding(.leading, 8)
             }
-            .padding(.leading, 8)
 
             Spacer()
 
@@ -466,6 +470,31 @@ private struct RelationshipRow: View {
         
         return Image(systemName: symbolName)
             .scaleEffect(x: classifier == .comesBefore ? -1 : 1)
+    }
+}
+
+private struct TagWeightExplanation {
+    let iconName: String
+    let color: Color
+    let tooltip: String
+
+    init?(_ weight: TaggerCard.Tagging.Weight) {
+        switch weight {
+        case .weak:
+            iconName = "arrowtriangle.down.fill"
+            color = .red
+            tooltip = "weak example"
+        case .strong:
+            iconName = "arrowtriangle.up.fill"
+            color = .green
+            tooltip = "good example"
+        case .veryStrong:
+            iconName = "star.fill"
+            color = .yellow
+            tooltip = "exemplary"
+        case .median, .unknown:
+            return nil
+        }
     }
 }
 
