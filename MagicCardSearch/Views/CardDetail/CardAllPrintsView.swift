@@ -128,10 +128,11 @@ struct CardAllPrintsView: View {
                     Button {
                         showFilterPopover.toggle()
                     } label: {
-                        Image(systemName: "line.3.horizontal.decrease.circle")
+                        Image(systemName: printFilterSettings.isDefault
+                            ? "line.3.horizontal.decrease.circle"
+                            : "line.3.horizontal.decrease.circle.fill"
+                        )
                     }
-                    .badge(!printFilterSettings.isDefault ? " " : nil)
-                    .badgeProminence(.decreased)
                     .popover(isPresented: $showFilterPopover) {
                         FilterPopoverView(filterSettings: $printFilterSettings)
                             .presentationCompactAdaptation(.popover)
