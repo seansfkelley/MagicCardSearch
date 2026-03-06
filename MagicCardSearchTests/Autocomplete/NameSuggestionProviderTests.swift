@@ -199,7 +199,7 @@ struct NameSuggestionProviderTests {
     ])
     func getSuggestions(testCase: TestCase) async {
         let provider = NameSuggestionProvider()
-        let actual = await provider.getSuggestions(for: testCase.partial, cardNames: testCase.mockResults, limit: Int.max)
+        let actual = await provider.getSuggestions(for: testCase.partial, in: testCase.mockResults, limit: Int.max)
         #expect(actual == testCase.expected, "\(testCase.description)")
     }
 
@@ -207,7 +207,7 @@ struct NameSuggestionProviderTests {
     func getSuggestionsNameOverlap() async {
         let provider = NameSuggestionProvider()
         let partial = PartialFilterTerm(polarity: .positive, content: .filter("name", .including, .bare("name")))
-        let actual = await provider.getSuggestions(for: partial, cardNames: ["Nameless Race"], limit: Int.max)
+        let actual = await provider.getSuggestions(for: partial, in: ["Nameless Race"], limit: Int.max)
         withKnownIssue {
             #expect(actual == [
                 NameSuggestion(
