@@ -65,8 +65,8 @@ struct Suggestion2 {
     }
 
     enum Content {
-        case string(WithHighlightedString<String>)
         case filter(WithHighlightedString<FilterQuery<FilterTerm>>)
+        case filterType(WithHighlightedString<(Polarity, ScryfallFilterType)>)
         case filterParts(Polarity, ScryfallFilterType, WithHighlightedString<String>)
     }
 
