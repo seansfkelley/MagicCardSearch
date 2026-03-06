@@ -52,26 +52,18 @@ enum Suggestion: Equatable, Hashable, Sendable, ScorableSuggestion {
 @MainActor
 @Observable
 class CombinedSuggestionProvider {
-    let pinnedFilterProvider: PinnedFilterSuggestionProvider
-    let filterHistoryProvider: FilterHistorySuggestionProvider
-    let filterTypeProvider: FilterTypeSuggestionProvider
-    let enumerationProvider = EnumerationSuggestionProvider()
-    let reverseEnumerationProvider = ReverseEnumerationSuggestionProvider()
-    let nameProvider = NameSuggestionProvider()
-    let scryfallCatalogs: ScryfallCatalogs
+    private let pinnedFilterProvider = PinnedFilterSuggestionProvider()
+    private let filterHistoryProvider = FilterHistorySuggestionProvider()
+    private let filterTypeProvider = FilterTypeSuggestionProvider()
+    private let enumerationProvider = EnumerationSuggestionProvider()
+    private let reverseEnumerationProvider = ReverseEnumerationSuggestionProvider()
+    private let nameProvider = NameSuggestionProvider()
+    private let scryfallCatalogs: ScryfallCatalogs
 
     @ObservationIgnored @FetchAll private var pinnedFilters: [PinnedFilterEntry]
     @ObservationIgnored @FetchAll(FilterHistoryEntry.order { $0.lastUsedAt.desc() }) private var filterHistoryEntries
 
-    init(
-        pinnedFilter: PinnedFilterSuggestionProvider,
-        filterHistory: FilterHistorySuggestionProvider,
-        filterType: FilterTypeSuggestionProvider,
-        scryfallCatalogs: ScryfallCatalogs
-    ) {
-        self.pinnedFilterProvider = pinnedFilter
-        self.filterHistoryProvider = filterHistory
-        self.filterTypeProvider = filterType
+    init(scryfallCatalogs: ScryfallCatalogs) {
         self.scryfallCatalogs = scryfallCatalogs
     }
 
@@ -112,7 +104,8 @@ class CombinedSuggestionProvider {
                         catalogData: catalogData,
                         excluding: [],
                         limit: 40,
-                    ).map { Suggestion.enumeration($0) }
+                    )
+                    .map { Suggestion.enumeration($0) }
                 }
                 if let cardNames = self.scryfallCatalogs.cardNames {
                     group.addTask {

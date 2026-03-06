@@ -51,10 +51,7 @@ class SearchState {
     public init(historyAndPinnedStore: HistoryAndPinnedStore, scryfallCatalogs: ScryfallCatalogs) {
         self.historyAndPinnedStore = historyAndPinnedStore
         self.suggestionProvider = CombinedSuggestionProvider(
-            pinnedFilter: PinnedFilterSuggestionProvider(),
-            filterHistory: FilterHistorySuggestionProvider(),
-            filterType: FilterTypeSuggestionProvider(),
-            scryfallCatalogs: scryfallCatalogs,
+            scryfallCatalogs: scryfallCatalogs
         )
     }
 
