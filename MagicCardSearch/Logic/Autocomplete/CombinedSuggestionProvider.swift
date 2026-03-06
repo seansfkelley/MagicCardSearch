@@ -16,7 +16,7 @@ protocol ScorableSuggestion {
     var suggestionLength: Int { get }
 }
 
-struct WithHighlightedString<T> {
+struct WithHighlightedString<T: Sendable> {
     let value: T
     let string: String
     lazy var highlights = guessHighlights()
