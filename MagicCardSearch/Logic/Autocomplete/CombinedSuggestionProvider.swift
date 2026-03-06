@@ -77,72 +77,63 @@ class CombinedSuggestionProvider {
         let partial = PartialFilterTerm.from(searchTerm)
         let hasSearchTerm = !searchTerm.isEmpty
 
-        let (stream, continuation) = AsyncStream.makeStream(of: [Suggestion].self)
+        let (outputStream, outputContinuation) = AsyncStream.makeStream(of: [Suggestion].self)
+        let (batchStream, batchContinuation) = AsyncStream.makeStream(of: [Suggestion].self)
 
-        Task { @MainActor in
-            var allSuggestions: [Suggestion] = []
-            var excludedFilters = Set(existingFilters)
-
-            let pinnedSuggestions = self.pinnedFilterProvider.getSuggestions(
-                for: partial,
-                excluding: excludedFilters,
-            )
-            allSuggestions.append(contentsOf: pinnedSuggestions.map { Suggestion.pinned($0) })
-            excludedFilters.formUnion(pinnedSuggestions.map { $0.filter })
-
-            continuation.yield(self.scoreSuggestions(allSuggestions, hasSearchTerm))
-
-            let filterHistorySuggestions = self.filterHistoryProvider.getSuggestions(
-                for: searchTerm,
-                excluding: excludedFilters,
-                limit: 20
-            )
-            allSuggestions.append(contentsOf: filterHistorySuggestions.map { Suggestion.filterHistory($0) })
-            excludedFilters.formUnion(filterHistorySuggestions.map { $0.filter })
-
-            continuation.yield(self.scoreSuggestions(allSuggestions, hasSearchTerm))
-
-            let filterSuggestions = self.filterTypeProvider.getSuggestions(
-                for: partial,
-                limit: 4
-            )
-            allSuggestions.append(contentsOf: filterSuggestions.map { Suggestion.filter($0) })
-
-            continuation.yield(self.scoreSuggestions(allSuggestions, hasSearchTerm))
-
-            let enumerationSuggestions = await Task.detached {
-                await self.enumerationProvider.getSuggestions(
+        var tasks: [Task<Void, Never>] = [
+            Task { @MainActor in
+                let results = self.pinnedFilterProvider.getSuggestions(for: partial, excluding: [])
+                batchContinuation.yield(results.map { Suggestion.pinned($0) })
+            },
+            Task { @MainActor in
+                let results = self.filterHistoryProvider.getSuggestions(for: searchTerm, excluding: [], limit: 20)
+                batchContinuation.yield(results.map { Suggestion.filterHistory($0) })
+            },
+            Task { @MainActor in
+                let results = self.filterTypeProvider.getSuggestions(for: partial, limit: 4)
+                batchContinuation.yield(results.map { Suggestion.filter($0) })
+            },
+            Task { @MainActor in
+                let results = self.reverseEnumerationProvider.getSuggestions(for: partial, limit: 20)
+                batchContinuation.yield(results.map { Suggestion.reverseEnumeration($0) })
+            },
+            Task.detached {
+                let results = await self.enumerationProvider.getSuggestions(
                     for: partial,
                     catalogData: EnumerationCatalogData(scryfallCatalogs: self.scryfallCatalogs),
-                    excluding: excludedFilters,
+                    excluding: [],
                     limit: 40,
                 )
-            }.value
-            allSuggestions.append(contentsOf: enumerationSuggestions.map { Suggestion.enumeration($0) })
+                batchContinuation.yield(results.map { Suggestion.enumeration($0) })
+            },
+        ]
 
-            continuation.yield(self.scoreSuggestions(allSuggestions, hasSearchTerm))
-
-            let reverseEnumerationSuggestions = self.reverseEnumerationProvider.getSuggestions(
-                for: partial,
-                limit: 20
-            )
-            allSuggestions.append(contentsOf: reverseEnumerationSuggestions.map { Suggestion.reverseEnumeration($0) })
-
-            continuation.yield(self.scoreSuggestions(allSuggestions, hasSearchTerm))
-
-            if let cardNames = self.scryfallCatalogs.cardNames {
-                let nameSuggestions = await Task.detached {
-                    await self.nameProvider.getSuggestions(for: partial, in: cardNames, limit: 10)
-                }.value
-                allSuggestions.append(contentsOf: nameSuggestions.map { Suggestion.name($0) })
-
-                continuation.yield(self.scoreSuggestions(allSuggestions, hasSearchTerm))
-            }
-
-            continuation.finish()
+        if let cardNames = self.scryfallCatalogs.cardNames {
+            tasks.append(Task.detached {
+                let results = await self.nameProvider.getSuggestions(for: partial, in: cardNames, limit: 10)
+                batchContinuation.yield(results.map { Suggestion.name($0) })
+            })
         }
 
-        return stream
+        let taskCount = tasks.count
+
+        Task {
+            var pendingCount = taskCount
+            var allSuggestions: [Suggestion] = []
+
+            for await batch in batchStream {
+                allSuggestions.append(contentsOf: batch)
+                outputContinuation.yield(self.scoreSuggestions(allSuggestions, hasSearchTerm))
+                pendingCount -= 1
+                if pendingCount == 0 {
+                    batchContinuation.finish()
+                }
+            }
+
+            outputContinuation.finish()
+        }
+
+        return outputStream
     }
     
     private func scoreSuggestions(_ suggestions: [Suggestion], _ hasSearchTerm: Bool) -> [Suggestion] {
