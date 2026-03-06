@@ -1,6 +1,6 @@
 import Foundation
 import SQLiteData
-import Observation
+import FuzzyMatch
 
 struct FilterHistorySuggestion: Equatable, Hashable, Sendable, ScorableSuggestion {
     let filter: FilterQuery<FilterTerm>
@@ -9,28 +9,21 @@ struct FilterHistorySuggestion: Equatable, Hashable, Sendable, ScorableSuggestio
     let suggestionLength: Int
 }
 
-@Observable
-class FilterHistorySuggestionProvider {
-    // MARK: - Properties
-
-    @ObservationIgnored
-    @FetchAll(FilterHistoryEntry.order { $0.lastUsedAt.desc() })
-    // swiftlint:disable:next attributes
-    private var filterHistoryEntries
-    
-    // MARK: - Public Methods
-
-    func getSuggestions(for searchTerm: String, excluding excludedFilters: Set<FilterQuery<FilterTerm>>, limit: Int) -> [FilterHistorySuggestion] {
+struct FilterHistorySuggestionProvider {
+    func getSuggestions(for searchTerm: String, from filterHistoryEntries: [FilterHistoryEntry], limit: Int) -> [FilterHistorySuggestion] {
         guard limit > 0 else {
             return []
         }
-        
+
         let trimmedSearchTerm = searchTerm.trimmingCharacters(in: .whitespaces)
+
+        let matcher = FuzzyMatcher()
+        let query = matcher.prepare(trimmedSearchTerm)
+        var buffer = matcher.makeBuffer()
 
         return Array(
             filterHistoryEntries
                 .lazy
-                .filter { !excludedFilters.contains($0.filter) }
                 .compactMap { entry in
                     let filterText = entry.filter.description
 
@@ -38,21 +31,20 @@ class FilterHistorySuggestionProvider {
                         return FilterHistorySuggestion(
                             filter: entry.filter,
                             matchRange: nil,
-                            // TODO: Would .actual produce better results?
                             prefixKind: .none,
                             suggestionLength: filterText.count,
                         )
                     }
-                    
-                    if let range = filterText.range(of: trimmedSearchTerm, options: .caseInsensitive) {
+
+                    if let match = matcher.score(filterText, against: query, buffer: &buffer) {
                         return FilterHistorySuggestion(
                             filter: entry.filter,
-                            matchRange: range,
-                            prefixKind: range.lowerBound == filterText.startIndex ? .actual : .none,
+                            matchRange: nil,
+                            prefixKind: .none,
                             suggestionLength: filterText.count,
                         )
                     }
-                    
+
                     return nil
                 }
                 .prefix(limit)

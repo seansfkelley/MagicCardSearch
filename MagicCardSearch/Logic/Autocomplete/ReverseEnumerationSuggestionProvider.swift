@@ -6,23 +6,15 @@ struct ReverseEnumerationSuggestion: Equatable, Hashable, Sendable, ScorableSugg
     let polarity: Polarity
     let canonicalFilterName: String
     let value: String
-    let valueMatchRange: Range<String.Index>
+    let valueMatchRange: Range<String.Index>?
     let prefixKind: PrefixKind
     let suggestionLength: Int
 }
 
-@MainActor
-class ReverseEnumerationSuggestionProvider {
-    private let cacheLock = NSLock()
-    private var cache: CachedIndex = .unloaded
+actor ReverseEnumerationSuggestionProvider {
+    private var matcher = CachingFuzzyMatcher(countLimit: 100)
 
-    let scryfallCatalogs: ScryfallCatalogs
-
-    init(scryfallCatalogs: ScryfallCatalogs) {
-        self.scryfallCatalogs = scryfallCatalogs
-    }
-
-    func getSuggestions(for partial: PartialFilterTerm, limit: Int) -> [ReverseEnumerationSuggestion] {
+    func getSuggestions(for partial: PartialFilterTerm, catalogData: EnumerationCatalogData, limit: Int) -> [ReverseEnumerationSuggestion] {
         guard limit > 0,
               case .name(let isExact, let partialTerm) = partial.content,
               !isExact else {
@@ -30,82 +22,52 @@ class ReverseEnumerationSuggestionProvider {
         }
 
         let searchTerm = partialTerm.incompleteContent
-        
+
         guard searchTerm.count >= 2 else {
             return []
         }
 
-        let options = getIndex()
+        let allCandidates = Self.getAllCandidates(catalogData: catalogData)
 
-        let prefixMatches = Array(options.matching(prefix: searchTerm, sorted: .byLength))
-
-        var prefixSet: Set<String>?
-        let substringMatches = options.matching(anywhere: searchTerm, sorted: .byLength).filter { match in
-            if prefixSet == nil {
-                prefixSet = Set(prefixMatches.map(\.value.0))
-            }
-            return !prefixSet!.contains(match.value.0)
+        guard !allCandidates.isEmpty else {
+            return []
         }
 
+        let matched = matcher.match(searchTerm, in: allCandidates.map(\.0)).map(\.0)
+
         return Array(
-            chain(
-                prefixMatches.lazy.flatMap { match in
-                    match.value.1.map { filter in
+            matched.lazy
+                .flatMap { value in
+                    guard let filters = allCandidates.first(where: { $0.0 == value })?.1 else {
+                        return [ReverseEnumerationSuggestion]()
+                    }
+                    let range = value.range(of: searchTerm, options: .caseInsensitive)
+                    return filters.map { filter in
                         ReverseEnumerationSuggestion(
                             polarity: partial.polarity,
                             canonicalFilterName: filter.canonicalName,
-                            value: match.value.0,
-                            valueMatchRange: match.range,
-                            prefixKind: .effective,
-                            // TODO: Should this count the filter name's length too?
-                            suggestionLength: match.value.0.count,
+                            value: value,
+                            valueMatchRange: range,
+                            prefixKind: value.range(of: searchTerm, options: [.caseInsensitive, .anchored]) == nil ? .none : .effective,
+                            suggestionLength: value.count,
                         )
                     }
-                },
-                substringMatches.flatMap { match in
-                    match.value.1.map { filter in
-                        ReverseEnumerationSuggestion(
-                            polarity: partial.polarity,
-                            canonicalFilterName: filter.canonicalName,
-                            value: match.value.0,
-                            valueMatchRange: match.range,
-                            prefixKind: .none,
-                            // TODO: Should this count the filter name's length too?
-                            suggestionLength: match.value.0.count,
-                        )
-                    }
-                },
-            )
-            .prefix(limit)
+                }
+                .prefix(limit)
         )
     }
 
-    private func getIndex() -> IndexedEnumerationValues<(String, [ScryfallFilterType])> {
-        cacheLock.withLock {
-            if case .all(let index) = cache {
-                return index
-            } else if let dynamic = getDynamicIndexMembers() {
-                var valueToFilters = Self.getStaticIndexMembers()
+    private static func getAllCandidates(catalogData: EnumerationCatalogData) -> [(String, [ScryfallFilterType])] {
+        var valueToFilters = getStaticIndexMembers()
 
-                for (key, value) in dynamic {
-                    valueToFilters[key, default: []].append(contentsOf: value)
-                }
-
-                let index = IndexedEnumerationValues(valueToFilters.map { ($0.key, $0.value) }) { $0.0 }
-                cache = .all(index)
-                return index
-            } else if case .static(let index) = cache {
-                return index
-            } else {
-                let valueToFilters = Self.getStaticIndexMembers()
-                let index = IndexedEnumerationValues(valueToFilters.map { ($0.key, $0.value) }) { $0.0 }
-                cache = .static(index)
-                return index
-            }
+        for (key, value) in getDynamicIndexMembers(catalogData: catalogData) {
+            valueToFilters[key, default: []].append(contentsOf: value)
         }
+
+        return valueToFilters.map { ($0.key, $0.value) }
     }
 
-    fileprivate static func getStaticIndexMembers() -> [String: [ScryfallFilterType]] {
+    private static func getStaticIndexMembers() -> [String: [ScryfallFilterType]] {
         var valueToFilters: [String: [ScryfallFilterType]] = [:]
 
         for filterType in scryfallFilterTypes {
@@ -121,52 +83,43 @@ class ReverseEnumerationSuggestionProvider {
         return valueToFilters
     }
 
-    private func getDynamicIndexMembers() -> [String: [ScryfallFilterType]]? {
+    private static func getDynamicIndexMembers(catalogData: EnumerationCatalogData) -> [String: [ScryfallFilterType]] {
         var valueToFilters = [String: [ScryfallFilterType]]()
 
-        func addCatalogs(_ types: Catalog.`Type`..., to filter: String, lowercased: Bool = false) -> Bool {
-            guard let filterType = scryfallFilterByType[filter] else { return true }
+        func addCatalogs(_ types: Catalog.`Type`..., to filter: String, lowercased: Bool = false) {
+            guard let filterType = scryfallFilterByType[filter] else { return }
             for type in types {
-                guard let values = scryfallCatalogs[type] else { return false }
+                guard let values = catalogData.catalogs[type] else { continue }
                 for value in values {
                     valueToFilters[lowercased ? value.lowercased() : value, default: []].append(filterType)
                 }
             }
-            return true
         }
 
-        guard addCatalogs(.artistNames, to: "artist") else { return nil }
-        guard addCatalogs(.keywordAbilities, to: "keyword", lowercased: true) else { return nil }
-        guard addCatalogs(.watermarks, to: "watermark") else { return nil }
-        guard addCatalogs(.supertypes, .cardTypes, .artifactTypes, .battleTypes, .creatureTypes, .enchantmentTypes, .landTypes, .planeswalkerTypes, .spellTypes, to: "type") else { return nil }
+        addCatalogs(.artistNames, to: "artist")
+        addCatalogs(.keywordAbilities, to: "keyword", lowercased: true)
+        addCatalogs(.watermarks, to: "watermark")
+        addCatalogs(.supertypes, .cardTypes, .artifactTypes, .battleTypes, .creatureTypes, .enchantmentTypes, .landTypes, .planeswalkerTypes, .spellTypes, to: "type")
 
-        guard let sets = (scryfallCatalogs.sets?.values.filter { !AutocompleteConstants.ignoredSetTypes.contains($0.setType) }) else {
-            return nil
-        }
+        if let sets = catalogData.sets?.values.filter({ !AutocompleteConstants.ignoredSetTypes.contains($0.setType) }) {
+            if let setFilter = scryfallFilterByType["set"] {
+                for set in sets {
+                    valueToFilters[set.code.uppercased().replacing(/[^a-zA-Z0-9 ]/, with: ""), default: []].append(setFilter)
+                    // n.b. Scryfall does NOT want any other characters like colons (e.g. "Avatar: the
+                    // Last Airbender") as it will not match anything.
+                    valueToFilters[set.name.replacing(/[^a-zA-Z0-9 ]/, with: ""), default: []].append(setFilter)
+                }
+            }
 
-        if let setFilter = scryfallFilterByType["set"] {
-            for set in sets {
-                valueToFilters[set.code.uppercased().replacing(/[^a-zA-Z0-9 ]/, with: ""), default: []].append(setFilter)
+            if let blockFilter = scryfallFilterByType["block"] {
                 // n.b. Scryfall does NOT want any other characters like colons (e.g. "Avatar: the
                 // Last Airbender") as it will not match anything.
-                valueToFilters[set.name.replacing(/[^a-zA-Z0-9 ]/, with: ""), default: []].append(setFilter)
-            }
-        }
-
-        if let blockFilter = scryfallFilterByType["block"] {
-            // n.b. Scryfall does NOT want any other characters like colons (e.g. "Avatar: the
-            // Last Airbender") as it will not match anything.
-            for block in sets.compactMap({ $0.block?.replacing(/[^a-zA-Z0-9 ]/, with: "") }).uniqued() {
-                valueToFilters[block, default: []].append(blockFilter)
+                for block in sets.compactMap({ $0.block?.replacing(/[^a-zA-Z0-9 ]/, with: "") }).uniqued() {
+                    valueToFilters[block, default: []].append(blockFilter)
+                }
             }
         }
 
         return valueToFilters
     }
-}
-
-private enum CachedIndex {
-    case unloaded
-    case `static`(IndexedEnumerationValues<(String, [ScryfallFilterType])>)
-    case all(IndexedEnumerationValues<(String, [ScryfallFilterType])>)
 }

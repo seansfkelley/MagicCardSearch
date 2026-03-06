@@ -1,4 +1,5 @@
 import Foundation
+import SQLiteData
 
 enum PrefixKind: Int {
     // The search term is literally the character-for-character prefix of the suggestion.
@@ -55,21 +56,22 @@ class CombinedSuggestionProvider {
     let filterHistoryProvider: FilterHistorySuggestionProvider
     let filterTypeProvider: FilterTypeSuggestionProvider
     let enumerationProvider = EnumerationSuggestionProvider()
-    let reverseEnumerationProvider: ReverseEnumerationSuggestionProvider
-    let scryfallCatalogs: ScryfallCatalogs
+    let reverseEnumerationProvider = ReverseEnumerationSuggestionProvider()
     let nameProvider = NameSuggestionProvider()
-    
+    let scryfallCatalogs: ScryfallCatalogs
+
+    @ObservationIgnored @FetchAll private var pinnedFilters: [PinnedFilterEntry]
+    @ObservationIgnored @FetchAll(FilterHistoryEntry.order { $0.lastUsedAt.desc() }) private var filterHistoryEntries
+
     init(
         pinnedFilter: PinnedFilterSuggestionProvider,
         filterHistory: FilterHistorySuggestionProvider,
         filterType: FilterTypeSuggestionProvider,
-        reverseEnumeration: ReverseEnumerationSuggestionProvider,
         scryfallCatalogs: ScryfallCatalogs
     ) {
         self.pinnedFilterProvider = pinnedFilter
         self.filterHistoryProvider = filterHistory
         self.filterTypeProvider = filterType
-        self.reverseEnumerationProvider = reverseEnumeration
         self.scryfallCatalogs = scryfallCatalogs
     }
 
@@ -80,26 +82,34 @@ class CombinedSuggestionProvider {
 
         let task = Task {
             await withTaskGroup(of: [Suggestion].self) { group in
-                group.addTask { @MainActor in
-                    self.pinnedFilterProvider.getSuggestions(for: partial, excluding: [])
-                        .map { Suggestion.pinned($0) }
+                let catalogData = EnumerationCatalogData(scryfallCatalogs: self.scryfallCatalogs)
+
+                do {
+                    let filters = pinnedFilters
+                    group.addTask {
+                        self.pinnedFilterProvider.getSuggestions(for: partial, from: filters)
+                            .map { Suggestion.pinned($0) }
+                    }
                 }
-                group.addTask { @MainActor in
-                    self.filterHistoryProvider.getSuggestions(for: searchTerm, excluding: [], limit: 20)
-                        .map { Suggestion.filterHistory($0) }
+                do {
+                    let history = filterHistoryEntries
+                    group.addTask {
+                        self.filterHistoryProvider.getSuggestions(for: searchTerm, from: history, limit: 20)
+                            .map { Suggestion.filterHistory($0) }
+                    }
                 }
-                group.addTask { @MainActor in
+                group.addTask {
                     self.filterTypeProvider.getSuggestions(for: partial, limit: 4)
                         .map { Suggestion.filter($0) }
                 }
-                group.addTask { @MainActor in
-                    self.reverseEnumerationProvider.getSuggestions(for: partial, limit: 20)
+                group.addTask {
+                    await self.reverseEnumerationProvider.getSuggestions(for: partial, catalogData: catalogData, limit: 20)
                         .map { Suggestion.reverseEnumeration($0) }
                 }
                 group.addTask {
                     await self.enumerationProvider.getSuggestions(
                         for: partial,
-                        catalogData: EnumerationCatalogData(scryfallCatalogs: self.scryfallCatalogs),
+                        catalogData: catalogData,
                         excluding: [],
                         limit: 40,
                     ).map { Suggestion.enumeration($0) }

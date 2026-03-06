@@ -27,18 +27,19 @@ class HistorySuggestionProviderTests {
         }
     }
 
-    private func wait() {
-        // Allow triggers to fire and for the provider's queries to refresh themselves. In a real
-        // app it really doesn't matter that there is this reactive delay, but in tests we go too
-        // fast!
-        Thread.sleep(forTimeInterval: 0.1)
+    private func fetchHistory() -> [FilterHistoryEntry] {
+        try! database.read { db in
+            try FilterHistoryEntry
+                .order { $0.lastUsedAt.desc() }
+                .fetchAll(db)
+        }
     }
 
     // MARK: - Basic Functionality Tests
 
     @Test("returns no results with no history recorded")
     func emptySuggestions() {
-        let suggestions = provider.getSuggestions(for: "", excluding: Set(), limit: 10)
+        let suggestions = provider.getSuggestions(for: "", from: fetchHistory(), excluding: Set(), limit: 10)
         #expect(suggestions.isEmpty)
     }
 
@@ -50,9 +51,7 @@ class HistorySuggestionProviderTests {
         record(filter: colorFilter, atOffset: 0)
         record(filter: oracleFilter, atOffset: 1000)
 
-        wait()
-
-        let suggestions = provider.getSuggestions(for: "", excluding: Set(), limit: 1)
+        let suggestions = provider.getSuggestions(for: "", from: fetchHistory(), excluding: Set(), limit: 1)
         // Prefers the latter, because it was recorded later.
         #expect(suggestions == [.init(filter: oracleFilter, matchRange: nil, prefixKind: .none, suggestionLength: 13)])
     }
@@ -67,9 +66,7 @@ class HistorySuggestionProviderTests {
         record(filter: oracleFilter, atOffset: 1000)
         record(filter: setFilter, atOffset: 2000)
 
-        wait()
-
-        let suggestions = provider.getSuggestions(for: "y", excluding: Set(), limit: 10)
+        let suggestions = provider.getSuggestions(for: "y", from: fetchHistory(), excluding: Set(), limit: 10)
         #expect(suggestions == [
             .init(filter: setFilter, matchRange: "set:odyssey".range(of: "y"), prefixKind: .none, suggestionLength: 11),
             .init(filter: oracleFilter, matchRange: "oracle:flying".range(of: "y"), prefixKind: .none, suggestionLength: 13),
@@ -86,9 +83,7 @@ class HistorySuggestionProviderTests {
         record(filter: oracleFilter, atOffset: 1000)
         record(filter: setFilter, atOffset: 2000)
 
-        wait()
-
-        let suggestions = provider.getSuggestions(for: "y", excluding: Set([oracleFilter]), limit: 10)
+        let suggestions = provider.getSuggestions(for: "y", from: fetchHistory(), excluding: Set([oracleFilter]), limit: 10)
         #expect(suggestions == [
             .init(filter: setFilter, matchRange: "set:ody".range(of: "y"), prefixKind: .none, suggestionLength: 7),
         ])
@@ -102,9 +97,7 @@ class HistorySuggestionProviderTests {
         record(filter: colorFilter, atOffset: 0)
         record(filter: oracleFilter, atOffset: 1000)
 
-        wait()
-
-        let suggestions = provider.getSuggestions(for: "xyz", excluding: Set(), limit: 10)
+        let suggestions = provider.getSuggestions(for: "xyz", from: fetchHistory(), excluding: Set(), limit: 10)
         #expect(suggestions.isEmpty)
     }
 }

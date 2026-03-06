@@ -1,6 +1,7 @@
 import Foundation
 import Observation
 import SQLiteData
+import FuzzyMatch
 
 struct PinnedFilterSuggestion: Equatable, Hashable, Sendable, ScorableSuggestion {
     let filter: FilterQuery<FilterTerm>
@@ -9,18 +10,15 @@ struct PinnedFilterSuggestion: Equatable, Hashable, Sendable, ScorableSuggestion
     let suggestionLength: Int
 }
 
-class PinnedFilterSuggestionProvider {
-    // MARK: - Properties
-
-    @ObservationIgnored @FetchAll private var pinnedFilters: [PinnedFilterEntry]
-
-    // MARK: - Public Methods
-    
-    func getSuggestions(for partial: PartialFilterTerm, excluding excludedFilters: Set<FilterQuery<FilterTerm>>) -> [PinnedFilterSuggestion] {
+struct PinnedFilterSuggestionProvider {
+    func getSuggestions(for partial: PartialFilterTerm, from pinnedFilters: [PinnedFilterEntry]) -> [PinnedFilterSuggestion] {
         let searchTerm = partial.description.trimmingCharacters(in: .whitespaces)
-        
+
+        let matcher = FuzzyMatcher()
+        let query = matcher.prepare(searchTerm)
+        var buffer = matcher.makeBuffer()
+
         return pinnedFilters
-            .filter { !excludedFilters.contains($0.filter) }
             .compactMap { row in
                 let filterText = row.filter.description
 
@@ -33,12 +31,12 @@ class PinnedFilterSuggestionProvider {
                         suggestionLength: filterText.count,
                     )
                 }
-                
-                if let range = filterText.range(of: searchTerm, options: .caseInsensitive) {
+
+                if let match = matcher.score(filterText, against: query, buffer: &buffer) {
                     return PinnedFilterSuggestion(
                         filter: row.filter,
-                        matchRange: range,
-                        prefixKind: range.lowerBound == filterText.startIndex ? .actual : .none,
+                        matchRange: nil,
+                        prefixKind: .none,
                         suggestionLength: filterText.count,
                     )
                 }
