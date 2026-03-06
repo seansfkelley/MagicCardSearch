@@ -30,10 +30,32 @@ struct WithHighlightedString<T> {
     }
 
     private func guessHighlights() -> [Range<String.Index>] {
-        // TODO: Calculate by stepping through string and searchTerm, greedily picking every one
-        // that matches. May take multiple passes if searchTerm includes characters that never
-        // appear in string that precede values that _do_ appear.
-        []
+        guard !searchTerm.isEmpty, !string.isEmpty else {
+            return []
+        }
+
+        var ranges = [Range<String.Index>]()
+        var stringIndex = string.startIndex
+
+        for searchChar in searchTerm {
+            // Find the next occurrence of this character in string.
+            while stringIndex < string.endIndex {
+                if string[stringIndex].lowercased() == searchChar.lowercased() {
+                    let nextIndex = string.index(after: stringIndex)
+                    // Extend the last range if this character is adjacent.
+                    if let last = ranges.last, last.upperBound == stringIndex {
+                        ranges[ranges.count - 1] = last.lowerBound..<nextIndex
+                    } else {
+                        ranges.append(stringIndex..<nextIndex)
+                    }
+                    stringIndex = nextIndex
+                    break
+                }
+                stringIndex = string.index(after: stringIndex)
+            }
+        }
+
+        return ranges
     }
 }
 
