@@ -16,6 +16,43 @@ protocol ScorableSuggestion {
     var suggestionLength: Int { get }
 }
 
+struct WithHighlightedString<T> {
+    let value: T
+    let string: String
+    lazy var highlights = guessHighlights()
+
+    private let searchTerm: String
+
+    init(value: T, string: String, searchTerm: String) {
+        self.value = value
+        self.string = string
+        self.searchTerm = searchTerm
+    }
+
+    private func guessHighlights() -> [Range<String.Index>] {
+        // TODO: Calculate by stepping through string and searchTerm, greedily picking every one
+        // that matches. May take multiple passes if searchTerm includes characters that never
+        // appear in string that precede values that _do_ appear.
+        []
+    }
+}
+
+struct Suggestion2 {
+    enum Source {
+        case pinnedFilter, historyFilter, filterType, enumeration, reverseEnumeration, name
+    }
+
+    enum Content {
+        case string(WithHighlightedString<String>)
+        case filter(WithHighlightedString<FilterQuery<FilterTerm>>)
+        case filterParts(Polarity, ScryfallFilterType, WithHighlightedString<String>)
+    }
+
+    let source: Source
+    let content: Content
+    let score: Double
+}
+
 enum Suggestion: Equatable, Hashable, Sendable, ScorableSuggestion {
     case pinned(PinnedFilterSuggestion)
     case filterHistory(FilterHistorySuggestion)
