@@ -1,27 +1,30 @@
 import SwiftUI
 
 struct BasicRowView: View {
-    let filter: FilterQuery<FilterTerm>
-    let matchRange: Range<String.Index>?
-    let systemImageName: String
+    var suggestion: Suggestion2
     let onTap: (FilterQuery<FilterTerm>) -> Void
 
     var body: some View {
-        Button {
-            onTap(filter)
-        } label: {
-            HStack(spacing: 12) {
-                Image(systemName: systemImageName)
-                    .foregroundStyle(.secondary)
+        switch suggestion.content {
+        case .filter(var highlighted):
+            Button {
+                onTap(highlighted.value)
+            } label: {
+                HStack(spacing: 12) {
+                    Image(systemName: suggestion.icon)
+                        .foregroundStyle(.secondary)
 
-                HighlightedText(
-                    text: filter.description,
-                    highlightRange: matchRange
-                )
-                Spacer(minLength: 0)
+                    HighlightedText(
+                        text: highlighted.string,
+                        highlightRanges: highlighted.highlights
+                    )
+                    Spacer(minLength: 0)
+                }
+                .contentShape(Rectangle())
             }
-            .contentShape(Rectangle())
+            .buttonStyle(.plain)
+        default:
+            EmptyView()
         }
-        .buttonStyle(.plain)
     }
 }

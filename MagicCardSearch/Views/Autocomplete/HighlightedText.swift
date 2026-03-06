@@ -2,41 +2,50 @@ import SwiftUI
 
 struct HighlightedText: View {
     let text: String
-    let highlightRange: Range<String.Index>?
+    let highlightRanges: [Range<String.Index>]
+
+    init(text: String, highlightRanges: [Range<String.Index>]) {
+        self.text = text
+        self.highlightRanges = highlightRanges
+    }
+
+    init(text: String, highlightRange: Range<String.Index>?) {
+        self.text = text
+        self.highlightRanges = highlightRange.map { [$0] } ?? []
+    }
 
     var body: some View {
-        if let range = highlightRange {
-            Text(buildAttributedString(text: text, highlightRange: range))
+        if highlightRanges.isEmpty {
+            Text(text)
                 .foregroundStyle(.primary)
                 .lineLimit(1)
                 .truncationMode(.tail)
         } else {
-            Text(text)
+            Text(buildAttributedString())
                 .foregroundStyle(.primary)
                 .lineLimit(1)
                 .truncationMode(.tail)
         }
     }
 
-    private func buildAttributedString(text: String, highlightRange: Range<String.Index>)
-        -> AttributedString {
+    private func buildAttributedString() -> AttributedString {
         var attributedString = AttributedString(text)
 
-        // Convert String.Index range to AttributedString.Index range
-        let startOffset = text.distance(from: text.startIndex, to: highlightRange.lowerBound)
-        let endOffset = text.distance(from: text.startIndex, to: highlightRange.upperBound)
+        for range in highlightRanges {
+            let startOffset = text.distance(from: text.startIndex, to: range.lowerBound)
+            let endOffset = text.distance(from: text.startIndex, to: range.upperBound)
 
-        let attrStart = attributedString.index(
-            attributedString.startIndex,
-            offsetByCharacters: startOffset
-        )
-        let attrEnd = attributedString.index(
-            attributedString.startIndex,
-            offsetByCharacters: endOffset
-        )
+            let attrStart = attributedString.index(
+                attributedString.startIndex,
+                offsetByCharacters: startOffset
+            )
+            let attrEnd = attributedString.index(
+                attributedString.startIndex,
+                offsetByCharacters: endOffset
+            )
 
-        let attrRange = attrStart..<attrEnd
-        attributedString[attrRange].font = .body.bold()
+            attributedString[attrStart..<attrEnd].font = .body.bold()
+        }
 
         return attributedString
     }

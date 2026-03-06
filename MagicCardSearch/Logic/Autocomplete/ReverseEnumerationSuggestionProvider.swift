@@ -2,15 +2,6 @@ import Foundation
 import FuzzyMatch
 import ScryfallKit
 
-struct ReverseEnumerationSuggestion: Equatable, Hashable, Sendable, ScorableSuggestion {
-    let polarity: Polarity
-    let canonicalFilterName: String
-    let value: String
-    let valueMatchRange: Range<String.Index>?
-    let prefixKind: PrefixKind
-    let suggestionLength: Int
-}
-
 actor ReverseEnumerationSuggestionProvider {
     private let matcher = FuzzyMatcher()
 

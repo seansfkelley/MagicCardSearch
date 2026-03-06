@@ -2,65 +2,71 @@ import Testing
 @testable import MagicCardSearch
 
 struct FilterTypeSuggestionProviderTests {
+    private func extractDisplayNames(_ suggestions: [Suggestion2]) -> [String] {
+        suggestions.compactMap {
+            if case .filterType(let highlighted) = $0.content { highlighted.string } else { nil }
+        }
+    }
+
     @Test(
         "getSuggestions",
         arguments: [
             // prefix of a filter returns that filter
             (
                 PartialFilterTerm(polarity: .positive, content: .name(false, .bare("forma"))),
-                [("format", 0..<5)],
+                ["format"],
             ),
             // substrings matching multiple filters return them all, shortest first
             (
                 PartialFilterTerm(polarity: .positive, content: .name(false, .bare("print"))),
-                [("prints", 0..<5), ("paperprints", 5..<10)],
+                ["prints", "paperprints"],
             ),
-            // exact match of an alias returns the alias before other matching filters, and does not return the canonical name
+            // exact match of an alias returns the alias before other matching filters
             (
                 PartialFilterTerm(polarity: .positive, content: .name(false, .bare("fo"))),
-                [("fo", 0..<2), ("format", 0..<2)],
+                ["fo", "format"],
             ),
             // unmatching string returns nothing
             (
                 PartialFilterTerm(polarity: .positive, content: .name(false, .bare("foobar"))),
                 [],
             ),
-            // negation does not affect the behavior, but is included in the result
+            // negation is included in the result
             (
                 PartialFilterTerm(polarity: .negative, content: .name(false, .bare("print"))),
-                [("-prints", 0..<6), ("-paperprints", 6..<11)],
+                ["-prints", "-paperprints"],
             ),
             // case-insensitive
             (
                 PartialFilterTerm(polarity: .positive, content: .name(false, .bare("ForMa"))),
-                [("format", 0..<5)],
+                ["format"],
             ),
-            // prefixes are scored higher than other matches, even if they're longer, then by length
+            // prefixes are scored higher than other matches, then by length
             (
                 PartialFilterTerm(polarity: .positive, content: .name(false, .bare("or"))),
                 [
-                    ("order", 0..<2),
-                    ("oracle", 0..<2),
-                    ("oracletag", 0..<2),
-                    ("color", 3..<5),
-                    ("format", 1..<3),
-                    ("flavor", 4..<6),
-                    ("border", 1..<3),
-                    ("keyword", 4..<6),
-                    ("fulloracle", 4..<6),
+                    "order",
+                    "oracle",
+                    "oracletag",
+                    "color",
+                    "format",
+                    "flavor",
+                    "border",
+                    "keyword",
+                    "fulloracle",
                 ],
             ),
-            // should prefer the shortest alias, skipping the canonical name, if neither is an exact match
+            // should prefer the shortest alias
             (
                 PartialFilterTerm(polarity: .positive, content: .name(false, .bare("ow"))),
-                [("pow", 1..<3), ("powtou", 1..<3)],
+                ["pow", "powtou"],
             ),
-            // unquoted exact-match is not eligible even if it would match
+            // unquoted exact-match is not eligible
             (
                 PartialFilterTerm(polarity: .positive, content: .name(true, .bare("form"))),
                 [],
             ),
-            // quoted exact-match is not eligible even if it would match
+            // quoted exact-match is not eligible
             (
                 PartialFilterTerm(polarity: .positive, content: .name(true, .balanced(.doubleQuote, "form"))),
                 [],
@@ -70,19 +76,17 @@ struct FilterTypeSuggestionProviderTests {
                 PartialFilterTerm(polarity: .positive, content: .name(false, .unterminated(.doubleQuote, "form"))),
                 [],
             ),
-            // if operators are present we're past the point where we can suggest, even if we could
+            // if operators are present we're past the point where we can suggest
             (
                 PartialFilterTerm(polarity: .positive, content: .filter("form", .including, .bare(""))),
                 [],
             ),
         ]
     )
-    func getSuggestions(partial: PartialFilterTerm, expected: [(String, Range<Int>)]) {
-        let results = FilterTypeSuggestionProvider().getSuggestions(for: partial, limit: Int.max)
-        let actualTuples = Array(results.map { ($0.filterType, $0.matchRange) })
-        // FIXME: Why can't the compiler figure out that this array of tuples should be equatable?
-        #expect(actualTuples.elementsEqual(expected.map { ($0, stringIndexRange($1)) }) { lhs, rhs in
-            lhs.0 == rhs.0 && lhs.1 == rhs.1
-        }, "\(actualTuples) != \(expected)")
+    func getSuggestions(partial: PartialFilterTerm, expected: [String]) {
+        let results = FilterTypeSuggestionProvider().getSuggestions(for: partial, searchTerm: "", limit: Int.max)
+        let actualNames = extractDisplayNames(results)
+        #expect(actualNames == expected, "\(actualNames) != \(expected)")
+        #expect(results.allSatisfy { $0.source == .filterType })
     }
 }

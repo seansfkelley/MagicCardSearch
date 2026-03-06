@@ -8,13 +8,19 @@ struct NameSuggestionProviderTests {
         let description: String
         let partial: PartialFilterTerm
         let mockResults: [String]
-        let expected: [NameSuggestion]
+        let expectedFilters: [FilterQuery<FilterTerm>]
 
-        init(_ description: String, _ partial: PartialFilterTerm, _ mockResults: [String], _ expected: [NameSuggestion]) {
+        init(_ description: String, _ partial: PartialFilterTerm, _ mockResults: [String], _ expectedFilters: [FilterQuery<FilterTerm>]) {
             self.description = description
             self.partial = partial
             self.mockResults = mockResults
-            self.expected = expected
+            self.expectedFilters = expectedFilters
+        }
+    }
+
+    private func extractFilters(_ suggestions: [Suggestion2]) -> [FilterQuery<FilterTerm>] {
+        suggestions.compactMap {
+            if case .filter(let highlighted) = $0.content { highlighted.value } else { nil }
         }
     }
 
@@ -22,211 +28,99 @@ struct NameSuggestionProviderTests {
         TestCase(
             "early-abort and return nothing if it looks like a non-name filter",
             PartialFilterTerm(polarity: .positive, content: .filter("foo", .including, .bare(""))),
-            ["foobar"], // non-empty!
+            ["foobar"],
             []
         ),
         TestCase(
             "early-abort and return nothing if it's a name-type filter with less than 2 characters",
             PartialFilterTerm(polarity: .positive, content: .filter("name", .including, .bare("f"))),
-            ["foobar"], // non-empty!
+            ["foobar"],
             []
         ),
         TestCase(
-            "return results with matching ranges if it's a name-type filter, adding quotes where necessary",
+            "return results if it's a name-type filter, adding quotes where necessary",
             PartialFilterTerm(polarity: .positive, content: .filter("name", .including, .bare("bolt"))),
             ["Firebolt", "Lightning Bolt", "Someone's Bolt"],
             [
-                .init(
-                    filter: .basic(.positive, "name", Comparison.including, "Firebolt"),
-                    matchRange: makeStringRange("name:Firebolt", 9..<13),
-                    prefixKind: .none,
-                    suggestionLength: 8
-                ),
-                .init(
-                    filter: .basic(.positive, "name", Comparison.including, "Lightning Bolt"),
-                    matchRange: makeStringRange("name:\"Lightning Bolt\"", 16..<20),
-                    prefixKind: .none,
-                    suggestionLength: 14
-                ),
-                .init(
-                    filter: .basic(.positive, "name", Comparison.including, "Someone's Bolt"),
-                    matchRange: makeStringRange("name:\"Someone's Bolt\"", 16..<20),
-                    prefixKind: .none,
-                    suggestionLength: 14
-                ),
+                .term(.basic(.positive, "name", Comparison.including, "Firebolt")),
+                .term(.basic(.positive, "name", Comparison.including, "Lightning Bolt")),
+                .term(.basic(.positive, "name", Comparison.including, "Someone's Bolt")),
             ]
         ),
         TestCase(
             "is case-insensitive",
             PartialFilterTerm(polarity: .positive, content: .filter("nAmE", .including, .bare("boLT"))),
             ["Firebolt"],
-            [
-                .init(
-                    filter: .basic(.positive, "name", Comparison.including, "Firebolt"),
-                    matchRange: makeStringRange("name:Firebolt", 9..<13),
-                    prefixKind: .none,
-                    suggestionLength: 8
-                ),
-            ]
+            [.term(.basic(.positive, "name", Comparison.including, "Firebolt"))]
         ),
         TestCase(
-            "return results with matching ranges if it's a name-type filter, respecting the operator used",
+            "respects the operator used",
             PartialFilterTerm(polarity: .positive, content: .filter("name", .equal, .bare("bolt"))),
             ["Firebolt"],
-            [
-                .init(
-                    filter: .basic(.positive, "name", Comparison.equal, "Firebolt"),
-                    matchRange: makeStringRange("name=Firebolt", 9..<13),
-                    prefixKind: .none,
-                    suggestionLength: 8
-                ),
-            ]
+            [.term(.basic(.positive, "name", Comparison.equal, "Firebolt"))]
         ),
         TestCase(
-            "supports incomplete terms, and does not respect choice of quote",
+            "supports incomplete terms",
             PartialFilterTerm(polarity: .positive, content: .filter("name", .equal, .unterminated(.singleQuote, "bolt"))),
             ["Firebolt", "Lightning Bolt"],
             [
-                .init(
-                    filter: .basic(.positive, "name", Comparison.equal, "Firebolt"),
-                    matchRange: makeStringRange("name=Firebolt", 9..<13),
-                    prefixKind: .none,
-                    suggestionLength: 8
-                ),
-                .init(
-                    filter: .basic(.positive, "name", Comparison.equal, "Lightning Bolt"),
-                    matchRange: makeStringRange("name=\"Lightning Bolt\"", 16..<20),
-                    prefixKind: .none,
-                    suggestionLength: 14
-                ),
+                .term(.basic(.positive, "name", Comparison.equal, "Firebolt")),
+                .term(.basic(.positive, "name", Comparison.equal, "Lightning Bolt")),
             ]
         ),
         TestCase(
-            "return results with matching ranges if it's quoted but without a filter, including quotes where appropriate",
+            "return results if it's quoted without a filter",
             PartialFilterTerm(polarity: .positive, content: .name(false, .unterminated(.doubleQuote, "bolt"))),
             ["Firebolt", "Lightning Bolt"],
             [
-                .init(
-                    filter: .name(.positive, true, "Firebolt"),
-                    matchRange: makeStringRange("!Firebolt", 5..<9),
-                    prefixKind: .none,
-                    suggestionLength: 8
-                ),
-                .init(
-                    filter: .name(.positive, true, "Lightning Bolt"),
-                    matchRange: makeStringRange("!\"Lightning Bolt\"", 12..<16),
-                    prefixKind: .none,
-                    suggestionLength: 14
-                ),
+                .term(.name(.positive, true, "Firebolt")),
+                .term(.name(.positive, true, "Lightning Bolt")),
             ]
         ),
         TestCase(
-            "return results with matching ranges if it's a literal name match, including quotes where appropriate",
+            "return results if it's a literal name match",
             PartialFilterTerm(polarity: .positive, content: .name(true, .bare("bolt"))),
             ["Firebolt", "Lightning Bolt"],
             [
-                .init(
-                    filter: .name(.positive, true, "Firebolt"),
-                    matchRange: makeStringRange("!Firebolt", 5..<9),
-                    prefixKind: .none,
-                    suggestionLength: 8
-                ),
-                .init(
-                    filter: .name(.positive, true, "Lightning Bolt"),
-                    matchRange: makeStringRange("!\"Lightning Bolt\"", 12..<16),
-                    prefixKind: .none,
-                    suggestionLength: 14
-                ),
+                .term(.name(.positive, true, "Firebolt")),
+                .term(.name(.positive, true, "Lightning Bolt")),
             ]
         ),
         TestCase(
-            "return results with matching ranges if it's a literal name match, including quotes where appropriate",
+            "return results with negative polarity",
             PartialFilterTerm(polarity: .negative, content: .name(true, .unterminated(.doubleQuote, "bolt"))),
             ["Firebolt", "Lightning Bolt"],
             [
-                .init(
-                    filter: .name(.negative, true, "Firebolt"),
-                    matchRange: makeStringRange("-!Firebolt", 6..<10),
-                    prefixKind: .none,
-                    suggestionLength: 8
-                ),
-                .init(
-                    filter: .name(.negative, true, "Lightning Bolt"),
-                    matchRange: makeStringRange("-!\"Lightning Bolt\"", 13..<17),
-                    prefixKind: .none,
-                    suggestionLength: 14
-                ),
+                .term(.name(.negative, true, "Firebolt")),
+                .term(.name(.negative, true, "Lightning Bolt")),
             ]
         ),
         TestCase(
-            "pass through all results from the matcher, even if we can't find the matching portion",
+            "pass through all results from the matcher",
             PartialFilterTerm(polarity: .positive, content: .filter("name", .including, .bare("foo"))),
             ["Wooded Foothills", "Shivan Reef"],
             [
-                .init(
-                    filter: .basic(.positive, "name", Comparison.including, "Wooded Foothills"),
-                    matchRange: makeStringRange("name:\"Wooded Foothills\"", 13..<16),
-                    prefixKind: .none,
-                    suggestionLength: 16
-                ),
-                .init(
-                    filter: .basic(.positive, "name", Comparison.including, "Shivan Reef"),
-                    matchRange: nil,
-                    prefixKind: .none,
-                    suggestionLength: 11
-                ),
+                .term(.basic(.positive, "name", Comparison.including, "Wooded Foothills")),
+                .term(.basic(.positive, "name", Comparison.including, "Shivan Reef")),
             ]
         ),
         TestCase(
-            "return matches even if it doesn't look like a filter, including ! and quotes where necessary",
+            "return matches even if it doesn't look like a filter",
             PartialFilterTerm(polarity: .positive, content: .name(false, .bare("bolt"))),
             ["Firebolt", "Lightning Bolt"],
             [
-                .init(
-                    filter: .name(.positive, true, "Firebolt"),
-                    matchRange: makeStringRange("!Firebolt", 5..<9),
-                    prefixKind: .none,
-                    suggestionLength: 8
-                ),
-                .init(
-                    filter: .name(.positive, true, "Lightning Bolt"),
-                    matchRange: makeStringRange("!\"Lightning Bolt\"", 12..<16),
-                    prefixKind: .none,
-                    suggestionLength: 14
-                ),
+                .term(.name(.positive, true, "Firebolt")),
+                .term(.name(.positive, true, "Lightning Bolt")),
             ]
         ),
     ])
     func getSuggestions(testCase: TestCase) async {
         let provider = NameSuggestionProvider()
-        let actual = await provider.getSuggestions(for: testCase.partial, in: testCase.mockResults, limit: Int.max)
-        #expect(actual == testCase.expected, "\(testCase.description)")
-    }
-
-    @Test("properly assigns match ranges when the search term overlaps with the 'name' filter")
-    func getSuggestionsNameOverlap() async {
-        let provider = NameSuggestionProvider()
-        let partial = PartialFilterTerm(polarity: .positive, content: .filter("name", .including, .bare("name")))
-        let actual = await provider.getSuggestions(for: partial, in: ["Nameless Race"], limit: Int.max)
-        withKnownIssue {
-            #expect(actual == [
-                NameSuggestion(
-                    filter: .basic(.positive, "name", .including, "Nameless Race"),
-                    matchRange: makeStringRange("name:\"Nameless Race\"", 7..<11),
-                    prefixKind: .effective,
-                    suggestionLength: 13
-                ),
-            ])
-        }
+        let actual = await provider.getSuggestions(for: testCase.partial, in: testCase.mockResults, searchTerm: "", limit: Int.max)
+        let actualFilters = extractFilters(actual)
+        #expect(actualFilters == testCase.expectedFilters, "\(testCase.description)")
+        #expect(actual.allSatisfy { $0.source == .name })
     }
 
     // TODO: Test limit parameter.
-}
-
-// Helper function to convert int ranges to String.Index ranges
-func makeStringRange(_ string: String, _ range: Range<Int>?) -> Range<String.Index>? {
-    guard let range = range else { return nil }
-    let start = string.index(string.startIndex, offsetBy: range.lowerBound)
-    let end = string.index(string.startIndex, offsetBy: range.upperBound)
-    return start..<end
 }

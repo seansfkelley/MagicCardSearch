@@ -1,19 +1,25 @@
 import Foundation
 import SQLiteData
 
-enum PrefixKind: Int {
-    // The search term is literally the character-for-character prefix of the suggestion.
-    case actual = 1
-    // The search term is more or less the prefix, accounting for low-significance formatting
-    // characters like required quotes, or a negation operator.
-    case effective = 2
-    // The search term is not a prefix under any interpretation.
-    case none = 3
+struct Suggestion2 {
+    enum Source {
+        case pinnedFilter, historyFilter, filterType, enumeration, reverseEnumeration, name
+    }
+
+    enum Content: Hashable {
+        case filter(WithHighlightedString<FilterQuery<FilterTerm>>)
+        case filterType(WithHighlightedString<FilterTypeSuggestion>)
+        case filterParts(Polarity, ScryfallFilterType, WithHighlightedString<String>)
+    }
+
+    let source: Source
+    let content: Content
+    let score: Double
 }
 
-protocol ScorableSuggestion {
-    var prefixKind: PrefixKind { get }
-    var suggestionLength: Int { get }
+struct FilterTypeSuggestion: Hashable, Sendable {
+    let polarity: Polarity
+    let filterType: ScryfallFilterType
 }
 
 struct WithHighlightedString<T: Sendable & Hashable>: Hashable {
@@ -59,62 +65,7 @@ struct WithHighlightedString<T: Sendable & Hashable>: Hashable {
     }
 }
 
-struct FilterTypeMatch: Hashable, Sendable {
-    let polarity: Polarity
-    let filterType: ScryfallFilterType
-}
-
-struct Suggestion2 {
-    enum Source {
-        case pinnedFilter, historyFilter, filterType, enumeration, reverseEnumeration, name
-    }
-
-    enum Content: Hashable {
-        case filter(WithHighlightedString<FilterQuery<FilterTerm>>)
-        case filterType(WithHighlightedString<FilterTypeMatch>)
-        case filterParts(Polarity, ScryfallFilterType, WithHighlightedString<String>)
-    }
-
-    let source: Source
-    let content: Content
-    let score: Double
-}
-
-enum Suggestion: Equatable, Hashable, Sendable, ScorableSuggestion {
-    case pinned(PinnedFilterSuggestion)
-    case filterHistory(FilterHistorySuggestion)
-    case filter(FilterTypeSuggestion)
-    case enumeration(EnumerationSuggestion)
-    case reverseEnumeration(ReverseEnumerationSuggestion)
-    case name(NameSuggestion)
-    
-    private var scorable: any ScorableSuggestion {
-        switch self {
-        case .pinned(let suggestion): suggestion
-        case .filterHistory(let suggestion): suggestion
-        case .filter(let suggestion): suggestion
-        case .enumeration(let suggestion): suggestion
-        case .reverseEnumeration(let suggestion): suggestion
-        case .name(let suggestion): suggestion
-        }
-    }
-    
-    var prefixKind: PrefixKind { scorable.prefixKind }
-    var suggestionLength: Int { scorable.suggestionLength }
-    var priority: Int {
-        switch self {
-        case .pinned: return 0
-        case .filterHistory: return 1
-        case .filter: return 2
-        case .enumeration: return 3
-        case .reverseEnumeration: return 4
-        case .name: return 5
-        }
-    }
-}
-
 @MainActor
-@Observable
 class CombinedSuggestionProvider {
     private let pinnedFilterProvider = PinnedFilterSuggestionProvider()
     private let filterHistoryProvider = FilterHistorySuggestionProvider()

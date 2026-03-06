@@ -1,74 +1,61 @@
 import SwiftUI
 
-struct ReverseEnumerationRowView: View {
-    let suggestion: ReverseEnumerationSuggestion
+struct FilterPartsRowView: View {
+    var suggestion: Suggestion2
     let onSelect: (FilterTerm) -> Void
 
     @State private var showingPopover = false
 
-    private var filter: ScryfallFilterType {
-        // TODO: Unsafe assertion.
-        scryfallFilterByType[suggestion.canonicalFilterName]!
-    }
-
     var body: some View {
-        Button {
-            onSelect(
-                .basic(
-                    suggestion.polarity,
-                    suggestion.canonicalFilterName,
-                    .including,
-                    suggestion.value,
-                ),
-            )
-        } label: {
-            HStack(spacing: 12) {
-                Image(systemName: "line.3.horizontal.decrease.circle")
-                    .foregroundStyle(.secondary)
+        switch suggestion.content {
+        case .filterParts(let polarity, let filterType, var highlighted):
+            let value = highlighted.value
+            Button {
+                onSelect(.basic(polarity, filterType.canonicalName, .including, value))
+            } label: {
+                HStack(spacing: 12) {
+                    Image(systemName: suggestion.icon)
+                        .foregroundStyle(.secondary)
 
-                HStack(spacing: 4) {
-                    Text("\(suggestion.polarity.description)\(suggestion.canonicalFilterName)")
-                        .foregroundStyle(.primary)
-
-                    Button {
-                        showingPopover = true
-                    } label: {
-                        Text(":")
+                    HStack(spacing: 4) {
+                        Text("\(polarity.description)\(filterType.canonicalName)")
                             .foregroundStyle(.primary)
 
-                        Divider()
+                        Button {
+                            showingPopover = true
+                        } label: {
+                            Text(":")
+                                .foregroundStyle(.primary)
 
-                        Image(systemName: "chevron.up.chevron.down")
-                            .imageScale(.small)
-                            .foregroundStyle(.secondary)
-                    }
-                    .buttonStyle(.bordered)
-                    .tint(.blue)
-                    .fixedSize()
-                    .popover(isPresented: $showingPopover) {
-                        ComparisonGridPicker(comparisonKinds: filter.comparisonKinds) { comparison in
-                            showingPopover = false
-                            onSelect(
-                                .basic(
-                                    suggestion.polarity,
-                                    suggestion.canonicalFilterName,
-                                    comparison,
-                                    suggestion.value,
-                                ),
-                            )
+                            Divider()
+
+                            Image(systemName: "chevron.up.chevron.down")
+                                .imageScale(.small)
+                                .foregroundStyle(.secondary)
                         }
-                        .presentationCompactAdaptation(.popover)
-                    }
+                        .buttonStyle(.bordered)
+                        .tint(.blue)
+                        .fixedSize()
+                        .popover(isPresented: $showingPopover) {
+                            ComparisonGridPicker(comparisonKinds: filterType.comparisonKinds) { comparison in
+                                showingPopover = false
+                                onSelect(.basic(polarity, filterType.canonicalName, comparison, value))
+                            }
+                            .presentationCompactAdaptation(.popover)
+                        }
 
-                    HighlightedText(text: suggestion.value, highlightRange: suggestion.valueMatchRange)
-                        .foregroundStyle(.primary)
-                    
-                    Spacer(minLength: 0)
+                        HighlightedText(text: highlighted.string, highlightRanges: highlighted.highlights)
+                            .foregroundStyle(.primary)
+
+                        Spacer(minLength: 0)
+                    }
                 }
+                .contentShape(Rectangle())
             }
-            .contentShape(Rectangle())
+            .buttonStyle(.plain)
+        default:
+            EmptyView()
         }
-        .buttonStyle(.plain)
     }
 }
 

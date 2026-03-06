@@ -1,13 +1,4 @@
-struct FilterTypeSuggestion: Equatable, Hashable, Sendable, ScorableSuggestion {
-    let filterType: String
-    let matchRange: Range<String.Index>
-    let comparisonKinds: ScryfallFilterType.ComparisonKinds
-    let prefixKind: PrefixKind
-    let suggestionLength: Int
-}
-
 struct FilterTypeSuggestionProvider {
-    // swiftlint:disable:next cyclomatic_complexity function_body_length
     func getSuggestions(for partial: PartialFilterTerm, searchTerm: String, limit: Int) -> [Suggestion2] {
         guard limit > 0 else {
             return []
@@ -76,7 +67,7 @@ struct FilterTypeSuggestionProvider {
             let displayName = partial.polarity == .negative ? "-\(candidate)" : candidate
             return Suggestion2(
                 source: .filterType,
-                content: .filterType(WithHighlightedString(value: FilterTypeMatch(polarity: partial.polarity, filterType: filterType), string: displayName, searchTerm: searchTerm)),
+                content: .filterType(WithHighlightedString(value: FilterTypeSuggestion(polarity: partial.polarity, filterType: filterType), string: displayName, searchTerm: searchTerm)),
                 score: 0,
             )
         })

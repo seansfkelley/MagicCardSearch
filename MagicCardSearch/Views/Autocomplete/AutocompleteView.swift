@@ -6,7 +6,7 @@ struct AutocompleteView: View {
 
     @Binding var searchState: SearchState
 
-    @State private var suggestions: [Suggestion] = []
+    @State private var suggestions: [Suggestion2] = []
     @State private var nonce: Int = 0
 
     private var searchSuggestionKey: SearchSuggestionKey {
@@ -40,104 +40,32 @@ struct AutocompleteView: View {
         .lessThanOrEqual,
         .greaterThanOrEqual,
         .greaterThan,
-        .notEqual, // n.b. this only works for some orderable things; equality-only things require the negation syntax
+        .notEqual,
     ]
 
     var body: some View {
         List {
             if let filter = searchState.searchText.toFilter().value {
-                BasicRowView(
-                    filter: filter,
-                    matchRange: nil,
-                    systemImageName: "magnifyingglass",
-                ) { addTopLevelFilter($0) }
+                Button {
+                    addTopLevelFilter(filter)
+                } label: {
+                    HStack(spacing: 12) {
+                        Image(systemName: "magnifyingglass")
+                            .foregroundStyle(.secondary)
+                        Text(filter.description)
+                            .foregroundStyle(.primary)
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                        Spacer(minLength: 0)
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
             }
 
-            ForEach(suggestions, id: \.self) { suggestion in
-                switch suggestion {
-                case .pinned(let suggestion):
-                    BasicRowView(
-                        filter: suggestion.filter,
-                        matchRange: suggestion.matchRange,
-                        systemImageName: "pin.fill",
-                    ) { addScopedFilter($0) }
-                    .swipeActions(edge: .leading, allowsFullSwipe: true) {
-                        Button {
-                            historyAndPinnedStore.unpin(filter: suggestion.filter)
-                            nonce += 1
-                        } label: {
-                            Label("Unpin", systemImage: "pin.slash")
-                        }
-                        .tint(.orange)
-                    }
-                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                        Button(role: .destructive) {
-                            historyAndPinnedStore.delete(filter: suggestion.filter)
-                            nonce += 1
-                        } label: {
-                            Label("Delete", systemImage: "trash")
-                        }
-                    }
+            ForEach(Array(suggestions.enumerated()), id: \.offset) { _, suggestion in
+                suggestionRow(suggestion)
                     .listRowInsets(.vertical, 0)
-                case .filterHistory(let suggestion):
-                    BasicRowView(
-                        filter: suggestion.filter,
-                        matchRange: suggestion.matchRange,
-                        systemImageName: "clock.arrow.circlepath",
-                    ) { addScopedFilter($0) }
-                    .swipeActions(edge: .leading, allowsFullSwipe: true) {
-                        pinSwipeAction(for: suggestion.filter)
-                    }
-                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                        Button(role: .destructive) {
-                            historyAndPinnedStore.delete(filter: suggestion.filter)
-                            nonce += 1
-                        } label: {
-                            Label("Delete", systemImage: "trash")
-                        }
-                    }
-                    .listRowInsets(.vertical, 0)
-
-                case .filter(let suggestion):
-                    FilterTypeRowView(
-                        suggestion: suggestion,
-                        orderedAllComparisons: orderedAllComparisons,
-                        orderedEqualityComparison: orderedEqualityComparison,
-                        onSelect: setScopedString
-                    )
-                    .listRowInsets(.vertical, 0)
-
-                case .enumeration(let suggestion):
-                    BasicRowView(
-                        filter: .term(suggestion.filter),
-                        matchRange: suggestion.matchRange,
-                        systemImageName: "list.bullet.circle",
-                    ) { addScopedFilter($0) }
-                    .swipeActions(edge: .leading, allowsFullSwipe: true) {
-                        pinSwipeAction(for: .term(suggestion.filter))
-                    }
-                    .listRowInsets(.vertical, 0)
-
-                case .reverseEnumeration(let suggestion):
-                    ReverseEnumerationRowView(
-                        suggestion: suggestion,
-                        onSelect: { addScopedFilter(.term($0)) }
-                    )
-                    .listRowInsets(.vertical, 0)
-
-                case .name(let suggestion):
-                    BasicRowView(
-                        filter: .term(suggestion.filter),
-                        matchRange: suggestion.matchRange,
-                        systemImageName: "textformat.abc",
-                    ) {
-                        // We don't replace the entire search because some other filters might
-                        // actually have an effect on the results, like `set:`.
-                        addTopLevelFilter($0)
-                        searchState.performSearch()
-                    }
-                    .listRowInsets(.vertical, 0)
-                }
             }
         }
         .listStyle(.plain)
@@ -152,12 +80,93 @@ struct AutocompleteView: View {
         }
     }
 
-    private func setEntireSearch(to search: [FilterQuery<FilterTerm>]) {
-        searchState.filters = search
-        searchState.searchText = ""
-        searchState.desiredSearchSelection = nil
-        searchState.performSearch()
+    // MARK: - Row Selection
+
+    @ViewBuilder
+    private func suggestionRow(_ suggestion: Suggestion2) -> some View {
+        switch suggestion.content {
+        case .filter:
+            filterRow(suggestion)
+        case .filterType:
+            FilterTypeRowView(
+                suggestion: suggestion,
+                orderedAllComparisons: orderedAllComparisons,
+                orderedEqualityComparison: orderedEqualityComparison,
+                onSelect: setScopedString
+            )
+        case .filterParts:
+            FilterPartsRowView(
+                suggestion: suggestion,
+                onSelect: { addScopedFilter(.term($0)) }
+            )
+        }
     }
+
+    @ViewBuilder
+    private func filterRow(_ suggestion: Suggestion2) -> some View {
+        let row = BasicRowView(suggestion: suggestion) { filter in
+            if suggestion.source == .name {
+                addTopLevelFilter(filter)
+                searchState.performSearch()
+            } else {
+                addScopedFilter(filter)
+            }
+        }
+
+        switch suggestion.source {
+        case .pinnedFilter:
+            row
+                .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                    if case .filter(let highlighted) = suggestion.content {
+                        Button {
+                            historyAndPinnedStore.unpin(filter: highlighted.value)
+                            nonce += 1
+                        } label: {
+                            Label("Unpin", systemImage: "pin.slash")
+                        }
+                        .tint(.orange)
+                    }
+                }
+                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                    if case .filter(let highlighted) = suggestion.content {
+                        Button(role: .destructive) {
+                            historyAndPinnedStore.delete(filter: highlighted.value)
+                            nonce += 1
+                        } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
+                    }
+                }
+        case .historyFilter:
+            row
+                .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                    if case .filter(let highlighted) = suggestion.content {
+                        pinSwipeAction(for: highlighted.value)
+                    }
+                }
+                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                    if case .filter(let highlighted) = suggestion.content {
+                        Button(role: .destructive) {
+                            historyAndPinnedStore.delete(filter: highlighted.value)
+                            nonce += 1
+                        } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
+                    }
+                }
+        case .enumeration:
+            row
+                .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                    if case .filter(let highlighted) = suggestion.content {
+                        pinSwipeAction(for: highlighted.value)
+                    }
+                }
+        default:
+            row
+        }
+    }
+
+    // MARK: - Actions
 
     private func addTopLevelFilter(_ filter: FilterQuery<FilterTerm>) {
         searchState.filters.append(filter)
@@ -203,5 +212,18 @@ struct AutocompleteView: View {
             Label("Pin", systemImage: "pin")
         }
         .tint(.orange)
+    }
+}
+
+extension Suggestion2 {
+    var icon: String {
+        switch source {
+        case .pinnedFilter: "pin.fill"
+        case .historyFilter: "clock.arrow.circlepath"
+        case .filterType: "line.3.horizontal.decrease.circle"
+        case .enumeration: "list.bullet.circle"
+        case .reverseEnumeration: "line.3.horizontal.decrease.circle"
+        case .name: "textformat.abc"
+        }
     }
 }

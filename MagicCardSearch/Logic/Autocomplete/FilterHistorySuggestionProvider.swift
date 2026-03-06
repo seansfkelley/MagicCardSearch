@@ -2,13 +2,6 @@ import Foundation
 import SQLiteData
 import FuzzyMatch
 
-struct FilterHistorySuggestion: Equatable, Hashable, Sendable, ScorableSuggestion {
-    let filter: FilterQuery<FilterTerm>
-    let matchRange: Range<String.Index>?
-    let prefixKind: PrefixKind
-    let suggestionLength: Int
-}
-
 struct FilterHistorySuggestionProvider {
     func getSuggestions(for searchTerm: String, from filterHistoryEntries: [FilterHistoryEntry], limit: Int) -> [Suggestion2] {
         guard limit > 0 else {

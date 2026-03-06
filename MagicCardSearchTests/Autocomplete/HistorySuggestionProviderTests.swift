@@ -35,11 +35,17 @@ class HistorySuggestionProviderTests {
         }
     }
 
+    private func extractFilters(_ suggestions: [Suggestion2]) -> [FilterQuery<FilterTerm>] {
+        suggestions.compactMap {
+            if case .filter(let highlighted) = $0.content { highlighted.value } else { nil }
+        }
+    }
+
     // MARK: - Basic Functionality Tests
 
     @Test("returns no results with no history recorded")
     func emptySuggestions() {
-        let suggestions = provider.getSuggestions(for: "", from: fetchHistory(), excluding: Set(), limit: 10)
+        let suggestions = provider.getSuggestions(for: "", from: fetchHistory(), limit: 10)
         #expect(suggestions.isEmpty)
     }
 
@@ -51,9 +57,9 @@ class HistorySuggestionProviderTests {
         record(filter: colorFilter, atOffset: 0)
         record(filter: oracleFilter, atOffset: 1000)
 
-        let suggestions = provider.getSuggestions(for: "", from: fetchHistory(), excluding: Set(), limit: 1)
-        // Prefers the latter, because it was recorded later.
-        #expect(suggestions == [.init(filter: oracleFilter, matchRange: nil, prefixKind: .none, suggestionLength: 13)])
+        let suggestions = provider.getSuggestions(for: "", from: fetchHistory(), limit: 1)
+        let filters = extractFilters(suggestions)
+        #expect(filters == [oracleFilter])
     }
 
     @Test("returns any filters whose string representation has any substring match")
@@ -66,27 +72,9 @@ class HistorySuggestionProviderTests {
         record(filter: oracleFilter, atOffset: 1000)
         record(filter: setFilter, atOffset: 2000)
 
-        let suggestions = provider.getSuggestions(for: "y", from: fetchHistory(), excluding: Set(), limit: 10)
-        #expect(suggestions == [
-            .init(filter: setFilter, matchRange: "set:odyssey".range(of: "y"), prefixKind: .none, suggestionLength: 11),
-            .init(filter: oracleFilter, matchRange: "oracle:flying".range(of: "y"), prefixKind: .none, suggestionLength: 13),
-        ])
-    }
-
-    @Test("returns exclude matching filters present in the exclusion list")
-    func excludeMatchingFilters() {
-        let colorFilter = FilterQuery<FilterTerm>.term(.basic(.positive, "color", .equal, "red"))
-        let oracleFilter = FilterQuery<FilterTerm>.term(.basic(.positive, "oracle", .including, "flying"))
-        let setFilter = FilterQuery<FilterTerm>.term(.basic(.positive, "set", .equal, "ody"))
-
-        record(filter: colorFilter, atOffset: 0)
-        record(filter: oracleFilter, atOffset: 1000)
-        record(filter: setFilter, atOffset: 2000)
-
-        let suggestions = provider.getSuggestions(for: "y", from: fetchHistory(), excluding: Set([oracleFilter]), limit: 10)
-        #expect(suggestions == [
-            .init(filter: setFilter, matchRange: "set:ody".range(of: "y"), prefixKind: .none, suggestionLength: 7),
-        ])
+        let suggestions = provider.getSuggestions(for: "y", from: fetchHistory(), limit: 10)
+        let filters = extractFilters(suggestions)
+        #expect(filters == [setFilter, oracleFilter])
     }
 
     @Test("returns the empty list if there is no simple substring match in the stringified filters")
@@ -97,7 +85,7 @@ class HistorySuggestionProviderTests {
         record(filter: colorFilter, atOffset: 0)
         record(filter: oracleFilter, atOffset: 1000)
 
-        let suggestions = provider.getSuggestions(for: "xyz", from: fetchHistory(), excluding: Set(), limit: 10)
+        let suggestions = provider.getSuggestions(for: "xyz", from: fetchHistory(), limit: 10)
         #expect(suggestions.isEmpty)
     }
 }

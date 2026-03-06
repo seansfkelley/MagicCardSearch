@@ -3,13 +3,6 @@ import Observation
 import SQLiteData
 import FuzzyMatch
 
-struct PinnedFilterSuggestion: Equatable, Hashable, Sendable, ScorableSuggestion {
-    let filter: FilterQuery<FilterTerm>
-    let matchRange: Range<String.Index>?
-    let prefixKind: PrefixKind
-    let suggestionLength: Int
-}
-
 struct PinnedFilterSuggestionProvider {
     func getSuggestions(for partial: PartialFilterTerm, from pinnedFilters: [PinnedFilterEntry], searchTerm: String) -> [Suggestion2] {
         let trimmedSearchTerm = partial.description.trimmingCharacters(in: .whitespaces)

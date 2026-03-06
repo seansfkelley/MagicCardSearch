@@ -1,23 +1,30 @@
 import SwiftUI
 
 struct FilterTypeRowView: View {
-    let suggestion: FilterTypeSuggestion
+    var suggestion: Suggestion2
     let orderedAllComparisons: [Comparison]
     let orderedEqualityComparison: [Comparison]
     let onSelect: (String) -> Void
-    
-    var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: "line.3.horizontal.decrease.circle")
-                .foregroundStyle(.secondary)
 
-            HorizontallyScrollablePillSelector(
-                label: suggestion.filterType,
-                labelRange: suggestion.matchRange,
-                options: suggestion.comparisonKinds == .all ? orderedAllComparisons : orderedEqualityComparison
-            ) { comparison in
-                onSelect("\(suggestion.filterType)\(comparison.rawValue)")
+    var body: some View {
+        switch suggestion.content {
+        case .filterType(var highlighted):
+            let filterType = highlighted.value.filterType
+            let displayName = highlighted.string
+            HStack(spacing: 12) {
+                Image(systemName: suggestion.icon)
+                    .foregroundStyle(.secondary)
+
+                HorizontallyScrollablePillSelector(
+                    label: displayName,
+                    labelRanges: highlighted.highlights,
+                    options: filterType.comparisonKinds == .all ? orderedAllComparisons : orderedEqualityComparison
+                ) { comparison in
+                    onSelect("\(displayName)\(comparison.rawValue)")
+                }
             }
+        default:
+            EmptyView()
         }
     }
 }
@@ -38,7 +45,7 @@ extension Comparison: PillSelectorOption {
 
 private struct HorizontallyScrollablePillSelector<T: PillSelectorOption>: View {
     let label: String
-    let labelRange: Range<String.Index>?
+    let labelRanges: [Range<String.Index>]
     let options: [T]
     let onTapOption: (T.Value) -> Void
 
@@ -48,14 +55,14 @@ private struct HorizontallyScrollablePillSelector<T: PillSelectorOption>: View {
 
     var body: some View {
         ZStack(alignment: .leading) {
-            HighlightedText(text: label, highlightRange: labelRange)
+            HighlightedText(text: label, highlightRanges: labelRanges)
                 .foregroundStyle(.primary)
                 .opacity(labelOpacity)
                 .padding(.trailing, 8)
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
-                    HighlightedText(text: label, highlightRange: labelRange)
+                    HighlightedText(text: label, highlightRanges: labelRanges)
                         .padding(.trailing, 8)
                         .hidden()
 

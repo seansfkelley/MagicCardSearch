@@ -2,13 +2,6 @@ import Foundation
 import FuzzyMatch
 import ScryfallKit
 
-struct EnumerationSuggestion: Equatable, Hashable, Sendable, ScorableSuggestion {
-    let filter: FilterTerm
-    let matchRange: Range<String.Index>?
-    let prefixKind: PrefixKind
-    let suggestionLength: Int
-}
-
 struct EnumerationCatalogData: Sendable {
     let catalogs: [Catalog.`Type`: [String]]
     let sets: [SetCode: MTGSet]?

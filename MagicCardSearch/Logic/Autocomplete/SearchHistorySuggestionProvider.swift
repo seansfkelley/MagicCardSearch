@@ -2,10 +2,8 @@ import Foundation
 import SQLiteData
 import Observation
 
-struct SearchHistorySuggestion: Equatable, Hashable, Sendable, ScorableSuggestion {
+struct SearchHistorySuggestion: Equatable, Hashable, Sendable {
     let filters: [FilterMatch]
-    let prefixKind: PrefixKind
-    let suggestionLength: Int
 
     // Workaround for Swift not being able to synthesize basic protocol conformances for tuples.
     struct FilterMatch: Hashable, Equatable, Sendable {
@@ -50,9 +48,7 @@ class SearchHistorySuggestionProvider {
                 .compactMap { entry in
                     if trimmedSearchTerm.isEmpty {
                         return SearchHistorySuggestion(
-                            filters: entry.filters.map { .init($0, .none) },
-                            prefixKind: .none,
-                            suggestionLength: entry.filters.reduce(0) { $0 + $1.description.count },
+                            filters: entry.filters.map { .init($0, .none) }
                         )
                     } else {
                         let matchedFilters = entry.filters.map { filter -> SearchHistorySuggestion.FilterMatch in
@@ -67,9 +63,7 @@ class SearchHistorySuggestionProvider {
 
                         return if matchedFilters.contains(where: { if case .substring = $0.kind { true } else { false } }) {
                             SearchHistorySuggestion(
-                                filters: matchedFilters,
-                                prefixKind: .none,
-                                suggestionLength: entry.filters.reduce(0) { $0 + $1.description.count },
+                                filters: matchedFilters
                             )
                         } else {
                             nil

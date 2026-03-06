@@ -1,13 +1,6 @@
 import ScryfallKit
 import FuzzyMatch
 
-struct NameSuggestion: Equatable, Hashable, Sendable, ScorableSuggestion {
-    let filter: FilterTerm
-    let matchRange: Range<String.Index>?
-    let prefixKind: PrefixKind
-    let suggestionLength: Int
-}
-
 actor NameSuggestionProvider {
     private let matcher = FuzzyMatcher()
 
