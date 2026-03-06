@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct FilterPartsRowView: View {
-    var suggestion: Suggestion2
+    var suggestion: Suggestion
     let onSelect: (FilterTerm) -> Void
 
     @State private var showingPopover = false

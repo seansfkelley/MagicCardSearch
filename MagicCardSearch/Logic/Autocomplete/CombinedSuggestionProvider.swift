@@ -1,7 +1,7 @@
 import Foundation
 import SQLiteData
 
-struct Suggestion2 {
+struct Suggestion {
     enum Source {
         case pinnedFilter, historyFilter, filterType, enumeration, reverseEnumeration, name
     }
@@ -82,13 +82,13 @@ class CombinedSuggestionProvider {
         self.scryfallCatalogs = scryfallCatalogs
     }
 
-    func getSuggestions(for searchTerm: String, existingFilters: Set<FilterQuery<FilterTerm>>) -> AsyncStream<[Suggestion2]> {
+    func getSuggestions(for searchTerm: String, existingFilters: Set<FilterQuery<FilterTerm>>) -> AsyncStream<[Suggestion]> {
         let partial = PartialFilterTerm.from(searchTerm)
 
-        let (stream, continuation) = AsyncStream.makeStream(of: [Suggestion2].self)
+        let (stream, continuation) = AsyncStream.makeStream(of: [Suggestion].self)
 
         let task = Task {
-            await withTaskGroup(of: [Suggestion2].self) { group in
+            await withTaskGroup(of: [Suggestion].self) { group in
                 let catalogData = EnumerationCatalogData(scryfallCatalogs: self.scryfallCatalogs)
 
                 do {
@@ -113,7 +113,6 @@ class CombinedSuggestionProvider {
                     await self.enumerationProvider.getSuggestions(
                         for: partial,
                         catalogData: catalogData,
-                        excluding: [],
                         searchTerm: searchTerm,
                         limit: 40,
                     )
@@ -124,9 +123,15 @@ class CombinedSuggestionProvider {
                     }
                 }
 
-                var suggestions: [Suggestion2] = []
+                var suggestions: [Suggestion] = []
                 for await batch in group {
-                    suggestions.append(contentsOf: batch)
+                    suggestions.append(contentsOf: batch.filter {
+                        if case .filter(let highlighted) = $0.content {
+                            !existingFilters.contains(highlighted.value)
+                        } else {
+                            true
+                        }
+                    })
                     continuation.yield(sortCombinedSuggestions(suggestions))
                 }
                 continuation.finish()
@@ -139,14 +144,14 @@ class CombinedSuggestionProvider {
     }
 }
 
-private func sortCombinedSuggestions(_ suggestions: [Suggestion2]) -> [Suggestion2] {
-    var seen = Set<Suggestion2.Content>()
+private func sortCombinedSuggestions(_ suggestions: [Suggestion]) -> [Suggestion] {
+    var seen = Set<Suggestion.Content>()
     return suggestions
         .sorted { $0.biasedScore > $1.biasedScore }
         .filter { seen.insert($0.content).inserted }
 }
 
-private extension Suggestion2 {
+private extension Suggestion {
     var biasedScore: Double {
         let bias: Double = switch source {
         case .pinnedFilter: 1

@@ -4,7 +4,7 @@ import FuzzyMatch
 actor NameSuggestionProvider {
     private let matcher = FuzzyMatcher()
 
-    func getSuggestions(for partial: PartialFilterTerm, in cardNames: [String], searchTerm: String, limit: Int) -> [Suggestion2] {
+    func getSuggestions(for partial: PartialFilterTerm, in cardNames: [String], searchTerm: String, limit: Int) -> [Suggestion] {
         guard limit > 0 else {
             return []
         }
@@ -44,7 +44,7 @@ actor NameSuggestionProvider {
                     filter = .name(partial.polarity, true, cardName)
                 }
 
-                return Suggestion2(
+                return Suggestion(
                     source: .name,
                     content: .filter(WithHighlightedString(value: .term(filter), string: filter.description, searchTerm: searchTerm)),
                     score: result.match.score,

@@ -1,5 +1,5 @@
 struct FilterTypeSuggestionProvider {
-    func getSuggestions(for partial: PartialFilterTerm, searchTerm: String, limit: Int) -> [Suggestion2] {
+    func getSuggestions(for partial: PartialFilterTerm, searchTerm: String, limit: Int) -> [Suggestion] {
         guard limit > 0 else {
             return []
         }
@@ -65,7 +65,7 @@ struct FilterTypeSuggestionProvider {
 
         return Array(suggestions.prefix(limit).map { candidate, filterType in
             let displayName = partial.polarity == .negative ? "-\(candidate)" : candidate
-            return Suggestion2(
+            return Suggestion(
                 source: .filterType,
                 content: .filterType(WithHighlightedString(value: FilterTypeSuggestion(polarity: partial.polarity, filterType: filterType), string: displayName, searchTerm: searchTerm)),
                 score: 0,

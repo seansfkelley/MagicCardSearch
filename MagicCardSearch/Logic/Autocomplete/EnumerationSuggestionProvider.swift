@@ -39,7 +39,7 @@ struct EnumerationCatalogData: Sendable {
 actor EnumerationSuggestionProvider {
     private let matcher = FuzzyMatcher()
 
-    func getSuggestions(for partial: PartialFilterTerm, catalogData: EnumerationCatalogData, excluding excludedFilters: Set<FilterQuery<FilterTerm>>, searchTerm: String, limit: Int) -> [Suggestion2] {
+    func getSuggestions(for partial: PartialFilterTerm, catalogData: EnumerationCatalogData, searchTerm: String, limit: Int) -> [Suggestion] {
         guard limit > 0,
               case .filter(let filterTypeName, let partialComparison, let partialValue) = partial.content,
               let comparison = partialComparison.toComplete(),
@@ -70,23 +70,14 @@ actor EnumerationSuggestionProvider {
 
         let allResults = matched.map { candidate, score in
             let filter = FilterTerm.basic(partial.polarity, filterTypeName.lowercased(), comparison, candidate)
-            return Suggestion2(
+            return Suggestion(
                 source: .enumeration,
                 content: .filter(WithHighlightedString(value: .term(filter), string: filter.description, searchTerm: searchTerm)),
                 score: score,
             )
         }
 
-        return Array(allResults
-            .filter {
-                if case .filter(let highlighted) = $0.content {
-                    !excludedFilters.contains(highlighted.value)
-                } else {
-                    true
-                }
-            }
-            .prefix(limit)
-        )
+        return Array(allResults.prefix(limit))
     }
 
     // MARK: - Catalog Options

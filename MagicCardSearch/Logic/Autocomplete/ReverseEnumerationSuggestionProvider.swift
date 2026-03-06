@@ -5,7 +5,7 @@ import ScryfallKit
 actor ReverseEnumerationSuggestionProvider {
     private let matcher = FuzzyMatcher()
 
-    func getSuggestions(for partial: PartialFilterTerm, catalogData: EnumerationCatalogData, searchTerm: String, limit: Int) -> [Suggestion2] {
+    func getSuggestions(for partial: PartialFilterTerm, catalogData: EnumerationCatalogData, searchTerm: String, limit: Int) -> [Suggestion] {
         guard limit > 0,
               case .name(let isExact, let partialTerm) = partial.content,
               !isExact else {
@@ -30,10 +30,10 @@ actor ReverseEnumerationSuggestionProvider {
             matchResults.lazy
                 .flatMap { result in
                     guard let filters = allCandidates.first(where: { $0.0 == result.candidate })?.1 else {
-                        return [Suggestion2]()
+                        return [Suggestion]()
                     }
                     return filters.map { filterType in
-                        Suggestion2(
+                        Suggestion(
                             source: .reverseEnumeration,
                             content: .filterParts(partial.polarity, filterType, WithHighlightedString(value: result.candidate, string: result.candidate, searchTerm: searchTerm)),
                             score: result.match.score,

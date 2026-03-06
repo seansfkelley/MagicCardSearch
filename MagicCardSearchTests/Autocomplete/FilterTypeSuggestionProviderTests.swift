@@ -2,7 +2,7 @@ import Testing
 @testable import MagicCardSearch
 
 struct FilterTypeSuggestionProviderTests {
-    private func extractDisplayNames(_ suggestions: [Suggestion2]) -> [String] {
+    private func extractDisplayNames(_ suggestions: [Suggestion]) -> [String] {
         suggestions.compactMap {
             if case .filterType(let highlighted) = $0.content { highlighted.string } else { nil }
         }

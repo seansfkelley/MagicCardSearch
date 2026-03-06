@@ -18,7 +18,7 @@ struct NameSuggestionProviderTests {
         }
     }
 
-    private func extractFilters(_ suggestions: [Suggestion2]) -> [FilterQuery<FilterTerm>] {
+    private func extractFilters(_ suggestions: [Suggestion]) -> [FilterQuery<FilterTerm>] {
         suggestions.compactMap {
             if case .filter(let highlighted) = $0.content { highlighted.value } else { nil }
         }

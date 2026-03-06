@@ -4,7 +4,7 @@ import SQLiteData
 import FuzzyMatch
 
 struct PinnedFilterSuggestionProvider {
-    func getSuggestions(for partial: PartialFilterTerm, from pinnedFilters: [PinnedFilterEntry], searchTerm: String) -> [Suggestion2] {
+    func getSuggestions(for partial: PartialFilterTerm, from pinnedFilters: [PinnedFilterEntry], searchTerm: String) -> [Suggestion] {
         let trimmedSearchTerm = partial.description.trimmingCharacters(in: .whitespaces)
 
         let matcher = FuzzyMatcher()
@@ -16,7 +16,7 @@ struct PinnedFilterSuggestionProvider {
                 let filterText = row.filter.description
 
                 if trimmedSearchTerm.isEmpty {
-                    return Suggestion2(
+                    return Suggestion(
                         source: .pinnedFilter,
                         content: .filter(WithHighlightedString(value: row.filter, string: filterText, searchTerm: searchTerm)),
                         score: 0,
@@ -24,7 +24,7 @@ struct PinnedFilterSuggestionProvider {
                 }
 
                 if let match = matcher.score(filterText, against: query, buffer: &buffer) {
-                    return Suggestion2(
+                    return Suggestion(
                         source: .pinnedFilter,
                         content: .filter(WithHighlightedString(value: row.filter, string: filterText, searchTerm: searchTerm)),
                         score: match.score,

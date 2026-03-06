@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct BasicRowView: View {
-    var suggestion: Suggestion2
+    var suggestion: Suggestion
     let onTap: (FilterQuery<FilterTerm>) -> Void
 
     var body: some View {

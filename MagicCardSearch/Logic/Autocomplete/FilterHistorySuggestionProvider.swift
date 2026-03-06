@@ -3,7 +3,7 @@ import SQLiteData
 import FuzzyMatch
 
 struct FilterHistorySuggestionProvider {
-    func getSuggestions(for searchTerm: String, from filterHistoryEntries: [FilterHistoryEntry], limit: Int) -> [Suggestion2] {
+    func getSuggestions(for searchTerm: String, from filterHistoryEntries: [FilterHistoryEntry], limit: Int) -> [Suggestion] {
         guard limit > 0 else {
             return []
         }
@@ -21,7 +21,7 @@ struct FilterHistorySuggestionProvider {
                     let filterText = entry.filter.description
 
                     if trimmedSearchTerm.isEmpty {
-                        return Suggestion2(
+                        return Suggestion(
                             source: .historyFilter,
                             content: .filter(WithHighlightedString(value: entry.filter, string: filterText, searchTerm: searchTerm)),
                             score: 0,
@@ -29,7 +29,7 @@ struct FilterHistorySuggestionProvider {
                     }
 
                     if let match = matcher.score(filterText, against: query, buffer: &buffer) {
-                        return Suggestion2(
+                        return Suggestion(
                             source: .historyFilter,
                             content: .filter(WithHighlightedString(value: entry.filter, string: filterText, searchTerm: searchTerm)),
                             score: match.score,
