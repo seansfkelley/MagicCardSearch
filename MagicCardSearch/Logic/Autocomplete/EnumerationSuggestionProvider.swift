@@ -1,6 +1,5 @@
 import Foundation
 import ScryfallKit
-import Algorithms
 
 struct EnumerationSuggestion: Equatable, Hashable, Sendable, ScorableSuggestion {
     let filter: FilterTerm

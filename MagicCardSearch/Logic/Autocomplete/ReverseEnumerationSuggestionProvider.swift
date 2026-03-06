@@ -1,5 +1,4 @@
 import Foundation
-import Algorithms
 import ScryfallKit
 
 struct ReverseEnumerationSuggestion: Equatable, Hashable, Sendable, ScorableSuggestion {
