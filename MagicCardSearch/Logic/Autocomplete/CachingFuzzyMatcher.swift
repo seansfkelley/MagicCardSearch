@@ -15,6 +15,14 @@ private func normalizeForCache(_ string: String) -> String {
     string.lowercased().replacing(/[^a-z]/, with: "")
 }
 
+// This makes the incorrect assumption that a shorter search term necessarily returns more results
+// than a longer search term. This is not true in the case of fuzzy searches; if a short mangled
+// search term later gets a bunch of well-formed characters appended, those later characters might
+// weight matches more favorably. For instance, "mg" won't find "modern", but "mgdern" will.
+//
+// This means that while this matcher offers much improved performance for narrower searches, it is
+// at the expense of "correctness". Being a fuzzy match we have some leeway here, but it might be
+// better to axe this entirely and just make the fuzzy matching faster.
 struct CachingFuzzyMatcher {
     private let cache: MemoryStorage<String, [String]>
     private let matcher = FuzzyMatcher()
@@ -52,12 +60,12 @@ struct CachingFuzzyMatcher {
                 return (candidate, match)
             }
         }
-        logger.trace("Fuzzy matching count=\(selectedCandidates.count) candidates took duration=\(matchDuration)")
+        logger.trace("fuzzy matching count=\(selectedCandidates.count) candidates took duration=\(matchDuration)")
 
         let (sorted, sortDuration) = timed {
             results.sorted { $0.1.score > $1.1.score }
         }
-        logger.trace("Sorting count=\(results.count) matches took duration=\(sortDuration)")
+        logger.trace("sorting count=\(results.count) matches took duration=\(sortDuration)")
 
         cache.setObject(sorted.map { $0.0 }, forKey: normalizedQuery)
 
