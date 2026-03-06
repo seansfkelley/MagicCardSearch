@@ -57,6 +57,7 @@ class CombinedSuggestionProvider {
     let enumerationProvider: EnumerationSuggestionProvider
     let reverseEnumerationProvider: ReverseEnumerationSuggestionProvider
     let scryfallCatalogs: ScryfallCatalogs
+    let nameProvider = NameSuggestionProvider()
     
     init(
         pinnedFilter: PinnedFilterSuggestionProvider,
@@ -128,13 +129,14 @@ class CombinedSuggestionProvider {
 
             continuation.yield(self.scoreSuggestions(allSuggestions, hasSearchTerm))
 
-            let cardNames = self.scryfallCatalogs.cardNames
-            let nameSuggestions = await Task.detached {
-                getNameSuggestions(for: partial, cardNames: cardNames, limit: 10)
-            }.value
-            allSuggestions.append(contentsOf: nameSuggestions.map { Suggestion.name($0) })
+            if let cardNames = self.scryfallCatalogs.cardNames {
+                let nameSuggestions = await Task.detached {
+                    await self.nameProvider.getSuggestions(for: partial, in: cardNames, limit: 10)
+                }.value
+                allSuggestions.append(contentsOf: nameSuggestions.map { Suggestion.name($0) })
 
-            continuation.yield(self.scoreSuggestions(allSuggestions, hasSearchTerm))
+                continuation.yield(self.scoreSuggestions(allSuggestions, hasSearchTerm))
+            }
 
             continuation.finish()
         }

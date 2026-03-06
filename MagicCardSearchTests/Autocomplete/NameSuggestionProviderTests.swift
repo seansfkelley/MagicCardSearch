@@ -197,15 +197,17 @@ struct NameSuggestionProviderTests {
             ]
         ),
     ])
-    func getSuggestions(testCase: TestCase) {
-        let actual = getNameSuggestions(for: testCase.partial, cardNames: testCase.mockResults, limit: Int.max)
+    func getSuggestions(testCase: TestCase) async {
+        let provider = NameSuggestionProvider()
+        let actual = await provider.getSuggestions(for: testCase.partial, cardNames: testCase.mockResults, limit: Int.max)
         #expect(actual == testCase.expected, "\(testCase.description)")
     }
 
     @Test("properly assigns match ranges when the search term overlaps with the 'name' filter")
-    func getSuggestionsNameOverlap() {
+    func getSuggestionsNameOverlap() async {
+        let provider = NameSuggestionProvider()
         let partial = PartialFilterTerm(polarity: .positive, content: .filter("name", .including, .bare("name")))
-        let actual = getNameSuggestions(for: partial, cardNames: ["Nameless Race"], limit: Int.max)
+        let actual = await provider.getSuggestions(for: partial, cardNames: ["Nameless Race"], limit: Int.max)
         withKnownIssue {
             #expect(actual == [
                 NameSuggestion(
