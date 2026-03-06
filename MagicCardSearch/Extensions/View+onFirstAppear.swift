@@ -3,13 +3,13 @@ import SwiftUI
 // https://www.swiftjectivec.com/swiftui-run-code-only-once-versus-onappear-or-task/
 
 public extension View {
-    func onFirstAppear(_ action: @escaping () -> ()) -> some View {
+    func onFirstAppear(_ action: @escaping () -> Void) -> some View {
         modifier(FirstAppear(action: action))
     }
 }
 
 private struct FirstAppear: ViewModifier {
-    let action: () -> ()
+    let action: () -> Void
 
     @State private var hasAppeared = false
 

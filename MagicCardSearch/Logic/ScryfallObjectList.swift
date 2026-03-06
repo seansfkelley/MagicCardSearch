@@ -13,6 +13,7 @@ class ScryfallObjectList<T: Codable & Sendable> {
     private let searchUuid = UUID()
     private var fetcher: @Sendable (Int) async throws -> ObjectList<T>
     private var nextPage = 1
+    // Ignore the compiler warning here: if I don't have nonisolated(unsafe), it doesn't compile.
     nonisolated(unsafe) private var task: Task<Void, Never>?
 
     init(_ fetcher: @escaping @Sendable (Int) async throws -> ObjectList<T>) {

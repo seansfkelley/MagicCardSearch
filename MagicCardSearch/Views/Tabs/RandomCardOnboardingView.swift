@@ -152,18 +152,18 @@ private func quadDerivative(at t: CGFloat, p0: CGPoint, p1: CGPoint, p2: CGPoint
     return CGPoint(x: dx / len, y: dy / len)
 }
 
-extension CGPoint {
-    fileprivate var normal: CGPoint { CGPoint(x: -y, y: x) }
+fileprivate extension CGPoint {
+    var normal: CGPoint { CGPoint(x: -y, y: x) }
 
-    fileprivate static func + (lhs: CGPoint, rhs: CGPoint) -> CGPoint {
+    static func + (lhs: CGPoint, rhs: CGPoint) -> CGPoint {
         CGPoint(x: lhs.x + rhs.x, y: lhs.y + rhs.y)
     }
 
-    fileprivate static func - (lhs: CGPoint, rhs: CGPoint) -> CGPoint {
+    static func - (lhs: CGPoint, rhs: CGPoint) -> CGPoint {
         CGPoint(x: lhs.x - rhs.x, y: lhs.y - rhs.y)
     }
 
-    fileprivate static func * (lhs: CGPoint, rhs: CGFloat) -> CGPoint {
+    static func * (lhs: CGPoint, rhs: CGFloat) -> CGPoint {
         CGPoint(x: lhs.x * rhs, y: lhs.y * rhs)
     }
 }
