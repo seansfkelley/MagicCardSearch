@@ -8,16 +8,14 @@ private let logger = Logger(subsystem: "MagicCardSearch", category: "SearchBarVi
 struct SearchBarView: View {
     @Binding var searchState: SearchState
     @Binding var isFocused: Bool
-    let isAutocompleteLoading: Bool
 
     @FocusState private var fieldFocused: Bool
     @State private var showSymbolPicker = false
     private let textFieldDelegate: SearchTextFieldDelegate
 
-    init(searchState: Binding<SearchState>, isFocused: Binding<Bool>, isAutocompleteLoading: Bool) {
+    init(searchState: Binding<SearchState>, isFocused: Binding<Bool>) {
         self._searchState = searchState
         self._isFocused = isFocused
-        self.isAutocompleteLoading = isAutocompleteLoading
 
         // The only reason this is here is because UITextField.delegate is weak, so we need to
         // retain it as long as this view is alive.
@@ -38,7 +36,7 @@ struct SearchBarView: View {
     }
 
     var body: some View {
-        SearchBarLayout(icon: isAutocompleteLoading ? .progress : .visible) {
+        SearchBarLayout {
             TextField(
                 searchState.filters.isEmpty ? "Search for cards..." : "Add filters...",
                 text: $searchState.searchText,

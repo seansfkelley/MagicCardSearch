@@ -3,7 +3,6 @@ import SwiftUI
 struct SearchBarAndPillsView: View {
     @Binding var searchState: SearchState
     @Binding var isFocused: Bool
-    let isAutocompleteLoading: Bool
 
     @State var showWarningsPopover: Bool = false
     @Namespace private var animation
@@ -58,7 +57,6 @@ struct SearchBarAndPillsView: View {
                 SearchBarView(
                     searchState: $searchState,
                     isFocused: $isFocused,
-                    isAutocompleteLoading: isAutocompleteLoading,
                 )
             }
             .contentShape(Rectangle())

@@ -2,7 +2,6 @@ import SwiftUI
 
 struct SearchBarLayout<Content: View>: View {
     enum IconVisibility {
-        case progress
         case hidden
         case visible
         case opacity(CGFloat)
@@ -20,9 +19,6 @@ struct SearchBarLayout<Content: View>: View {
         HStack(spacing: 12) {
             Group {
                 switch icon {
-                case .progress:
-                    ProgressView()
-                        .controlSize(.small)
                 case .hidden:
                     Image(systemName: "magnifyingglass")
                         .hidden()

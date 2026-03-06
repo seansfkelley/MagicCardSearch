@@ -16,7 +16,6 @@ private extension SearchHistoryEntry {
 struct SearchTabView: View {
     @Binding var searchState: SearchState
 
-    @State private var suggestionLoadingState = DebouncedLoadingState()
     @State private var showSearchSheet = false
     @State private var showDisplayOptionsSheet = false
     @State private var pendingSearchConfig: SearchConfiguration?
@@ -82,7 +81,6 @@ struct SearchTabView: View {
         .sheet(isPresented: $showSearchSheet) {
             SearchSheetView(
                 searchState: $searchState,
-                suggestionLoadingState: $suggestionLoadingState,
                 isSearchBarFocused: $isSearchBarFocused,
             )
         }
@@ -112,7 +110,6 @@ private struct SearchSheetView: View {
     @Environment(\.dismiss) private var dismiss
 
     @Binding var searchState: SearchState
-    @Binding var suggestionLoadingState: DebouncedLoadingState
     @Binding var isSearchBarFocused: Bool
 
     @State private var showSyntaxReference = false
@@ -121,13 +118,11 @@ private struct SearchSheetView: View {
         NavigationStack {
             AutocompleteView(
                 searchState: $searchState,
-                suggestionLoadingState: $suggestionLoadingState,
             )
             .safeAreaInset(edge: .bottom) {
                 SearchBarAndPillsView(
                     searchState: $searchState,
                     isFocused: $isSearchBarFocused,
-                    isAutocompleteLoading: suggestionLoadingState.isLoadingDebounced,
                 )
             }
             .toolbar {

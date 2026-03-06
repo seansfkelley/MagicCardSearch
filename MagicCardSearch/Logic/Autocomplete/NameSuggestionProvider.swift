@@ -1,7 +1,8 @@
 import ScryfallKit
 import OSLog
+import FuzzyMatch
 
-private let logger = Logger(subsystem: "MagicCardSearch", category: "ScryfallCardNameFetcher")
+private let logger = Logger(subsystem: "MagicCardSearch", category: "NameSuggestionProvider")
 
 struct NameSuggestion: Equatable, Hashable, Sendable, ScorableSuggestion {
     let filter: FilterTerm
@@ -10,39 +11,15 @@ struct NameSuggestion: Equatable, Hashable, Sendable, ScorableSuggestion {
     let suggestionLength: Int
 }
 
-protocol CardNameFetcher: Sendable {
-    func fetch(_ query: String) async -> [String]
-}
-
-struct ScryfallCardNameFetcher: CardNameFetcher {
-    func fetch(_ query: String) async -> [String] {
-        do {
-            let client = ScryfallClient(logger: logger)
-            let catalog = try await client.getCardNameAutocomplete(query: query)
-            return catalog.data
-        } catch {
-            // Swallow errors.
-            return []
-        }
-    }
-}
-
+@MainActor
 struct NameSuggestionProvider {
-    private let debouncedFetch: Debounce<String, [String]>
-    
-    init(fetcher: CardNameFetcher = ScryfallCardNameFetcher(), debounce: Duration = .milliseconds(300)) {
-        self.debouncedFetch = Debounce({ query in
-            await fetcher.fetch(query)
-        }, for: debounce)
-    }
-    
-    func getSuggestions(for partial: PartialFilterTerm, limit: Int) async -> [NameSuggestion] {
-        await debouncedFetch.cancel()
-        
+    let scryfallCatalogs: ScryfallCatalogs
+
+    func getSuggestions(for partial: PartialFilterTerm, limit: Int) -> [NameSuggestion] {
         guard limit > 0 else {
             return []
         }
-        
+
         let name: String
         let comparison: Comparison?
         
@@ -65,13 +42,25 @@ struct NameSuggestionProvider {
         guard name.count >= 2 else {
             return []
         }
-        
-        let suggestions = await debouncedFetch(name) ?? []
-        
-        return Array(suggestions
+
+        let matcher = FuzzyMatcher()
+        let query = matcher.prepare(name)
+        var buffer = matcher.makeBuffer()
+
+        // Without the type annotations on this line, the compiler loops forever. Really. Try below:
+        //   let results = (scryfallCatalogs.cardNames ?? []).compactMap { candidate in
+        let results: [(String, ScoredMatch)] = (scryfallCatalogs.cardNames ?? []).compactMap { candidate -> (String, ScoredMatch)? in
+            guard let match = matcher.score(candidate, against: query, buffer: &buffer) else {
+                return nil
+            }
+            return (candidate, match)
+        }
+
+        return Array(results
+            .sorted { $0.1.score > $1.1.score }
             .lazy
             .prefix(limit)
-            .map { cardName in
+            .map { cardName, match in
                 let filter: FilterTerm
                 if let comparison {
                     filter = .basic(partial.polarity, "name", comparison, cardName)

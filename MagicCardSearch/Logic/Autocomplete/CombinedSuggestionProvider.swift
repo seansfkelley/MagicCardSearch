@@ -58,8 +58,6 @@ class CombinedSuggestionProvider {
     let reverseEnumerationProvider: ReverseEnumerationSuggestionProvider
     let nameProvider: NameSuggestionProvider
     
-    let loadingState = DebouncedLoadingState()
-    
     init(
         pinnedFilter: PinnedFilterSuggestionProvider,
         filterHistory: FilterHistorySuggestionProvider,
@@ -77,7 +75,6 @@ class CombinedSuggestionProvider {
     }
 
     func getSuggestions(for searchTerm: String, existingFilters: Set<FilterQuery<FilterTerm>>) -> AsyncStream<[Suggestion]> {
-        let currentTaskId = loadingState.start()
         let partial = PartialFilterTerm.from(searchTerm)
         
         return AsyncStream<[Suggestion]> { continuation in
@@ -90,7 +87,9 @@ class CombinedSuggestionProvider {
             )
             allSuggestions.append(contentsOf: pinnedSuggestions.map { Suggestion.pinned($0) })
             excludedFilters.formUnion(pinnedSuggestions.map { $0.filter })
-            
+
+            continuation.yield(self.scoreSuggestions(allSuggestions, !searchTerm.isEmpty))
+
             let filterHistorySuggestions = self.filterHistoryProvider.getSuggestions(
                 for: searchTerm,
                 excluding: excludedFilters,
@@ -99,19 +98,25 @@ class CombinedSuggestionProvider {
             allSuggestions.append(contentsOf: filterHistorySuggestions.map { Suggestion.filterHistory($0) })
             excludedFilters.formUnion(filterHistorySuggestions.map { $0.filter })
 
+            continuation.yield(self.scoreSuggestions(allSuggestions, !searchTerm.isEmpty))
+
             let filterSuggestions = self.filterTypeProvider.getSuggestions(
                 for: partial,
                 limit: 4
             )
             allSuggestions.append(contentsOf: filterSuggestions.map { Suggestion.filter($0) })
-            
+
+            continuation.yield(self.scoreSuggestions(allSuggestions, !searchTerm.isEmpty))
+
             let enumerationSuggestions = self.enumerationProvider.getSuggestions(
                 for: partial,
                 excluding: excludedFilters,
                 limit: 40
             )
             allSuggestions.append(contentsOf: enumerationSuggestions.map { Suggestion.enumeration($0) })
-            
+
+            continuation.yield(self.scoreSuggestions(allSuggestions, !searchTerm.isEmpty))
+
             let reverseEnumerationSuggestions = self.reverseEnumerationProvider.getSuggestions(
                 for: partial,
                 limit: 20
@@ -120,30 +125,21 @@ class CombinedSuggestionProvider {
             
             continuation.yield(self.scoreSuggestions(allSuggestions, !searchTerm.isEmpty))
 
-            guard loadingState.isStillCurrent(id: currentTaskId) else {
-                continuation.finish()
-                return
-            }
-                
-            Task {
-                let nameSuggestions = await self.nameProvider.getSuggestions(
-                    for: partial,
-                    limit: 10,
-                )
-                
-                guard loadingState.isStillCurrent(id: currentTaskId), !Task.isCancelled else {
-                    continuation.finish()
-                    return
-                }
-                
-                allSuggestions.append(contentsOf: nameSuggestions.map { Suggestion.name($0) })
+            let nameSuggestions = self.nameProvider.getSuggestions(
+                for: partial,
+                limit: 10,
+            )
+            allSuggestions.append(contentsOf: nameSuggestions.map { Suggestion.name($0) })
 
-                continuation.yield(self.scoreSuggestions(allSuggestions, !searchTerm.isEmpty))
+            continuation.yield(self.scoreSuggestions(allSuggestions, !searchTerm.isEmpty))
 
-                loadingState.stop(for: currentTaskId)
-                
-                continuation.finish()
-            }
+            continuation.finish()
+
+            // TODO: Below, I guess.
+//            guard loadingState.isStillCurrent(id: currentTaskId) else {
+//                continuation.finish()
+//                return
+//            }
         }
     }
     

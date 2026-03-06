@@ -5,7 +5,6 @@ struct AutocompleteView: View {
     @Environment(HistoryAndPinnedStore.self) private var historyAndPinnedStore
 
     @Binding var searchState: SearchState
-    @Binding var suggestionLoadingState: DebouncedLoadingState
 
     @State private var suggestions: [Suggestion] = []
     @State private var nonce: Int = 0
