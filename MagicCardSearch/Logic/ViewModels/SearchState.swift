@@ -54,7 +54,6 @@ class SearchState {
             pinnedFilter: PinnedFilterSuggestionProvider(),
             filterHistory: FilterHistorySuggestionProvider(),
             filterType: FilterTypeSuggestionProvider(),
-            enumeration: EnumerationSuggestionProvider(scryfallCatalogs: scryfallCatalogs),
             reverseEnumeration: ReverseEnumerationSuggestionProvider(scryfallCatalogs: scryfallCatalogs),
             scryfallCatalogs: scryfallCatalogs,
         )

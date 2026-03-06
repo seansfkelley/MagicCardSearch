@@ -54,7 +54,7 @@ class CombinedSuggestionProvider {
     let pinnedFilterProvider: PinnedFilterSuggestionProvider
     let filterHistoryProvider: FilterHistorySuggestionProvider
     let filterTypeProvider: FilterTypeSuggestionProvider
-    let enumerationProvider: EnumerationSuggestionProvider
+    let enumerationProvider = EnumerationSuggestionProvider()
     let reverseEnumerationProvider: ReverseEnumerationSuggestionProvider
     let scryfallCatalogs: ScryfallCatalogs
     let nameProvider = NameSuggestionProvider()
@@ -63,14 +63,12 @@ class CombinedSuggestionProvider {
         pinnedFilter: PinnedFilterSuggestionProvider,
         filterHistory: FilterHistorySuggestionProvider,
         filterType: FilterTypeSuggestionProvider,
-        enumeration: EnumerationSuggestionProvider,
         reverseEnumeration: ReverseEnumerationSuggestionProvider,
         scryfallCatalogs: ScryfallCatalogs
     ) {
         self.pinnedFilterProvider = pinnedFilter
         self.filterHistoryProvider = filterHistory
         self.filterTypeProvider = filterType
-        self.enumerationProvider = enumeration
         self.reverseEnumerationProvider = reverseEnumeration
         self.scryfallCatalogs = scryfallCatalogs
     }
@@ -112,11 +110,14 @@ class CombinedSuggestionProvider {
 
             continuation.yield(self.scoreSuggestions(allSuggestions, hasSearchTerm))
 
-            let enumerationSuggestions = self.enumerationProvider.getSuggestions(
-                for: partial,
-                excluding: excludedFilters,
-                limit: 40
-            )
+            let enumerationSuggestions = await Task.detached {
+                await self.enumerationProvider.getSuggestions(
+                    for: partial,
+                    catalogData: EnumerationCatalogData(scryfallCatalogs: self.scryfallCatalogs),
+                    excluding: excludedFilters,
+                    limit: 40,
+                )
+            }.value
             allSuggestions.append(contentsOf: enumerationSuggestions.map { Suggestion.enumeration($0) })
 
             continuation.yield(self.scoreSuggestions(allSuggestions, hasSearchTerm))

@@ -1,19 +1,15 @@
 import Testing
 import Foundation
-import SQLiteData
-import DependenciesTestSupport
 @testable import MagicCardSearch
 
-@Suite(.dependency(\.defaultDatabase, try appDatabase()))
-@MainActor
+private let emptyCatalogData = EnumerationCatalogData(
+    catalogs: [:],
+    sets: nil,
+    artTags: nil,
+    oracleTags: nil
+)
+
 struct EnumerationSuggestionProviderTests {
-    @Dependency(\.defaultDatabase) var database
-    var provider: EnumerationSuggestionProvider!
-
-    init() {
-        provider = EnumerationSuggestionProvider(scryfallCatalogs: ScryfallCatalogs(database: database))
-    }
-
     @Test<[(PartialFilterTerm, [EnumerationSuggestion])]>("getSuggestions", arguments: [
         (
             // gives all values, in alphabetical order, if no value part is given
@@ -114,8 +110,9 @@ struct EnumerationSuggestionProviderTests {
             [],
         ),
     ])
-    func getSuggestions(partial: PartialFilterTerm, expected: [EnumerationSuggestion]) {
-        let actual = provider.getSuggestions(for: partial, excluding: [], limit: 100)
+    func getSuggestions(partial: PartialFilterTerm, expected: [EnumerationSuggestion]) async {
+        let provider = EnumerationSuggestionProvider()
+        let actual = await provider.getSuggestions(for: partial, catalogData: emptyCatalogData, excluding: [], limit: 100)
         #expect(actual == expected)
     }
 }
