@@ -1,5 +1,18 @@
 import SwiftUI
 
+extension Suggestion {
+    var icon: String {
+        switch source {
+        case .pinnedFilter: "pin.fill"
+        case .historyFilter: "clock.arrow.circlepath"
+        case .filterType: "line.3.horizontal.decrease.circle"
+        case .enumeration: "list.bullet.circle"
+        case .reverseEnumeration: "line.3.horizontal.decrease.circle"
+        case .name: "textformat.abc"
+        }
+    }
+}
+
 struct AutocompleteView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(HistoryAndPinnedStore.self) private var historyAndPinnedStore
@@ -104,7 +117,7 @@ struct AutocompleteView: View {
 
     @ViewBuilder
     private func filterRow(_ suggestion: Suggestion) -> some View {
-        let row = BasicRowView(suggestion: suggestion) { filter in
+        let row = FilterRowView(suggestion: suggestion) { filter in
             if suggestion.source == .name {
                 addTopLevelFilter(filter)
                 searchState.performSearch()
@@ -212,19 +225,6 @@ struct AutocompleteView: View {
             Label("Pin", systemImage: "pin")
         }
         .tint(.orange)
-    }
-}
-
-extension Suggestion {
-    var icon: String {
-        switch source {
-        case .pinnedFilter: "pin.fill"
-        case .historyFilter: "clock.arrow.circlepath"
-        case .filterType: "line.3.horizontal.decrease.circle"
-        case .enumeration: "list.bullet.circle"
-        case .reverseEnumeration: "line.3.horizontal.decrease.circle"
-        case .name: "textformat.abc"
-        }
     }
 }
 

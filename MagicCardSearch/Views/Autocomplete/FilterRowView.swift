@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct BasicRowView: View {
+struct FilterRowView: View {
     var suggestion: Suggestion
     let onTap: (FilterQuery<FilterTerm>) -> Void
 
