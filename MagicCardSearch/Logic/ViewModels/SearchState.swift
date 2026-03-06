@@ -56,7 +56,7 @@ class SearchState {
             filterType: FilterTypeSuggestionProvider(),
             enumeration: EnumerationSuggestionProvider(scryfallCatalogs: scryfallCatalogs),
             reverseEnumeration: ReverseEnumerationSuggestionProvider(scryfallCatalogs: scryfallCatalogs),
-            name: NameSuggestionProvider(scryfallCatalogs: scryfallCatalogs),
+            scryfallCatalogs: scryfallCatalogs,
         )
     }
 

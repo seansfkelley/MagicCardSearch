@@ -1,20 +1,6 @@
 import Testing
 @testable import MagicCardSearch
 
-// MARK: - Mock Fetcher
-
-struct MockCardNameFetcher: CardNameFetcher {
-    let results: [String]
-
-    init(results: [String] = []) {
-        self.results = results
-    }
-
-    func fetch(_ query: String) async -> [String] {
-        return results
-    }
-}
-
 // MARK: - Tests
 
 struct NameSuggestionProviderTests {
@@ -211,17 +197,15 @@ struct NameSuggestionProviderTests {
             ]
         ),
     ])
-    func getSuggestions(testCase: TestCase) async {
-        let fetcher = MockCardNameFetcher(results: testCase.mockResults)
-        let actual = await NameSuggestionProvider(fetcher: fetcher).getSuggestions(for: testCase.partial, limit: Int.max)
+    func getSuggestions(testCase: TestCase) {
+        let actual = getNameSuggestions(for: testCase.partial, cardNames: testCase.mockResults, limit: Int.max)
         #expect(actual == testCase.expected, "\(testCase.description)")
     }
 
     @Test("properly assigns match ranges when the search term overlaps with the 'name' filter")
-    func getSuggestions() async {
-        let fetcher = MockCardNameFetcher(results: ["Nameless Race"])
+    func getSuggestionsNameOverlap() {
         let partial = PartialFilterTerm(polarity: .positive, content: .filter("name", .including, .bare("name")))
-        let actual = await NameSuggestionProvider(fetcher: fetcher).getSuggestions(for: partial, limit: Int.max)
+        let actual = getNameSuggestions(for: partial, cardNames: ["Nameless Race"], limit: Int.max)
         withKnownIssue {
             #expect(actual == [
                 NameSuggestion(
