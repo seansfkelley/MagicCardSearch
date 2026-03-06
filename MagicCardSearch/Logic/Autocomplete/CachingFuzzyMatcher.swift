@@ -17,6 +17,7 @@ private func normalizeForCache(_ string: String) -> String {
 
 struct CachingFuzzyMatcher {
     private let cache: MemoryStorage<String, [String]>
+    private let matcher = FuzzyMatcher()
 
     init(countLimit: UInt) {
         cache = MemoryStorage<String, [String]>(
@@ -38,7 +39,6 @@ struct CachingFuzzyMatcher {
             candidates
         }
 
-        let matcher = FuzzyMatcher()
         let query = matcher.prepare(query)
         var buffer = matcher.makeBuffer()
 

@@ -1,9 +1,6 @@
 import Foundation
 import ScryfallKit
-import OSLog
 import Algorithms
-import Cache
-import FuzzyMatch
 
 struct EnumerationSuggestion: Equatable, Hashable, Sendable, ScorableSuggestion {
     let filter: FilterTerm
@@ -13,25 +10,19 @@ struct EnumerationSuggestion: Equatable, Hashable, Sendable, ScorableSuggestion 
 }
 
 struct EnumerationCatalogData: Sendable {
-    let catalogs: [String: [String]]
+    let catalogs: [Catalog.`Type`: [String]]
     let sets: [SetCode: MTGSet]?
     let artTags: [String]?
     let oracleTags: [String]?
 
-    init(catalogs: [String: [String]], sets: [SetCode: MTGSet]?, artTags: [String]?, oracleTags: [String]?) {
-        self.catalogs = catalogs
-        self.sets = sets
-        self.artTags = artTags
-        self.oracleTags = oracleTags
-    }
-
     @MainActor
     init(scryfallCatalogs: ScryfallCatalogs) {
         typealias CatalogType = Catalog.`Type`
-        var catalogs = [String: [String]]()
+
+        var catalogs = [CatalogType: [String]]()
         for type in CatalogType.allCases {
             if let data = scryfallCatalogs[type] {
-                catalogs[type.rawValue] = data
+                catalogs[type] = data
             }
         }
         self.catalogs = catalogs
@@ -40,42 +31,20 @@ struct EnumerationCatalogData: Sendable {
         self.oracleTags = scryfallCatalogs.oracleTags
     }
 
-    subscript(catalogType: Catalog.`Type`) -> [String]? {
-        catalogs[catalogType.rawValue]
+    func combined(_ catalogTypes: Catalog.`Type`...) -> [String]? {
+        var result: [String] = []
+        for type in catalogTypes {
+            guard let data = catalogs[type] else {
+                return nil
+            }
+            result.append(contentsOf: data)
+        }
+        return result
     }
 }
 
-private enum SourceCacheKey: Hashable {
-    case type
-    case subtype
-    case set
-    case block
-    case keyword
-    case watermark
-    case artist
-    case artTag
-    case oracleTag
-}
-
-private struct QueryCacheKey: Hashable {
-    let filterCanonicalName: String
-    let normalizedQuery: String
-}
-
-private let logger = Logger(subsystem: "MagicCardSearch", category: "EnumerationSuggestionProvider")
-
-private func normalizeForCache(_ string: String) -> String {
-    string.lowercased().replacing(/[^a-z]/, with: "")
-}
-
 actor EnumerationSuggestionProvider {
-    private let sourceCache = StrongMemoryStorage<SourceCacheKey, [String]>(
-        config: .init(expiry: .never, countLimit: 100),
-    )
-
-    private let queryCache = StrongMemoryStorage<QueryCacheKey, [String]>(
-        config: .init(expiry: .never, countLimit: 100),
-    )
+    private var matchers = [String: CachingFuzzyMatcher]()
 
     func getSuggestions(for partial: PartialFilterTerm, catalogData: EnumerationCatalogData, excluding excludedFilters: Set<FilterQuery<FilterTerm>>, limit: Int) -> [EnumerationSuggestion] {
         guard limit > 0,
@@ -85,64 +54,31 @@ actor EnumerationSuggestionProvider {
             return []
         }
 
-        let value = partialValue.incompleteContent
-        let normalizedValue = normalizeForCache(value)
-
-        // Find all source candidates for this filter type
-        let allCandidates: [String]
-        if filterType.canonicalName == "type" {
-            let typeOptions = getCachedOptions(for: .type, catalogData: catalogData) ?? []
-            let subtypeOptions = getCachedOptions(for: .subtype, catalogData: catalogData) ?? []
-            allCandidates = typeOptions + subtypeOptions
-        } else if let sourceCacheKey = Self.filterCacheKey(for: filterType.canonicalName) {
-            allCandidates = getCachedOptions(for: sourceCacheKey, catalogData: catalogData) ?? []
+        let allCandidates = if let dynamicOptions = getDynamicOptions(for: filterType, from: catalogData) {
+            dynamicOptions
         } else if let staticOptions = filterType.enumerationValues {
-            allCandidates = Array(staticOptions.all(sorted: .alphabetically))
+            Array(staticOptions.all(sorted: .alphabetically))
         } else {
-            allCandidates = []
+            [String]()
         }
 
-        // Use query cache prefix narrowing to find the best candidate set
-        let candidates: [String]
-        let cacheKeys = queryCache.allKeys.filter { $0.filterCanonicalName == filterType.canonicalName }
-        let bestPrefix = cacheKeys
-            .filter { normalizedValue.hasPrefix($0.normalizedQuery) }
-            .max(by: { $0.normalizedQuery.count < $1.normalizedQuery.count })
-
-        if let bestPrefix, let cached = try? queryCache.entry(forKey: bestPrefix).object {
-            candidates = cached
-        } else {
-            candidates = allCandidates
+        guard !allCandidates.isEmpty else {
+            return []
         }
+
+        let value = partialValue.incompleteContent
 
         let matched: [String]
         if value.isEmpty {
-            matched = candidates.sorted(by: { $0.localizedStandardCompare($1) == .orderedAscending })
+            matched = allCandidates.sorted { $0.localizedStandardCompare($1) == .orderedAscending }
         } else {
-            let matcher = FuzzyMatcher()
-            let query = matcher.prepare(value)
-            var buffer = matcher.makeBuffer()
-
-            let start = ContinuousClock().now
-            let results: [(String, ScoredMatch)] = candidates.compactMap { candidate -> (String, ScoredMatch)? in
-                guard let match = matcher.score(candidate, against: query, buffer: &buffer) else {
-                    return nil
-                }
-                return (candidate, match)
-            }
-            let elapsed = ContinuousClock().now - start
-            logger.info("Fuzzy match over \(candidates.count) candidates took \(elapsed)")
-
-            let start2 = ContinuousClock().now
-            let sorted = results.sorted { $0.1.score > $1.1.score }
-            let elapsed2 = ContinuousClock().now - start2
-            logger.info("Sorting \(results.count) results took \(elapsed2)")
-
-            matched = sorted.map(\.0)
+            let matcher = matchers[filterType.canonicalName] ?? {
+                let newMatcher = CachingFuzzyMatcher(countLimit: 100)
+                matchers[filterType.canonicalName] = newMatcher
+                return newMatcher
+            }()
+            matched = matcher.match(value, in: allCandidates).map(\.0)
         }
-
-        let cacheKey = QueryCacheKey(filterCanonicalName: filterType.canonicalName, normalizedQuery: normalizedValue)
-        queryCache.setObject(matched, forKey: cacheKey)
 
         let allResults = matched.map { candidate in
             let filter = FilterTerm.basic(partial.polarity, filterTypeName.lowercased(), comparison, candidate)
@@ -162,73 +98,48 @@ actor EnumerationSuggestionProvider {
         )
     }
 
-    // MARK: - Source Cache Management
+    // MARK: - Catalog Options
 
-    private static func filterCacheKey(for canonicalName: String) -> SourceCacheKey? {
-        switch canonicalName {
-        case "set": .set
-        case "block": .block
-        case "keyword": .keyword
-        case "watermark": .watermark
-        case "artist": .artist
-        case "art": .artTag
-        case "function": .oracleTag
-        default: nil
-        }
-    }
-
-    private func getCachedOptions(for key: SourceCacheKey, catalogData: EnumerationCatalogData) -> [String]? {
-        if let value = try? sourceCache.entry(forKey: key) {
-            return value.object
-        } else if let value = getOptions(for: key, catalogData: catalogData) {
-            sourceCache.setObject(value, forKey: key)
-            return value
-        } else {
-            return nil
-        }
-    }
-
-    private func getOptions(for key: SourceCacheKey, catalogData: EnumerationCatalogData) -> [String]? {
-        switch key {
-        case .type:
-            getCatalogData(catalogData, .supertypes, .cardTypes)
-        case .subtype:
-            getCatalogData(catalogData, .artifactTypes, .battleTypes, .creatureTypes, .enchantmentTypes, .landTypes, .planeswalkerTypes, .spellTypes)
-        case .set:
+    private func getDynamicOptions(for filter: ScryfallFilterType, from catalogData: EnumerationCatalogData) -> [String]? {
+        switch filter.canonicalName {
+        case "type":
+            catalogData.combined(
+                .supertypes,
+                .cardTypes,
+                .artifactTypes,
+                .battleTypes,
+                .creatureTypes,
+                .enchantmentTypes,
+                .landTypes,
+                .planeswalkerTypes,
+                .spellTypes,
+            )
+        case "set":
             catalogData.sets.map {
                 $0.values
                     .filter { !AutocompleteConstants.ignoredSetTypes.contains($0.setType) }
                     .flatMap { [$0.code.uppercased(), $0.name] }
                     .map { $0.replacing(/[^a-zA-Z0-9 ]/, with: "") }
             }
-        case .block:
+        case "block":
             catalogData.sets.map {
                 $0.values
                     .filter { !AutocompleteConstants.ignoredSetTypes.contains($0.setType) }
                     .compactMap { $0.block?.replacing(/[^a-zA-Z0-9 ]/, with: "") }
                     .uniqued()
             }
-        case .keyword:
-            getCatalogData(catalogData, .keywordAbilities).map { $0.map { $0.lowercased() } }
-        case .watermark:
-            getCatalogData(catalogData, .watermarks)
-        case .artist:
-            getCatalogData(catalogData, .artistNames)
-        case .artTag:
+        case "keyword":
+            catalogData.catalogs[.keywordAbilities].map { $0.map { $0.lowercased() } }
+        case "watermark":
+            catalogData.catalogs[.watermarks]
+        case "artist":
+            catalogData.catalogs[.artistNames]
+        case "art":
             catalogData.artTags
-        case .oracleTag:
+        case "function":
             catalogData.oracleTags
+        default:
+            nil
         }
-    }
-
-    private func getCatalogData(_ catalogData: EnumerationCatalogData, _ catalogTypes: Catalog.`Type`...) -> [String]? {
-        var combined: [String] = []
-        for type in catalogTypes {
-            guard let data = catalogData[type] else {
-                return nil
-            }
-            combined.append(contentsOf: data)
-        }
-        return combined
     }
 }

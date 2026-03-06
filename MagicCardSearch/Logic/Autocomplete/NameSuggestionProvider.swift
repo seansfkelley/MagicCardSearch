@@ -1,9 +1,4 @@
 import ScryfallKit
-import OSLog
-import FuzzyMatch
-import Cache
-
-private let logger = Logger(subsystem: "MagicCardSearch", category: "NameSuggestionProvider")
 
 struct NameSuggestion: Equatable, Hashable, Sendable, ScorableSuggestion {
     let filter: FilterTerm
@@ -12,14 +7,8 @@ struct NameSuggestion: Equatable, Hashable, Sendable, ScorableSuggestion {
     let suggestionLength: Int
 }
 
-private func normalizeForCache(_ string: String) -> String {
-    string.lowercased().replacing(/[^a-z]/, with: "")
-}
-
 actor NameSuggestionProvider {
-    private let cache = MemoryStorage<String, [String]>(
-        config: .init(expiry: .never, countLimit: 100)
-    )
+    private let matcher = CachingFuzzyMatcher(countLimit: 100)
 
     func getSuggestions(for partial: PartialFilterTerm, in cardNames: [String], limit: Int) -> [NameSuggestion] {
         guard limit > 0 else {
@@ -49,44 +38,7 @@ actor NameSuggestionProvider {
             return []
         }
 
-        let normalizedName = normalizeForCache(name)
-        let candidates: [String]
-        let cacheKeys = cache.allKeys
-        let bestPrefix = cacheKeys
-            .filter { normalizedName.hasPrefix($0) }
-            .max(by: { $0.count < $1.count })
-
-        if let bestPrefix, let cached = try? cache.entry(forKey: bestPrefix).object {
-            candidates = cached
-        } else {
-            candidates = cardNames
-        }
-
-        let matcher = FuzzyMatcher()
-        let query = matcher.prepare(name)
-        var buffer = matcher.makeBuffer()
-
-        // Without the type annotations on this line, the compiler loops forever. Really. Try below:
-        //   let results = candidates.compactMap { candidate in
-        let start = ContinuousClock().now
-        let results: [(String, ScoredMatch)] = candidates.compactMap { candidate -> (String, ScoredMatch)? in
-            guard let match = matcher.score(candidate, against: query, buffer: &buffer) else {
-                return nil
-            }
-            return (candidate, match)
-        }
-        let elapsed = ContinuousClock().now - start
-        logger.info("Fuzzy match over \(candidates.count) names took \(elapsed)")
-
-        let start2 = ContinuousClock().now
-        let sorted = results.sorted { $0.1.score > $1.1.score }
-        let elapsed2 = ContinuousClock().now - start2
-        logger.info("Sorting \(results.count) names took \(elapsed2)")
-
-        let matchedNames = sorted.map { $0.0 }
-        cache.setObject(matchedNames, forKey: normalizedName)
-
-        return Array(sorted
+        return Array(matcher.match(name, in: cardNames)
             .lazy
             .prefix(limit)
             .map { cardName, match in
