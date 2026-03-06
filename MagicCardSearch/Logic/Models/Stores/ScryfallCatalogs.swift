@@ -145,7 +145,7 @@ class ScryfallCatalogs {
         let client = ScryfallClient(logger: logger)
 
         for type in CatalogType.allCases {
-            await fetch(type.rawValue) {
+            await fetch(type.rawValue, expiringAfterDays: type == .cardNames ? 7 : 30) {
                 try await client.getCatalog(catalogType: type).data
             }
         }
