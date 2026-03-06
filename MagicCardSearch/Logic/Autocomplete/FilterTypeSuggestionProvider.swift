@@ -76,7 +76,7 @@ struct FilterTypeSuggestionProvider {
             let displayName = partial.polarity == .negative ? "-\(candidate)" : candidate
             return Suggestion2(
                 source: .filterType,
-                content: .filterType(WithHighlightedString(value: (partial.polarity, filterType), string: displayName, searchTerm: searchTerm)),
+                content: .filterType(WithHighlightedString(value: FilterTypeMatch(polarity: partial.polarity, filterType: filterType), string: displayName, searchTerm: searchTerm)),
                 score: 0,
             )
         })

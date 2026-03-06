@@ -16,7 +16,7 @@ protocol ScorableSuggestion {
     var suggestionLength: Int { get }
 }
 
-struct WithHighlightedString<T: Sendable> {
+struct WithHighlightedString<T: Sendable & Hashable>: Hashable {
     let value: T
     let string: String
     lazy var highlights = guessHighlights()
@@ -59,14 +59,19 @@ struct WithHighlightedString<T: Sendable> {
     }
 }
 
+struct FilterTypeMatch: Hashable, Sendable {
+    let polarity: Polarity
+    let filterType: ScryfallFilterType
+}
+
 struct Suggestion2 {
     enum Source {
         case pinnedFilter, historyFilter, filterType, enumeration, reverseEnumeration, name
     }
 
-    enum Content {
+    enum Content: Hashable {
         case filter(WithHighlightedString<FilterQuery<FilterTerm>>)
-        case filterType(WithHighlightedString<(Polarity, ScryfallFilterType)>)
+        case filterType(WithHighlightedString<FilterTypeMatch>)
         case filterParts(Polarity, ScryfallFilterType, WithHighlightedString<String>)
     }
 
@@ -168,10 +173,10 @@ class CombinedSuggestionProvider {
                     }
                 }
 
-                var allSuggestions: [Suggestion2] = []
+                var suggestions: [Suggestion2] = []
                 for await batch in group {
-                    allSuggestions.append(contentsOf: batch)
-                    continuation.yield(allSuggestions.sorted { $0.score > $1.score })
+                    suggestions.append(contentsOf: batch)
+                    continuation.yield(sortCombinedSuggestions(suggestions))
                 }
                 continuation.finish()
             }
@@ -180,5 +185,23 @@ class CombinedSuggestionProvider {
         continuation.onTermination = { _ in task.cancel() }
 
         return stream
+    }
+}
+
+private func sortCombinedSuggestions(_ suggestions: [Suggestion2]) -> [Suggestion2] {
+    var seen = Set<Suggestion2.Content>()
+    return suggestions
+        .sorted { $0.biasedScore > $1.biasedScore }
+        .filter { seen.insert($0.content).inserted }
+}
+
+private extension Suggestion2 {
+    var biasedScore: Double {
+        let bias: Double = switch source {
+        case .pinnedFilter: 1
+        case .historyFilter: -1
+        case .filterType, .enumeration, .reverseEnumeration, .name: 0
+        }
+        return score + bias
     }
 }

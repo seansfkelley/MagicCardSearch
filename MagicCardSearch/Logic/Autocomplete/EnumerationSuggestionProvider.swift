@@ -57,7 +57,7 @@ actor EnumerationSuggestionProvider {
         let allCandidates = if let dynamicOptions = getDynamicOptions(for: filterType, from: catalogData) {
             dynamicOptions
         } else if let staticOptions = filterType.enumerationValues {
-            Array(staticOptions.all(sorted: .alphabetically))
+            staticOptions
         } else {
             [String]()
         }

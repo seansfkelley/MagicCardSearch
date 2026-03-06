@@ -2,14 +2,14 @@ import Foundation
 
 // MARK: - Scryfall Filter Type
 
-struct ScryfallFilterType: Sendable {
-    enum ComparisonKinds: Sendable {
+struct ScryfallFilterType: Sendable, Equatable, Hashable {
+    enum ComparisonKinds: Sendable, Equatable, Hashable {
         case all, equality
     }
     
     let canonicalName: String
     let allNames: Set<String>
-    let enumerationValues: IndexedEnumerationValues<String>?
+    let enumerationValues: [String]?
     let comparisonKinds: ComparisonKinds
     
     init(
@@ -20,7 +20,7 @@ struct ScryfallFilterType: Sendable {
     ) {
         self.canonicalName = name
         self.allNames = Set([canonicalName]).union(aliases)
-        self.enumerationValues = enumerationValues.map { IndexedEnumerationValues($0, \.self) }
+        self.enumerationValues = enumerationValues?.sorted()
         self.comparisonKinds = comparisonKinds
     }
 }

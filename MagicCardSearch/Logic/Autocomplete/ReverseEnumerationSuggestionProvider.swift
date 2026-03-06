@@ -71,7 +71,7 @@ actor ReverseEnumerationSuggestionProvider {
                 continue
             }
 
-            for value in enumerationValues.all(sorted: .alphabetically) {
+            for value in enumerationValues {
                 valueToFilters[value, default: []].append(filterType)
             }
         }
