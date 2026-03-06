@@ -31,7 +31,11 @@ There have been some mild annoyances beyond the fact that it's slightly out of d
 
 ## On-device Name Autocomplete
 
-Scryfall's name-autocomplete API doesn't seem meaningfully better than what I can bang together using a list of strings, and since we Scryfall provides the complete list of card names in the same fashion as other catalogs I need for other purposes, there's no much reason to introduce network latency where not required to implement the feature. 30,000 names is small for pocket supercomputers.
+Scryfall's name-autocomplete API is perfectly competent, but doesn't bring any domain knowledge, so isn't any better than whatever string search feature I can come up with on my own.
+
+The FuzzyMatch library is insanely fast. A release build of the app gets ~5M iterations/sec (33,666 card names in 0.006535 seconds) which is not just faster than network but apparently-instantaneous to the user. (n.b. a debug build does the same in .360s, so optimization matters a LOT.)
+
+Given that I already have machinery in place to fetch catalogs from Scryfall, FuzzyMatch improves not just the UX but also keeps the implementation simpler since name autocomplete is the only supported autocomplete that would conceivably go to network (and therefore introduce a bunch of error handling and loading states).
 
 ## Caching
 

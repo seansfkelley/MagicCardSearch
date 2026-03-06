@@ -1,4 +1,5 @@
 import Foundation
+import FuzzyMatch
 import ScryfallKit
 
 struct ReverseEnumerationSuggestion: Equatable, Hashable, Sendable, ScorableSuggestion {
@@ -11,7 +12,7 @@ struct ReverseEnumerationSuggestion: Equatable, Hashable, Sendable, ScorableSugg
 }
 
 actor ReverseEnumerationSuggestionProvider {
-    private var matcher = CachingFuzzyMatcher(countLimit: 100)
+    private let matcher = FuzzyMatcher()
 
     func getSuggestions(for partial: PartialFilterTerm, catalogData: EnumerationCatalogData, limit: Int) -> [ReverseEnumerationSuggestion] {
         guard limit > 0,
@@ -32,7 +33,7 @@ actor ReverseEnumerationSuggestionProvider {
             return []
         }
 
-        let matched = matcher.match(searchTerm, in: allCandidates.map(\.0)).map(\.0)
+        let matched = matcher.matches(allCandidates.map(\.0), against: searchTerm).map(\.candidate)
 
         return Array(
             matched.lazy

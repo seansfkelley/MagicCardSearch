@@ -1,4 +1,5 @@
 import ScryfallKit
+import FuzzyMatch
 
 struct NameSuggestion: Equatable, Hashable, Sendable, ScorableSuggestion {
     let filter: FilterTerm
@@ -8,7 +9,7 @@ struct NameSuggestion: Equatable, Hashable, Sendable, ScorableSuggestion {
 }
 
 actor NameSuggestionProvider {
-    private let matcher = CachingFuzzyMatcher(countLimit: 100)
+    private let matcher = FuzzyMatcher()
 
     func getSuggestions(for partial: PartialFilterTerm, in cardNames: [String], limit: Int) -> [NameSuggestion] {
         guard limit > 0 else {
@@ -38,10 +39,11 @@ actor NameSuggestionProvider {
             return []
         }
 
-        return Array(matcher.match(name, in: cardNames)
+        return Array(matcher.matches(cardNames, against: name)
             .lazy
             .prefix(limit)
-            .map { cardName, match in
+            .map { result in
+                let cardName = result.candidate
                 let filter: FilterTerm
                 if let comparison {
                     filter = .basic(partial.polarity, "name", comparison, cardName)

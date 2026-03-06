@@ -1,4 +1,5 @@
 import Foundation
+import FuzzyMatch
 import ScryfallKit
 
 struct EnumerationSuggestion: Equatable, Hashable, Sendable, ScorableSuggestion {
@@ -43,7 +44,7 @@ struct EnumerationCatalogData: Sendable {
 }
 
 actor EnumerationSuggestionProvider {
-    private var matchers = [String: CachingFuzzyMatcher]()
+    private let matcher = FuzzyMatcher()
 
     func getSuggestions(for partial: PartialFilterTerm, catalogData: EnumerationCatalogData, excluding excludedFilters: Set<FilterQuery<FilterTerm>>, limit: Int) -> [EnumerationSuggestion] {
         guard limit > 0,
@@ -71,12 +72,7 @@ actor EnumerationSuggestionProvider {
         if value.isEmpty {
             matched = allCandidates.sorted { $0.localizedStandardCompare($1) == .orderedAscending }
         } else {
-            let matcher = matchers[filterType.canonicalName] ?? {
-                let newMatcher = CachingFuzzyMatcher(countLimit: 100)
-                matchers[filterType.canonicalName] = newMatcher
-                return newMatcher
-            }()
-            matched = matcher.match(value, in: allCandidates).map(\.0)
+            matched = matcher.matches(allCandidates, against: value).map(\.candidate)
         }
 
         let allResults = matched.map { candidate in
