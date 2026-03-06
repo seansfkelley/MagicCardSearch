@@ -171,7 +171,7 @@ class CombinedSuggestionProvider {
                 var allSuggestions: [Suggestion2] = []
                 for await batch in group {
                     allSuggestions.append(contentsOf: batch)
-                    continuation.yield(self.scoreSuggestions(allSuggestions, !searchTerm.isEmpty))
+                    continuation.yield(allSuggestions.sorted { $0.score > $1.score })
                 }
                 continuation.finish()
             }
@@ -180,13 +180,5 @@ class CombinedSuggestionProvider {
         continuation.onTermination = { _ in task.cancel() }
 
         return stream
-    }
-
-    private func scoreSuggestions(_ suggestions: [Suggestion2], _ hasSearchTerm: Bool) -> [Suggestion2] {
-        if hasSearchTerm {
-            suggestions.sorted { $0.score > $1.score }
-        } else {
-            suggestions.sorted { $0.score > $1.score }
-        }
     }
 }
