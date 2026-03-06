@@ -10,7 +10,7 @@ struct FilterHistorySuggestion: Equatable, Hashable, Sendable, ScorableSuggestio
 }
 
 struct FilterHistorySuggestionProvider {
-    func getSuggestions(for searchTerm: String, from filterHistoryEntries: [FilterHistoryEntry], limit: Int) -> [FilterHistorySuggestion] {
+    func getSuggestions(for searchTerm: String, from filterHistoryEntries: [FilterHistoryEntry], limit: Int) -> [Suggestion2] {
         guard limit > 0 else {
             return []
         }
@@ -28,20 +28,18 @@ struct FilterHistorySuggestionProvider {
                     let filterText = entry.filter.description
 
                     if trimmedSearchTerm.isEmpty {
-                        return FilterHistorySuggestion(
-                            filter: entry.filter,
-                            matchRange: nil,
-                            prefixKind: .none,
-                            suggestionLength: filterText.count,
+                        return Suggestion2(
+                            source: .historyFilter,
+                            content: .filter(WithHighlightedString(value: entry.filter, string: filterText, searchTerm: searchTerm)),
+                            score: 0,
                         )
                     }
 
                     if let match = matcher.score(filterText, against: query, buffer: &buffer) {
-                        return FilterHistorySuggestion(
-                            filter: entry.filter,
-                            matchRange: nil,
-                            prefixKind: .none,
-                            suggestionLength: filterText.count,
+                        return Suggestion2(
+                            source: .historyFilter,
+                            content: .filter(WithHighlightedString(value: entry.filter, string: filterText, searchTerm: searchTerm)),
+                            score: match.score,
                         )
                     }
 

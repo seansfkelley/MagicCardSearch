@@ -14,16 +14,16 @@ struct ReverseEnumerationSuggestion: Equatable, Hashable, Sendable, ScorableSugg
 actor ReverseEnumerationSuggestionProvider {
     private let matcher = FuzzyMatcher()
 
-    func getSuggestions(for partial: PartialFilterTerm, catalogData: EnumerationCatalogData, limit: Int) -> [ReverseEnumerationSuggestion] {
+    func getSuggestions(for partial: PartialFilterTerm, catalogData: EnumerationCatalogData, searchTerm: String, limit: Int) -> [Suggestion2] {
         guard limit > 0,
               case .name(let isExact, let partialTerm) = partial.content,
               !isExact else {
             return []
         }
 
-        let searchTerm = partialTerm.incompleteContent
+        let partialSearchTerm = partialTerm.incompleteContent
 
-        guard searchTerm.count >= 2 else {
+        guard partialSearchTerm.count >= 2 else {
             return []
         }
 
@@ -33,23 +33,19 @@ actor ReverseEnumerationSuggestionProvider {
             return []
         }
 
-        let matched = matcher.matches(allCandidates.map(\.0), against: searchTerm).map(\.candidate)
+        let matchResults = matcher.matches(allCandidates.map(\.0), against: partialSearchTerm)
 
         return Array(
-            matched.lazy
-                .flatMap { value in
-                    guard let filters = allCandidates.first(where: { $0.0 == value })?.1 else {
-                        return [ReverseEnumerationSuggestion]()
+            matchResults.lazy
+                .flatMap { result in
+                    guard let filters = allCandidates.first(where: { $0.0 == result.candidate })?.1 else {
+                        return [Suggestion2]()
                     }
-                    let range = value.range(of: searchTerm, options: .caseInsensitive)
-                    return filters.map { filter in
-                        ReverseEnumerationSuggestion(
-                            polarity: partial.polarity,
-                            canonicalFilterName: filter.canonicalName,
-                            value: value,
-                            valueMatchRange: range,
-                            prefixKind: value.range(of: searchTerm, options: [.caseInsensitive, .anchored]) == nil ? .none : .effective,
-                            suggestionLength: value.count,
+                    return filters.map { filterType in
+                        Suggestion2(
+                            source: .reverseEnumeration,
+                            content: .filterParts(partial.polarity, filterType, WithHighlightedString(value: result.candidate, string: result.candidate, searchTerm: searchTerm)),
+                            score: result.match.score,
                         )
                     }
                 }

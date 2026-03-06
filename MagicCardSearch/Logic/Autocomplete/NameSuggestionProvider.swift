@@ -11,7 +11,7 @@ struct NameSuggestion: Equatable, Hashable, Sendable, ScorableSuggestion {
 actor NameSuggestionProvider {
     private let matcher = FuzzyMatcher()
 
-    func getSuggestions(for partial: PartialFilterTerm, in cardNames: [String], limit: Int) -> [NameSuggestion] {
+    func getSuggestions(for partial: PartialFilterTerm, in cardNames: [String], searchTerm: String, limit: Int) -> [Suggestion2] {
         guard limit > 0 else {
             return []
         }
@@ -51,13 +51,10 @@ actor NameSuggestionProvider {
                     filter = .name(partial.polarity, true, cardName)
                 }
 
-                // TODO: We can do better than this; we know where it should be!
-                let range = filter.description.range(of: name, options: .caseInsensitive)
-                return NameSuggestion(
-                    filter: filter,
-                    matchRange: range,
-                    prefixKind: cardName.range(of: name, options: [.caseInsensitive, .anchored]) == nil ? .none : (cardName.contains(" ") || partial.polarity == .negative ? .effective : .actual),
-                    suggestionLength: cardName.count,
+                return Suggestion2(
+                    source: .name,
+                    content: .filter(WithHighlightedString(value: .term(filter), string: filter.description, searchTerm: searchTerm)),
+                    score: result.match.score,
                 )
             }
          )

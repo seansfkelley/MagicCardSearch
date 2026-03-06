@@ -11,36 +11,33 @@ struct PinnedFilterSuggestion: Equatable, Hashable, Sendable, ScorableSuggestion
 }
 
 struct PinnedFilterSuggestionProvider {
-    func getSuggestions(for partial: PartialFilterTerm, from pinnedFilters: [PinnedFilterEntry]) -> [PinnedFilterSuggestion] {
-        let searchTerm = partial.description.trimmingCharacters(in: .whitespaces)
+    func getSuggestions(for partial: PartialFilterTerm, from pinnedFilters: [PinnedFilterEntry], searchTerm: String) -> [Suggestion2] {
+        let trimmedSearchTerm = partial.description.trimmingCharacters(in: .whitespaces)
 
         let matcher = FuzzyMatcher()
-        let query = matcher.prepare(searchTerm)
+        let query = matcher.prepare(trimmedSearchTerm)
         var buffer = matcher.makeBuffer()
 
         return pinnedFilters
             .compactMap { row in
                 let filterText = row.filter.description
 
-                if searchTerm.isEmpty {
-                    return PinnedFilterSuggestion(
-                        filter: row.filter,
-                        matchRange: nil,
-                        // TODO: Would .actual produce better results?
-                        prefixKind: .none,
-                        suggestionLength: filterText.count,
+                if trimmedSearchTerm.isEmpty {
+                    return Suggestion2(
+                        source: .pinnedFilter,
+                        content: .filter(WithHighlightedString(value: row.filter, string: filterText, searchTerm: searchTerm)),
+                        score: 0,
                     )
                 }
 
                 if let match = matcher.score(filterText, against: query, buffer: &buffer) {
-                    return PinnedFilterSuggestion(
-                        filter: row.filter,
-                        matchRange: nil,
-                        prefixKind: .none,
-                        suggestionLength: filterText.count,
+                    return Suggestion2(
+                        source: .pinnedFilter,
+                        content: .filter(WithHighlightedString(value: row.filter, string: filterText, searchTerm: searchTerm)),
+                        score: match.score,
                     )
                 }
-                
+
                 return nil
             }
     }

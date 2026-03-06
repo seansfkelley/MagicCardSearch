@@ -46,7 +46,7 @@ struct EnumerationCatalogData: Sendable {
 actor EnumerationSuggestionProvider {
     private let matcher = FuzzyMatcher()
 
-    func getSuggestions(for partial: PartialFilterTerm, catalogData: EnumerationCatalogData, excluding excludedFilters: Set<FilterQuery<FilterTerm>>, limit: Int) -> [EnumerationSuggestion] {
+    func getSuggestions(for partial: PartialFilterTerm, catalogData: EnumerationCatalogData, excluding excludedFilters: Set<FilterQuery<FilterTerm>>, searchTerm: String, limit: Int) -> [Suggestion2] {
         guard limit > 0,
               case .filter(let filterTypeName, let partialComparison, let partialValue) = partial.content,
               let comparison = partialComparison.toComplete(),
@@ -68,27 +68,30 @@ actor EnumerationSuggestionProvider {
 
         let value = partialValue.incompleteContent
 
-        let matched: [String]
+        let matched: [(String, Double)]
         if value.isEmpty {
-            matched = allCandidates.sorted { $0.localizedStandardCompare($1) == .orderedAscending }
+            matched = allCandidates.sorted { $0.localizedStandardCompare($1) == .orderedAscending }.map { ($0, 0) }
         } else {
-            matched = matcher.matches(allCandidates, against: value).map(\.candidate)
+            matched = matcher.matches(allCandidates, against: value).map { ($0.candidate, $0.match.score) }
         }
 
-        let allResults = matched.map { candidate in
+        let allResults = matched.map { candidate, score in
             let filter = FilterTerm.basic(partial.polarity, filterTypeName.lowercased(), comparison, candidate)
-            let range = value.isEmpty ? nil : filter.description.range(of: value, options: .caseInsensitive)
-
-            return EnumerationSuggestion(
-                filter: filter,
-                matchRange: range,
-                prefixKind: candidate.range(of: value, options: [.caseInsensitive, .anchored]) == nil ? .none : (partial.polarity == .negative ? .effective : .actual),
-                suggestionLength: candidate.count,
+            return Suggestion2(
+                source: .enumeration,
+                content: .filter(WithHighlightedString(value: .term(filter), string: filter.description, searchTerm: searchTerm)),
+                score: score,
             )
         }
 
         return Array(allResults
-            .filter { !excludedFilters.contains(.term($0.filter)) }
+            .filter {
+                if case .filter(let highlighted) = $0.content {
+                    !excludedFilters.contains(highlighted.value)
+                } else {
+                    true
+                }
+            }
             .prefix(limit)
         )
     }

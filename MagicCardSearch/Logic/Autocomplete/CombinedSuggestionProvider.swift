@@ -104,54 +104,49 @@ class CombinedSuggestionProvider {
         self.scryfallCatalogs = scryfallCatalogs
     }
 
-    func getSuggestions(for searchTerm: String, existingFilters: Set<FilterQuery<FilterTerm>>) -> AsyncStream<[Suggestion]> {
+    func getSuggestions(for searchTerm: String, existingFilters: Set<FilterQuery<FilterTerm>>) -> AsyncStream<[Suggestion2]> {
         let partial = PartialFilterTerm.from(searchTerm)
 
-        let (stream, continuation) = AsyncStream.makeStream(of: [Suggestion].self)
+        let (stream, continuation) = AsyncStream.makeStream(of: [Suggestion2].self)
 
         let task = Task {
-            await withTaskGroup(of: [Suggestion].self) { group in
+            await withTaskGroup(of: [Suggestion2].self) { group in
                 let catalogData = EnumerationCatalogData(scryfallCatalogs: self.scryfallCatalogs)
 
                 do {
                     let filters = pinnedFilters
                     group.addTask {
-                        self.pinnedFilterProvider.getSuggestions(for: partial, from: filters)
-                            .map { Suggestion.pinned($0) }
+                        self.pinnedFilterProvider.getSuggestions(for: partial, from: filters, searchTerm: searchTerm)
                     }
                 }
                 do {
                     let history = filterHistoryEntries
                     group.addTask {
                         self.filterHistoryProvider.getSuggestions(for: searchTerm, from: history, limit: 20)
-                            .map { Suggestion.filterHistory($0) }
                     }
                 }
                 group.addTask {
-                    self.filterTypeProvider.getSuggestions(for: partial, limit: 4)
-                        .map { Suggestion.filter($0) }
+                    self.filterTypeProvider.getSuggestions(for: partial, searchTerm: searchTerm, limit: 4)
                 }
                 group.addTask {
-                    await self.reverseEnumerationProvider.getSuggestions(for: partial, catalogData: catalogData, limit: 20)
-                        .map { Suggestion.reverseEnumeration($0) }
+                    await self.reverseEnumerationProvider.getSuggestions(for: partial, catalogData: catalogData, searchTerm: searchTerm, limit: 20)
                 }
                 group.addTask {
                     await self.enumerationProvider.getSuggestions(
                         for: partial,
                         catalogData: catalogData,
                         excluding: [],
+                        searchTerm: searchTerm,
                         limit: 40,
                     )
-                    .map { Suggestion.enumeration($0) }
                 }
                 if let cardNames = self.scryfallCatalogs.cardNames {
                     group.addTask {
-                        await self.nameProvider.getSuggestions(for: partial, in: cardNames, limit: 10)
-                            .map { Suggestion.name($0) }
+                        await self.nameProvider.getSuggestions(for: partial, in: cardNames, searchTerm: searchTerm, limit: 10)
                     }
                 }
 
-                var allSuggestions: [Suggestion] = []
+                var allSuggestions: [Suggestion2] = []
                 for await batch in group {
                     allSuggestions.append(contentsOf: batch)
                     continuation.yield(self.scoreSuggestions(allSuggestions, !searchTerm.isEmpty))
@@ -164,20 +159,12 @@ class CombinedSuggestionProvider {
 
         return stream
     }
-    
-    private func scoreSuggestions(_ suggestions: [Suggestion], _ hasSearchTerm: Bool) -> [Suggestion] {
+
+    private func scoreSuggestions(_ suggestions: [Suggestion2], _ hasSearchTerm: Bool) -> [Suggestion2] {
         if hasSearchTerm {
-            suggestions.sorted(using: [
-                KeyPathComparator(\.prefixKind.rawValue),
-                KeyPathComparator(\.suggestionLength),
-                KeyPathComparator(\.priority),
-            ])
+            suggestions.sorted { $0.score > $1.score }
         } else {
-            suggestions.sorted(using: [
-                KeyPathComparator(\.priority),
-                KeyPathComparator(\.prefixKind.rawValue),
-                KeyPathComparator(\.suggestionLength),
-            ])
+            suggestions.sorted { $0.score > $1.score }
         }
     }
 }
