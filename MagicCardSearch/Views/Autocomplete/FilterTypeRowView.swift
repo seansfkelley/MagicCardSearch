@@ -9,18 +9,18 @@ struct FilterTypeRowView: View {
     var body: some View {
         switch suggestion.content {
         case .filterType(var highlighted):
-            let filterType = highlighted.value.filterType
-            let displayName = highlighted.string
             HStack(spacing: 12) {
                 Image(systemName: suggestion.icon)
                     .foregroundStyle(.secondary)
 
-                HorizontallyScrollablePillSelector(
-                    label: displayName,
-                    labelRanges: highlighted.highlights,
-                    options: filterType.comparisonKinds == .all ? orderedAllComparisons : orderedEqualityComparison
-                ) { comparison in
-                    onSelect("\(displayName)\(comparison.rawValue)")
+                DebuggableRowContentView(suggestion: suggestion) {
+                    HorizontallyScrollablePillSelector(
+                        label: highlighted.string,
+                        labelRanges: highlighted.highlights,
+                        options: highlighted.value.filterType.comparisonKinds == .all ? orderedAllComparisons : orderedEqualityComparison
+                    ) { comparison in
+                        onSelect("\(highlighted.string)\(comparison.rawValue)")
+                    }
                 }
             }
         default:

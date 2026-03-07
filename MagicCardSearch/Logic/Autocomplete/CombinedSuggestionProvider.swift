@@ -17,6 +17,17 @@ struct Suggestion {
     let score: Double
 }
 
+extension Suggestion {
+    var biasedScore: Double {
+        let bias: Double = switch source {
+        case .pinnedFilter: 1
+        case .historyFilter: -1
+        case .filterType, .enumeration, .reverseEnumeration, .name: 0
+        }
+        return score + bias
+    }
+}
+
 struct FilterTypeSuggestion: Hashable, Sendable {
     let polarity: Polarity
     let filterType: ScryfallFilterType
@@ -149,15 +160,4 @@ private func sortCombinedSuggestions(_ suggestions: [Suggestion]) -> [Suggestion
     return suggestions
         .sorted { $0.biasedScore > $1.biasedScore }
         .filter { seen.insert($0.content).inserted }
-}
-
-private extension Suggestion {
-    var biasedScore: Double {
-        let bias: Double = switch source {
-        case .pinnedFilter: 1
-        case .historyFilter: -1
-        case .filterType, .enumeration, .reverseEnumeration, .name: 0
-        }
-        return score + bias
-    }
 }

@@ -14,10 +14,12 @@ struct FilterRowView: View {
                     Image(systemName: suggestion.icon)
                         .foregroundStyle(.secondary)
 
-                    HighlightedText(
-                        text: highlighted.string,
-                        highlightRanges: highlighted.highlights
-                    )
+                    DebuggableRowContentView(suggestion: suggestion) {
+                        HighlightedText(
+                            text: highlighted.string,
+                            highlightRanges: highlighted.highlights
+                        )
+                    }
                     Spacer(minLength: 0)
                 }
                 .contentShape(Rectangle())
@@ -28,3 +30,4 @@ struct FilterRowView: View {
         }
     }
 }
+

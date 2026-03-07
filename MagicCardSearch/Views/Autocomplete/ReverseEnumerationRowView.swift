@@ -17,37 +17,39 @@ struct FilterPartsRowView: View {
                     Image(systemName: suggestion.icon)
                         .foregroundStyle(.secondary)
 
-                    HStack(spacing: 4) {
-                        Text("\(polarity.description)\(filterType.canonicalName)")
-                            .foregroundStyle(.primary)
-
-                        Button {
-                            showingPopover = true
-                        } label: {
-                            Text(":")
+                    DebuggableRowContentView(suggestion: suggestion) {
+                        HStack(spacing: 4) {
+                            Text("\(polarity.description)\(filterType.canonicalName)")
                                 .foregroundStyle(.primary)
-
-                            Divider()
-
-                            Image(systemName: "chevron.up.chevron.down")
-                                .imageScale(.small)
-                                .foregroundStyle(.secondary)
-                        }
-                        .buttonStyle(.bordered)
-                        .tint(.blue)
-                        .fixedSize()
-                        .popover(isPresented: $showingPopover) {
-                            ComparisonGridPicker(comparisonKinds: filterType.comparisonKinds) { comparison in
-                                showingPopover = false
-                                onSelect(.basic(polarity, filterType.canonicalName, comparison, value))
+                            
+                            Button {
+                                showingPopover = true
+                            } label: {
+                                Text(":")
+                                    .foregroundStyle(.primary)
+                                
+                                Divider()
+                                
+                                Image(systemName: "chevron.up.chevron.down")
+                                    .imageScale(.small)
+                                    .foregroundStyle(.secondary)
                             }
-                            .presentationCompactAdaptation(.popover)
+                            .buttonStyle(.bordered)
+                            .tint(.blue)
+                            .fixedSize()
+                            .popover(isPresented: $showingPopover) {
+                                ComparisonGridPicker(comparisonKinds: filterType.comparisonKinds) { comparison in
+                                    showingPopover = false
+                                    onSelect(.basic(polarity, filterType.canonicalName, comparison, value))
+                                }
+                                .presentationCompactAdaptation(.popover)
+                            }
+                            
+                            HighlightedText(text: highlighted.string, highlightRanges: highlighted.highlights)
+                                .foregroundStyle(.primary)
+                            
+                            Spacer(minLength: 0)
                         }
-
-                        HighlightedText(text: highlighted.string, highlightRanges: highlighted.highlights)
-                            .foregroundStyle(.primary)
-
-                        Spacer(minLength: 0)
                     }
                 }
                 .contentShape(Rectangle())
