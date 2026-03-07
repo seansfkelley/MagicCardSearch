@@ -136,10 +136,12 @@ class CombinedSuggestionProvider {
                 var suggestions: [Suggestion] = []
                 for await batch in group {
                     suggestions.append(contentsOf: batch.filter {
-                        if $0.score < 0.8 {
-                            false
-                        } else if case .filter(let highlighted) = $0.content {
+                        if case .filter(let highlighted) = $0.content {
                             !existingFilters.contains(highlighted.value)
+                        } else if searchTerm.isEmpty {
+                            true
+                        } else if $0.score < 0.8 {
+                            false
                         } else {
                             true
                         }
