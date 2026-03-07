@@ -84,7 +84,7 @@ actor ReverseEnumerationSuggestionProvider {
         }
 
         addCatalogs(.artistNames, to: "artist")
-        addCatalogs(.keywordAbilities, to: "keyword", lowercased: true)
+        addCatalogs(.keywordAbilities, .abilityWords, to: "keyword", lowercased: true)
         addCatalogs(.watermarks, to: "watermark")
         addCatalogs(.supertypes, .cardTypes, .artifactTypes, .battleTypes, .creatureTypes, .enchantmentTypes, .landTypes, .planeswalkerTypes, .spellTypes, to: "type")
 
