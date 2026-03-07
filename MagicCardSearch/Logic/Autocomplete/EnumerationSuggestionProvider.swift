@@ -118,7 +118,7 @@ actor EnumerationSuggestionProvider {
                     .uniqued()
             }
         case "keyword":
-            catalogData.catalogs[.keywordAbilities].map { $0.map { $0.lowercased() } }
+            catalogData.catalogs[.keywordAbilities, .abilityWords].map { $0.map { $0.lowercased() } }
         case "watermark":
             catalogData.catalogs[.watermarks]
         case "artist":
