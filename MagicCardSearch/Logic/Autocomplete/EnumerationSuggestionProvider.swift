@@ -8,6 +8,13 @@ struct EnumerationCatalogData: Sendable {
     let artTags: [String]?
     let oracleTags: [String]?
 
+    init(catalogs: [Catalog.`Type`: [String]], sets: [SetCode: MTGSet]?, artTags: [String]?, oracleTags: [String]?) {
+        self.catalogs = catalogs
+        self.sets = sets
+        self.artTags = artTags
+        self.oracleTags = oracleTags
+    }
+
     @MainActor
     init(scryfallCatalogs: ScryfallCatalogs) {
         typealias CatalogType = Catalog.`Type`

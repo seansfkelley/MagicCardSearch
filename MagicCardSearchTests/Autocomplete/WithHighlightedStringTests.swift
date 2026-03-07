@@ -21,15 +21,24 @@ struct WithHighlightedStringTests {
     }
 
     @Test func emptySearchTermReturnsEmpty() {
-        #expect(highlightedSubstrings("Lightning Bolt", searchTerm: "") == [])
+        #expect(highlightedSubstrings("Lightning Bolt", searchTerm: "").isEmpty)
     }
 
     @Test func emptyStringReturnsEmpty() {
-        #expect(highlightedSubstrings("", searchTerm: "bolt") == [])
+        #expect(highlightedSubstrings("", searchTerm: "bolt").isEmpty)
     }
 
     @Test func searchCharNotInStringIsSkipped() {
-        #expect(highlightedSubstrings("color:red", searchTerm: "xred") == ["red"])
+        // 'x' is skipped; 'r' matches the first 'r' in "color", then 'e' and 'd' match non-adjacently
+        #expect(highlightedSubstrings("color:red", searchTerm: "xred") == ["r", "ed"])
+    }
+
+    @Test func leadingUnmatchedCharsSkipped() {
+        #expect(highlightedSubstrings("uncommon", searchTerm: "funcomm") == ["uncomm"])
+    }
+
+    @Test func interleavedUnmatchedCharsSkipped() {
+        #expect(highlightedSubstrings("uncommon", searchTerm: "uxncxomm") == ["uncomm"])
     }
 
     @Test func entireStringMatched() {
@@ -45,7 +54,7 @@ struct WithHighlightedStringTests {
     }
 
     @Test func multipleDisjointGroups() {
-        #expect(highlightedSubstrings("Firebolt", searchTerm: "fbt") == ["F", "bolt"])
+        #expect(highlightedSubstrings("Firebolt", searchTerm: "fbt") == ["F", "b", "t"])
     }
 
     @Test func repeatedCharactersMatchGreedily() {

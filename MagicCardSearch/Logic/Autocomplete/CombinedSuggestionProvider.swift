@@ -55,20 +55,19 @@ struct WithHighlightedString<T: Sendable & Hashable>: Hashable {
         var stringIndex = string.startIndex
 
         for searchChar in searchTerm {
-            // Find the next occurrence of this character in string.
-            while stringIndex < string.endIndex {
-                if string[stringIndex].lowercased() == searchChar.lowercased() {
-                    let nextIndex = string.index(after: stringIndex)
-                    // Extend the last range if this character is adjacent.
-                    if let last = ranges.last, last.upperBound == stringIndex {
+            var searchIndex = stringIndex
+            while searchIndex < string.endIndex {
+                if string[searchIndex].lowercased() == searchChar.lowercased() {
+                    let nextIndex = string.index(after: searchIndex)
+                    if let last = ranges.last, last.upperBound == searchIndex {
                         ranges[ranges.count - 1] = last.lowerBound..<nextIndex
                     } else {
-                        ranges.append(stringIndex..<nextIndex)
+                        ranges.append(searchIndex..<nextIndex)
                     }
                     stringIndex = nextIndex
                     break
                 }
-                stringIndex = string.index(after: stringIndex)
+                searchIndex = string.index(after: searchIndex)
             }
         }
 
