@@ -24,7 +24,9 @@ actor ReverseEnumerationSuggestionProvider {
             return []
         }
 
-        let matchResults = matcher.matches(allCandidates.map(\.0), against: partialSearchTerm)
+        let matchResults = timed("ReverseEnumerationSuggestionProvider fuzzy match") {
+            matcher.matches(allCandidates.map(\.0), against: partialSearchTerm)
+        }
 
         return Array(
             matchResults.lazy

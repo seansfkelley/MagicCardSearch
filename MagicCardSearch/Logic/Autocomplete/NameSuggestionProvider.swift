@@ -32,7 +32,11 @@ actor NameSuggestionProvider {
             return []
         }
 
-        return Array(matcher.matches(cardNames, against: name)
+        let matches = timed("NameSuggestionProvider fuzzy match") {
+            matcher.matches(cardNames, against: name)
+        }
+
+        return Array(matches
             .lazy
             .prefix(limit)
             .map { result in

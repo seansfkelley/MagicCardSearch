@@ -20,7 +20,9 @@ actor EnumerationSuggestionProvider {
         if value.isEmpty {
             matched = allCandidates.sorted { $0.localizedStandardCompare($1) == .orderedAscending }.map { ($0, 0) }
         } else {
-            matched = matcher.matches(allCandidates, against: value).map { ($0.candidate, $0.match.score) }
+            matched = timed("EnumerationSuggestProvider fuzzy match") {
+                matcher.matches(allCandidates, against: value).map { ($0.candidate, $0.match.score) }
+            }
         }
 
         let allResults = matched.map { candidate, score in
