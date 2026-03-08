@@ -895,10 +895,10 @@
 		};
 		21A856BA2EE3AA9200E72541 /* XCRemoteSwiftPackageReference "ScryfallKit" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/JacobHearst/ScryfallKit";
+			repositoryURL = "https://github.com/seansfkelley/ScryfallKit";
 			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 6.1.0;
+				branch = main;
+				kind = branch;
 			};
 		};
 		21B726BF2F0B101300D2F951 /* XCRemoteSwiftPackageReference "SwiftSoup" */ = {

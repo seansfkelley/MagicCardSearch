@@ -1,5 +1,5 @@
 {
-  "originHash" : "254524698823ff7c56f71e728ba53ffd18e1deb86256ab0f66ab5b51b8852a89",
+  "originHash" : "8938b6ddd4ed75c21738362d0649913098b57a24e75272769cf00573e8e60cfb",
   "pins" : [
     {
       "identity" : "cache",
@@ -76,10 +76,10 @@
     {
       "identity" : "scryfallkit",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/JacobHearst/ScryfallKit",
+      "location" : "https://github.com/seansfkelley/ScryfallKit",
       "state" : {
-        "revision" : "f38c41df4091d7dc79852fd928642a9027dfa26f",
-        "version" : "6.1.0"
+        "branch" : "main",
+        "revision" : "ef42886673557af193494e6b38400ea49acf6eb9"
       }
     },
     {
