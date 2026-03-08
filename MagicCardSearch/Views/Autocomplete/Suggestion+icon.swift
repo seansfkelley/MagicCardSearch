@@ -3,10 +3,10 @@ extension Suggestion {
         switch source {
         case .pinnedFilter: "pin.fill"
         case .historyFilter: "clock.arrow.circlepath"
-        case .filterType: "line.3.horizontal.decrease.circle"
-        case .enumeration: "list.bullet.circle"
-        case .reverseEnumeration: "line.3.horizontal.decrease.circle"
-        case .name: "textformat.abc"
+        case .filterType: "line.3.horizontal.decrease"
+        case .enumeration: "list.bullet"
+        case .reverseEnumeration: "list.bullet"
+        case .name: "rectangle.portrait"
         case .fullText: "text.rectangle"
         }
     }
