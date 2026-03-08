@@ -4,84 +4,251 @@ import SQLiteData
 import DependenciesTestSupport
 @testable import MagicCardSearch
 
+private func unwrap<T>(
+    _ suggestions: some Sequence<AutocompleteSuggestion>,
+    _ unwrapper: (AutocompleteSuggestion) -> T?,
+) throws -> [T] {
+    let arrayified = Array(suggestions)
+    let unwrapped = arrayified.compactMap(unwrapper)
+    try #require(unwrapped.count == arrayified.count)
+    return unwrapped
+}
+
+private func unwrapFilter(_ suggestions: some Sequence<AutocompleteSuggestion>) throws -> [FilterQuery<FilterTerm>] {
+    try unwrap(suggestions) {
+        if case .filter(let result) = $0.content { result.value } else { nil }
+    }
+}
+
+private func unwrapFilterType(_ suggestions: some Sequence<AutocompleteSuggestion>) throws -> [ScryfallFilterType] {
+    try unwrap(suggestions) {
+        if case .filterType(let result) = $0.content { result.value.filterType } else { nil }
+    }
+}
+
+private typealias FilterParts = (polarity: Polarity, filterType: ScryfallFilterType, value: String)
+
+private func unwrapFilterParts(_ suggestions: some Sequence<AutocompleteSuggestion>) throws -> [FilterParts] {
+    try unwrap(suggestions) {
+        if case .filterParts(let p, let ft, let h) = $0.content { (p, ft, h.value) } else { nil }
+    }
+}
+
 // MARK: - filterHistorySuggestions
 
-@Suite(.dependency(\.defaultDatabase, try appDatabase()))
-@MainActor
-class FilterHistorySuggestionsTests {
-    @Dependency(\.defaultDatabase) var database
+@Suite
+struct FilterHistorySuggestionsTests {
+    private let searchTerm = "fly"
+    private let strongMatch = FilterQuery<FilterTerm>.term(.basic(.positive, "o", .including, "fly"))
+    private let weakMatch = FilterQuery<FilterTerm>.term(.basic(.positive, "oracle", .including, "flying"))
+    private let noMatch = FilterQuery<FilterTerm>.term(.basic(.positive, "color", .equal, "red"))
 
-    private func record(filter: FilterQuery<FilterTerm>, atOffset interval: TimeInterval) {
-        try? database.write { db in
-            try FilterHistoryEntry
-                .insert {
-                    FilterHistoryEntry(
-                        filter: filter,
-                        at: Date(timeIntervalSinceReferenceDate: interval),
-                    )
-                }
-                .execute(db)
-        }
+    private func entries(_ filters: [FilterQuery<FilterTerm>]) -> [FilterHistoryEntry] {
+        filters.map { FilterHistoryEntry(filter: $0) }
     }
 
-    private func fetchHistory() -> [FilterHistoryEntry] {
-        try! database.read { db in
-            try FilterHistoryEntry
-                .order { $0.lastUsedAt.desc() }
-                .fetchAll(db)
-        }
+    @Test("empty history returns no suggestions")
+    func empty() {
+        #expect(Array(filterHistorySuggestions(for: searchTerm, from: [])).isEmpty)
     }
 
-    private func extractFilters(_ suggestions: [AutocompleteSuggestion]) -> [FilterQuery<FilterTerm>] {
-        suggestions.compactMap {
-            if case .filter(let highlighted) = $0.content { highlighted.value } else { nil }
-        }
-    }
-
-    @Test("returns no results with no history recorded")
-    func emptySuggestions() {
-        let suggestions = Array(filterHistorySuggestions(for: "", from: fetchHistory()).prefix(10))
+    @Test("non-matching search term returns no suggestions")
+    func noMatches() {
+        let suggestions = Array(filterHistorySuggestions(for: searchTerm, from: entries([noMatch])))
         #expect(suggestions.isEmpty)
     }
 
-    @Test("returns all filters below the limit if no search term is provided")
-    func emptySearchText() {
-        let colorFilter = FilterQuery<FilterTerm>.term(.basic(.positive, "color", .equal, "red"))
-        let oracleFilter = FilterQuery<FilterTerm>.term(.basic(.positive, "oracle", .including, "flying"))
-
-        record(filter: colorFilter, atOffset: 0)
-        record(filter: oracleFilter, atOffset: 1000)
-
-        let suggestions = Array(filterHistorySuggestions(for: "", from: fetchHistory()).prefix(1))
-        let filters = extractFilters(suggestions)
-        #expect(filters == [oracleFilter])
+    @Test("matching entries are returned with historyFilter source")
+    func matchingSource() throws {
+        let suggestions = Array(filterHistorySuggestions(for: searchTerm, from: entries([strongMatch])))
+        try #require(!suggestions.isEmpty)
+        #expect(suggestions.allSatisfy { $0.source == .historyFilter })
     }
 
-    @Test("returns any filters whose string representation has any substring match")
-    func substringMatch() {
-        let colorFilter = FilterQuery<FilterTerm>.term(.basic(.positive, "color", .equal, "red"))
-        let oracleFilter = FilterQuery<FilterTerm>.term(.basic(.positive, "oracle", .including, "flying"))
-        let setFilter = FilterQuery<FilterTerm>.term(.basic(.positive, "set", .equal, "odyssey"))
-
-        record(filter: colorFilter, atOffset: 0)
-        record(filter: oracleFilter, atOffset: 1000)
-        record(filter: setFilter, atOffset: 2000)
-
-        let suggestions = Array(filterHistorySuggestions(for: "y", from: fetchHistory()).prefix(10))
-        let filters = extractFilters(suggestions)
-        #expect(filters == [setFilter, oracleFilter])
+    @Test("results are ordered by score, best match first")
+    func ordering() throws {
+        let suggestions = filterHistorySuggestions(for: searchTerm, from: entries([weakMatch, noMatch, strongMatch]))
+        #expect(try unwrapFilter(suggestions) == [strongMatch, weakMatch])
     }
 
-    @Test("returns the empty list if there is no simple substring match in the stringified filters")
-    func noSubstringMatch() {
-        let colorFilter = FilterQuery<FilterTerm>.term(.basic(.positive, "color", .equal, "red"))
-        let oracleFilter = FilterQuery<FilterTerm>.term(.basic(.positive, "oracle", .including, "flying"))
+    @Test("empty search term returns all entries")
+    func emptySearchTerm() throws {
+        let suggestions = filterHistorySuggestions(for: "", from: entries([strongMatch, noMatch]))
+        #expect(try unwrapFilter(suggestions) == [strongMatch, noMatch])
+    }
+}
 
-        record(filter: colorFilter, atOffset: 0)
-        record(filter: oracleFilter, atOffset: 1000)
+// MARK: - pinnedFilterSuggestions
 
-        let suggestions = Array(filterHistorySuggestions(for: "xyz", from: fetchHistory()).prefix(10))
+@Suite
+struct PinnedFilterSuggestionsTests {
+    private let searchTerm = "fly"
+    private var partial: PartialFilterTerm {
+        .init(polarity: .positive, content: .name(false, .bare(searchTerm)))
+    }
+
+    private let strongMatch = FilterQuery<FilterTerm>.term(.basic(.positive, "o", .including, "fly"))
+    private let weakMatch = FilterQuery<FilterTerm>.term(.basic(.positive, "oracle", .including, "flying"))
+    private let noMatch = FilterQuery<FilterTerm>.term(.basic(.positive, "color", .equal, "red"))
+
+    private func entries(_ filters: [FilterQuery<FilterTerm>]) -> [PinnedFilterEntry] {
+        filters.map { PinnedFilterEntry(filter: $0) }
+    }
+
+    @Test("empty pinned list returns no suggestions")
+    func empty() {
+        #expect(Array(pinnedFilterSuggestions(for: partial, from: [], searchTerm: searchTerm)).isEmpty)
+    }
+
+    @Test("non-matching entries return no suggestions")
+    func noMatches() {
+        let suggestions = Array(pinnedFilterSuggestions(for: partial, from: entries([noMatch]), searchTerm: searchTerm))
         #expect(suggestions.isEmpty)
+    }
+
+    @Test("matching entries are returned with pinnedFilter source")
+    func matchingSource() throws {
+        let suggestions = Array(pinnedFilterSuggestions(for: partial, from: entries([strongMatch]), searchTerm: searchTerm))
+        try #require(!suggestions.isEmpty)
+        #expect(suggestions.allSatisfy { $0.source == .pinnedFilter })
+    }
+
+    @Test("results are ordered by score, best match first")
+    func ordering() throws {
+        let suggestions = pinnedFilterSuggestions(for: partial, from: entries([weakMatch, noMatch, strongMatch]), searchTerm: searchTerm)
+        #expect(try unwrapFilter(suggestions) == [strongMatch, weakMatch])
+    }
+}
+
+// MARK: - filterTypeSuggestions
+
+@Suite
+struct FilterTypeSuggestionsTests {
+    @Test("empty partial content returns no suggestions")
+    func emptyContent() {
+        let partial = PartialFilterTerm(polarity: .positive, content: .name(false, .bare("")))
+        #expect(Array(filterTypeSuggestions(for: partial, searchTerm: "")).isEmpty)
+    }
+
+    @Test("exact-match content is ineligible")
+    func exactMatch() {
+        let partial = PartialFilterTerm(polarity: .positive, content: .name(true, .bare("format")))
+        #expect(Array(filterTypeSuggestions(for: partial, searchTerm: "format")).isEmpty)
+    }
+
+    @Test("quoted content is ineligible")
+    func quotedContent() {
+        let partial = PartialFilterTerm(polarity: .positive, content: .name(false, .unterminated(.doubleQuote, "forma")))
+        #expect(Array(filterTypeSuggestions(for: partial, searchTerm: "forma")).isEmpty)
+    }
+
+    @Test("filter-with-operator content is ineligible")
+    func filterWithOperator() {
+        let partial = PartialFilterTerm(polarity: .positive, content: .filter("forma", .including, .bare("")))
+        #expect(Array(filterTypeSuggestions(for: partial, searchTerm: "forma")).isEmpty)
+    }
+
+    @Test("non-matching term returns no suggestions")
+    func noMatches() {
+        let partial = PartialFilterTerm(polarity: .positive, content: .name(false, .bare("zzzzz")))
+        #expect(Array(filterTypeSuggestions(for: partial, searchTerm: "zzzzz")).isEmpty)
+    }
+
+    @Test("matching entries are returned with filterType source")
+    func matchingSource() throws {
+        let partial = PartialFilterTerm(polarity: .positive, content: .name(false, .bare("forma")))
+        let suggestions = Array(filterTypeSuggestions(for: partial, searchTerm: "forma"))
+        try #require(!suggestions.isEmpty)
+        #expect(suggestions.allSatisfy { $0.source == .filterType })
+    }
+
+    @Test("results are ordered by score, best match first")
+    func ordering() throws {
+        let partial = PartialFilterTerm(polarity: .positive, content: .name(false, .bare("forma")))
+        let suggestions = Array(filterTypeSuggestions(for: partial, searchTerm: "forma"))
+        let names = (try unwrapFilterType(suggestions)).map(\.canonicalName)
+        // "format" is a prefix match and should rank above "frame" (subsequence)
+        #expect(names.first == "format")
+        #expect(names.contains("frame"))
+    }
+
+    @Test("negative polarity prefixes display names with a dash")
+    func negativePolarity() throws {
+        let partial = PartialFilterTerm(polarity: .negative, content: .name(false, .bare("forma")))
+        let suggestions = Array(filterTypeSuggestions(for: partial, searchTerm: "forma"))
+        let first = try #require(suggestions.first).content
+        if case .filterType(let result) = first {
+            #expect(result.string == "-format")
+        } else {
+            Issue.record("incorrect suggestion type")
+        }
+    }
+
+    @Test("deduplicates aliases that map to the same filter type")
+    func deduplication() throws {
+        // "o" is an alias for "oracle" and also matches a bunch of other filters and their aliases.
+        let partial = PartialFilterTerm(polarity: .positive, content: .name(false, .bare("o")))
+        let suggestions = Array(filterTypeSuggestions(for: partial, searchTerm: "o"))
+        let filterTypes = try unwrapFilterType(suggestions)
+        let uniqueFilterTypes = Set(filterTypes.map { $0.canonicalName })
+        #expect(filterTypes.count == uniqueFilterTypes.count)
+    }
+}
+
+// MARK: - fullTextSuggestion
+
+@Suite
+struct FullTextSuggestionTests {
+    @Test("term without a space returns no suggestions")
+    func noSpace() {
+        let partial = PartialFilterTerm(polarity: .positive, content: .name(false, .bare("flying")))
+        #expect(Array(fullTextSuggestion(for: partial, searchTerm: "flying")).isEmpty)
+    }
+
+    @Test("term with 3 or fewer characters returns no suggestions")
+    func tooShort() {
+        let partial = PartialFilterTerm(polarity: .positive, content: .name(false, .bare("a b")))
+        #expect(Array(fullTextSuggestion(for: partial, searchTerm: "a b")).isEmpty)
+    }
+
+    @Test("exact-match content returns no suggestions")
+    func exactMatch() {
+        let partial = PartialFilterTerm(polarity: .positive, content: .name(true, .bare("flies high")))
+        #expect(Array(fullTextSuggestion(for: partial, searchTerm: "flies high")).isEmpty)
+    }
+
+    @Test("filter content returns no suggestions")
+    func filterContent() {
+        let partial = PartialFilterTerm(polarity: .positive, content: .filter("oracle", .including, .bare("flies high")))
+        #expect(Array(fullTextSuggestion(for: partial, searchTerm: "flies high")).isEmpty)
+    }
+
+    @Test("valid term yields oracle suggestion before flavor suggestion")
+    func validTerm() throws {
+        let partial = PartialFilterTerm(polarity: .positive, content: .name(false, .bare("flies high")))
+        let suggestions = try unwrapFilter(fullTextSuggestion(for: partial, searchTerm: "flies high"))
+        #expect(suggestions == [
+            .term(.basic(.positive, "oracle", .including, "flies high")),
+            .term(.basic(.positive, "flavor", .including, "flies high")),
+        ])
+    }
+
+    @Test("negative polarity is preserved")
+    func negativePolarity() throws {
+        let partial = PartialFilterTerm(polarity: .negative, content: .name(false, .bare("flies high")))
+        let suggestions = try unwrapFilter(fullTextSuggestion(for: partial, searchTerm: "flies high"))
+        #expect(suggestions == [
+            .term(.basic(.negative, "oracle", .including, "flies high")),
+            .term(.basic(.negative, "flavor", .including, "flies high")),
+        ])
+    }
+
+    @Test("results have fullText source")
+    func source() throws {
+        let partial = PartialFilterTerm(polarity: .positive, content: .name(false, .bare("flies high")))
+        let suggestions = Array(fullTextSuggestion(for: partial, searchTerm: "flies high"))
+        try #require(!suggestions.isEmpty)
+        #expect(suggestions.allSatisfy { $0.source == .fullText })
     }
 }
 
@@ -96,171 +263,257 @@ private let emptyCatalogData = EnumerationCatalogData(
 
 @Suite
 struct EnumerationSuggestionsTests {
-    private func extractFilters(_ suggestions: [AutocompleteSuggestion]) -> [FilterQuery<FilterTerm>] {
-        suggestions.compactMap {
-            if case .filter(let highlighted) = $0.content { highlighted.value } else { nil }
-        }
+    @Test("non-filter content returns no suggestions")
+    func nonFilterContent() {
+        let partial = PartialFilterTerm(polarity: .positive, content: .name(false, .bare("scry")))
+        #expect(Array(enumerationSuggestions(for: partial, catalogData: emptyCatalogData, searchTerm: "")).isEmpty)
     }
 
-    @Test<[(PartialFilterTerm, [FilterQuery<FilterTerm>])]>("enumerationSuggestions", arguments: [
-        (
-            // gives all values, in alphabetical order, if no value part is given
-            PartialFilterTerm(polarity: .positive, content: .filter("manavalue", .equal, .bare(""))),
-            [
-                .term(FilterTerm.basic(.positive, "manavalue", .equal, "even")),
-                .term(FilterTerm.basic(.positive, "manavalue", .equal, "odd")),
-            ]
-        ),
-        (
-            // narrows based on substring match, preferring shorter strings when they are both prefixes
-            PartialFilterTerm(polarity: .positive, content: .filter("is", .including, .bare("scry"))),
-            [
-                .term(FilterTerm.basic(.positive, "is", .including, "scryland")),
-                .term(FilterTerm.basic(.positive, "is", .including, "scryfallpreview")),
-            ]
-        ),
-        (
-            // narrows with any substring, not just prefix, also, doesn't care about operator
-            PartialFilterTerm(polarity: .positive, content: .filter("format", .greaterThanOrEqual, .bare("less"))),
-            [
-                .term(FilterTerm.basic(.positive, "format", .greaterThanOrEqual, "timeless")),
-            ]
-        ),
-        (
-            // the negation operator is preserved
-            PartialFilterTerm(polarity: .negative, content: .filter("is", .including, .bare("scry"))),
-            [
-                .term(FilterTerm.basic(.negative, "is", .including, "scryland")),
-                .term(FilterTerm.basic(.negative, "is", .including, "scryfallpreview")),
-            ]
-        ),
-        (
-            // case-insensitive
-            PartialFilterTerm(polarity: .positive, content: .filter("foRMat", .greaterThanOrEqual, .bare("lESs"))),
-            [
-                .term(FilterTerm.basic(.positive, "format", .greaterThanOrEqual, "timeless")),
-            ]
-        ),
-        (
-            // non-enumerable filter type yields no options
-            PartialFilterTerm(polarity: .positive, content: .filter("oracle", .equal, .bare(""))),
-            []
-        ),
-        (
-            // incomplete filter types yield no suggestions
-            PartialFilterTerm(polarity: .positive, content: .name(false, .bare("form"))),
-            []
-        ),
-        (
-            // unknown filter types yield no suggestions
-            PartialFilterTerm(polarity: .positive, content: .filter("foobar", .including, .bare(""))),
-            []
-        ),
-        (
-            // incomplete operator is not completeable
-            PartialFilterTerm(polarity: .positive, content: .filter("format", .incompleteNotEqual, .bare(""))),
-            []
-        ),
-    ])
-    func enumerationSuggestions(partial: PartialFilterTerm, expected: [FilterQuery<FilterTerm>]) {
-        let actual = Array(MagicCardSearch.enumerationSuggestions(for: partial, catalogData: emptyCatalogData, searchTerm: "").prefix(100))
-        let actualFilters = extractFilters(actual)
-        #expect(actualFilters == expected)
-        #expect(actual.allSatisfy { $0.source == .enumeration })
+    @Test("incomplete operator returns no suggestions")
+    func incompleteOperator() {
+        let partial = PartialFilterTerm(polarity: .positive, content: .filter("format", .incompleteNotEqual, .bare("")))
+        #expect(Array(enumerationSuggestions(for: partial, catalogData: emptyCatalogData, searchTerm: "")).isEmpty)
+    }
+
+    @Test("unknown filter type returns no suggestions")
+    func unknownFilterType() {
+        let partial = PartialFilterTerm(polarity: .positive, content: .filter("foobar", .including, .bare("")))
+        #expect(Array(enumerationSuggestions(for: partial, catalogData: emptyCatalogData, searchTerm: "")).isEmpty)
+    }
+
+    @Test("non-enumerable filter type returns no suggestions")
+    func nonEnumerable() {
+        let partial = PartialFilterTerm(polarity: .positive, content: .filter("oracle", .equal, .bare("")))
+        #expect(Array(enumerationSuggestions(for: partial, catalogData: emptyCatalogData, searchTerm: "")).isEmpty)
+    }
+
+    @Test("catalog-backed filter type with no catalog loaded returns no suggestions")
+    func catalogBackedWithoutCatalog() {
+        let partial = PartialFilterTerm(polarity: .positive, content: .filter("watermark", .equal, .bare("mir")))
+        #expect(Array(enumerationSuggestions(for: partial, catalogData: emptyCatalogData, searchTerm: "")).isEmpty)
+    }
+
+    @Test("empty value returns all candidates alphabetically")
+    func emptyValue() throws {
+        let partial = PartialFilterTerm(polarity: .positive, content: .filter("manavalue", .equal, .bare("")))
+        let suggestions = try unwrapFilter(enumerationSuggestions(for: partial, catalogData: emptyCatalogData, searchTerm: ""))
+        #expect(suggestions == [
+            .term(.basic(.positive, "manavalue", .equal, "even")),
+            .term(.basic(.positive, "manavalue", .equal, "odd")),
+        ])
+    }
+
+    @Test("non-matching value returns no suggestions")
+    func noMatches() {
+        let partial = PartialFilterTerm(polarity: .positive, content: .filter("is", .including, .bare("zzzzz")))
+        #expect(Array(enumerationSuggestions(for: partial, catalogData: emptyCatalogData, searchTerm: "")).isEmpty)
+    }
+
+    @Test("matching entries are returned with enumeration source")
+    func matchingSource() throws {
+        let partial = PartialFilterTerm(polarity: .positive, content: .filter("is", .including, .bare("scry")))
+        let suggestions = Array(enumerationSuggestions(for: partial, catalogData: emptyCatalogData, searchTerm: ""))
+        try #require(!suggestions.isEmpty)
+        #expect(suggestions.allSatisfy { $0.source == .enumeration })
+    }
+
+    @Test("results are ordered by score, best match first")
+    func ordering() throws {
+        let partial = PartialFilterTerm(polarity: .positive, content: .filter("is", .including, .bare("scry")))
+        let suggestions = try unwrapFilter(enumerationSuggestions(for: partial, catalogData: emptyCatalogData, searchTerm: ""))
+        // "scryland" is shorter and therefore a better match, but both are present
+        #expect(suggestions.first == .term(.basic(.positive, "is", .including, "scryland")))
+        #expect(suggestions.contains(.term(.basic(.positive, "is", .including, "scryfallpreview"))))
+    }
+
+    @Test("negative polarity is preserved")
+    func negativePolarity() throws {
+        let partial = PartialFilterTerm(polarity: .negative, content: .filter("is", .including, .bare("scry")))
+        let suggestions = try unwrapFilter(enumerationSuggestions(for: partial, catalogData: emptyCatalogData, searchTerm: ""))
+        #expect(suggestions.first == .term(.basic(.negative, "is", .including, "scryland")))
+    }
+
+    @Test("catalog watermark values are suggested")
+    func catalogWatermark() throws {
+        let catalogData = EnumerationCatalogData(
+            catalogs: [.watermarks: ["mirran", "phyrexian", "dimir"]],
+            sets: nil,
+            artTags: nil,
+            oracleTags: nil
+        )
+        let partial = PartialFilterTerm(polarity: .positive, content: .filter("watermark", .equal, .bare("mir")))
+        let suggestions = try unwrapFilter(enumerationSuggestions(for: partial, catalogData: catalogData, searchTerm: ""))
+        #expect(suggestions == [
+            .term(.basic(.positive, "watermark", .equal, "mirran")),
+            .term(.basic(.positive, "watermark", .equal, "dimir")),
+        ])
+    }
+
+    @Test("catalog keyword values are suggested and lowercased")
+    func catalogKeyword() throws {
+        let catalogData = EnumerationCatalogData(
+            catalogs: [.keywordAbilities: ["Flying", "Trample"], .abilityWords: ["Landfall"]],
+            sets: nil,
+            artTags: nil,
+            oracleTags: nil
+        )
+        let partial = PartialFilterTerm(polarity: .positive, content: .filter("keyword", .equal, .bare("fly")))
+        let suggestions = try unwrapFilter(enumerationSuggestions(for: partial, catalogData: catalogData, searchTerm: ""))
+        #expect(suggestions == [.term(.basic(.positive, "keyword", .equal, "flying"))])
+    }
+
+    @Test("art tag values from catalog are suggested")
+    func catalogArtTags() throws {
+        let catalogData = EnumerationCatalogData(
+            catalogs: [:],
+            sets: nil,
+            artTags: ["angel", "dragon", "warrior"],
+            oracleTags: nil
+        )
+        let partial = PartialFilterTerm(polarity: .positive, content: .filter("art", .equal, .bare("drag")))
+        let suggestions = try unwrapFilter(enumerationSuggestions(for: partial, catalogData: catalogData, searchTerm: ""))
+        #expect(suggestions == [.term(.basic(.positive, "art", .equal, "dragon"))])
     }
 }
 
-// MARK: - filterTypeSuggestions
+// MARK: - reverseEnumerationSuggestions
 
 @Suite
-struct FilterTypeSuggestionsTests {
-    private func extractDisplayNames(_ suggestions: [AutocompleteSuggestion]) -> [String] {
-        suggestions.compactMap {
-            if case .filterType(let highlighted) = $0.content { highlighted.string } else { nil }
-        }
+struct ReverseEnumerationSuggestionsTests {
+    @Test("exact-match content returns no suggestions")
+    func exactMatch() {
+        let partial = PartialFilterTerm(polarity: .positive, content: .name(true, .bare("commander")))
+        #expect(Array(reverseEnumerationSuggestions(for: partial, catalogData: emptyCatalogData, searchTerm: "")).isEmpty)
     }
 
-    @Test(
-        "filterTypeSuggestions",
-        arguments: [
-            // prefix of a filter returns that filter first, followed by other substring matches
-            (
-                PartialFilterTerm(polarity: .positive, content: .name(false, .bare("forma"))),
-                ["format", "frame", "oracle", "oracletag", "watermark", "fulloracle"],
-            ),
-            // substrings matching multiple filters return them all by score
-            (
-                PartialFilterTerm(polarity: .positive, content: .name(false, .bare("print"))),
-                ["prints", "paperprints", "rarity", "restricted"],
-            ),
-            // exact match of an alias returns the alias before other matching filters
-            (
-                PartialFilterTerm(polarity: .positive, content: .name(false, .bare("fo"))),
-                ["fo", "format", "flavor", "function"],
-            ),
-            // unmatching string returns nothing
-            (
-                PartialFilterTerm(polarity: .positive, content: .name(false, .bare("foobar"))),
-                [],
-            ),
-            // negation is included in the result
-            (
-                PartialFilterTerm(polarity: .negative, content: .name(false, .bare("print"))),
-                ["-prints", "-paperprints", "-rarity", "-restricted"],
-            ),
-            // case-insensitive (same results as the "forma" case)
-            (
-                PartialFilterTerm(polarity: .positive, content: .name(false, .bare("ForMa"))),
-                ["format", "frame", "oracle", "oracletag", "watermark", "fulloracle"],
-            ),
-            // prefixes are scored higher than other matches, then by length
-            (
-                PartialFilterTerm(polarity: .positive, content: .name(false, .bare("or"))),
-                [
-                    "order",
-                    "oracle",
-                    "oracletag",
-                    "color",
-                    "border",
-                    "format",
-                    "flavor",
-                    "keyword",
-                    "fulloracle",
-                    "power",
-                ],
-            ),
-            // should prefer the shortest alias
-            (
-                PartialFilterTerm(polarity: .positive, content: .name(false, .bare("ow"))),
-                ["pow", "powtou"],
-            ),
-            // unquoted exact-match is not eligible
-            (
-                PartialFilterTerm(polarity: .positive, content: .name(true, .bare("form"))),
-                [],
-            ),
-            // quoted exact-match is not eligible
-            (
-                PartialFilterTerm(polarity: .positive, content: .name(true, .balanced(.doubleQuote, "form"))),
-                [],
-            ),
-            // quoted is not eligible because it implies a name search
-            (
-                PartialFilterTerm(polarity: .positive, content: .name(false, .unterminated(.doubleQuote, "form"))),
-                [],
-            ),
-            // if operators are present we're past the point where we can suggest
-            (
-                PartialFilterTerm(polarity: .positive, content: .filter("form", .including, .bare(""))),
-                [],
-            ),
-        ]
-    )
-    func filterTypeSuggestions(partial: PartialFilterTerm, expected: [String]) {
-        let results = Array(MagicCardSearch.filterTypeSuggestions(for: partial, searchTerm: ""))
-        let actualNames = extractDisplayNames(results)
-        #expect(actualNames == expected, "\(actualNames) != \(expected)")
-        #expect(results.allSatisfy { $0.source == .filterType })
+    @Test("filter content returns no suggestions")
+    func filterContent() {
+        let partial = PartialFilterTerm(polarity: .positive, content: .filter("format", .equal, .bare("commander")))
+        #expect(Array(reverseEnumerationSuggestions(for: partial, catalogData: emptyCatalogData, searchTerm: "")).isEmpty)
+    }
+
+    @Test("term shorter than 2 characters returns no suggestions")
+    func tooShort() {
+        let partial = PartialFilterTerm(polarity: .positive, content: .name(false, .bare("c")))
+        #expect(Array(reverseEnumerationSuggestions(for: partial, catalogData: emptyCatalogData, searchTerm: "")).isEmpty)
+    }
+
+    @Test("non-matching term returns no suggestions")
+    func noMatches() {
+        let partial = PartialFilterTerm(polarity: .positive, content: .name(false, .bare("zzzzzz")))
+        #expect(Array(reverseEnumerationSuggestions(for: partial, catalogData: emptyCatalogData, searchTerm: "")).isEmpty)
+    }
+
+    @Test("matching entries are returned with reverseEnumeration source")
+    func matchingSource() throws {
+        let partial = PartialFilterTerm(polarity: .positive, content: .name(false, .bare("commander")))
+        let suggestions = Array(reverseEnumerationSuggestions(for: partial, catalogData: emptyCatalogData, searchTerm: ""))
+        try #require(!suggestions.isEmpty)
+        #expect(suggestions.allSatisfy { $0.source == .reverseEnumeration })
+    }
+
+    @Test("results are ordered by score, best match first")
+    func ordering() throws {
+        let partial = PartialFilterTerm(polarity: .positive, content: .name(false, .bare("commander")))
+        let suggestions = try unwrapFilterParts(reverseEnumerationSuggestions(for: partial, catalogData: emptyCatalogData, searchTerm: ""))
+        var seen = Set<String>()
+        let orderedUniqueValues = suggestions.map(\.value).filter { seen.insert($0).inserted }
+        #expect(orderedUniqueValues == ["commander", "duelcommander", "paupercommander"])
+    }
+
+    @Test("negative polarity is preserved in results")
+    func negativePolarity() throws {
+        let partial = PartialFilterTerm(polarity: .negative, content: .name(false, .bare("commander")))
+        let suggestions = try unwrapFilterParts(reverseEnumerationSuggestions(for: partial, catalogData: emptyCatalogData, searchTerm: ""))
+        try #require(!suggestions.isEmpty)
+        #expect(suggestions.allSatisfy { $0.polarity == .negative })
+    }
+
+    @Test("a single value matching multiple filter types produces one result per type")
+    func expandsToFilterTypes() throws {
+        let partial = PartialFilterTerm(polarity: .positive, content: .name(false, .bare("modern")))
+        let suggestions = try unwrapFilterParts(reverseEnumerationSuggestions(for: partial, catalogData: emptyCatalogData, searchTerm: ""))
+        let modernFilterTypes = Set(suggestions.filter { $0.value == "modern" }.map { $0.filterType.canonicalName })
+        #expect(modernFilterTypes == ["format", "banned", "restricted", "cube"])
+    }
+
+    @Test("catalog watermark values are matched as bare terms")
+    func catalogWatermark() throws {
+        let catalogData = EnumerationCatalogData(
+            catalogs: [.watermarks: ["mirran", "phyrexian", "dimir"]],
+            sets: nil,
+            artTags: nil,
+            oracleTags: nil
+        )
+        let partial = PartialFilterTerm(polarity: .positive, content: .name(false, .bare("mirran")))
+        let suggestions = try unwrapFilterParts(reverseEnumerationSuggestions(for: partial, catalogData: catalogData, searchTerm: ""))
+        // "mirran" is in the watermark catalog; it also fuzzy-matches "miracle" in the frame filter
+        let mirranSuggestions = suggestions.filter { $0.value == "mirran" }
+        #expect(mirranSuggestions.map(\.filterType.canonicalName) == ["watermark"])
+    }
+}
+
+// MARK: - nameSuggestions
+
+@Suite
+struct NameSuggestionsTests {
+    private let candidates = ["Lightning Bolt", "Firebolt", "Shivan Reef"]
+
+    @Test("non-name filter type returns no suggestions")
+    func nonNameFilter() {
+        let partial = PartialFilterTerm(polarity: .positive, content: .filter("oracle", .including, .bare("bolt")))
+        #expect(Array(nameSuggestions(for: partial, in: candidates, searchTerm: "")).isEmpty)
+    }
+
+    @Test("term shorter than 2 characters returns no suggestions")
+    func tooShort() {
+        let partial = PartialFilterTerm(polarity: .positive, content: .name(false, .bare("b")))
+        #expect(Array(nameSuggestions(for: partial, in: candidates, searchTerm: "")).isEmpty)
+    }
+
+    @Test("non-matching term returns no suggestions")
+    func noMatches() {
+        let partial = PartialFilterTerm(polarity: .positive, content: .name(false, .bare("zzzzz")))
+        #expect(Array(nameSuggestions(for: partial, in: candidates, searchTerm: "")).isEmpty)
+    }
+
+    @Test("results have name source")
+    func matchingSource() throws {
+        let partial = PartialFilterTerm(polarity: .positive, content: .name(false, .bare("bolt")))
+        let suggestions = Array(nameSuggestions(for: partial, in: candidates, searchTerm: ""))
+        try #require(!suggestions.isEmpty)
+        #expect(suggestions.allSatisfy { $0.source == .name })
+    }
+
+    @Test("results are ordered by score, best match first, non-matching excluded")
+    func ordering() throws {
+        let partial = PartialFilterTerm(polarity: .positive, content: .name(false, .bare("bolt")))
+        let suggestions = try unwrapFilter(nameSuggestions(for: partial, in: candidates, searchTerm: ""))
+        #expect(suggestions == [
+            .term(.name(.positive, true, "Lightning Bolt")),
+            .term(.name(.positive, true, "Firebolt")),
+        ])
+    }
+
+    @Test("bare name content produces name filter terms")
+    func bareNameProducesNameFilter() throws {
+        let partial = PartialFilterTerm(polarity: .positive, content: .name(false, .bare("bolt")))
+        let suggestions = try unwrapFilter(nameSuggestions(for: partial, in: ["Lightning Bolt"], searchTerm: ""))
+        #expect(suggestions == [.term(.name(.positive, true, "Lightning Bolt"))])
+    }
+
+    @Test("name:= filter content preserves the operator")
+    func nameFilterPreservesOperator() throws {
+        let partial = PartialFilterTerm(polarity: .positive, content: .filter("name", .equal, .bare("bolt")))
+        let suggestions = try unwrapFilter(nameSuggestions(for: partial, in: ["Firebolt"], searchTerm: ""))
+        #expect(suggestions == [.term(.basic(.positive, "name", .equal, "Firebolt"))])
+    }
+
+    @Test("negative polarity is preserved")
+    func negativePolarity() throws {
+        let partial = PartialFilterTerm(polarity: .negative, content: .name(false, .bare("bolt")))
+        let suggestions = try unwrapFilter(nameSuggestions(for: partial, in: ["Firebolt"], searchTerm: ""))
+        #expect(suggestions == [.term(.name(.negative, true, "Firebolt"))])
     }
 }
 
@@ -269,7 +522,7 @@ struct FilterTypeSuggestionsTests {
 @Suite
 struct SortCombinedSuggestionsTests {
     private func makeSuggestion(
-        source: AutocompleteSuggestion.Source,
+        source: AutocompleteSuggestion.Source = .enumeration,
         filter: FilterQuery<FilterTerm>,
         score: Double
     ) -> AutocompleteSuggestion {
@@ -281,174 +534,49 @@ struct SortCombinedSuggestionsTests {
         )
     }
 
-    @Test("sorts suggestions by biased score descending")
+    @Test("empty input returns empty output")
+    func empty() {
+        #expect(sortCombinedSuggestions([]).isEmpty)
+    }
+
+    @Test("results are sorted by score descending")
     func sortsByScore() {
-        let low = makeSuggestion(source: .enumeration, filter: .term(.basic(.positive, "color", .equal, "red")), score: 0.8)
-        let high = makeSuggestion(source: .enumeration, filter: .term(.basic(.positive, "color", .equal, "blue")), score: 0.95)
-        let mid = makeSuggestion(source: .enumeration, filter: .term(.basic(.positive, "color", .equal, "green")), score: 0.9)
+        let high = makeSuggestion(filter: .term(.basic(.positive, "color", .equal, "blue")), score: 0.95)
+        let mid = makeSuggestion(filter: .term(.basic(.positive, "color", .equal, "green")), score: 0.9)
+        let low = makeSuggestion(filter: .term(.basic(.positive, "color", .equal, "red")), score: 0.8)
 
         let result = sortCombinedSuggestions([low, high, mid])
         #expect(result.map(\.score) == [0.95, 0.9, 0.8])
     }
 
-    @Test("deduplicates by content, keeping the higher-scored copy")
-    func deduplicatesByContent() {
+    @Test("duplicate content is deduplicated, keeping the higher-scored copy")
+    func deduplication() {
         let filter = FilterQuery<FilterTerm>.term(.basic(.positive, "color", .equal, "red"))
-        let lower = makeSuggestion(source: .enumeration, filter: filter, score: 0.8)
-        let higher = makeSuggestion(source: .enumeration, filter: filter, score: 0.95)
-        let other = makeSuggestion(source: .enumeration, filter: .term(.basic(.positive, "color", .equal, "blue")), score: 0.9)
+        let lower = makeSuggestion(filter: filter, score: 0.8)
+        let higher = makeSuggestion(filter: filter, score: 0.95)
+        let other = makeSuggestion(filter: .term(.basic(.positive, "color", .equal, "blue")), score: 0.9)
 
         let result = sortCombinedSuggestions([lower, higher, other])
-        #expect(result.count == 2)
-        #expect(result[0].score == 0.95)
-        #expect(result[1].score == 0.9)
+        #expect(result.map(\.score) == [0.95, 0.9])
     }
 
     @Test("pinned source bias lifts a lower-scored suggestion above a higher-scored one")
-    func pinnedBiasLiftsScore() {
+    func pinnedBias() {
+        // pinned biasedScore = 0.85 + 1.0 = 1.85 > unpinned 0.95
         let pinned = makeSuggestion(source: .pinnedFilter, filter: .term(.basic(.positive, "color", .equal, "red")), score: 0.85)
-        let unpinned = makeSuggestion(source: .enumeration, filter: .term(.basic(.positive, "color", .equal, "blue")), score: 0.95)
+        let other = makeSuggestion(source: .enumeration, filter: .term(.basic(.positive, "color", .equal, "blue")), score: 0.95)
 
-        // pinned biasedScore = 0.85 + 1.0 = 1.85, unpinned = 0.95
-        let result = sortCombinedSuggestions([unpinned, pinned])
-        #expect(result.first?.source == .pinnedFilter)
+        let result = sortCombinedSuggestions([other, pinned])
+        #expect(result.first!.source == .pinnedFilter)
     }
 
     @Test("history source bias lowers a higher-scored suggestion below a lower-scored one")
-    func historyBiasLowersScore() {
+    func historyBias() {
+        // history biasedScore = 0.95 - 1.0 = -0.05 < other 0.85
         let history = makeSuggestion(source: .historyFilter, filter: .term(.basic(.positive, "color", .equal, "red")), score: 0.95)
         let other = makeSuggestion(source: .enumeration, filter: .term(.basic(.positive, "color", .equal, "blue")), score: 0.85)
 
-        // history biasedScore = 0.95 - 1.0 = -0.05, other = 0.85
         let result = sortCombinedSuggestions([history, other])
-        #expect(result.first?.source == .enumeration)
+        #expect(result.first!.source == .enumeration)
     }
-
-    @Test("empty input returns empty output")
-    func emptyInput() {
-        #expect(sortCombinedSuggestions([]).isEmpty)
-    }
-}
-
-// MARK: - nameSuggestions
-
-@Suite
-struct NameSuggestionsTests {
-    struct TestCase: Sendable, CustomStringConvertible {
-        let description: String
-        let partial: PartialFilterTerm
-        let mockResults: [String]
-        let expectedFilters: [FilterQuery<FilterTerm>]
-
-        init(_ description: String, _ partial: PartialFilterTerm, _ mockResults: [String], _ expectedFilters: [FilterQuery<FilterTerm>]) {
-            self.description = description
-            self.partial = partial
-            self.mockResults = mockResults
-            self.expectedFilters = expectedFilters
-        }
-    }
-
-    private func extractFilters(_ suggestions: [AutocompleteSuggestion]) -> [FilterQuery<FilterTerm>] {
-        suggestions.compactMap {
-            if case .filter(let highlighted) = $0.content { highlighted.value } else { nil }
-        }
-    }
-
-    @Test("nameSuggestions", arguments: [
-        TestCase(
-            "early-abort and return nothing if it looks like a non-name filter",
-            PartialFilterTerm(polarity: .positive, content: .filter("foo", .including, .bare(""))),
-            ["foobar"],
-            []
-        ),
-        TestCase(
-            "early-abort and return nothing if it's a name-type filter with less than 2 characters",
-            PartialFilterTerm(polarity: .positive, content: .filter("name", .including, .bare("f"))),
-            ["foobar"],
-            []
-        ),
-        TestCase(
-            "return results if it's a name-type filter, adding quotes where necessary",
-            PartialFilterTerm(polarity: .positive, content: .filter("name", .including, .bare("bolt"))),
-            ["Firebolt", "Lightning Bolt", "Someone's Bolt"],
-            [
-                .term(.basic(.positive, "name", Comparison.including, "Lightning Bolt")),
-                .term(.basic(.positive, "name", Comparison.including, "Someone's Bolt")),
-                .term(.basic(.positive, "name", Comparison.including, "Firebolt")),
-            ]
-        ),
-        TestCase(
-            "is case-insensitive",
-            PartialFilterTerm(polarity: .positive, content: .filter("nAmE", .including, .bare("boLT"))),
-            ["Firebolt"],
-            [.term(.basic(.positive, "name", Comparison.including, "Firebolt"))]
-        ),
-        TestCase(
-            "respects the operator used",
-            PartialFilterTerm(polarity: .positive, content: .filter("name", .equal, .bare("bolt"))),
-            ["Firebolt"],
-            [.term(.basic(.positive, "name", Comparison.equal, "Firebolt"))]
-        ),
-        TestCase(
-            "supports incomplete terms",
-            PartialFilterTerm(polarity: .positive, content: .filter("name", .equal, .unterminated(.singleQuote, "bolt"))),
-            ["Firebolt", "Lightning Bolt"],
-            [
-                .term(.basic(.positive, "name", Comparison.equal, "Lightning Bolt")),
-                .term(.basic(.positive, "name", Comparison.equal, "Firebolt")),
-            ]
-        ),
-        TestCase(
-            "return results if it's quoted without a filter",
-            PartialFilterTerm(polarity: .positive, content: .name(false, .unterminated(.doubleQuote, "bolt"))),
-            ["Firebolt", "Lightning Bolt"],
-            [
-                .term(.name(.positive, true, "Lightning Bolt")),
-                .term(.name(.positive, true, "Firebolt")),
-            ]
-        ),
-        TestCase(
-            "return results if it's a literal name match",
-            PartialFilterTerm(polarity: .positive, content: .name(true, .bare("bolt"))),
-            ["Firebolt", "Lightning Bolt"],
-            [
-                .term(.name(.positive, true, "Lightning Bolt")),
-                .term(.name(.positive, true, "Firebolt")),
-            ]
-        ),
-        TestCase(
-            "return results with negative polarity",
-            PartialFilterTerm(polarity: .negative, content: .name(true, .unterminated(.doubleQuote, "bolt"))),
-            ["Firebolt", "Lightning Bolt"],
-            [
-                .term(.name(.negative, true, "Lightning Bolt")),
-                .term(.name(.negative, true, "Firebolt")),
-            ]
-        ),
-        TestCase(
-            "only returns names that fuzzy-match the search term",
-            PartialFilterTerm(polarity: .positive, content: .filter("name", .including, .bare("foo"))),
-            ["Wooded Foothills", "Shivan Reef"],
-            [
-                .term(.basic(.positive, "name", Comparison.including, "Wooded Foothills")),
-            ]
-        ),
-        TestCase(
-            "return matches even if it doesn't look like a filter",
-            PartialFilterTerm(polarity: .positive, content: .name(false, .bare("bolt"))),
-            ["Firebolt", "Lightning Bolt"],
-            [
-                .term(.name(.positive, true, "Lightning Bolt")),
-                .term(.name(.positive, true, "Firebolt")),
-            ]
-        ),
-    ])
-    func nameSuggestions(testCase: TestCase) {
-        let actual = Array(MagicCardSearch.nameSuggestions(for: testCase.partial, in: testCase.mockResults, searchTerm: ""))
-        let actualFilters = extractFilters(actual)
-        #expect(actualFilters == testCase.expectedFilters, "\(testCase.description)")
-        #expect(actual.allSatisfy { $0.source == .name })
-    }
-
-    // TODO: Test limit parameter.
 }

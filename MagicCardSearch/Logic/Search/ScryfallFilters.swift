@@ -139,7 +139,7 @@ let scryfallFilterTypes: [ScryfallFilterType] = [
     .init("set", ["s", "edition", "e"]), // Enumeration values loaded from Scryfall.
     .init("number", ["cn"], comparisonKinds: .all),
     .init("block", ["b"]), // Enumeration values loaded from Scryfall.
-    .init("st", enumerationValues: [
+    .init("settype", ["st"], enumerationValues: [
         // primary product types
         "core", "expansion", "draftinnovation",
         // series of products
