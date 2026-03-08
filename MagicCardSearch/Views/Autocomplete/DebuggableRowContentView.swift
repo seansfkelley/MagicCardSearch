@@ -16,7 +16,7 @@ struct DebuggableRowContentView<Content: View>: View {
 }
 #else
 // swiftlint:disable:next identifier_name
-func DebuggableRowContentView<Content: View>(suggestion: Suggestion, @ViewBuilder content: () -> Content) -> Content {
+func DebuggableRowContentView<Content: View>(suggestion: AutocompleteSuggestion, @ViewBuilder content: () -> Content) -> Content {
     content()
 }
 #endif
