@@ -108,6 +108,21 @@ struct SearchResultsGridView: View {
         .onChange(of: searchState.filters) {
             selectedCardIndex = nil
         }
+        .onChange(of: searchState.results?.value.latestValue?.data ?? []) { _, newValue in
+            // This is a bit of a jank way to implement "auto-open on one search result" but it is
+            // actually reliable. If the list changes for any reason, it can only end up with
+            // length = 1 if a new search was initiated returning one result. Old searches only
+            // grow larger as they page as there is no deletion, and pages are never going to be
+            // count = 1.
+            //
+            // I would prefer a more explicit way to do this that e.g. hooks into the lifecycle of
+            // a search action, but I designed the data types to obscure that and there's no good
+            // way to observe the LoadableResult itself or the types near it changing, since none of
+            // them are Equatable. Only the payload itself, [Card], is Equatable.
+            if newValue.count == 1 {
+                selectedCardIndex = 0
+            }
+        }
     }
 
     @ViewBuilder private var paginationStatusView: some View {

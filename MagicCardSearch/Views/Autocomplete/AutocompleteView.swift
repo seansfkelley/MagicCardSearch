@@ -1,7 +1,5 @@
 import SwiftUI
 
-
-
 struct AutocompleteView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(HistoryAndPinnedStore.self) private var historyAndPinnedStore
