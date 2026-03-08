@@ -38,13 +38,15 @@ class SearchState {
     public var configuration = SearchConfiguration.load()
     public var results: ScryfallObjectList<Card>?
     public private(set) var searchNonce = 0
-    // TODO: This should eventually be private and only expose the suggestions themselves.
-    public let suggestionProvider: AutocompleteSuggestionProvider
+    public var suggestions: AsyncStream<[Suggestion]> {
+        suggestionProvider.getSuggestions(for: selectedFilter.text, existingFilters: Set(filters))
+    }
 
     public var selectedFilter: CurrentlyHighlightedFilterFacade {
         CurrentlyHighlightedFilterFacade(inputText: searchText, inputSelection: actualSearchSelection)
     }
 
+    private let suggestionProvider: AutocompleteSuggestionProvider
     private let scryfall = ScryfallClient(logger: logger)
     private let historyAndPinnedStore: HistoryAndPinnedStore
 

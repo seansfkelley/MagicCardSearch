@@ -2,6 +2,9 @@ import Foundation
 import SQLiteData
 import FuzzyMatch
 import ScryfallKit
+import OSLog
+
+private let logger = Logger(subsystem: "MagicCardSearch", category: "AutocompleteSuggestionProvider")
 
 struct Suggestion {
     enum Source {
@@ -44,6 +47,7 @@ class AutocompleteSuggestionProvider {
         self.scryfallCatalogs = scryfallCatalogs
     }
 
+    // swiftlint:disable:next function_body_length
     func getSuggestions(for searchTerm: String, existingFilters: Set<FilterQuery<FilterTerm>>) -> AsyncStream<[Suggestion]> {
         let partial = PartialFilterTerm.from(searchTerm)
 
@@ -118,7 +122,10 @@ class AutocompleteSuggestionProvider {
             }
         }
 
-        continuation.onTermination = { _ in task.cancel() }
+        continuation.onTermination = { _ in
+            logger.debug("autocomplete suggestion consumer terminated; cancelling")
+            task.cancel()
+        }
 
         return stream
     }
