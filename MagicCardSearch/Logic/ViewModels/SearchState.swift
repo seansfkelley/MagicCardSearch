@@ -39,7 +39,7 @@ class SearchState {
     public var results: ScryfallObjectList<Card>?
     public private(set) var searchNonce = 0
     // TODO: This should eventually be private and only expose the suggestions themselves.
-    public let suggestionProvider: CombinedSuggestionProvider
+    public let suggestionProvider: AutocompleteSuggestionProvider
 
     public var selectedFilter: CurrentlyHighlightedFilterFacade {
         CurrentlyHighlightedFilterFacade(inputText: searchText, inputSelection: actualSearchSelection)
@@ -50,9 +50,7 @@ class SearchState {
 
     public init(historyAndPinnedStore: HistoryAndPinnedStore, scryfallCatalogs: ScryfallCatalogs) {
         self.historyAndPinnedStore = historyAndPinnedStore
-        self.suggestionProvider = CombinedSuggestionProvider(
-            scryfallCatalogs: scryfallCatalogs
-        )
+        self.suggestionProvider = AutocompleteSuggestionProvider(scryfallCatalogs: scryfallCatalogs)
     }
 
     public func clearAll() {

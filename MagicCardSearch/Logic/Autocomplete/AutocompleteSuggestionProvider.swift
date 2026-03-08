@@ -17,9 +17,7 @@ struct Suggestion {
     let source: Source
     let content: Content
     let score: Double
-}
 
-extension Suggestion {
     var biasedScore: Double {
         let bias: Double = switch source {
         case .pinnedFilter: 1
@@ -35,50 +33,8 @@ struct FilterTypeSuggestion: Hashable, Sendable {
     let filterType: ScryfallFilterType
 }
 
-struct WithHighlightedString<T: Sendable & Hashable>: Hashable {
-    let value: T
-    let string: String
-    lazy var highlights = guessHighlights()
-
-    private let searchTerm: String
-
-    init(value: T, string: String, searchTerm: String) {
-        self.value = value
-        self.string = string
-        self.searchTerm = searchTerm
-    }
-
-    private func guessHighlights() -> [Range<String.Index>] {
-        guard !searchTerm.isEmpty, !string.isEmpty else {
-            return []
-        }
-
-        var ranges = [Range<String.Index>]()
-        var stringIndex = string.startIndex
-
-        for searchChar in searchTerm {
-            var searchIndex = stringIndex
-            while searchIndex < string.endIndex {
-                if string[searchIndex].lowercased() == searchChar.lowercased() {
-                    let nextIndex = string.index(after: searchIndex)
-                    if let last = ranges.last, last.upperBound == searchIndex {
-                        ranges[ranges.count - 1] = last.lowerBound..<nextIndex
-                    } else {
-                        ranges.append(searchIndex..<nextIndex)
-                    }
-                    stringIndex = nextIndex
-                    break
-                }
-                searchIndex = string.index(after: searchIndex)
-            }
-        }
-
-        return ranges
-    }
-}
-
 @MainActor
-class CombinedSuggestionProvider {
+class AutocompleteSuggestionProvider {
     private let scryfallCatalogs: ScryfallCatalogs
 
     @ObservationIgnored @FetchAll private var pinnedFilters: [PinnedFilterEntry]
@@ -278,7 +234,7 @@ func enumerationSuggestions(for partial: PartialFilterTerm, catalogData: Enumera
     if value.isEmpty {
         matched = allCandidates.sorted { $0.localizedStandardCompare($1) == .orderedAscending }.map { ($0, 0) }
     } else {
-        matched = timed("EnumerationSuggestProvider fuzzy match") {
+        matched = timed("enumerationSuggestions fuzzy match") {
             FuzzyMatcher().matches(allCandidates, against: value).map { ($0.candidate, $0.match.score) }
         }
     }
@@ -314,7 +270,7 @@ func reverseEnumerationSuggestions(for partial: PartialFilterTerm, catalogData: 
         return []
     }
 
-    let matchResults = timed("ReverseEnumerationSuggestionProvider fuzzy match") {
+    let matchResults = timed("reverseEnumerationSuggestions fuzzy match") {
         FuzzyMatcher().matches(allCandidates.map(\.0), against: partialSearchTerm)
     }
 
@@ -403,7 +359,7 @@ func nameSuggestions(for partial: PartialFilterTerm, in cardNames: [String], sea
         return []
     }
 
-    let matches = timed("NameSuggestionProvider fuzzy match") {
+    let matches = timed("nameSuggestions fuzzy match") {
         FuzzyMatcher().matches(cardNames, against: name)
     }
 

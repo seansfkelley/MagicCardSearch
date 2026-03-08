@@ -11,6 +11,7 @@
 		210E13AA2EFC66C4009D9FE0 /* FocusOnAppear in Frameworks */ = {isa = PBXBuildFile; productRef = 210E13A92EFC66C4009D9FE0 /* FocusOnAppear */; };
 		210E14922EFDE5FB009D9FE0 /* SwiftUIIntrospect in Frameworks */ = {isa = PBXBuildFile; productRef = 210E14912EFDE5FB009D9FE0 /* SwiftUIIntrospect */; };
 		210E245C2F0858DC008C05C1 /* DependenciesTestSupport in Frameworks */ = {isa = PBXBuildFile; productRef = 210E245B2F0858DC008C05C1 /* DependenciesTestSupport */; };
+		210F6A212F5D12F000C6FB98 /* WithHighlightedString.swift in Sources */ = {isa = PBXBuildFile; fileRef = 210F6A202F5D12F000C6FB98 /* WithHighlightedString.swift */; };
 		21332B992EF5D04100C80208 /* Algorithms in Frameworks */ = {isa = PBXBuildFile; productRef = 21332B982EF5D04100C80208 /* Algorithms */; };
 		213F299A2EE9285400E058DB /* SVGKitSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 213F29992EE9285400E058DB /* SVGKitSwift */; };
 		21874B3A2F07045300E07D9A /* SQLiteData in Frameworks */ = {isa = PBXBuildFile; productRef = 21874B392F07045300E07D9A /* SQLiteData */; };
@@ -47,6 +48,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		210F6A202F5D12F000C6FB98 /* WithHighlightedString.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WithHighlightedString.swift; sourceTree = "<group>"; };
 		211396112EE9E39500093873 /* CLAUDE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = CLAUDE.md; sourceTree = "<group>"; };
 		2137B5AD2EE139C60066BF7E /* MagicCardSearch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MagicCardSearch.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		2137B5BA2EE139C70066BF7E /* MagicCardSearchTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MagicCardSearchTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -175,6 +177,7 @@
 				2137B5C72EE139C70066BF7E /* MagicCardSearchUITests */,
 				21A856BB2EE3AAE400E72541 /* Frameworks */,
 				2137B5AE2EE139C60066BF7E /* Products */,
+				210F6A202F5D12F000C6FB98 /* WithHighlightedString.swift */,
 			);
 			sourceTree = "<group>";
 		};
@@ -419,6 +422,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				210F6A212F5D12F000C6FB98 /* WithHighlightedString.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
