@@ -3,7 +3,7 @@ import OSLog
 import SQLiteData
 import Observation
 
-private let logger = Logger(subsystem: "MagicCardSearch", category: "HistoryAndPinnedState")
+private let logger = Logger(subsystem: "MagicCardSearch", category: "HistoryAndPinnedStore")
 
 @MainActor
 @Observable

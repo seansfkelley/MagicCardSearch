@@ -3,7 +3,7 @@ import OSLog
 import SQLiteData
 import ScryfallKit
 
-private let logger = Logger(subsystem: "MagicCardSearch", category: "HistoryAndPinnedState")
+private let logger = Logger(subsystem: "MagicCardSearch", category: "BookmarkedCardsStore")
 
 @MainActor
 @Observable

@@ -172,7 +172,7 @@ private struct DefaultSearchContent: View {
     private var recentSearchCount
 
     @FetchAll(PinnedSearchEntry.order { $0.pinnedAt.desc() })
-    var pinnedSearches
+    private var pinnedSearches
 
     var body: some View {
         List {
