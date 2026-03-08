@@ -305,21 +305,25 @@ func reverseEnumerationSuggestions(for partial: PartialFilterTerm, catalogData: 
         return AnySequence([])
     }
 
-    let partialSearchTerm = partialTerm.incompleteContent
-    let allCandidates = reverseEnumerationAllCandidates(catalogData: catalogData)
+    var valueToFilters = [String: [ScryfallFilterType]]()
+    for filterType in scryfallFilterTypes {
+        for value in catalogData[filterType] ?? filterType.enumerationValues ?? [] {
+            valueToFilters[value, default: []].append(filterType)
+        }
+    }
 
-    guard !allCandidates.isEmpty else {
+    guard !valueToFilters.isEmpty else {
         return AnySequence([])
     }
 
     let matchResults = timed("reverseEnumerationSuggestions fuzzy match") {
-        FuzzyMatcher().matches(allCandidates.map(\.0), against: partialSearchTerm)
+        FuzzyMatcher().matches(Array(valueToFilters.keys), against: partialTerm.incompleteContent)
     }
 
     return AnySequence(
         matchResults.lazy
             .flatMap { result in
-                guard let filters = allCandidates.first(where: { $0.0 == result.candidate })?.1 else {
+                guard let filters = valueToFilters[result.candidate] else {
                     return [Suggestion]()
                 }
                 return filters.map { filterType in
@@ -333,44 +337,6 @@ func reverseEnumerationSuggestions(for partial: PartialFilterTerm, catalogData: 
     )
 }
 
-private func reverseEnumerationAllCandidates(catalogData: EnumerationCatalogData) -> [(String, [ScryfallFilterType])] {
-    var valueToFilters = reverseEnumerationStaticIndex()
-
-    for (key, value) in reverseEnumerationDynamicIndex(catalogData: catalogData) {
-        valueToFilters[key, default: []].append(contentsOf: value)
-    }
-
-    return valueToFilters.map { ($0.key, $0.value) }
-}
-
-private func reverseEnumerationStaticIndex() -> [String: [ScryfallFilterType]] {
-    var valueToFilters: [String: [ScryfallFilterType]] = [:]
-
-    for filterType in scryfallFilterTypes {
-        guard let enumerationValues = filterType.enumerationValues else {
-            continue
-        }
-
-        for value in enumerationValues {
-            valueToFilters[value, default: []].append(filterType)
-        }
-    }
-
-    return valueToFilters
-}
-
-private func reverseEnumerationDynamicIndex(catalogData: EnumerationCatalogData) -> [String: [ScryfallFilterType]] {
-    var valueToFilters = [String: [ScryfallFilterType]]()
-
-    for filterType in scryfallFilterTypes {
-        guard let values = catalogData[filterType] else { continue }
-        for value in values {
-            valueToFilters[value, default: []].append(filterType)
-        }
-    }
-
-    return valueToFilters
-}
 
 func nameSuggestions(for partial: PartialFilterTerm, in cardNames: [String], searchTerm: String) -> some Sequence<Suggestion> {
     let name: String
