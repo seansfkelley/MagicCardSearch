@@ -92,10 +92,7 @@ struct SpoilersView: View {
                                 CardView(
                                     card: card,
                                     quality: .normal,
-                                    isFlipped: Binding(
-                                        get: { cardFlipStates[card.id] ?? false },
-                                        set: { cardFlipStates[card.id] = $0 }
-                                    ),
+                                    isFlipped: $cardFlipStates.for(card.id),
                                     cornerRadius: 10,
                                 )
                                 .onTapGesture {
