@@ -145,7 +145,7 @@ private func isRelevantSuggestion(
     }
 }
 
-private func sortCombinedSuggestions(_ suggestions: [AutocompleteSuggestion]) -> [AutocompleteSuggestion] {
+func sortCombinedSuggestions(_ suggestions: [AutocompleteSuggestion]) -> [AutocompleteSuggestion] {
     var seen = Set<AutocompleteSuggestion.Content>()
     return suggestions
         .sorted { $0.biasedScore > $1.biasedScore }
@@ -154,43 +154,39 @@ private func sortCombinedSuggestions(_ suggestions: [AutocompleteSuggestion]) ->
 
 func pinnedFilterSuggestions(for partial: PartialFilterTerm, from pinnedFilters: [PinnedFilterEntry], searchTerm: String) -> some Sequence<AutocompleteSuggestion> {
     let trimmedSearchTerm = partial.description.trimmingCharacters(in: .whitespaces)
+    let filterByText = Dictionary(
+        pinnedFilters.map { ($0.filter.description, $0.filter) },
+        // swiftlint:disable:next trailing_closure
+        uniquingKeysWith: { first, _ in first },
+    )
 
-    let matcher = FuzzyMatcher()
-    let query = matcher.prepare(trimmedSearchTerm)
-    var buffer = matcher.makeBuffer()
-
-    return pinnedFilters
+    return FuzzyMatcher().matches(Array(filterByText.keys), against: trimmedSearchTerm)
         .lazy
-        .compactMap { row in
-            let filterText = row.filter.description
-            return matcher.score(filterText, against: query, buffer: &buffer).map {
-                return AutocompleteSuggestion(
-                    source: .pinnedFilter,
-                    content: .filter(WithHighlightedString(value: row.filter, string: filterText, searchTerm: searchTerm)),
-                    score: $0.score,
-                )
-            }
+        .map { result in
+            AutocompleteSuggestion(
+                source: .pinnedFilter,
+                content: .filter(WithHighlightedString(value: filterByText[result.candidate]!, string: result.candidate, searchTerm: searchTerm)),
+                score: result.match.score,
+            )
         }
 }
 
 func filterHistorySuggestions(for searchTerm: String, from filterHistoryEntries: [FilterHistoryEntry]) -> some Sequence<AutocompleteSuggestion> {
     let trimmedSearchTerm = searchTerm.trimmingCharacters(in: .whitespaces)
+    let filterByText = Dictionary(
+        filterHistoryEntries.map { ($0.filter.description, $0.filter) },
+        // swiftlint:disable:next trailing_closure
+        uniquingKeysWith: { first, _ in first },
+    )
 
-    let matcher = FuzzyMatcher()
-    let query = matcher.prepare(trimmedSearchTerm)
-    var buffer = matcher.makeBuffer()
-
-    return filterHistoryEntries
+    return FuzzyMatcher().matches(Array(filterByText.keys), against: trimmedSearchTerm)
         .lazy
-        .compactMap { entry in
-            let filterText = entry.filter.description
-            return matcher.score(filterText, against: query, buffer: &buffer).map {
-                AutocompleteSuggestion(
-                    source: .historyFilter,
-                    content: .filter(WithHighlightedString(value: entry.filter, string: filterText, searchTerm: searchTerm)),
-                    score: $0.score,
-                )
-            }
+        .map { result in
+            AutocompleteSuggestion(
+                source: .historyFilter,
+                content: .filter(WithHighlightedString(value: filterByText[result.candidate]!, string: result.candidate, searchTerm: searchTerm)),
+                score: result.match.score,
+            )
         }
 }
 

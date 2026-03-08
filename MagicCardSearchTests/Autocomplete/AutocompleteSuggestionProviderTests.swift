@@ -264,6 +264,72 @@ struct FilterTypeSuggestionsTests {
     }
 }
 
+// MARK: - sortCombinedSuggestions
+
+@Suite
+struct SortCombinedSuggestionsTests {
+    private func makeSuggestion(
+        source: AutocompleteSuggestion.Source,
+        filter: FilterQuery<FilterTerm>,
+        score: Double
+    ) -> AutocompleteSuggestion {
+        let text = filter.description
+        return AutocompleteSuggestion(
+            source: source,
+            content: .filter(WithHighlightedString(value: filter, string: text, searchTerm: "")),
+            score: score
+        )
+    }
+
+    @Test("sorts suggestions by biased score descending")
+    func sortsByScore() {
+        let low = makeSuggestion(source: .enumeration, filter: .term(.basic(.positive, "color", .equal, "red")), score: 0.8)
+        let high = makeSuggestion(source: .enumeration, filter: .term(.basic(.positive, "color", .equal, "blue")), score: 0.95)
+        let mid = makeSuggestion(source: .enumeration, filter: .term(.basic(.positive, "color", .equal, "green")), score: 0.9)
+
+        let result = sortCombinedSuggestions([low, high, mid])
+        #expect(result.map(\.score) == [0.95, 0.9, 0.8])
+    }
+
+    @Test("deduplicates by content, keeping the higher-scored copy")
+    func deduplicatesByContent() {
+        let filter = FilterQuery<FilterTerm>.term(.basic(.positive, "color", .equal, "red"))
+        let lower = makeSuggestion(source: .enumeration, filter: filter, score: 0.8)
+        let higher = makeSuggestion(source: .enumeration, filter: filter, score: 0.95)
+        let other = makeSuggestion(source: .enumeration, filter: .term(.basic(.positive, "color", .equal, "blue")), score: 0.9)
+
+        let result = sortCombinedSuggestions([lower, higher, other])
+        #expect(result.count == 2)
+        #expect(result[0].score == 0.95)
+        #expect(result[1].score == 0.9)
+    }
+
+    @Test("pinned source bias lifts a lower-scored suggestion above a higher-scored one")
+    func pinnedBiasLiftsScore() {
+        let pinned = makeSuggestion(source: .pinnedFilter, filter: .term(.basic(.positive, "color", .equal, "red")), score: 0.85)
+        let unpinned = makeSuggestion(source: .enumeration, filter: .term(.basic(.positive, "color", .equal, "blue")), score: 0.95)
+
+        // pinned biasedScore = 0.85 + 1.0 = 1.85, unpinned = 0.95
+        let result = sortCombinedSuggestions([unpinned, pinned])
+        #expect(result.first?.source == .pinnedFilter)
+    }
+
+    @Test("history source bias lowers a higher-scored suggestion below a lower-scored one")
+    func historyBiasLowersScore() {
+        let history = makeSuggestion(source: .historyFilter, filter: .term(.basic(.positive, "color", .equal, "red")), score: 0.95)
+        let other = makeSuggestion(source: .enumeration, filter: .term(.basic(.positive, "color", .equal, "blue")), score: 0.85)
+
+        // history biasedScore = 0.95 - 1.0 = -0.05, other = 0.85
+        let result = sortCombinedSuggestions([history, other])
+        #expect(result.first?.source == .enumeration)
+    }
+
+    @Test("empty input returns empty output")
+    func emptyInput() {
+        #expect(sortCombinedSuggestions([]).isEmpty)
+    }
+}
+
 // MARK: - nameSuggestions
 
 @Suite
