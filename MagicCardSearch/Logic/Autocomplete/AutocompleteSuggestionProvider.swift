@@ -305,11 +305,14 @@ func reverseEnumerationSuggestions(for partial: PartialFilterTerm, catalogData: 
         return AnySequence([])
     }
 
-    var valueToFilters = [String: [ScryfallFilterType]]()
-    for filterType in scryfallFilterTypes {
-        for value in catalogData[filterType] ?? filterType.enumerationValues ?? [] {
-            valueToFilters[value, default: []].append(filterType)
+    let valueToFilters = timed("reverseEnumerationSuggestions mapping initialization") {
+        var valueToFilters = [String: [ScryfallFilterType]]()
+        for filterType in scryfallFilterTypes {
+            for value in catalogData[filterType] ?? filterType.enumerationValues ?? [] {
+                valueToFilters[value, default: []].append(filterType)
+            }
         }
+        return valueToFilters
     }
 
     guard !valueToFilters.isEmpty else {
@@ -336,7 +339,6 @@ func reverseEnumerationSuggestions(for partial: PartialFilterTerm, catalogData: 
             }
     )
 }
-
 
 func nameSuggestions(for partial: PartialFilterTerm, in cardNames: [String], searchTerm: String) -> some Sequence<Suggestion> {
     let name: String
