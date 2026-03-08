@@ -2,47 +2,6 @@ import Foundation
 import FuzzyMatch
 import ScryfallKit
 
-struct EnumerationCatalogData: Sendable {
-    let catalogs: [Catalog.`Type`: [String]]
-    let sets: [SetCode: MTGSet]?
-    let artTags: [String]?
-    let oracleTags: [String]?
-
-    init(catalogs: [Catalog.`Type`: [String]], sets: [SetCode: MTGSet]?, artTags: [String]?, oracleTags: [String]?) {
-        self.catalogs = catalogs
-        self.sets = sets
-        self.artTags = artTags
-        self.oracleTags = oracleTags
-    }
-
-    @MainActor
-    init(scryfallCatalogs: ScryfallCatalogs) {
-        typealias CatalogType = Catalog.`Type`
-
-        var catalogs = [CatalogType: [String]]()
-        for type in CatalogType.allCases {
-            if let data = scryfallCatalogs[type] {
-                catalogs[type] = data
-            }
-        }
-        self.catalogs = catalogs
-        self.sets = scryfallCatalogs.sets
-        self.artTags = scryfallCatalogs.artTags
-        self.oracleTags = scryfallCatalogs.oracleTags
-    }
-
-    func combined(_ catalogTypes: Catalog.`Type`...) -> [String]? {
-        var result: [String] = []
-        for type in catalogTypes {
-            guard let data = catalogs[type] else {
-                return nil
-            }
-            result.append(contentsOf: data)
-        }
-        return result
-    }
-}
-
 actor EnumerationSuggestionProvider {
     private let matcher = FuzzyMatcher()
 
@@ -50,19 +9,8 @@ actor EnumerationSuggestionProvider {
         guard limit > 0,
               case .filter(let filterTypeName, let partialComparison, let partialValue) = partial.content,
               let comparison = partialComparison.toComplete(),
-              let filterType = scryfallFilterByType[filterTypeName.lowercased()] else {
-            return []
-        }
-
-        let allCandidates = if let dynamicOptions = getDynamicOptions(for: filterType, from: catalogData) {
-            dynamicOptions
-        } else if let staticOptions = filterType.enumerationValues {
-            staticOptions
-        } else {
-            [String]()
-        }
-
-        guard !allCandidates.isEmpty else {
+              let filterType = scryfallFilterByType[filterTypeName.lowercased()],
+              let allCandidates = catalogData[filterType] ?? filterType.enumerationValues else {
             return []
         }
 
@@ -85,50 +33,5 @@ actor EnumerationSuggestionProvider {
         }
 
         return Array(allResults.prefix(limit))
-    }
-
-    // MARK: - Catalog Options
-
-    private func getDynamicOptions(for filter: ScryfallFilterType, from catalogData: EnumerationCatalogData) -> [String]? {
-        switch filter.canonicalName {
-        case "type":
-            catalogData.combined(
-                .supertypes,
-                .cardTypes,
-                .artifactTypes,
-                .battleTypes,
-                .creatureTypes,
-                .enchantmentTypes,
-                .landTypes,
-                .planeswalkerTypes,
-                .spellTypes,
-            )
-        case "set":
-            catalogData.sets.map {
-                $0.values
-                    .filter { !AutocompleteConstants.ignoredSetTypes.contains($0.setType) }
-                    .flatMap { [$0.code.uppercased(), $0.name] }
-                    .map { $0.replacing(/[^a-zA-Z0-9 ]/, with: "") }
-            }
-        case "block":
-            catalogData.sets.map {
-                $0.values
-                    .filter { !AutocompleteConstants.ignoredSetTypes.contains($0.setType) }
-                    .compactMap { $0.block?.replacing(/[^a-zA-Z0-9 ]/, with: "") }
-                    .uniqued()
-            }
-        case "keyword":
-            catalogData.catalogs[.keywordAbilities, .abilityWords].map { $0.map { $0.lowercased() } }
-        case "watermark":
-            catalogData.catalogs[.watermarks]
-        case "artist":
-            catalogData.catalogs[.artistNames]
-        case "art":
-            catalogData.artTags
-        case "function":
-            catalogData.oracleTags
-        default:
-            nil
-        }
     }
 }

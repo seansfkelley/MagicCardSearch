@@ -73,37 +73,10 @@ actor ReverseEnumerationSuggestionProvider {
     private static func getDynamicIndexMembers(catalogData: EnumerationCatalogData) -> [String: [ScryfallFilterType]] {
         var valueToFilters = [String: [ScryfallFilterType]]()
 
-        func addCatalogs(_ types: Catalog.`Type`..., to filter: String, lowercased: Bool = false) {
-            guard let filterType = scryfallFilterByType[filter] else { return }
-            for type in types {
-                guard let values = catalogData.catalogs[type] else { continue }
-                for value in values {
-                    valueToFilters[lowercased ? value.lowercased() : value, default: []].append(filterType)
-                }
-            }
-        }
-
-        addCatalogs(.artistNames, to: "artist")
-        addCatalogs(.keywordAbilities, .abilityWords, to: "keyword", lowercased: true)
-        addCatalogs(.watermarks, to: "watermark")
-        addCatalogs(.supertypes, .cardTypes, .artifactTypes, .battleTypes, .creatureTypes, .enchantmentTypes, .landTypes, .planeswalkerTypes, .spellTypes, to: "type")
-
-        if let sets = catalogData.sets?.values.filter({ !AutocompleteConstants.ignoredSetTypes.contains($0.setType) }) {
-            if let setFilter = scryfallFilterByType["set"] {
-                for set in sets {
-                    valueToFilters[set.code.uppercased().replacing(/[^a-zA-Z0-9 ]/, with: ""), default: []].append(setFilter)
-                    // n.b. Scryfall does NOT want any other characters like colons (e.g. "Avatar: the
-                    // Last Airbender") as it will not match anything.
-                    valueToFilters[set.name.replacing(/[^a-zA-Z0-9 ]/, with: ""), default: []].append(setFilter)
-                }
-            }
-
-            if let blockFilter = scryfallFilterByType["block"] {
-                // n.b. Scryfall does NOT want any other characters like colons (e.g. "Avatar: the
-                // Last Airbender") as it will not match anything.
-                for block in sets.compactMap({ $0.block?.replacing(/[^a-zA-Z0-9 ]/, with: "") }).uniqued() {
-                    valueToFilters[block, default: []].append(blockFilter)
-                }
+        for filterType in scryfallFilterTypes {
+            guard let values = catalogData[filterType] else { continue }
+            for value in values {
+                valueToFilters[value, default: []].append(filterType)
             }
         }
 
