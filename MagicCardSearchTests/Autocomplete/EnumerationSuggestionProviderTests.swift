@@ -76,9 +76,8 @@ struct EnumerationSuggestionProviderTests {
             []
         ),
     ])
-    func getSuggestions(partial: PartialFilterTerm, expected: [FilterQuery<FilterTerm>]) async {
-        let provider = EnumerationSuggestionProvider()
-        let actual = await provider.getSuggestions(for: partial, catalogData: emptyCatalogData, searchTerm: "", limit: 100)
+    func getSuggestions(partial: PartialFilterTerm, expected: [FilterQuery<FilterTerm>]) {
+        let actual = enumerationSuggestions(for: partial, catalogData: emptyCatalogData, searchTerm: "", limit: 100)
         let actualFilters = extractFilters(actual)
         #expect(actualFilters == expected)
         #expect(actual.allSatisfy { $0.source == .enumeration })

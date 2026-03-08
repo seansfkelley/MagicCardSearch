@@ -84,7 +84,7 @@ struct FilterTypeSuggestionProviderTests {
         ]
     )
     func getSuggestions(partial: PartialFilterTerm, expected: [String]) {
-        let results = FilterTypeSuggestionProvider().getSuggestions(for: partial, searchTerm: "", limit: Int.max)
+        let results = filterTypeSuggestions(for: partial, searchTerm: "", limit: Int.max)
         let actualNames = extractDisplayNames(results)
         #expect(actualNames == expected, "\(actualNames) != \(expected)")
         #expect(results.allSatisfy { $0.source == .filterType })
