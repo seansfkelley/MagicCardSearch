@@ -6,7 +6,7 @@ import OSLog
 
 private let logger = Logger(subsystem: "MagicCardSearch", category: "AutocompleteSuggestionProvider")
 
-struct Suggestion {
+struct AutocompleteSuggestion {
     enum Source {
         case pinnedFilter, historyFilter, filterType, enumeration, reverseEnumeration, name, fullText
     }
@@ -48,13 +48,13 @@ class AutocompleteSuggestionProvider {
     }
 
     // swiftlint:disable:next function_body_length
-    func getSuggestions(for searchTerm: String, existingFilters: Set<FilterQuery<FilterTerm>>) -> AsyncStream<[Suggestion]> {
+    func getSuggestions(for searchTerm: String, existingFilters: Set<FilterQuery<FilterTerm>>) -> AsyncStream<[AutocompleteSuggestion]> {
         let partial = PartialFilterTerm.from(searchTerm)
 
-        let (stream, continuation) = AsyncStream.makeStream(of: [Suggestion].self)
+        let (stream, continuation) = AsyncStream.makeStream(of: [AutocompleteSuggestion].self)
 
         let task = Task {
-            await withTaskGroup(of: [Suggestion].self) { group in
+            await withTaskGroup(of: [AutocompleteSuggestion].self) { group in
                 let catalogData = EnumerationCatalogData(scryfallCatalogs: self.scryfallCatalogs)
 
                 do {
@@ -113,7 +113,7 @@ class AutocompleteSuggestionProvider {
                     }
                 }
 
-                var suggestions: [Suggestion] = []
+                var suggestions: [AutocompleteSuggestion] = []
                 for await batch in group {
                     suggestions.append(contentsOf: batch)
                     continuation.yield(sortCombinedSuggestions(suggestions))
@@ -132,7 +132,7 @@ class AutocompleteSuggestionProvider {
 }
 
 private func isRelevantSuggestion(
-    _ suggestion: Suggestion,
+    _ suggestion: AutocompleteSuggestion,
     searchTerm: String,
     existingFilters: Set<FilterQuery<FilterTerm>>,
 ) -> Bool {
@@ -145,14 +145,14 @@ private func isRelevantSuggestion(
     }
 }
 
-private func sortCombinedSuggestions(_ suggestions: [Suggestion]) -> [Suggestion] {
-    var seen = Set<Suggestion.Content>()
+private func sortCombinedSuggestions(_ suggestions: [AutocompleteSuggestion]) -> [AutocompleteSuggestion] {
+    var seen = Set<AutocompleteSuggestion.Content>()
     return suggestions
         .sorted { $0.biasedScore > $1.biasedScore }
         .filter { seen.insert($0.content).inserted }
 }
 
-func pinnedFilterSuggestions(for partial: PartialFilterTerm, from pinnedFilters: [PinnedFilterEntry], searchTerm: String) -> some Sequence<Suggestion> {
+func pinnedFilterSuggestions(for partial: PartialFilterTerm, from pinnedFilters: [PinnedFilterEntry], searchTerm: String) -> some Sequence<AutocompleteSuggestion> {
     let trimmedSearchTerm = partial.description.trimmingCharacters(in: .whitespaces)
 
     let matcher = FuzzyMatcher()
@@ -164,7 +164,7 @@ func pinnedFilterSuggestions(for partial: PartialFilterTerm, from pinnedFilters:
         .compactMap { row in
             let filterText = row.filter.description
             return matcher.score(filterText, against: query, buffer: &buffer).map {
-                return Suggestion(
+                return AutocompleteSuggestion(
                     source: .pinnedFilter,
                     content: .filter(WithHighlightedString(value: row.filter, string: filterText, searchTerm: searchTerm)),
                     score: $0.score,
@@ -173,7 +173,7 @@ func pinnedFilterSuggestions(for partial: PartialFilterTerm, from pinnedFilters:
         }
 }
 
-func filterHistorySuggestions(for searchTerm: String, from filterHistoryEntries: [FilterHistoryEntry]) -> some Sequence<Suggestion> {
+func filterHistorySuggestions(for searchTerm: String, from filterHistoryEntries: [FilterHistoryEntry]) -> some Sequence<AutocompleteSuggestion> {
     let trimmedSearchTerm = searchTerm.trimmingCharacters(in: .whitespaces)
 
     let matcher = FuzzyMatcher()
@@ -185,7 +185,7 @@ func filterHistorySuggestions(for searchTerm: String, from filterHistoryEntries:
         .compactMap { entry in
             let filterText = entry.filter.description
             return matcher.score(filterText, against: query, buffer: &buffer).map {
-                Suggestion(
+                AutocompleteSuggestion(
                     source: .historyFilter,
                     content: .filter(WithHighlightedString(value: entry.filter, string: filterText, searchTerm: searchTerm)),
                     score: $0.score,
@@ -194,7 +194,7 @@ func filterHistorySuggestions(for searchTerm: String, from filterHistoryEntries:
         }
 }
 
-func filterTypeSuggestions(for partial: PartialFilterTerm, searchTerm: String) -> some Sequence<Suggestion> {
+func filterTypeSuggestions(for partial: PartialFilterTerm, searchTerm: String) -> some Sequence<AutocompleteSuggestion> {
     guard case .name(let exact, let partialTerm) = partial.content,
         !exact,
         partialTerm.quotingType == nil,
@@ -215,7 +215,7 @@ func filterTypeSuggestions(for partial: PartialFilterTerm, searchTerm: String) -
         .lazy
         .map { candidate, filterType, score in
             let displayName = partial.polarity == .negative ? "-\(candidate)" : candidate
-            return Suggestion(
+            return AutocompleteSuggestion(
                 source: .filterType,
                 content: .filterType(WithHighlightedString(value: FilterTypeSuggestion(polarity: partial.polarity, filterType: filterType), string: displayName, searchTerm: searchTerm)),
                 score: score,
@@ -224,7 +224,7 @@ func filterTypeSuggestions(for partial: PartialFilterTerm, searchTerm: String) -
     )
 }
 
-func fullTextSuggestion(for partial: PartialFilterTerm, searchTerm: String) -> some Sequence<Suggestion> {
+func fullTextSuggestion(for partial: PartialFilterTerm, searchTerm: String) -> some Sequence<AutocompleteSuggestion> {
     guard case .name(let isExact, let partialValue) = partial.content,
         !isExact else {
         return AnySequence([])
@@ -257,7 +257,7 @@ func fullTextSuggestion(for partial: PartialFilterTerm, searchTerm: String) -> s
     ])
 }
 
-func enumerationSuggestions(for partial: PartialFilterTerm, catalogData: EnumerationCatalogData, searchTerm: String) -> some Sequence<Suggestion> {
+func enumerationSuggestions(for partial: PartialFilterTerm, catalogData: EnumerationCatalogData, searchTerm: String) -> some Sequence<AutocompleteSuggestion> {
     guard case .filter(let filterTypeName, let partialComparison, let partialValue) = partial.content,
           let comparison = partialComparison.toComplete(),
           let filterType = scryfallFilterByType[filterTypeName.lowercased()],
@@ -280,7 +280,7 @@ func enumerationSuggestions(for partial: PartialFilterTerm, catalogData: Enumera
         .lazy
         .map { candidate, score in
             let filter = FilterTerm.basic(partial.polarity, filterTypeName.lowercased(), comparison, candidate)
-            return Suggestion(
+            return AutocompleteSuggestion(
                 source: .enumeration,
                 content: .filter(WithHighlightedString(value: .term(filter), string: filter.description, searchTerm: searchTerm)),
                 score: score,
@@ -289,7 +289,7 @@ func enumerationSuggestions(for partial: PartialFilterTerm, catalogData: Enumera
     )
 }
 
-func reverseEnumerationSuggestions(for partial: PartialFilterTerm, catalogData: EnumerationCatalogData, searchTerm: String) -> some Sequence<Suggestion> {
+func reverseEnumerationSuggestions(for partial: PartialFilterTerm, catalogData: EnumerationCatalogData, searchTerm: String) -> some Sequence<AutocompleteSuggestion> {
     guard case .name(let isExact, let partialTerm) = partial.content,
           !isExact,
           partialTerm.incompleteContent.count >= 2 else {
@@ -319,10 +319,10 @@ func reverseEnumerationSuggestions(for partial: PartialFilterTerm, catalogData: 
             .lazy
             .flatMap { result in
                 guard let filters = valueToFilters[result.candidate] else {
-                    return [Suggestion]()
+                    return [AutocompleteSuggestion]()
                 }
                 return filters.map { filterType in
-                    Suggestion(
+                    AutocompleteSuggestion(
                         source: .reverseEnumeration,
                         content: .filterParts(partial.polarity, filterType, WithHighlightedString(value: result.candidate, string: result.candidate, searchTerm: searchTerm)),
                         score: result.match.score,
@@ -332,7 +332,7 @@ func reverseEnumerationSuggestions(for partial: PartialFilterTerm, catalogData: 
     )
 }
 
-func nameSuggestions(for partial: PartialFilterTerm, in cardNames: [String], searchTerm: String) -> some Sequence<Suggestion> {
+func nameSuggestions(for partial: PartialFilterTerm, in cardNames: [String], searchTerm: String) -> some Sequence<AutocompleteSuggestion> {
     let name: String
     let comparison: Comparison?
 
@@ -369,7 +369,7 @@ func nameSuggestions(for partial: PartialFilterTerm, in cardNames: [String], sea
                 .name(partial.polarity, true, result.candidate)
             }
 
-            return Suggestion(
+            return AutocompleteSuggestion(
                 source: .name,
                 content: .filter(WithHighlightedString(value: .term(filter), string: filter.description, searchTerm: searchTerm)),
                 score: result.match.score,

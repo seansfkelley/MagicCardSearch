@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct FilterTypeRowView: View {
-    var suggestion: Suggestion
+    var suggestion: AutocompleteSuggestion
     let orderedAllComparisons: [Comparison]
     let orderedEqualityComparison: [Comparison]
     let onSelect: (String) -> Void

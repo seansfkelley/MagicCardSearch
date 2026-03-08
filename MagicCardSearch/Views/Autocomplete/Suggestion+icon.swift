@@ -1,4 +1,4 @@
-extension Suggestion {
+extension AutocompleteSuggestion {
     var icon: String {
         switch source {
         case .pinnedFilter: "pin.fill"

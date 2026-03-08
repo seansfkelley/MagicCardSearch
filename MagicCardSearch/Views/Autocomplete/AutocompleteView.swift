@@ -6,7 +6,7 @@ struct AutocompleteView: View {
 
     @Binding var searchState: SearchState
 
-    @State private var suggestions: [Suggestion] = []
+    @State private var suggestions: [AutocompleteSuggestion] = []
     @State private var nonce: Int = 0
 
     private var searchSuggestionKey: SearchSuggestionKey {
@@ -80,7 +80,7 @@ struct AutocompleteView: View {
     // MARK: - Row Selection
 
     @ViewBuilder
-    private func suggestionRow(_ suggestion: Suggestion) -> some View {
+    private func suggestionRow(_ suggestion: AutocompleteSuggestion) -> some View {
         switch suggestion.content {
         case .filter:
             filterRow(suggestion)
@@ -100,7 +100,7 @@ struct AutocompleteView: View {
     }
 
     @ViewBuilder
-    private func filterRow(_ suggestion: Suggestion) -> some View {
+    private func filterRow(_ suggestion: AutocompleteSuggestion) -> some View {
         let row = FilterRowView(suggestion: suggestion) { filter in
             if suggestion.source == .name {
                 addTopLevelFilter(filter)

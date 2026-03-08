@@ -2,7 +2,7 @@ import SwiftUI
 
 #if DEBUG
 struct DebuggableRowContentView<Content: View>: View {
-    let suggestion: Suggestion
+    let suggestion: AutocompleteSuggestion
     @ViewBuilder let content: () -> Content
 
     var body: some View {

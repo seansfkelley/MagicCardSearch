@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct FilterRowView: View {
-    var suggestion: Suggestion
+    var suggestion: AutocompleteSuggestion
     let onTap: (FilterQuery<FilterTerm>) -> Void
 
     var body: some View {
