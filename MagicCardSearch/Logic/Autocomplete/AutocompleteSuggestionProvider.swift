@@ -156,24 +156,13 @@ func pinnedFilterSuggestions(for partial: PartialFilterTerm, from pinnedFilters:
         .lazy
         .compactMap { row in
             let filterText = row.filter.description
-
-            if trimmedSearchTerm.isEmpty {
+            return matcher.score(filterText, against: query, buffer: &buffer).map {
                 return Suggestion(
                     source: .pinnedFilter,
                     content: .filter(WithHighlightedString(value: row.filter, string: filterText, searchTerm: searchTerm)),
-                    score: 0,
+                    score: $0.score,
                 )
             }
-
-            if let match = matcher.score(filterText, against: query, buffer: &buffer) {
-                return Suggestion(
-                    source: .pinnedFilter,
-                    content: .filter(WithHighlightedString(value: row.filter, string: filterText, searchTerm: searchTerm)),
-                    score: match.score,
-                )
-            }
-
-            return nil
         }
 }
 
@@ -188,24 +177,13 @@ func filterHistorySuggestions(for searchTerm: String, from filterHistoryEntries:
         .lazy
         .compactMap { entry in
             let filterText = entry.filter.description
-
-            if trimmedSearchTerm.isEmpty {
-                return Suggestion(
+            return matcher.score(filterText, against: query, buffer: &buffer).map {
+                Suggestion(
                     source: .historyFilter,
                     content: .filter(WithHighlightedString(value: entry.filter, string: filterText, searchTerm: searchTerm)),
-                    score: 0,
+                    score: $0.score,
                 )
             }
-
-            if let match = matcher.score(filterText, against: query, buffer: &buffer) {
-                return Suggestion(
-                    source: .historyFilter,
-                    content: .filter(WithHighlightedString(value: entry.filter, string: filterText, searchTerm: searchTerm)),
-                    score: match.score,
-                )
-            }
-
-            return nil
         }
 }
 
@@ -226,14 +204,17 @@ func filterTypeSuggestions(for partial: PartialFilterTerm, searchTerm: String) -
         }
     }
 
-    return AnySequence(deduplicated.lazy.map { candidate, filterType, score in
-        let displayName = partial.polarity == .negative ? "-\(candidate)" : candidate
-        return Suggestion(
-            source: .filterType,
-            content: .filterType(WithHighlightedString(value: FilterTypeSuggestion(polarity: partial.polarity, filterType: filterType), string: displayName, searchTerm: searchTerm)),
-            score: score,
-        )
-    })
+    return AnySequence(deduplicated
+        .lazy
+        .map { candidate, filterType, score in
+            let displayName = partial.polarity == .negative ? "-\(candidate)" : candidate
+            return Suggestion(
+                source: .filterType,
+                content: .filterType(WithHighlightedString(value: FilterTypeSuggestion(polarity: partial.polarity, filterType: filterType), string: displayName, searchTerm: searchTerm)),
+                score: score,
+            )
+        }
+    )
 }
 
 func fullTextSuggestion(for partial: PartialFilterTerm, searchTerm: String) -> some Sequence<Suggestion> {
@@ -288,14 +269,17 @@ func enumerationSuggestions(for partial: PartialFilterTerm, catalogData: Enumera
         }
     }
 
-    return AnySequence(matched.lazy.map { candidate, score in
-        let filter = FilterTerm.basic(partial.polarity, filterTypeName.lowercased(), comparison, candidate)
-        return Suggestion(
-            source: .enumeration,
-            content: .filter(WithHighlightedString(value: .term(filter), string: filter.description, searchTerm: searchTerm)),
-            score: score,
-        )
-    })
+    return AnySequence(matched
+        .lazy
+        .map { candidate, score in
+            let filter = FilterTerm.basic(partial.polarity, filterTypeName.lowercased(), comparison, candidate)
+            return Suggestion(
+                source: .enumeration,
+                content: .filter(WithHighlightedString(value: .term(filter), string: filter.description, searchTerm: searchTerm)),
+                score: score,
+            )
+        }
+    )
 }
 
 func reverseEnumerationSuggestions(for partial: PartialFilterTerm, catalogData: EnumerationCatalogData, searchTerm: String) -> some Sequence<Suggestion> {
@@ -324,7 +308,8 @@ func reverseEnumerationSuggestions(for partial: PartialFilterTerm, catalogData: 
     }
 
     return AnySequence(
-        matchResults.lazy
+        matchResults
+            .lazy
             .flatMap { result in
                 guard let filters = valueToFilters[result.candidate] else {
                     return [Suggestion]()
@@ -368,19 +353,20 @@ func nameSuggestions(for partial: PartialFilterTerm, in cardNames: [String], sea
         FuzzyMatcher().matches(cardNames, against: name)
     }
 
-    return AnySequence(matches.lazy.map { result in
-        let cardName = result.candidate
-        let filter: FilterTerm
-        if let comparison {
-            filter = .basic(partial.polarity, "name", comparison, cardName)
-        } else {
-            filter = .name(partial.polarity, true, cardName)
-        }
+    return AnySequence(matches
+        .lazy
+        .map { result in
+            let filter: FilterTerm = if let comparison {
+                .basic(partial.polarity, "name", comparison, result.candidate)
+            } else {
+                .name(partial.polarity, true, result.candidate)
+            }
 
-        return Suggestion(
-            source: .name,
-            content: .filter(WithHighlightedString(value: .term(filter), string: filter.description, searchTerm: searchTerm)),
-            score: result.match.score,
-        )
-    })
+            return Suggestion(
+                source: .name,
+                content: .filter(WithHighlightedString(value: .term(filter), string: filter.description, searchTerm: searchTerm)),
+                score: result.match.score,
+            )
+        }
+    )
 }
