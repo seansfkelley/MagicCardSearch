@@ -2,8 +2,6 @@ import ScryfallKit
 import FuzzyMatch
 
 actor NameSuggestionProvider {
-    private let matcher = FuzzyMatcher()
-
     func getSuggestions(for partial: PartialFilterTerm, in cardNames: [String], searchTerm: String, limit: Int) -> [Suggestion] {
         guard limit > 0 else {
             return []
@@ -33,7 +31,7 @@ actor NameSuggestionProvider {
         }
 
         let matches = timed("NameSuggestionProvider fuzzy match") {
-            matcher.matches(cardNames, against: name)
+            FuzzyMatcher().matches(cardNames, against: name)
         }
 
         return Array(matches

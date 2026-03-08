@@ -1,22 +1,11 @@
 import FuzzyMatch
 
 struct FilterTypeSuggestionProvider {
-    private let matcher = FuzzyMatcher()
-
     func getSuggestions(for partial: PartialFilterTerm, searchTerm: String, limit: Int) -> [Suggestion] {
-        guard limit > 0 else {
-            return []
-        }
-
-        guard case .name(let exact, let partialTerm) = partial.content else {
-            return []
-        }
-
-        guard !exact else {
-            return []
-        }
-
-        guard partialTerm.quotingType == nil else {
+        guard limit > 0,
+            case .name(let exact, let partialTerm) = partial.content,
+            !exact,
+            partialTerm.quotingType == nil else {
             return []
         }
 
@@ -28,7 +17,7 @@ struct FilterTypeSuggestionProvider {
 
         var seen = Set<String>()
         var deduplicated: [(String, ScryfallFilterType, Double)] = []
-        for result in matcher.matches(Array(scryfallFilterByType.keys), against: filterName) {
+        for result in FuzzyMatcher().matches(Array(scryfallFilterByType.keys), against: filterName) {
             if let filterType = scryfallFilterByType[result.candidate], seen.insert(filterType.canonicalName).inserted {
                 deduplicated.append((result.candidate, filterType, result.match.score))
             }

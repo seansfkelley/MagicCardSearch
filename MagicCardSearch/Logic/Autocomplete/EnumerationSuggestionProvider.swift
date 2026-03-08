@@ -3,8 +3,6 @@ import FuzzyMatch
 import ScryfallKit
 
 actor EnumerationSuggestionProvider {
-    private let matcher = FuzzyMatcher()
-
     func getSuggestions(for partial: PartialFilterTerm, catalogData: EnumerationCatalogData, searchTerm: String, limit: Int) -> [Suggestion] {
         guard limit > 0,
               case .filter(let filterTypeName, let partialComparison, let partialValue) = partial.content,
@@ -21,7 +19,7 @@ actor EnumerationSuggestionProvider {
             matched = allCandidates.sorted { $0.localizedStandardCompare($1) == .orderedAscending }.map { ($0, 0) }
         } else {
             matched = timed("EnumerationSuggestProvider fuzzy match") {
-                matcher.matches(allCandidates, against: value).map { ($0.candidate, $0.match.score) }
+                FuzzyMatcher().matches(allCandidates, against: value).map { ($0.candidate, $0.match.score) }
             }
         }
 

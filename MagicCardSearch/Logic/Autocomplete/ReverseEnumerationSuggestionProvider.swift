@@ -3,8 +3,6 @@ import FuzzyMatch
 import ScryfallKit
 
 actor ReverseEnumerationSuggestionProvider {
-    private let matcher = FuzzyMatcher()
-
     func getSuggestions(for partial: PartialFilterTerm, catalogData: EnumerationCatalogData, searchTerm: String, limit: Int) -> [Suggestion] {
         guard limit > 0,
               case .name(let isExact, let partialTerm) = partial.content,
@@ -25,7 +23,7 @@ actor ReverseEnumerationSuggestionProvider {
         }
 
         let matchResults = timed("ReverseEnumerationSuggestionProvider fuzzy match") {
-            matcher.matches(allCandidates.map(\.0), against: partialSearchTerm)
+            FuzzyMatcher().matches(allCandidates.map(\.0), against: partialSearchTerm)
         }
 
         return Array(
