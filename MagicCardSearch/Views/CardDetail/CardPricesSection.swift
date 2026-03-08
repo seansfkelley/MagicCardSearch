@@ -75,7 +75,19 @@ struct CardPricesSection: View {
         }
         .padding()
     }
-    
+
+    private enum PriceType {
+        case regular, foil, etched
+
+        var icon: String? {
+            switch self {
+            case .regular: nil
+            case .foil: "sparkles"
+            case .etched: "sparkles"
+            }
+        }
+    }
+
     private enum Vendor: String, CaseIterable {
         case tcgplayer, cardmarket, cardhoarder
         
@@ -86,12 +98,35 @@ struct CardPricesSection: View {
             case .cardhoarder: "Cardhoarder"
             }
         }
-        
-        func price(from prices: Card.Prices) -> String? {
+
+        func price(from prices: Card.Prices, for type: PriceType) -> String? {
             switch self {
-            case .tcgplayer: prices.usd.map { "$\($0)" }
-            case .cardmarket: prices.eur.map { "€\($0)" }
-            case .cardhoarder: prices.tix.map { "TIX \($0)" }
+            case .tcgplayer:
+                switch type {
+                case .regular: prices.usd
+                case .foil: prices.usdFoil
+                case .etched: prices.usdEtched
+                }
+            case .cardmarket:
+                switch type {
+                case .regular: prices.eur
+                case .foil: prices.eurFoil
+                case .etched: prices.eurEtched
+                }
+            case .cardhoarder:
+                switch type {
+                case .regular: prices.tix
+                case .foil: nil
+                case .etched: nil
+                }
+            }
+        }
+
+        func symbol(from prices: Card.Prices) -> String? {
+            switch self {
+            case .tcgplayer: "$"
+            case .cardmarket: "€"
+            case .cardhoarder: "TIX " // Note the space.
             }
         }
     }
