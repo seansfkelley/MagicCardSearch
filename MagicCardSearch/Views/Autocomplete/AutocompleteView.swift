@@ -9,6 +9,7 @@ extension Suggestion {
         case .enumeration: "list.bullet.circle"
         case .reverseEnumeration: "line.3.horizontal.decrease.circle"
         case .name: "textformat.abc"
+        case .fullText: "text.rectangle"
         }
     }
 }

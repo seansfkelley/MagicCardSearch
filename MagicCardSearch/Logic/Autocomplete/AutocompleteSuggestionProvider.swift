@@ -5,7 +5,7 @@ import ScryfallKit
 
 struct Suggestion {
     enum Source {
-        case pinnedFilter, historyFilter, filterType, enumeration, reverseEnumeration, name
+        case pinnedFilter, historyFilter, filterType, enumeration, reverseEnumeration, name, fullText
     }
 
     enum Content: Hashable {
@@ -22,7 +22,7 @@ struct Suggestion {
         let bias: Double = switch source {
         case .pinnedFilter: 1
         case .historyFilter: -1
-        case .filterType, .enumeration, .reverseEnumeration, .name: 0
+        case .filterType, .enumeration, .reverseEnumeration, .name, .fullText: 0
         }
         return score + bias
     }
@@ -77,6 +77,12 @@ class AutocompleteSuggestionProvider {
                         filterTypeSuggestions(for: partial, searchTerm: searchTerm)
                             .filter { isRelevantSuggestion($0, searchTerm: searchTerm, existingFilters: existingFilters) }
                             .prefix(4)
+                    )
+                }
+                group.addTask {
+                    Array(
+                        fullTextSuggestion(for: partial, searchTerm: searchTerm)
+                            .filter { isRelevantSuggestion($0, searchTerm: searchTerm, existingFilters: existingFilters) }
                     )
                 }
                 group.addTask {
@@ -228,6 +234,39 @@ func filterTypeSuggestions(for partial: PartialFilterTerm, searchTerm: String) -
             score: score,
         )
     })
+}
+
+func fullTextSuggestion(for partial: PartialFilterTerm, searchTerm: String) -> some Sequence<Suggestion> {
+    guard case .name(let isExact, let partialValue) = partial.content,
+        !isExact else {
+        return AnySequence([])
+      }
+
+    let bareTerm = partialValue.incompleteContent
+
+    guard bareTerm.count > 3 && bareTerm.contains(" ") else {
+        return AnySequence([])
+    }
+
+    let oracleFilter = FilterTerm.basic(partial.polarity, "oracle", .including, bareTerm)
+    let flavorFilter = FilterTerm.basic(partial.polarity, "flavor", .including, bareTerm)
+
+    return AnySequence([
+        .init(
+            source: .fullText,
+            content: .filter(
+                WithHighlightedString(value: .term(oracleFilter), string: oracleFilter.description, searchTerm: searchTerm),
+            ),
+            score: 0.95, // ???
+        ),
+        .init(
+            source: .fullText,
+            content: .filter(
+                WithHighlightedString(value: .term(flavorFilter), string: flavorFilter.description, searchTerm: searchTerm),
+            ),
+            score: 0.85, // ???
+        ),
+    ])
 }
 
 func enumerationSuggestions(for partial: PartialFilterTerm, catalogData: EnumerationCatalogData, searchTerm: String) -> some Sequence<Suggestion> {
