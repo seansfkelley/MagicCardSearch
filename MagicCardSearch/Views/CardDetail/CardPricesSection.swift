@@ -82,8 +82,8 @@ struct CardPricesSection: View {
         var icon: String? {
             switch self {
             case .regular: nil
-            case .foil: "sparkles"
-            case .etched: "sparkles"
+            case .foil: "sparkles.2"
+            case .etched: "sparkles.2"
             }
         }
     }
@@ -96,6 +96,14 @@ struct CardPricesSection: View {
             case .tcgplayer: "TCGplayer"
             case .cardmarket: "Cardmarket"
             case .cardhoarder: "Cardhoarder"
+            }
+        }
+
+        var symbol: String {
+            switch self {
+            case .tcgplayer: "$"
+            case .cardmarket: "€"
+            case .cardhoarder: "TIX " // Note the space.
             }
         }
 
@@ -121,14 +129,6 @@ struct CardPricesSection: View {
                 }
             }
         }
-
-        func symbol(from prices: Card.Prices) -> String? {
-            switch self {
-            case .tcgplayer: "$"
-            case .cardmarket: "€"
-            case .cardhoarder: "TIX " // Note the space.
-            }
-        }
     }
 
     private struct VendorButton: View {
@@ -147,16 +147,28 @@ struct CardPricesSection: View {
                         .font(.subheadline)
                         .fontWeight(.medium)
                         .foregroundStyle(.blue)
-                        .lineLimit(1)
                     
-                    if let price = vendor.price(from: prices) {
-                        Text(price)
-                            .font(.subheadline)
-                            .foregroundStyle(.blue)
-                            .lineLimit(1)
+                    let priceEntries = [PriceType.regular, .foil, .etched].compactMap { type in
+                        vendor.price(from: prices, for: type).map { (type, $0) }
+                    }
+                    if !priceEntries.isEmpty {
+                        HStack(spacing: 6) {
+                            ForEach(priceEntries, id: \.0) { entry in
+                                let (type, price) = entry
+                                HStack(spacing: 2) {
+                                    if let icon = type.icon {
+                                        Image(systemName: icon)
+                                            .font(.caption)
+                                    }
+                                    Text(vendor.symbol + price)
+                                        .font(.subheadline)
+                                }
+                                .foregroundStyle(.blue)
+                            }
+                        }
                     }
                 }
-                .frame(maxWidth: .infinity)
+                .fixedSize()
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)
                 .background(
