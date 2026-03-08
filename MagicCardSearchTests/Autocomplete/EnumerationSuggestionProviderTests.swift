@@ -77,7 +77,7 @@ struct EnumerationSuggestionProviderTests {
         ),
     ])
     func getSuggestions(partial: PartialFilterTerm, expected: [FilterQuery<FilterTerm>]) {
-        let actual = enumerationSuggestions(for: partial, catalogData: emptyCatalogData, searchTerm: "", limit: 100)
+        let actual = Array(enumerationSuggestions(for: partial, catalogData: emptyCatalogData, searchTerm: "").prefix(100))
         let actualFilters = extractFilters(actual)
         #expect(actualFilters == expected)
         #expect(actual.allSatisfy { $0.source == .enumeration })

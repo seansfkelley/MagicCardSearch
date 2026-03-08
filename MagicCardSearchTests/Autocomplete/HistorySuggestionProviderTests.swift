@@ -40,7 +40,7 @@ class HistorySuggestionProviderTests {
 
     @Test("returns no results with no history recorded")
     func emptySuggestions() {
-        let suggestions = filterHistorySuggestions(for: "", from: fetchHistory(), limit: 10)
+        let suggestions = Array(filterHistorySuggestions(for: "", from: fetchHistory()).prefix(10))
         #expect(suggestions.isEmpty)
     }
 
@@ -52,7 +52,7 @@ class HistorySuggestionProviderTests {
         record(filter: colorFilter, atOffset: 0)
         record(filter: oracleFilter, atOffset: 1000)
 
-        let suggestions = filterHistorySuggestions(for: "", from: fetchHistory(), limit: 1)
+        let suggestions = Array(filterHistorySuggestions(for: "", from: fetchHistory()).prefix(1))
         let filters = extractFilters(suggestions)
         #expect(filters == [oracleFilter])
     }
@@ -67,7 +67,7 @@ class HistorySuggestionProviderTests {
         record(filter: oracleFilter, atOffset: 1000)
         record(filter: setFilter, atOffset: 2000)
 
-        let suggestions = filterHistorySuggestions(for: "y", from: fetchHistory(), limit: 10)
+        let suggestions = Array(filterHistorySuggestions(for: "y", from: fetchHistory()).prefix(10))
         let filters = extractFilters(suggestions)
         #expect(filters == [setFilter, oracleFilter])
     }
@@ -80,7 +80,7 @@ class HistorySuggestionProviderTests {
         record(filter: colorFilter, atOffset: 0)
         record(filter: oracleFilter, atOffset: 1000)
 
-        let suggestions = filterHistorySuggestions(for: "xyz", from: fetchHistory(), limit: 10)
+        let suggestions = Array(filterHistorySuggestions(for: "xyz", from: fetchHistory()).prefix(10))
         #expect(suggestions.isEmpty)
     }
 }

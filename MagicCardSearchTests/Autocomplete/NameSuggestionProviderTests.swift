@@ -115,7 +115,7 @@ struct NameSuggestionProviderTests {
         ),
     ])
     func getSuggestions(testCase: TestCase) {
-        let actual = nameSuggestions(for: testCase.partial, in: testCase.mockResults, searchTerm: "", limit: Int.max)
+        let actual = Array(nameSuggestions(for: testCase.partial, in: testCase.mockResults, searchTerm: ""))
         let actualFilters = extractFilters(actual)
         #expect(actualFilters == testCase.expectedFilters, "\(testCase.description)")
         #expect(actual.allSatisfy { $0.source == .name })

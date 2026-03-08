@@ -56,48 +56,56 @@ class AutocompleteSuggestionProvider {
                 do {
                     let filters = pinnedFilters
                     group.addTask {
-                        pinnedFilterSuggestions(for: partial, from: filters, searchTerm: searchTerm)
+                        Array(
+                            pinnedFilterSuggestions(for: partial, from: filters, searchTerm: searchTerm)
+                                .filter { isRelevantSuggestion($0, searchTerm: searchTerm, existingFilters: existingFilters) }
+                        )
                     }
                 }
                 do {
                     let history = filterHistoryEntries
                     group.addTask {
-                        filterHistorySuggestions(for: searchTerm, from: history, limit: 20)
+                        Array(
+                            filterHistorySuggestions(for: searchTerm, from: history)
+                                .filter { isRelevantSuggestion($0, searchTerm: searchTerm, existingFilters: existingFilters) }
+                                .prefix(20)
+                        )
                     }
                 }
                 group.addTask {
-                    filterTypeSuggestions(for: partial, searchTerm: searchTerm, limit: 4)
+                    Array(
+                        filterTypeSuggestions(for: partial, searchTerm: searchTerm)
+                            .filter { isRelevantSuggestion($0, searchTerm: searchTerm, existingFilters: existingFilters) }
+                            .prefix(4)
+                    )
                 }
                 group.addTask {
-                    reverseEnumerationSuggestions(for: partial, catalogData: catalogData, searchTerm: searchTerm, limit: 20)
+                    Array(
+                        reverseEnumerationSuggestions(for: partial, catalogData: catalogData, searchTerm: searchTerm)
+                            .filter { isRelevantSuggestion($0, searchTerm: searchTerm, existingFilters: existingFilters) }
+                            .prefix(20)
+                    )
                 }
                 group.addTask {
-                    enumerationSuggestions(
-                        for: partial,
-                        catalogData: catalogData,
-                        searchTerm: searchTerm,
-                        limit: 40,
+                    Array(
+                        enumerationSuggestions(for: partial, catalogData: catalogData, searchTerm: searchTerm)
+                            .filter { isRelevantSuggestion($0, searchTerm: searchTerm, existingFilters: existingFilters) }
+                            .prefix(40)
                     )
                 }
                 if let cardNames = self.scryfallCatalogs.cardNames {
                     group.addTask {
-                        nameSuggestions(for: partial, in: cardNames, searchTerm: searchTerm, limit: 10)
+                        Array(
+                            nameSuggestions(for: partial, in: cardNames, searchTerm: searchTerm)
+                                .filter { isRelevantSuggestion($0, searchTerm: searchTerm, existingFilters: existingFilters) }
+                                .prefix(10)
+                        )
                     }
                 }
 
                 var suggestions: [Suggestion] = []
                 for await batch in group {
-                    suggestions.append(contentsOf: batch.filter {
-                        if case .filter(let highlighted) = $0.content {
-                            !existingFilters.contains(highlighted.value)
-                        } else if searchTerm.isEmpty {
-                            true
-                        } else if $0.score < 0.8 {
-                            false
-                        } else {
-                            true
-                        }
-                    })
+                    suggestions.append(contentsOf: batch)
                     continuation.yield(sortCombinedSuggestions(suggestions))
                 }
                 continuation.finish()
@@ -110,6 +118,20 @@ class AutocompleteSuggestionProvider {
     }
 }
 
+private func isRelevantSuggestion(
+    _ suggestion: Suggestion,
+    searchTerm: String,
+    existingFilters: Set<FilterQuery<FilterTerm>>,
+) -> Bool {
+    if case .filter(let highlighted) = suggestion.content {
+        !existingFilters.contains(highlighted.value)
+    } else if searchTerm.isEmpty {
+        true
+    } else {
+        suggestion.score >= 0.8
+    }
+}
+
 private func sortCombinedSuggestions(_ suggestions: [Suggestion]) -> [Suggestion] {
     var seen = Set<Suggestion.Content>()
     return suggestions
@@ -117,7 +139,7 @@ private func sortCombinedSuggestions(_ suggestions: [Suggestion]) -> [Suggestion
         .filter { seen.insert($0.content).inserted }
 }
 
-func pinnedFilterSuggestions(for partial: PartialFilterTerm, from pinnedFilters: [PinnedFilterEntry], searchTerm: String) -> [Suggestion] {
+func pinnedFilterSuggestions(for partial: PartialFilterTerm, from pinnedFilters: [PinnedFilterEntry], searchTerm: String) -> some Sequence<Suggestion> {
     let trimmedSearchTerm = partial.description.trimmingCharacters(in: .whitespaces)
 
     let matcher = FuzzyMatcher()
@@ -125,6 +147,7 @@ func pinnedFilterSuggestions(for partial: PartialFilterTerm, from pinnedFilters:
     var buffer = matcher.makeBuffer()
 
     return pinnedFilters
+        .lazy
         .compactMap { row in
             let filterText = row.filter.description
 
@@ -148,59 +171,47 @@ func pinnedFilterSuggestions(for partial: PartialFilterTerm, from pinnedFilters:
         }
 }
 
-func filterHistorySuggestions(for searchTerm: String, from filterHistoryEntries: [FilterHistoryEntry], limit: Int) -> [Suggestion] {
-    guard limit > 0 else {
-        return []
-    }
-
+func filterHistorySuggestions(for searchTerm: String, from filterHistoryEntries: [FilterHistoryEntry]) -> some Sequence<Suggestion> {
     let trimmedSearchTerm = searchTerm.trimmingCharacters(in: .whitespaces)
 
     let matcher = FuzzyMatcher()
     let query = matcher.prepare(trimmedSearchTerm)
     var buffer = matcher.makeBuffer()
 
-    return Array(
-        filterHistoryEntries
-            .lazy
-            .compactMap { entry in
-                let filterText = entry.filter.description
+    return filterHistoryEntries
+        .lazy
+        .compactMap { entry in
+            let filterText = entry.filter.description
 
-                if trimmedSearchTerm.isEmpty {
-                    return Suggestion(
-                        source: .historyFilter,
-                        content: .filter(WithHighlightedString(value: entry.filter, string: filterText, searchTerm: searchTerm)),
-                        score: 0,
-                    )
-                }
-
-                if let match = matcher.score(filterText, against: query, buffer: &buffer) {
-                    return Suggestion(
-                        source: .historyFilter,
-                        content: .filter(WithHighlightedString(value: entry.filter, string: filterText, searchTerm: searchTerm)),
-                        score: match.score,
-                    )
-                }
-
-                return nil
+            if trimmedSearchTerm.isEmpty {
+                return Suggestion(
+                    source: .historyFilter,
+                    content: .filter(WithHighlightedString(value: entry.filter, string: filterText, searchTerm: searchTerm)),
+                    score: 0,
+                )
             }
-            .prefix(limit)
-    )
+
+            if let match = matcher.score(filterText, against: query, buffer: &buffer) {
+                return Suggestion(
+                    source: .historyFilter,
+                    content: .filter(WithHighlightedString(value: entry.filter, string: filterText, searchTerm: searchTerm)),
+                    score: match.score,
+                )
+            }
+
+            return nil
+        }
 }
 
-func filterTypeSuggestions(for partial: PartialFilterTerm, searchTerm: String, limit: Int) -> [Suggestion] {
-    guard limit > 0,
-        case .name(let exact, let partialTerm) = partial.content,
+func filterTypeSuggestions(for partial: PartialFilterTerm, searchTerm: String) -> some Sequence<Suggestion> {
+    guard case .name(let exact, let partialTerm) = partial.content,
         !exact,
-        partialTerm.quotingType == nil else {
-        return []
+        partialTerm.quotingType == nil,
+        !partialTerm.incompleteContent.isEmpty else {
+        return AnySequence([])
     }
 
     let filterName = partialTerm.incompleteContent
-
-    if filterName.isEmpty {
-        return []
-    }
-
     var seen = Set<String>()
     var deduplicated: [(String, ScryfallFilterType, Double)] = []
     for result in FuzzyMatcher().matches(Array(scryfallFilterByType.keys), against: filterName) {
@@ -209,7 +220,7 @@ func filterTypeSuggestions(for partial: PartialFilterTerm, searchTerm: String, l
         }
     }
 
-    return Array(deduplicated.prefix(limit).map { candidate, filterType, score in
+    return AnySequence(deduplicated.lazy.map { candidate, filterType, score in
         let displayName = partial.polarity == .negative ? "-\(candidate)" : candidate
         return Suggestion(
             source: .filterType,
@@ -219,13 +230,12 @@ func filterTypeSuggestions(for partial: PartialFilterTerm, searchTerm: String, l
     })
 }
 
-func enumerationSuggestions(for partial: PartialFilterTerm, catalogData: EnumerationCatalogData, searchTerm: String, limit: Int) -> [Suggestion] {
-    guard limit > 0,
-          case .filter(let filterTypeName, let partialComparison, let partialValue) = partial.content,
+func enumerationSuggestions(for partial: PartialFilterTerm, catalogData: EnumerationCatalogData, searchTerm: String) -> some Sequence<Suggestion> {
+    guard case .filter(let filterTypeName, let partialComparison, let partialValue) = partial.content,
           let comparison = partialComparison.toComplete(),
           let filterType = scryfallFilterByType[filterTypeName.lowercased()],
           let allCandidates = catalogData[filterType] ?? filterType.enumerationValues else {
-        return []
+        return AnySequence([])
     }
 
     let value = partialValue.incompleteContent
@@ -239,42 +249,35 @@ func enumerationSuggestions(for partial: PartialFilterTerm, catalogData: Enumera
         }
     }
 
-    let allResults = matched.map { candidate, score in
+    return AnySequence(matched.lazy.map { candidate, score in
         let filter = FilterTerm.basic(partial.polarity, filterTypeName.lowercased(), comparison, candidate)
         return Suggestion(
             source: .enumeration,
             content: .filter(WithHighlightedString(value: .term(filter), string: filter.description, searchTerm: searchTerm)),
             score: score,
         )
-    }
-
-    return Array(allResults.prefix(limit))
+    })
 }
 
-func reverseEnumerationSuggestions(for partial: PartialFilterTerm, catalogData: EnumerationCatalogData, searchTerm: String, limit: Int) -> [Suggestion] {
-    guard limit > 0,
-          case .name(let isExact, let partialTerm) = partial.content,
-          !isExact else {
-        return []
+func reverseEnumerationSuggestions(for partial: PartialFilterTerm, catalogData: EnumerationCatalogData, searchTerm: String) -> some Sequence<Suggestion> {
+    guard case .name(let isExact, let partialTerm) = partial.content,
+          !isExact,
+          partialTerm.incompleteContent.count >= 2 else {
+        return AnySequence([])
     }
 
     let partialSearchTerm = partialTerm.incompleteContent
-
-    guard partialSearchTerm.count >= 2 else {
-        return []
-    }
-
     let allCandidates = reverseEnumerationAllCandidates(catalogData: catalogData)
 
     guard !allCandidates.isEmpty else {
-        return []
+        return AnySequence([])
     }
 
     let matchResults = timed("reverseEnumerationSuggestions fuzzy match") {
         FuzzyMatcher().matches(allCandidates.map(\.0), against: partialSearchTerm)
     }
 
-    return Array(
+    return AnySequence(
         matchResults.lazy
             .flatMap { result in
                 guard let filters = allCandidates.first(where: { $0.0 == result.candidate })?.1 else {
@@ -288,7 +291,6 @@ func reverseEnumerationSuggestions(for partial: PartialFilterTerm, catalogData: 
                     )
                 }
             }
-            .prefix(limit)
     )
 }
 
@@ -331,11 +333,7 @@ private func reverseEnumerationDynamicIndex(catalogData: EnumerationCatalogData)
     return valueToFilters
 }
 
-func nameSuggestions(for partial: PartialFilterTerm, in cardNames: [String], searchTerm: String, limit: Int) -> [Suggestion] {
-    guard limit > 0 else {
-        return []
-    }
-
+func nameSuggestions(for partial: PartialFilterTerm, in cardNames: [String], searchTerm: String) -> some Sequence<Suggestion> {
     let name: String
     let comparison: Comparison?
 
@@ -356,30 +354,26 @@ func nameSuggestions(for partial: PartialFilterTerm, in cardNames: [String], sea
     }
 
     guard name.count >= 2 else {
-        return []
+        return AnySequence([])
     }
 
     let matches = timed("nameSuggestions fuzzy match") {
         FuzzyMatcher().matches(cardNames, against: name)
     }
 
-    return Array(matches
-        .lazy
-        .prefix(limit)
-        .map { result in
-            let cardName = result.candidate
-            let filter: FilterTerm
-            if let comparison {
-                filter = .basic(partial.polarity, "name", comparison, cardName)
-            } else {
-                filter = .name(partial.polarity, true, cardName)
-            }
-
-            return Suggestion(
-                source: .name,
-                content: .filter(WithHighlightedString(value: .term(filter), string: filter.description, searchTerm: searchTerm)),
-                score: result.match.score,
-            )
+    return AnySequence(matches.lazy.map { result in
+        let cardName = result.candidate
+        let filter: FilterTerm
+        if let comparison {
+            filter = .basic(partial.polarity, "name", comparison, cardName)
+        } else {
+            filter = .name(partial.polarity, true, cardName)
         }
-     )
+
+        return Suggestion(
+            source: .name,
+            content: .filter(WithHighlightedString(value: .term(filter), string: filter.description, searchTerm: searchTerm)),
+            score: result.match.score,
+        )
+    })
 }
