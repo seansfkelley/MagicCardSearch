@@ -87,7 +87,7 @@ class AutocompleteSuggestionProvider {
                         timed("pinned filter autocomplete suggestions") {
                             Array(
                                 pinnedFilterSuggestions(for: partial, from: filters, searchTerm: searchTerm)
-                                    .filter { isRelevantSuggestion($0, searchTerm: searchTerm, existingFilters: existingFilters) }
+                                    .filter { !isRedundantSuggestion($0, existingFilters: existingFilters) }
                             )
                         }
                     }
@@ -98,7 +98,7 @@ class AutocompleteSuggestionProvider {
                         timed("filter history autocomplete suggestions") {
                             Array(
                                 filterHistorySuggestions(for: searchTerm, from: history)
-                                    .filter { isRelevantSuggestion($0, searchTerm: searchTerm, existingFilters: existingFilters) }
+                                    .filter { !isRedundantSuggestion($0, existingFilters: existingFilters) }
                                     .prefix(20)
                             )
                         }
@@ -108,7 +108,7 @@ class AutocompleteSuggestionProvider {
                     timed("filter type autocomplete suggestions") {
                         Array(
                             filterTypeSuggestions(for: partial, searchTerm: searchTerm)
-                                .filter { isRelevantSuggestion($0, searchTerm: searchTerm, existingFilters: existingFilters) }
+                                .filter { !isRedundantSuggestion($0, existingFilters: existingFilters) }
                                 .prefix(4)
                         )
                     }
@@ -117,7 +117,7 @@ class AutocompleteSuggestionProvider {
                     timed("full text autocomplete suggestions") {
                         Array(
                             fullTextSuggestion(for: partial, searchTerm: searchTerm)
-                                .filter { isRelevantSuggestion($0, searchTerm: searchTerm, existingFilters: existingFilters) }
+                                .filter { !isRedundantSuggestion($0, existingFilters: existingFilters) }
                         )
                     }
                 }
@@ -125,7 +125,7 @@ class AutocompleteSuggestionProvider {
                     timed("reverse enumeration autocomplete suggestions") {
                         Array(
                             reverseEnumerationSuggestions(for: partial, catalogData: catalogData, searchTerm: searchTerm)
-                                .filter { isRelevantSuggestion($0, searchTerm: searchTerm, existingFilters: existingFilters) }
+                                .filter { !isRedundantSuggestion($0, existingFilters: existingFilters) }
                                 .prefix(20)
                         )
                     }
@@ -134,7 +134,7 @@ class AutocompleteSuggestionProvider {
                     timed("enumeration autocomplete suggestions") {
                         Array(
                             enumerationSuggestions(for: partial, catalogData: catalogData, searchTerm: searchTerm)
-                                .filter { isRelevantSuggestion($0, searchTerm: searchTerm, existingFilters: existingFilters) }
+                                .filter { !isRedundantSuggestion($0, existingFilters: existingFilters) }
                                 .prefix(20)
                         )
                     }
@@ -144,7 +144,7 @@ class AutocompleteSuggestionProvider {
                         timed("name autocomplete suggestions") {
                             Array(
                                 nameSuggestions(for: partial, in: cardNames, searchTerm: searchTerm)
-                                    .filter { isRelevantSuggestion($0, searchTerm: searchTerm, existingFilters: existingFilters) }
+                                    .filter { !isRedundantSuggestion($0, existingFilters: existingFilters) }
                                     .prefix(10)
                             )
                         }
@@ -169,17 +169,32 @@ class AutocompleteSuggestionProvider {
     }
 }
 
-private func isRelevantSuggestion(
+let fuzzyMatchConfig = MatchConfig(
+    minScore: 0.85,
+    algorithm: .editDistance(
+        .init(
+            maxEditDistance: 2,
+            prefixWeight: 2.0,
+            substringWeight: 1.2,
+            wordBoundaryBonus: 0.125,
+            consecutiveBonus: 0.06,
+            gapPenalty: .affine(open: 0.05, extend: 0.01),
+            firstMatchBonus: 0.25,
+            firstMatchBonusRange: 3,
+            acronymWeight: 0.5,
+
+        )
+    )
+)
+
+private func isRedundantSuggestion(
     _ suggestion: AutocompleteSuggestion,
-    searchTerm: String,
     existingFilters: Set<FilterQuery<FilterTerm>>,
 ) -> Bool {
-    if case .filter(let highlighted) = suggestion.content {
-        !existingFilters.contains(highlighted.value)
-    } else if searchTerm.isEmpty {
+    if case .filter(let highlighted) = suggestion.content, existingFilters.contains(highlighted.value) {
         true
     } else {
-        suggestion.score >= 0.8
+        false
     }
 }
 
@@ -198,7 +213,7 @@ func pinnedFilterSuggestions(for partial: PartialFilterTerm, from pinnedFilters:
         uniquingKeysWith: { first, _ in first },
     )
 
-    return FuzzyMatcher().matches(Array(filterByText.keys), against: trimmedSearchTerm)
+    return FuzzyMatcher(config: fuzzyMatchConfig).matches(Array(filterByText.keys), against: trimmedSearchTerm)
         .lazy
         .map { result in
             AutocompleteSuggestion(
@@ -217,7 +232,7 @@ func filterHistorySuggestions(for searchTerm: String, from filterHistoryEntries:
         uniquingKeysWith: { first, _ in first },
     )
 
-    return FuzzyMatcher().matches(Array(entryByFilterDescription.keys), against: trimmedSearchTerm)
+    return FuzzyMatcher(config: fuzzyMatchConfig).matches(Array(entryByFilterDescription.keys), against: trimmedSearchTerm)
         .lazy
         .map { result in
             let entry = entryByFilterDescription[result.candidate]!
@@ -240,7 +255,7 @@ func filterTypeSuggestions(for partial: PartialFilterTerm, searchTerm: String) -
     let filterName = partialTerm.incompleteContent
     var seen = Set<String>()
     var deduplicated: [(String, ScryfallFilterType, Double)] = []
-    for result in FuzzyMatcher().matches(Array(scryfallFilterByType.keys), against: filterName) {
+    for result in FuzzyMatcher(config: fuzzyMatchConfig).matches(Array(scryfallFilterByType.keys), against: filterName) {
         if let filterType = scryfallFilterByType[result.candidate], seen.insert(filterType.canonicalName).inserted {
             deduplicated.append((result.candidate, filterType, result.match.score))
         }
@@ -287,7 +302,7 @@ func fullTextSuggestion(for partial: PartialFilterTerm, searchTerm: String) -> s
             content: .filter(
                 WithHighlightedString(value: .term(flavorFilter), string: flavorFilter.description, searchTerm: searchTerm),
             ),
-            score: 0.85, // ???
+            score: 0.9, // ???
         ),
     ])
 }
@@ -307,7 +322,7 @@ func enumerationSuggestions(for partial: PartialFilterTerm, catalogData: Enumera
         matched = allCandidates.sorted { $0.localizedStandardCompare($1) == .orderedAscending }.map { ($0, 0) }
     } else {
         matched = timed("enumerationSuggestions fuzzy match") {
-            FuzzyMatcher().matches(allCandidates, against: value).map { ($0.candidate, $0.match.score) }
+            FuzzyMatcher(config: fuzzyMatchConfig).matches(allCandidates, against: value).map { ($0.candidate, $0.match.score) }
         }
     }
 
@@ -346,7 +361,7 @@ func reverseEnumerationSuggestions(for partial: PartialFilterTerm, catalogData: 
     }
 
     let matchResults = timed("reverseEnumerationSuggestions fuzzy match") {
-        FuzzyMatcher().matches(Array(valueToFilters.keys), against: partialTerm.incompleteContent)
+        FuzzyMatcher(config: fuzzyMatchConfig).matches(Array(valueToFilters.keys), against: partialTerm.incompleteContent)
     }
 
     return AnySequence(
@@ -392,7 +407,7 @@ func nameSuggestions(for partial: PartialFilterTerm, in cardNames: [String], sea
     }
 
     let matches = timed("nameSuggestions fuzzy match") {
-        FuzzyMatcher().matches(cardNames, against: name)
+        FuzzyMatcher(config: fuzzyMatchConfig).matches(cardNames, against: name)
     }
 
     return AnySequence(matches
