@@ -22,17 +22,41 @@ struct AutocompleteSuggestion {
     let content: Content
     let score: Double
 
+    // These enumerations are very prolific and cluttery.
+    static let penalizedFilterTypes: [String: Double] = [
+        "art": -0.4, // extremely cluttery
+        "artist": -0.2, // marginally less cluttery but not terribly useful
+        "block": -0.1,
+        "frame": -0.1,
+        "function": -0.2, // cluttery but often very useful
+        "set": -0.1,
+        "watermark": -0.4, // not super cluttery but also almost never useful
+    ]
+
     var biasedScore: Double {
-        let fixedBias: Double = switch source {
-        case .pinnedFilter: 1
-        case .historyFilter: -1
-        case .filterType, .enumeration, .reverseEnumeration, .name, .fullText: 0
+        return score * proportionalBias + fixedBias
+    }
+
+    private var fixedBias: Double {
+        switch source {
+        case .pinnedFilter: 10 // ALWAYS at the top
+        case .historyFilter: -0.6 // give them a shot to be more interesting than the penalized reverse-enumerations
+        case .reverseEnumeration:
+            if case .filterParts(_, let filterType, _) = content {
+                Self.penalizedFilterTypes[filterType.canonicalName] ?? 0
+            } else {
+                0
+            }
+        case .filterType, .enumeration, .name, .fullText: 0
         }
-        let proportionalBias: Double = switch source {
-        case .historyFilter(let lastUsedAt): Self.recencyBias(age: -lastUsedAt.timeIntervalSinceNow)
+    }
+
+    private var proportionalBias: Double {
+        switch source {
+        case .historyFilter(let lastUsedAt):
+            Self.recencyBias(age: -lastUsedAt.timeIntervalSinceNow)
         case .pinnedFilter, .filterType, .enumeration, .reverseEnumeration, .name, .fullText: 1
         }
-        return score * proportionalBias + fixedBias
     }
 
     // Gaussian decay scoring, following Elasticsearch's function score model:
@@ -182,7 +206,6 @@ let fuzzyMatchConfig = MatchConfig(
             firstMatchBonus: 0.25,
             firstMatchBonusRange: 3,
             acronymWeight: 0.5,
-
         )
     )
 )
