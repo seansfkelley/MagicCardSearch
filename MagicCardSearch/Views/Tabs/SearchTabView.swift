@@ -5,6 +5,9 @@ import SQLiteData
 
 private let logger = Logger(subsystem: "MagicCardSearch", category: "SearchTabView")
 
+// Seems to be the same for both the tab bar inset as well as the default list section inset.
+private let horizontalPadding: CGFloat = 20
+
 private extension PinnedSearchEntry {
     var listId: String { "pinned:\(id ?? -1)" }
 }
@@ -39,7 +42,7 @@ struct SearchTabView: View {
                     showSearchSheet = true
                 }
                 .padding(.bottom)
-                .padding(.horizontal, 20) // trying to match the tab bar width
+                .padding(.horizontal, horizontalPadding) // trying to match the tab bar width
             }
             .toolbar {
                 if searchState.results != nil {
@@ -156,6 +159,8 @@ private let recentSearchesSoftLimit = 8
 private let recentSearchesHardLimit = 12
 
 private struct SearchLandingView: View {
+    let recentlyViewedCardWidth: CGFloat = 120
+
     @Environment(HistoryAndPinnedStore.self) private var historyAndPinnedStore
     @Binding var searchState: SearchState
     @Binding var showAllSearchHistory: Bool
@@ -337,7 +342,7 @@ private struct SearchLandingView: View {
                                 cornerRadius: 8,
                                 showFlipButton: false
                             )
-                            .frame(width: 120)
+                            .frame(width: recentlyViewedCardWidth)
                             .onTapGesture {
                                 recentlyViewedSheetState = RecentlyViewedSheetState(
                                     index: index,
@@ -346,10 +351,11 @@ private struct SearchLandingView: View {
                             }
                         }
                     }
+                    .padding(.horizontal, horizontalPadding)
                 }
                 .scrollIndicators(.never)
-                .frame(height: 120 / Card.aspectRatio)
-                .listRowInsets(.all, 0)
+                .listRowInsets(.horizontal, -horizontalPadding)
+                .listRowInsets(.vertical, 0)
                 .listSectionMargins(.top, 0)
                 .listSectionMargins(.horizontal, 0)
             }
