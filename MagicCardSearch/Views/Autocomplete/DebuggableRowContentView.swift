@@ -8,7 +8,7 @@ struct DebuggableRowContentView<Content: View>: View {
     var body: some View {
         VStack(alignment: .leading) {
             content()
-            Text("score: \(suggestion.biasedScore, specifier: "%.4f") (raw: \(suggestion.score, specifier: "%.4f"))")
+            Text("score: \(suggestion.biasedScore, specifier: "%.4f") (raw: \(suggestion.rawScore, specifier: "%.4f"))")
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }

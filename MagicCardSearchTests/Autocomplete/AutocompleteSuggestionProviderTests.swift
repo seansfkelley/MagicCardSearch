@@ -538,7 +538,7 @@ struct RecencyBiasTests {
             (10, 1.084),
             (14, 1.009),
         ]
-        let actual = samples.map { AutocompleteSuggestion.recencyBias(age: $0.ageDays * day) }
+        let actual = samples.map { MagicCardSearch.recencyBias(age: $0.ageDays * day) }
         let expected = samples.map(\.expected)
         let flooredDeltas = zip(actual, expected).map { abs($0 - $1) < epsilon ? 0 : $0 - $1 }
         #expect(flooredDeltas == samples.map { _ in 0.0 })
@@ -552,13 +552,15 @@ struct SortCombinedSuggestionsTests {
     private func makeSuggestion(
         source: AutocompleteSuggestion.Source = .enumeration,
         filter: FilterQuery<FilterTerm>,
-        score: Double
+        score: Double,
+        biasedScore: Double? = nil
     ) -> AutocompleteSuggestion {
         let text = filter.description
         return AutocompleteSuggestion(
             source: source,
             content: .filter(WithHighlightedString(value: filter, string: text, searchTerm: "")),
-            score: score
+            score: score,
+            biasedScore: biasedScore ?? score
         )
     }
 
@@ -590,8 +592,7 @@ struct SortCombinedSuggestionsTests {
 
     @Test("pinned source bias lifts a lower-scored suggestion above a higher-scored one")
     func pinnedBias() {
-        // pinned biasedScore = 0.85 + 1.0 = 1.85 > unpinned 0.95
-        let pinned = makeSuggestion(source: .pinnedFilter, filter: .term(.basic(.positive, "color", .equal, "red")), score: 0.85)
+        let pinned = makeSuggestion(source: .pinnedFilter, filter: .term(.basic(.positive, "color", .equal, "red")), score: 0.85, biasedScore: 0.85 + 10)
         let other = makeSuggestion(source: .enumeration, filter: .term(.basic(.positive, "color", .equal, "blue")), score: 0.95)
 
         let result = sortCombinedSuggestions([other, pinned])
@@ -600,8 +601,7 @@ struct SortCombinedSuggestionsTests {
 
     @Test("history source bias lowers a higher-scored suggestion below a lower-scored one")
     func historyBias() {
-        // history biasedScore = 0.95 - 1.0 = -0.05 < other 0.85
-        let history = makeSuggestion(source: .historyFilter(.now), filter: .term(.basic(.positive, "color", .equal, "red")), score: 0.95)
+        let history = makeSuggestion(source: .historyFilter(Date.now), filter: .term(.basic(.positive, "color", .equal, "red")), score: 0.95, biasedScore: -0.05)
         let other = makeSuggestion(source: .enumeration, filter: .term(.basic(.positive, "color", .equal, "blue")), score: 0.85)
 
         let result = sortCombinedSuggestions([history, other])

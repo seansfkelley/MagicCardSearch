@@ -20,68 +20,32 @@ struct AutocompleteSuggestion {
 
     let source: Source
     let content: Content
-    let score: Double
-
-    // These enumerations are very prolific and cluttery.
-    static let penalizedFilterTypes: [String: Double] = [
-        "art": -0.4, // extremely cluttery
-        "artist": -0.2, // marginally less cluttery but not terribly useful
-        "block": -0.1,
-        "frame": -0.1,
-        "function": -0.2, // cluttery but often very useful
-        "set": -0.1,
-        "watermark": -0.4, // not super cluttery but also almost never useful
-    ]
-
-    var biasedScore: Double {
-        return score * proportionalBias + fixedBias
-    }
-
-    private var fixedBias: Double {
-        switch source {
-        case .pinnedFilter: 10 // ALWAYS at the top
-        case .historyFilter: -0.6 // give them a shot to be more interesting than the penalized reverse-enumerations
-        case .reverseEnumeration:
-            if case .filterParts(_, let filterType, _) = content {
-                Self.penalizedFilterTypes[filterType.canonicalName] ?? 0
-            } else {
-                0
-            }
-        case .filterType, .enumeration, .name, .fullText: 0
-        }
-    }
-
-    private var proportionalBias: Double {
-        switch source {
-        case .historyFilter(let lastUsedAt):
-            Self.recencyBias(age: -lastUsedAt.timeIntervalSinceNow)
-        case .pinnedFilter, .filterType, .enumeration, .reverseEnumeration, .name, .fullText: 1
-        }
-    }
-
-    // Gaussian decay scoring, following Elasticsearch's function score model:
-    // https://www.elastic.co/blog/found-function-scoring
-    //
-    // - offset: flat zone near origin where score stays at maxBias
-    // - scale: age at which the gaussian factor reaches `decay`, i.e. the steepest region
-    // - decay: gaussian factor value at age == offset + scale
-    static func recencyBias(
-        age: TimeInterval,
-        maxBias: Double = 1.5,
-        minBias: Double = 1.0,
-        offset: TimeInterval = 2 * 24 * 3600,
-        scale: TimeInterval = 5 * 24 * 3600,
-        decay: Double = 0.5
-    ) -> Double {
-        let adjusted = max(0, age - offset)
-        let gaussianFactor = exp(log(decay) * pow(adjusted / scale, 2))
-        return minBias + (maxBias - minBias) * gaussianFactor
-    }
+    let rawScore: Double
+    let biasedScore: Double
 }
 
 struct FilterTypeSuggestion: Hashable, Sendable {
     let polarity: Polarity
     let filterType: ScryfallFilterType
+}
+
+// Gaussian decay scoring, following Elasticsearch's function score model:
+// https://www.elastic.co/blog/found-function-scoring
+//
+// - offset: flat zone near origin where score stays at maxBias
+// - scale: age at which the gaussian factor reaches `decay`, i.e. the steepest region
+// - decay: gaussian factor value at age == offset + scale
+func recencyBias(
+    age: TimeInterval,
+    maxBias: Double = 1.5,
+    minBias: Double = 1.0,
+    offset: TimeInterval = 2 * 24 * 3600,
+    scale: TimeInterval = 5 * 24 * 3600,
+    decay: Double = 0.5
+) -> Double {
+    let adjusted = max(0, age - offset)
+    let gaussianFactor = exp(log(decay) * pow(adjusted / scale, 2))
+    return minBias + (maxBias - minBias) * gaussianFactor
 }
 
 @MainActor
@@ -242,7 +206,8 @@ func pinnedFilterSuggestions(for partial: PartialFilterTerm, from pinnedFilters:
             AutocompleteSuggestion(
                 source: .pinnedFilter,
                 content: .filter(WithHighlightedString(value: filterByText[result.candidate]!, string: result.candidate, searchTerm: searchTerm)),
-                score: result.match.score,
+                rawScore: result.match.score,
+                biasedScore: result.match.score + 10,
             )
         }
 }
@@ -262,7 +227,8 @@ func filterHistorySuggestions(for searchTerm: String, from filterHistoryEntries:
             return AutocompleteSuggestion(
                 source: .historyFilter(entry.lastUsedAt),
                 content: .filter(WithHighlightedString(value: entry.filter, string: result.candidate, searchTerm: searchTerm)),
-                score: result.match.score,
+                rawScore: result.match.score,
+                biasedScore: result.match.score * recencyBias(age: -entry.lastUsedAt.timeIntervalSinceNow) - 0.6,
             )
         }
 }
@@ -291,7 +257,8 @@ func filterTypeSuggestions(for partial: PartialFilterTerm, searchTerm: String) -
             return AutocompleteSuggestion(
                 source: .filterType,
                 content: .filterType(WithHighlightedString(value: FilterTypeSuggestion(polarity: partial.polarity, filterType: filterType), string: displayName, searchTerm: searchTerm)),
-                score: score,
+                rawScore: score,
+                biasedScore: score,
             )
         }
     )
@@ -318,14 +285,16 @@ func fullTextSuggestion(for partial: PartialFilterTerm, searchTerm: String) -> s
             content: .filter(
                 WithHighlightedString(value: .term(oracleFilter), string: oracleFilter.description, searchTerm: searchTerm),
             ),
-            score: 0.95, // ???
+            rawScore: 0.95, // ???
+            biasedScore: 0.95,
         ),
         .init(
             source: .fullText,
             content: .filter(
                 WithHighlightedString(value: .term(flavorFilter), string: flavorFilter.description, searchTerm: searchTerm),
             ),
-            score: 0.9, // ???
+            rawScore: 0.9, // ???
+            biasedScore: 0.9,
         ),
     ])
 }
@@ -356,7 +325,8 @@ func enumerationSuggestions(for partial: PartialFilterTerm, catalogData: Enumera
             return AutocompleteSuggestion(
                 source: .enumeration,
                 content: .filter(WithHighlightedString(value: .term(filter), string: filter.description, searchTerm: searchTerm)),
-                score: score,
+                rawScore: score,
+                biasedScore: score,
             )
         }
     )
@@ -369,36 +339,68 @@ func reverseEnumerationSuggestions(for partial: PartialFilterTerm, catalogData: 
         return AnySequence([])
     }
 
-    let valueToFilters = timed("reverseEnumerationSuggestions mapping initialization") {
-        var valueToFilters = [String: [ScryfallFilterType]]()
+    // These enumerations are very prolific and cluttery; their match scores are penalized accordingly.
+    let biasedFilterTypes: [String: Double] = [
+        "art": -0.4, // extremely cluttery
+        "artist": -0.2, // marginally less cluttery but not terribly useful
+        "block": -0.1,
+        "frame": -0.1,
+        "function": -0.2, // cluttery but often very useful
+        "set": -0.1,
+        "watermark": -0.4, // not super cluttery but also almost never useful
+    ]
+
+    var biasedGroups: [(filterType: ScryfallFilterType, bias: Double, values: [String])] = []
+    var unbiasedValuesToFilterType: [String: [ScryfallFilterType]] = [:]
+    timed("reverseEnumerationSuggestions input preprocessing") {
         for filterType in scryfallFilterTypes {
-            for value in catalogData[filterType] ?? filterType.enumerationValues ?? [] {
-                valueToFilters[value, default: []].append(filterType)
+            let values = catalogData[filterType] ?? filterType.enumerationValues ?? []
+            guard !values.isEmpty else { continue }
+            if let bias = biasedFilterTypes[filterType.canonicalName] {
+                biasedGroups.append((filterType, bias, values))
+            } else {
+                for value in values {
+                    unbiasedValuesToFilterType[value, default: []].append(filterType)
+                }
             }
         }
-        return valueToFilters
     }
 
-    guard !valueToFilters.isEmpty else {
+    guard !biasedGroups.isEmpty || !unbiasedValuesToFilterType.isEmpty else {
         return AnySequence([])
     }
 
-    let matchResults = timed("reverseEnumerationSuggestions fuzzy match") {
-        FuzzyMatcher(config: fuzzyMatchConfig).matches(Array(valueToFilters.keys), against: partialTerm.incompleteContent)
-    }
+    let matchResults: [(candidate: String, filterTypes: [ScryfallFilterType], score: Double, biasedScore: Double)] =
+        timed("reverseEnumerationSuggestions fuzzy match") {
+            let matcher = FuzzyMatcher(config: fuzzyMatchConfig)
+            var buffer = matcher.makeBuffer()
+            let prepared = matcher.prepare(partialTerm.incompleteContent)
+            var results: [(candidate: String, filterTypes: [ScryfallFilterType], score: Double, biasedScore: Double)] = []
+            for group in biasedGroups {
+                for candidate in group.values {
+                    if let match = matcher.score(candidate, against: prepared, buffer: &buffer) {
+                        results.append((candidate, [group.filterType], match.score, match.score + group.bias))
+                    }
+                }
+            }
+            for candidate in unbiasedValuesToFilterType.keys {
+                if let match = matcher.score(candidate, against: prepared, buffer: &buffer) {
+                    results.append((candidate, unbiasedValuesToFilterType[candidate]!, match.score, match.score))
+                }
+            }
+            return results.sorted { $0.biasedScore > $1.biasedScore }
+        }
 
     return AnySequence(
         matchResults
             .lazy
-            .flatMap { result in
-                guard let filters = valueToFilters[result.candidate] else {
-                    return [AutocompleteSuggestion]()
-                }
-                return filters.map { filterType in
+            .flatMap { candidate, filterTypes, score, biasedScore -> [AutocompleteSuggestion] in
+                return filterTypes.map { ft in
                     AutocompleteSuggestion(
                         source: .reverseEnumeration,
-                        content: .filterParts(partial.polarity, filterType, WithHighlightedString(value: result.candidate, string: result.candidate, searchTerm: searchTerm)),
-                        score: result.match.score,
+                        content: .filterParts(partial.polarity, ft, WithHighlightedString(value: candidate, string: candidate, searchTerm: searchTerm)),
+                        rawScore: score,
+                        biasedScore: biasedScore,
                     )
                 }
             }
@@ -445,7 +447,8 @@ func nameSuggestions(for partial: PartialFilterTerm, in cardNames: [String], sea
             return AutocompleteSuggestion(
                 source: .name,
                 content: .filter(WithHighlightedString(value: .term(filter), string: filter.description, searchTerm: searchTerm)),
-                score: result.match.score,
+                rawScore: result.match.score,
+                biasedScore: result.match.score,
             )
         }
     )
