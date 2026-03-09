@@ -306,7 +306,7 @@ private struct SearchLandingView: View {
                 }
             } header: {
                 HStack {
-                    Label("Recent Searches", systemImage: "clock.arrow.circlepath")
+                    Label("Recent Searches", systemImage: "magnifyingglass")
                     Spacer()
                     Button(action: {
                         showAllSearchHistory = true
@@ -322,7 +322,7 @@ private struct SearchLandingView: View {
     private var recentlyViewedCardsSection: some View {
         if !recentlyViewedCards.isEmpty {
             Section {} header: {
-                Label("Recently Viewed", systemImage: "clock")
+                Label("Recently Viewed Cards", systemImage: "rectangle.portrait.on.rectangle.portrait.angled")
                     .listRowInsets(.bottom, 0)
                     .listSectionMargins(.bottom, 0)
             }
