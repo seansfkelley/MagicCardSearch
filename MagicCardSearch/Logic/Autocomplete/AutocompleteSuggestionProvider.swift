@@ -30,7 +30,7 @@ struct AutocompleteSuggestion {
         }
         let proportionalBias: Double = switch source {
         case .historyFilter(let lastUsedAt): Self.recencyBias(age: -lastUsedAt.timeIntervalSinceNow)
-        case .pinnedFilter, .filterType, .enumeration, .reverseEnumeration, .name, .fullText: 0
+        case .pinnedFilter, .filterType, .enumeration, .reverseEnumeration, .name, .fullText: 1
         }
         return score * proportionalBias + fixedBias
     }
