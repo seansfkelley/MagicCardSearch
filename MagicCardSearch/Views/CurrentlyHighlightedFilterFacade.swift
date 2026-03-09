@@ -1,20 +1,25 @@
 import SwiftUI
 
 /// Tracks the current filter being edited based on input text and cursor position
-struct CurrentlyHighlightedFilterFacade {
+class CurrentlyHighlightedFilterFacade {
     let inputText: String
     let inputSelection: Range<String.Index>
 
-    var text: String {
+    init(inputText: String, inputSelection: Range<String.Index>) {
+        self.inputText = inputText
+        self.inputSelection = inputSelection
+    }
+
+    lazy var text: String = {
         if let range = range {
             String(inputText[range])
         } else {
             // TODO: Should this be nil?
             ""
         }
-    }
-    
-    var range: Range<String.Index>? {
+    }()
+
+    lazy var range: Range<String.Index>? = {
         let allFilterRanges = PlausibleFilterRanges.from(inputText).ranges
 
         guard !allFilterRanges.isEmpty else {
@@ -34,5 +39,13 @@ struct CurrentlyHighlightedFilterFacade {
                 !inputSelection.isEmpty || range.contains(inputSelection.lowerBound) || range.upperBound == inputSelection.lowerBound
             )
         }
-    }
+    }()
+
+    lazy var scopedRange: Range<String.Index>? = {
+        if let range, range != inputText.range {
+            range
+        } else {
+            nil
+        }
+    }()
 }

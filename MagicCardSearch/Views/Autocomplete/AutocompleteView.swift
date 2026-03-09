@@ -100,8 +100,13 @@ struct AutocompleteView: View {
 
     @ViewBuilder
     private func filterRow(_ suggestion: AutocompleteSuggestion) -> some View {
-        let row = FilterRowView(suggestion: suggestion, showImmediateSearchIcon: suggestion.source == .name) { filter in
-            if suggestion.source == .name {
+        let scopedRange = searchState.selectedFilter.scopedRange
+
+        let row = FilterRowView(
+            suggestion: suggestion,
+            showImmediateSearchIcon: suggestion.source == .name && scopedRange == nil,
+        ) { filter in
+            if suggestion.source == .name && scopedRange == nil {
                 addTopLevelFilter(filter)
                 searchState.performSearch()
             } else {
@@ -171,7 +176,7 @@ struct AutocompleteView: View {
     }
 
     private func addScopedFilter(_ filter: FilterQuery<FilterTerm>) {
-        if let range = searchState.selectedFilter.range, range != searchState.searchText.range {
+        if let range = searchState.selectedFilter.scopedRange {
             let filterString = filter.description
             if range.upperBound == searchState.searchText.endIndex {
                 searchState.searchText.replaceSubrange(range, with: filterString)

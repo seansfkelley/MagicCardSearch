@@ -42,6 +42,7 @@ class SearchState {
         suggestionProvider.getSuggestions(for: selectedFilter.text, existingFilters: Set(filters))
     }
 
+    // TODO: Cache this based on the inputs?
     public var selectedFilter: CurrentlyHighlightedFilterFacade {
         CurrentlyHighlightedFilterFacade(inputText: searchText, inputSelection: actualSearchSelection)
     }
