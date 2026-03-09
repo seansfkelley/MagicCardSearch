@@ -56,6 +56,7 @@ class BookmarkedCardsStore {
 
     private func write(_ operation: String, _ block: (Database) throws -> Void) {
         do {
+            logger.info("\(operation)")
             try database.write(block)
         } catch {
             logger.error("error while performing operation=\(operation) error=\(error)")

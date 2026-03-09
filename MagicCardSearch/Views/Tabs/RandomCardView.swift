@@ -72,6 +72,7 @@ struct RandomCardView: View {
     @State private var fetchTask: Task<Void, Never>?
 
     @Environment(BookmarkedCardsStore.self) private var bookmarkedCardsStore
+    @Environment(RecentlyViewedCardsStore.self) private var recentlyViewedCardsStore
     @FetchAll private var bookmarks: [BookmarkedCard]
 
     private let client = ScryfallClient()
@@ -182,6 +183,9 @@ struct RandomCardView: View {
             case .entry(_, let index):
                 if index == history.count - 1 {
                     fetchNextCard()
+                }
+                if let card = history[safe: index]?.card {
+                    recentlyViewedCardsStore.add(.init(card: card))
                 }
             case .placeholder:
                 fetchNextCard()

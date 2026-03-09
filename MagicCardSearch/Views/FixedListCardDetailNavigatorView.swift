@@ -6,6 +6,8 @@ import OSLog
 private let logger = Logger(subsystem: "MagicCardSearch", category: "FixedListCardDetailNavigatorView")
 
 struct FixedListCardDetailNavigatorView<C: CardDisplayable & Identifiable<UUID>>: View {
+    @Environment(RecentlyViewedCardsStore.self) private var recentlyViewedCardsStore
+
     private enum LoadingState {
         case loading(Task<Void, Never>)
         case loaded(Card)
@@ -100,11 +102,13 @@ struct FixedListCardDetailNavigatorView<C: CardDisplayable & Identifiable<UUID>>
         .onAppear {
             if let scrollIndex, let card = cards[safe: scrollIndex] {
                 load(card: card)
+                recentlyViewedCardsStore.add(.init(card: card))
             }
         }
         .onChange(of: scrollIndex) {
             if let scrollIndex, let card = cards[safe: scrollIndex] {
                 load(card: card)
+                recentlyViewedCardsStore.add(.init(card: card))
             }
         }
     }

@@ -4,6 +4,7 @@ import ScryfallKit
 
 struct LazyPagingCardDetailNavigator: View {
     @Environment(BookmarkedCardsStore.self) private var bookmarkedCardsStore
+    @Environment(RecentlyViewedCardsStore.self) private var recentlyViewedCardsStore
     @Environment(\.dismiss) private var dismiss
 
     let list: ScryfallObjectList<Card>
@@ -95,13 +96,23 @@ struct LazyPagingCardDetailNavigator: View {
             }
         }
         .onAppear {
-            if let scrollIndex, scrollIndex > items.count - pagePreloadDistance {
-                list.loadNextPage()
+            if let scrollIndex {
+                if scrollIndex > items.count - pagePreloadDistance {
+                    list.loadNextPage()
+                }
+                if let card = items[safe: scrollIndex] {
+                    recentlyViewedCardsStore.add(.init(card: card))
+                }
             }
         }
         .onChange(of: scrollIndex) {
-            if let scrollIndex, scrollIndex > items.count - pagePreloadDistance {
-                list.loadNextPage()
+            if let scrollIndex {
+                if scrollIndex > items.count - pagePreloadDistance {
+                    list.loadNextPage()
+                }
+                if let card = items[safe: scrollIndex] {
+                    recentlyViewedCardsStore.add(.init(card: card))
+                }
             }
         }
         .onChange(of: items.count) { _, newCount in

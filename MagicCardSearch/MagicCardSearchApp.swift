@@ -6,6 +6,7 @@ import OSLog
 struct MagicCardSearchApp: App {
     private var bookmarkedCardsStore: BookmarkedCardsStore
     private var historyAndPinnedStore: HistoryAndPinnedStore
+    private var recentlyViewedCardsStore: RecentlyViewedCardsStore
     private var scryfallCatalogs: ScryfallCatalogs
 
     init() {
@@ -17,6 +18,7 @@ struct MagicCardSearchApp: App {
 
         bookmarkedCardsStore = .init(database: database)
         historyAndPinnedStore = .init(database: database)
+        recentlyViewedCardsStore = .init(database: database)
         scryfallCatalogs = .init(database: database)
     }
     
@@ -28,6 +30,7 @@ struct MagicCardSearchApp: App {
             )
             .environment(bookmarkedCardsStore)
             .environment(historyAndPinnedStore)
+            .environment(recentlyViewedCardsStore)
             .environment(scryfallCatalogs)
             .task {
                 await scryfallCatalogs.hydrate()

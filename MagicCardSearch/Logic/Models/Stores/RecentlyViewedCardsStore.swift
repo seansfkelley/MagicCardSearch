@@ -20,7 +20,7 @@ struct RecentlyViewedCard: Identifiable {
     @Column(as: CardFace?.JSONRepresentation.self)
     var backCardFace: CardFace?
 
-    init(card: Card, viewedAt: Date = Date()) {
+    init(card: any Identifiable<UUID> & CardDisplayable, viewedAt: Date = Date()) {
         id = card.id
         self.viewedAt = viewedAt
         frontCardFace = .init(name: card.frontFace.name, imageUris: card.frontFace.imageUris)
@@ -47,11 +47,13 @@ class RecentlyViewedCardsStore {
         self.database = database
     }
 
-    public func add(card: Card) {
+    public func add(_ card: RecentlyViewedCard) {
+        logger.debug("adding card=\(card.id) as most recently viewed at date=\(card.viewedAt)")
+
         do {
             try database.write { db in
                 try RecentlyViewedCard
-                    .insert { RecentlyViewedCard(card: card) }
+                    .insert { card }
                     .execute(db)
 
                 let total = try RecentlyViewedCard.count().fetchOne(db) ?? 0
@@ -65,6 +67,7 @@ class RecentlyViewedCardsStore {
                         .last
 
                     if let cutoff {
+                        logger.info("garbage-collecting recent cards")
                         try RecentlyViewedCard
                             .delete()
                             .where { $0.viewedAt.lt(cutoff) }
