@@ -92,16 +92,15 @@ struct AutocompleteView: View {
                 onSelect: setScopedString
             )
         case .filterParts:
-            FilterPartsRowView(
-                suggestion: suggestion,
-                onSelect: { addScopedFilter(.term($0)) }
-            )
+            FilterPartsRowView(suggestion: suggestion) {
+                addScopedFilter(.term($0))
+            }
         }
     }
 
     @ViewBuilder
     private func filterRow(_ suggestion: AutocompleteSuggestion) -> some View {
-        let row = FilterRowView(suggestion: suggestion) { filter in
+        let row = FilterRowView(suggestion: suggestion, showImmediateSearchIcon: suggestion.source == .name) { filter in
             if suggestion.source == .name {
                 addTopLevelFilter(filter)
                 searchState.performSearch()

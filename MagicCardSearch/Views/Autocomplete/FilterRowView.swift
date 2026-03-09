@@ -1,7 +1,8 @@
 import SwiftUI
 
 struct FilterRowView: View {
-    var suggestion: AutocompleteSuggestion
+    let suggestion: AutocompleteSuggestion
+    let showImmediateSearchIcon: Bool
     let onTap: (FilterQuery<FilterTerm>) -> Void
 
     var body: some View {
@@ -20,7 +21,15 @@ struct FilterRowView: View {
                             highlightRanges: highlighted.highlights
                         )
                     }
+
                     Spacer(minLength: 0)
+
+                    if showImmediateSearchIcon {
+                        Image(systemName: "magnifyingglass")
+                            .foregroundStyle(.secondary)
+                        Image(systemName: "chevron.right")
+                            .foregroundStyle(.secondary)
+                    }
                 }
                 .contentShape(Rectangle())
             }
