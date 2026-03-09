@@ -204,7 +204,11 @@ struct CardRulingsSection: View {
     @Environment(ScryfallCatalogs.self) private var scryfallCatalogs
 
     var body: some View {
-        Section {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Rulings")
+                .font(.headline)
+                .fontWeight(.semibold)
+
             VStack(alignment: .leading, spacing: 16) {
                 if case .loading = rulings {
                     HStack {
@@ -245,13 +249,6 @@ struct CardRulingsSection: View {
                         }
                     }
                 }
-            }
-        } header: {
-            HStack {
-                Text("Rulings")
-                    .font(.headline)
-                    .fontWeight(.semibold)
-                Spacer()
             }
         }
         .tint(.primary)
