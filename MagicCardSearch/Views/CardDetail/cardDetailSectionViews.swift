@@ -234,6 +234,7 @@ struct CardRulingsSection: View {
                         VStack(alignment: .leading, spacing: 6) {
                             builder.buildText(ruling.comment)
                                 .fixedSize(horizontal: false, vertical: true)
+                                .frame(maxWidth: .infinity, alignment: .leading)
                                 .textSelection(.enabled)
 
                             if let date = ruling.publishedAtAsDate {
