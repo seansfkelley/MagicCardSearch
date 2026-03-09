@@ -161,13 +161,16 @@ let fuzzyMatchConfig = MatchConfig(
     algorithm: .editDistance(
         .init(
             maxEditDistance: 2,
+            longQueryMaxEditDistance: 3,
+            longQueryThreshold: 10,
             prefixWeight: 2.0,
             substringWeight: 1.2,
             wordBoundaryBonus: 0.125,
-            consecutiveBonus: 0.06,
+            consecutiveBonus: 0.07,
             gapPenalty: .affine(open: 0.05, extend: 0.01),
             firstMatchBonus: 0.25,
             firstMatchBonusRange: 3,
+            lengthPenalty: 0.005,
             acronymWeight: 0.5,
         )
     )
