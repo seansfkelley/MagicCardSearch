@@ -211,10 +211,9 @@ private struct SearchLandingView: View {
                         searchState.performSearch()
                     } label: {
                         HStack {
-                            Text(entry.filters.map { $0.description }.joined(separator: " "))
+                            Text(entry.filters.map { $0.description }.joined(separator: "   "))
                                 .font(.body)
                                 .foregroundStyle(.primary)
-                                .lineLimit(2)
                             Spacer()
                         }
                         .contentShape(Rectangle())
@@ -264,10 +263,9 @@ private struct SearchLandingView: View {
                         searchState.performSearch()
                     } label: {
                         HStack {
-                            Text(entry.filters.map { $0.description }.joined(separator: " "))
+                            Text(entry.filters.map { $0.description }.joined(separator: "   "))
                                 .font(.body)
                                 .foregroundStyle(.primary)
-                                .lineLimit(2)
                             Spacer()
                         }
                         .contentShape(Rectangle())
@@ -374,7 +372,7 @@ private struct SearchLandingView: View {
                             Text(example.title)
                                 .font(.body.weight(.semibold))
                                 .foregroundStyle(.primary)
-                            Text(example.filters.map { $0.description }.joined(separator: " "))
+                            Text(example.filters.map { $0.description }.joined(separator: "   "))
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
