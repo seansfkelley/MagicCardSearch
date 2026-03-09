@@ -211,7 +211,7 @@ private struct SearchLandingView: View {
                         searchState.performSearch()
                     } label: {
                         HStack {
-                            Text(entry.filters.map { $0.description }.joined(separator: "   "))
+                            Text(entry.filters.plaintext)
                                 .font(.body)
                                 .foregroundStyle(.primary)
                             Spacer()
@@ -263,7 +263,7 @@ private struct SearchLandingView: View {
                         searchState.performSearch()
                     } label: {
                         HStack {
-                            Text(entry.filters.map { $0.description }.joined(separator: "   "))
+                            Text(entry.filters.plaintext)
                                 .font(.body)
                                 .foregroundStyle(.primary)
                             Spacer()

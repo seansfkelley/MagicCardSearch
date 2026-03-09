@@ -95,10 +95,9 @@ struct AllSearchHistoryView: View {
                                         dismiss()
                                     } label: {
                                         HStack {
-                                            Text(entry.filters.map { $0.description }.joined(separator: " "))
+                                            Text(entry.filters.plaintext)
                                                 .font(.body)
                                                 .foregroundStyle(.primary)
-                                                .lineLimit(3)
                                                 .padding(.vertical, 4)
                                             
                                             Spacer()
