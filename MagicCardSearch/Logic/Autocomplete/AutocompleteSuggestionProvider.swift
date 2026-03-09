@@ -256,7 +256,13 @@ func filterTypeSuggestions(for partial: PartialFilterTerm, searchTerm: String) -
             let displayName = partial.polarity == .negative ? "-\(candidate)" : candidate
             return AutocompleteSuggestion(
                 source: .filterType,
-                content: .filterType(WithHighlightedString(value: FilterTypeSuggestion(polarity: partial.polarity, filterType: filterType), string: displayName, searchTerm: searchTerm)),
+                content: .filterType(
+                    WithHighlightedString(
+                        value: FilterTypeSuggestion(polarity: partial.polarity, filterType: filterType),
+                        string: displayName,
+                        searchTerm: searchTerm,
+                    ),
+                ),
                 rawScore: score,
                 biasedScore: score,
             )
@@ -350,42 +356,32 @@ func reverseEnumerationSuggestions(for partial: PartialFilterTerm, catalogData: 
         "watermark": -0.4, // not super cluttery but also almost never useful
     ]
 
-    var biasedGroups: [(filterType: ScryfallFilterType, bias: Double, values: [String])] = []
-    var unbiasedValuesToFilterType: [String: [ScryfallFilterType]] = [:]
-    timed("reverseEnumerationSuggestions input preprocessing") {
-        for filterType in scryfallFilterTypes {
-            let values = catalogData[filterType] ?? filterType.enumerationValues ?? []
-            guard !values.isEmpty else { continue }
-            if let bias = biasedFilterTypes[filterType.canonicalName] {
-                biasedGroups.append((filterType, bias, values))
-            } else {
-                for value in values {
-                    unbiasedValuesToFilterType[value, default: []].append(filterType)
-                }
-            }
-        }
-    }
-
-    guard !biasedGroups.isEmpty || !unbiasedValuesToFilterType.isEmpty else {
-        return AnySequence([])
-    }
-
     let matchResults: [(candidate: String, filterTypes: [ScryfallFilterType], score: Double, biasedScore: Double)] =
         timed("reverseEnumerationSuggestions fuzzy match") {
             let matcher = FuzzyMatcher(config: fuzzyMatchConfig)
             var buffer = matcher.makeBuffer()
             let prepared = matcher.prepare(partialTerm.incompleteContent)
+
             var results: [(candidate: String, filterTypes: [ScryfallFilterType], score: Double, biasedScore: Double)] = []
-            for group in biasedGroups {
-                for candidate in group.values {
-                    if let match = matcher.score(candidate, against: prepared, buffer: &buffer) {
-                        results.append((candidate, [group.filterType], match.score, match.score + group.bias))
+            var unbiasedValueToFilterTypes: [String: [ScryfallFilterType]] = [:]
+            for filterType in scryfallFilterTypes {
+                let values = catalogData[filterType] ?? filterType.enumerationValues ?? []
+                guard !values.isEmpty else { continue }
+                if let bias = biasedFilterTypes[filterType.canonicalName] {
+                    for candidate in values {
+                        if let match = matcher.score(candidate, against: prepared, buffer: &buffer) {
+                            results.append((candidate, [filterType], match.score, match.score + bias))
+                        }
+                    }
+                } else {
+                    for value in values {
+                        unbiasedValueToFilterTypes[value, default: []].append(filterType)
                     }
                 }
             }
-            for candidate in unbiasedValuesToFilterType.keys {
+            for candidate in unbiasedValueToFilterTypes.keys {
                 if let match = matcher.score(candidate, against: prepared, buffer: &buffer) {
-                    results.append((candidate, unbiasedValuesToFilterType[candidate]!, match.score, match.score))
+                    results.append((candidate, unbiasedValueToFilterTypes[candidate]!, match.score, match.score))
                 }
             }
             return results.sorted { $0.biasedScore > $1.biasedScore }
@@ -395,10 +391,14 @@ func reverseEnumerationSuggestions(for partial: PartialFilterTerm, catalogData: 
         matchResults
             .lazy
             .flatMap { candidate, filterTypes, score, biasedScore -> [AutocompleteSuggestion] in
-                return filterTypes.map { ft in
+                filterTypes.map { filterType in
                     AutocompleteSuggestion(
                         source: .reverseEnumeration,
-                        content: .filterParts(partial.polarity, ft, WithHighlightedString(value: candidate, string: candidate, searchTerm: searchTerm)),
+                        content: .filterParts(
+                            partial.polarity,
+                            filterType,
+                            WithHighlightedString(value: candidate, string: candidate, searchTerm: searchTerm),
+                        ),
                         rawScore: score,
                         biasedScore: biasedScore,
                     )
