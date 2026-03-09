@@ -26,6 +26,13 @@ struct RecentlyViewedCard: Identifiable {
         frontCardFace = .init(name: card.frontFace.name, imageUris: card.frontFace.imageUris)
         backCardFace = card.backFace.map { .init(name: $0.name, imageUris: $0.imageUris) }
     }
+
+    init(id: UUID, frontCardFace: CardFace, backCardFace: CardFace? = nil, viewedAt: Date = Date()) {
+        self.id = id
+        self.viewedAt = viewedAt
+        self.frontCardFace = frontCardFace
+        self.backCardFace = backCardFace
+    }
 }
 
 extension RecentlyViewedCard: CardDisplayable {
@@ -57,7 +64,6 @@ class RecentlyViewedCardsStore {
                     .execute(db)
 
                 let total = try RecentlyViewedCard.count().fetchOne(db) ?? 0
-                // Is this being too clever?
                 if total > Self.hardLimit {
                     let cutoff = try RecentlyViewedCard
                         .order { $0.viewedAt.desc() }
@@ -70,7 +76,7 @@ class RecentlyViewedCardsStore {
                         logger.info("garbage-collecting recent cards")
                         try RecentlyViewedCard
                             .delete()
-                            .where { $0.viewedAt.lt(cutoff) }
+                            .where { $0.viewedAt.lte(cutoff) }
                             .execute(db)
                     }
                 }
