@@ -527,18 +527,18 @@ struct RecencyBiasTests {
     func curve() {
         let epsilon = 0.001
         let samples: [(ageDays: Double, expected: Double)] = [
-            ( 0, 1.5),
-            ( 1, 1.5),
-            ( 2, 1.5),
-            ( 3, 1.486),
-            ( 4, 1.447),
-            ( 5, 1.389),
-            ( 6, 1.320),
-            ( 7, 1.25),
-            (10, 1.084),
-            (14, 1.009),
+            ( 0, 1.500),
+            ( 1, 1.490),
+            ( 2, 1.463),
+            ( 3, 1.420),
+            ( 4, 1.367),
+            ( 5, 1.309),
+            ( 6, 1.250),
+            ( 7, 1.195),
+            (10, 1.073),
+            (14, 1.011),
         ]
-        let actual = samples.map { MagicCardSearch.recencyBias(age: $0.ageDays * day) }
+        let actual = samples.map { recencyBias(age: $0.ageDays * day) }
         let expected = samples.map(\.expected)
         let flooredDeltas = zip(actual, expected).map { abs($0 - $1) < epsilon ? 0 : $0 - $1 }
         #expect(flooredDeltas == samples.map { _ in 0.0 })
@@ -559,7 +559,7 @@ struct SortCombinedSuggestionsTests {
         return AutocompleteSuggestion(
             source: source,
             content: .filter(WithHighlightedString(value: filter, string: text, searchTerm: "")),
-            score: score,
+            rawScore: score,
             biasedScore: biasedScore ?? score
         )
     }
@@ -576,7 +576,7 @@ struct SortCombinedSuggestionsTests {
         let low = makeSuggestion(filter: .term(.basic(.positive, "color", .equal, "red")), score: 0.8)
 
         let result = sortCombinedSuggestions([low, high, mid])
-        #expect(result.map(\.score) == [0.95, 0.9, 0.8])
+        #expect(result.map(\.rawScore) == [0.95, 0.9, 0.8])
     }
 
     @Test("duplicate content is deduplicated, keeping the higher-scored copy")
@@ -587,7 +587,7 @@ struct SortCombinedSuggestionsTests {
         let other = makeSuggestion(filter: .term(.basic(.positive, "color", .equal, "blue")), score: 0.9)
 
         let result = sortCombinedSuggestions([lower, higher, other])
-        #expect(result.map(\.score) == [0.95, 0.9])
+        #expect(result.map(\.rawScore) == [0.95, 0.9])
     }
 
     @Test("pinned source bias lifts a lower-scored suggestion above a higher-scored one")

@@ -35,14 +35,13 @@ struct FilterTypeSuggestion: Hashable, Sendable {
 // - offset: flat zone near origin where score stays at maxBias
 // - scale: age at which the gaussian factor reaches `decay`, i.e. the steepest region
 // - decay: gaussian factor value at age == offset + scale
-func recencyBias(
-    age: TimeInterval,
-    maxBias: Double = 1.5,
-    minBias: Double = 1.0,
-    offset: TimeInterval = 2 * 24 * 3600,
-    scale: TimeInterval = 5 * 24 * 3600,
-    decay: Double = 0.5
-) -> Double {
+func recencyBias(age: TimeInterval) -> Double {
+    let maxBias: Double = 1.5
+    let minBias: Double = 1.0
+    let offset: TimeInterval = 0
+    let scale: TimeInterval = 6 * 24 * 3600
+    let decay: Double = 0.5
+
     let adjusted = max(0, age - offset)
     let gaussianFactor = exp(log(decay) * pow(adjusted / scale, 2))
     return minBias + (maxBias - minBias) * gaussianFactor
