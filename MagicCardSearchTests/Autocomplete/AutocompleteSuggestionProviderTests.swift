@@ -62,7 +62,7 @@ struct FilterHistorySuggestionsTests {
     func matchingSource() throws {
         let suggestions = Array(filterHistorySuggestions(for: searchTerm, from: entries([strongMatch])))
         try #require(!suggestions.isEmpty)
-        #expect(suggestions.allSatisfy { $0.source == .historyFilter })
+        #expect(suggestions.allSatisfy { if case .historyFilter = $0.source { true } else { false } })
     }
 
     @Test("results are ordered by score, best match first")
@@ -517,6 +517,34 @@ struct NameSuggestionsTests {
     }
 }
 
+// MARK: - AutocompleteSuggestion.recencyBias
+
+private let day: TimeInterval = 24 * 3600
+
+@Suite
+struct RecencyBiasTests {
+    @Test("gaussian decay curve matches expected values at representative ages")
+    func curve() {
+        let epsilon = 0.001
+        let samples: [(ageDays: Double, expected: Double)] = [
+            ( 0, 1.5),
+            ( 1, 1.5),
+            ( 2, 1.5),
+            ( 3, 1.486),
+            ( 4, 1.447),
+            ( 5, 1.389),
+            ( 6, 1.320),
+            ( 7, 1.25),
+            (10, 1.084),
+            (14, 1.009),
+        ]
+        let actual = samples.map { AutocompleteSuggestion.recencyBias(age: $0.ageDays * day) }
+        let expected = samples.map(\.expected)
+        let flooredDeltas = zip(actual, expected).map { abs($0 - $1) < epsilon ? 0 : $0 - $1 }
+        #expect(flooredDeltas == samples.map { _ in 0.0 })
+    }
+}
+
 // MARK: - sortCombinedSuggestions
 
 @Suite
@@ -573,7 +601,7 @@ struct SortCombinedSuggestionsTests {
     @Test("history source bias lowers a higher-scored suggestion below a lower-scored one")
     func historyBias() {
         // history biasedScore = 0.95 - 1.0 = -0.05 < other 0.85
-        let history = makeSuggestion(source: .historyFilter, filter: .term(.basic(.positive, "color", .equal, "red")), score: 0.95)
+        let history = makeSuggestion(source: .historyFilter(.now), filter: .term(.basic(.positive, "color", .equal, "red")), score: 0.95)
         let other = makeSuggestion(source: .enumeration, filter: .term(.basic(.positive, "color", .equal, "blue")), score: 0.85)
 
         let result = sortCombinedSuggestions([history, other])

@@ -7,7 +7,7 @@ import OSLog
 private let logger = Logger(subsystem: "MagicCardSearch", category: "AutocompleteSuggestionProvider")
 
 struct AutocompleteSuggestion {
-    enum Source {
+    enum Source: Equatable {
         case pinnedFilter, filterType, enumeration, reverseEnumeration, name, fullText
         case historyFilter(Date)
     }
@@ -29,19 +29,29 @@ struct AutocompleteSuggestion {
         case .filterType, .enumeration, .reverseEnumeration, .name, .fullText: 0
         }
         let proportionalBias: Double = switch source {
-        case .historyFilter(let lastUsedAt): recencyBias(lastUsedAt)
+        case .historyFilter(let lastUsedAt): Self.recencyBias(age: -lastUsedAt.timeIntervalSinceNow)
         case .pinnedFilter, .filterType, .enumeration, .reverseEnumeration, .name, .fullText: 0
         }
         return score * proportionalBias + fixedBias
     }
 
-    private func recencyBias(_ date: Date) -> Double {
-        let maxBias = 1.5
-        let minBias = 1.0
-        let decayWindow: TimeInterval = 7 * 24 * 3600
-        let age = -date.timeIntervalSinceNow
-
-        return minBias + (maxBias - minBias) * max(0, 1 - age / decayWindow)
+    // Gaussian decay scoring, following Elasticsearch's function score model:
+    // https://www.elastic.co/blog/found-function-scoring
+    //
+    // - offset: flat zone near origin where score stays at maxBias
+    // - scale: age at which the gaussian factor reaches `decay`, i.e. the steepest region
+    // - decay: gaussian factor value at age == offset + scale
+    static func recencyBias(
+        age: TimeInterval,
+        maxBias: Double = 1.5,
+        minBias: Double = 1.0,
+        offset: TimeInterval = 2 * 24 * 3600,
+        scale: TimeInterval = 5 * 24 * 3600,
+        decay: Double = 0.5
+    ) -> Double {
+        let adjusted = max(0, age - offset)
+        let gaussianFactor = exp(log(decay) * pow(adjusted / scale, 2))
+        return minBias + (maxBias - minBias) * gaussianFactor
     }
 }
 
