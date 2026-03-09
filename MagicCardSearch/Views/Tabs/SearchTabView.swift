@@ -28,7 +28,7 @@ struct SearchTabView: View {
                 if let results = searchState.results {
                     SearchResultsGridView(list: results, searchState: $searchState)
                 } else {
-                    DefaultSearchContent(
+                    SearchLandingView(
                         searchState: $searchState,
                         showAllSearchHistory: $showAllSearchHistory,
                     )
@@ -155,7 +155,7 @@ private struct SearchSheetView: View {
 private let recentSearchesSoftLimit = 8
 private let recentSearchesHardLimit = 12
 
-private struct DefaultSearchContent: View {
+private struct SearchLandingView: View {
     @Environment(HistoryAndPinnedStore.self) private var historyAndPinnedStore
     @Binding var searchState: SearchState
     @Binding var showAllSearchHistory: Bool
@@ -326,10 +326,10 @@ private struct DefaultSearchContent: View {
                                 card: card,
                                 quality: .normal,
                                 isFlipped: .constant(false),
-                                cornerRadius: 10,
+                                cornerRadius: 8,
                                 showFlipButton: false
                             )
-                            .frame(width: 200)
+                            .frame(width: 120)
                             .onTapGesture {
                                 recentlyViewedSheetState = RecentlyViewedSheetState(
                                     index: index,
@@ -338,9 +338,9 @@ private struct DefaultSearchContent: View {
                             }
                         }
                     }
-                    .padding(.horizontal)
                 }
-                .listRowInsets(EdgeInsets())
+                .listRowInsets(.all, 0)
+                .listSectionMargins(.horizontal, 0)
                 .listRowBackground(Color.clear)
             } header: {
                 Label("Recently Viewed", systemImage: "clock")
