@@ -558,7 +558,7 @@ struct SortCombinedSuggestionsTests {
         let text = filter.description
         return AutocompleteSuggestion(
             source: source,
-            content: .filter(WithHighlightedString(value: filter, string: text, searchTerm: "")),
+            content: .filter(HighlightedMatch(value: filter, string: text, query: "")),
             rawScore: score,
             biasedScore: biasedScore ?? score
         )

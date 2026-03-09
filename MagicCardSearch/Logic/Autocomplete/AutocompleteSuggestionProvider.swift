@@ -13,9 +13,9 @@ struct AutocompleteSuggestion {
     }
 
     enum Content: Hashable {
-        case filter(WithHighlightedString<FilterQuery<FilterTerm>>)
-        case filterType(WithHighlightedString<FilterTypeSuggestion>)
-        case filterParts(Polarity, ScryfallFilterType, WithHighlightedString<String>)
+        case filter(HighlightedMatch<FilterQuery<FilterTerm>>)
+        case filterType(HighlightedMatch<FilterTypeSuggestion>)
+        case filterParts(Polarity, ScryfallFilterType, HighlightedMatch<String>)
     }
 
     let source: Source
@@ -207,7 +207,7 @@ func pinnedFilterSuggestions(for partial: PartialFilterTerm, from pinnedFilters:
         .map { result in
             AutocompleteSuggestion(
                 source: .pinnedFilter,
-                content: .filter(WithHighlightedString(value: filterByText[result.candidate]!, string: result.candidate, searchTerm: searchTerm)),
+                content: .filter(HighlightedMatch(value: filterByText[result.candidate]!, string: result.candidate, query: searchTerm)),
                 rawScore: result.match.score,
                 biasedScore: result.match.score + 10,
             )
@@ -228,7 +228,7 @@ func filterHistorySuggestions(for searchTerm: String, from filterHistoryEntries:
             let entry = entryByFilterDescription[result.candidate]!
             return AutocompleteSuggestion(
                 source: .historyFilter(entry.lastUsedAt),
-                content: .filter(WithHighlightedString(value: entry.filter, string: result.candidate, searchTerm: searchTerm)),
+                content: .filter(HighlightedMatch(value: entry.filter, string: result.candidate, query: searchTerm)),
                 rawScore: result.match.score,
                 biasedScore: result.match.score * recencyBias(age: -entry.lastUsedAt.timeIntervalSinceNow) - 0.6,
             )
@@ -259,10 +259,10 @@ func filterTypeSuggestions(for partial: PartialFilterTerm, searchTerm: String) -
             return AutocompleteSuggestion(
                 source: .filterType,
                 content: .filterType(
-                    WithHighlightedString(
+                    HighlightedMatch(
                         value: FilterTypeSuggestion(polarity: partial.polarity, filterType: filterType),
                         string: displayName,
-                        searchTerm: searchTerm,
+                        query: searchTerm,
                     ),
                 ),
                 rawScore: score,
@@ -291,7 +291,7 @@ func fullTextSuggestion(for partial: PartialFilterTerm, searchTerm: String) -> s
         .init(
             source: .fullText,
             content: .filter(
-                WithHighlightedString(value: .term(oracleFilter), string: oracleFilter.description, searchTerm: searchTerm),
+                HighlightedMatch(value: .term(oracleFilter), string: oracleFilter.description, query: searchTerm),
             ),
             rawScore: 0.95, // ???
             biasedScore: 0.95,
@@ -299,7 +299,7 @@ func fullTextSuggestion(for partial: PartialFilterTerm, searchTerm: String) -> s
         .init(
             source: .fullText,
             content: .filter(
-                WithHighlightedString(value: .term(flavorFilter), string: flavorFilter.description, searchTerm: searchTerm),
+                HighlightedMatch(value: .term(flavorFilter), string: flavorFilter.description, query: searchTerm),
             ),
             rawScore: 0.9, // ???
             biasedScore: 0.9,
@@ -332,7 +332,7 @@ func enumerationSuggestions(for partial: PartialFilterTerm, catalogData: Enumera
             let filter = FilterTerm.basic(partial.polarity, filterTypeName.lowercased(), comparison, candidate)
             return AutocompleteSuggestion(
                 source: .enumeration,
-                content: .filter(WithHighlightedString(value: .term(filter), string: filter.description, searchTerm: searchTerm)),
+                content: .filter(HighlightedMatch(value: .term(filter), string: filter.description, query: searchTerm)),
                 rawScore: score,
                 biasedScore: score,
             )
@@ -399,7 +399,7 @@ func reverseEnumerationSuggestions(for partial: PartialFilterTerm, catalogData: 
                         content: .filterParts(
                             partial.polarity,
                             filterType,
-                            WithHighlightedString(value: candidate, string: candidate, searchTerm: searchTerm),
+                            HighlightedMatch(value: candidate, string: candidate, query: searchTerm),
                         ),
                         rawScore: score,
                         biasedScore: biasedScore,
@@ -448,7 +448,7 @@ func nameSuggestions(for partial: PartialFilterTerm, in cardNames: [String], sea
 
             return AutocompleteSuggestion(
                 source: .name,
-                content: .filter(WithHighlightedString(value: .term(filter), string: filter.description, searchTerm: searchTerm)),
+                content: .filter(HighlightedMatch(value: .term(filter), string: filter.description, query: searchTerm)),
                 rawScore: result.match.score,
                 biasedScore: result.match.score,
             )
