@@ -95,6 +95,13 @@ struct AutocompleteView: View {
             FilterPartsRowView(suggestion: suggestion) {
                 addScopedFilter(.term($0))
             }
+        case .searchHistory(let allFilters, let matchedFilter, let otherFilters):
+            SearchHistoryRowView(suggestion: suggestion, matchedFilter: matchedFilter, otherFilters: otherFilters) {
+                searchState.filters = allFilters
+                searchState.searchText = ""
+                searchState.desiredSearchSelection = nil
+                searchState.performSearch()
+            }
         }
     }
 

@@ -10,12 +10,14 @@ struct AutocompleteSuggestion {
     enum Source: Equatable {
         case pinnedFilter, filterType, enumeration, reverseEnumeration, name, fullText
         case historyFilter(Date)
+        case historySearch(Date)
     }
 
     enum Content: Hashable {
         case filter(HighlightedMatch<FilterQuery<FilterTerm>>)
         case filterType(HighlightedMatch<FilterTypeSuggestion>)
         case filterParts(Polarity, ScryfallFilterType, HighlightedMatch<String>)
+        case searchHistory([FilterQuery<FilterTerm>], HighlightedMatch<FilterQuery<FilterTerm>>?, [FilterQuery<FilterTerm>])
     }
 
     let source: Source
@@ -35,14 +37,14 @@ struct FilterTypeSuggestion: Hashable, Sendable {
 // - offset: flat zone near origin where score stays at maxBias
 // - scale: age at which the gaussian factor reaches `decay`, i.e. the steepest region
 // - decay: gaussian factor value at age == offset + scale
-func recencyBias(age: TimeInterval) -> Double {
+func recencyBias(age: Date) -> Double {
     let maxBias: Double = 1.5
     let minBias: Double = 1.0
     let offset: TimeInterval = 0
     let scale: TimeInterval = 6 * 24 * 3600
     let decay: Double = 0.5
 
-    let adjusted = max(0, age - offset)
+    let adjusted = max(0, -age.timeIntervalSinceNow - offset)
     let gaussianFactor = exp(log(decay) * pow(adjusted / scale, 2))
     return minBias + (maxBias - minBias) * gaussianFactor
 }
@@ -53,6 +55,7 @@ class AutocompleteSuggestionProvider {
 
     @ObservationIgnored @FetchAll private var pinnedFilters: [PinnedFilterEntry]
     @ObservationIgnored @FetchAll(FilterHistoryEntry.order { $0.lastUsedAt.desc() }) private var filterHistoryEntries
+    @ObservationIgnored @FetchAll(SearchHistoryEntry.order { $0.lastUsedAt.desc() }) private var searchHistoryEntries
 
     init(scryfallCatalogs: ScryfallCatalogs) {
         self.scryfallCatalogs = scryfallCatalogs
@@ -87,6 +90,17 @@ class AutocompleteSuggestionProvider {
                                 filterHistorySuggestions(for: searchTerm, from: history)
                                     .filter { !isRedundantSuggestion($0, existingFilters: existingFilters) }
                                     .prefix(20)
+                            )
+                        }
+                    }
+                }
+                do {
+                    let searchHistory = searchHistoryEntries
+                    group.addTask {
+                        timed("search history autocomplete suggestions") {
+                            Array(
+                                searchHistorySuggestions(for: searchTerm, from: searchHistory, existingFilters: existingFilters)
+                                    .prefix(10)
                             )
                         }
                     }
@@ -230,7 +244,7 @@ func filterHistorySuggestions(for searchTerm: String, from filterHistoryEntries:
                 source: .historyFilter(entry.lastUsedAt),
                 content: .filter(HighlightedMatch(value: entry.filter, string: result.candidate, query: searchTerm)),
                 rawScore: result.match.score,
-                biasedScore: result.match.score * recencyBias(age: -entry.lastUsedAt.timeIntervalSinceNow) - 0.6,
+                biasedScore: result.match.score * recencyBias(age: entry.lastUsedAt) - 0.6,
             )
         }
 }
@@ -406,6 +420,92 @@ func reverseEnumerationSuggestions(for partial: PartialFilterTerm, catalogData: 
                     )
                 }
             }
+    )
+}
+
+private struct SearchHistoryCandidate {
+    let entry: SearchHistoryEntry
+    let remainingFilters: [FilterQuery<FilterTerm>]
+
+    init?(entry: SearchHistoryEntry, existingFilters: Set<FilterQuery<FilterTerm>>) {
+        let filterSet = Set(entry.filters)
+        guard existingFilters.isSubset(of: filterSet) else { return nil }
+        self.entry = entry
+        self.remainingFilters = entry.filters.filter { !existingFilters.contains($0) }
+    }
+}
+
+func searchHistorySuggestions(
+    for searchTerm: String,
+    from entries: [SearchHistoryEntry],
+    existingFilters: Set<FilterQuery<FilterTerm>>
+) -> some Sequence<AutocompleteSuggestion> {
+    let trimmedSearchTerm = searchTerm.trimmingCharacters(in: .whitespaces)
+
+    let candidates: [SearchHistoryCandidate] = entries.compactMap { entry in
+        SearchHistoryCandidate(entry: entry, existingFilters: existingFilters)
+    }
+
+    guard !candidates.isEmpty else { return AnySequence([]) }
+
+    let (exactCandidates, fuzzyMatchCandidates) = candidates.reduce(
+        into: ([SearchHistoryCandidate](), [SearchHistoryCandidate]())
+    ) { acc, candidate in
+        if candidate.remainingFilters.isEmpty {
+            acc.0.append(candidate)
+        } else {
+            acc.1.append(candidate)
+        }
+    }
+
+    guard !trimmedSearchTerm.isEmpty else {
+        return AnySequence((exactCandidates + fuzzyMatchCandidates)
+            .map {
+                let score = 1.0 - Double($0.remainingFilters.count) * 0.1
+                return AutocompleteSuggestion(
+                    source: .historySearch($0.entry.lastUsedAt),
+                    content: .searchHistory($0.entry.filters, nil, $0.remainingFilters),
+                    rawScore: score,
+                    biasedScore: score * recencyBias(age: $0.entry.lastUsedAt),
+                )
+            }
+            .sorted { $0.biasedScore > $1.biasedScore }
+        )
+    }
+
+    var descriptionToCandidates: [String: [(SearchHistoryCandidate, FilterQuery<FilterTerm>)]] = [:]
+    for candidate in fuzzyMatchCandidates {
+        for filter in candidate.remainingFilters {
+            descriptionToCandidates[filter.description, default: []].append((candidate, filter))
+        }
+    }
+
+    typealias ScoredCandidate = (candidate: SearchHistoryCandidate, score: Double, matchedFilter: FilterQuery<FilterTerm>?)
+
+    var bestByEntryId: [Int64?: ScoredCandidate] = [:]
+    for result in FuzzyMatcher(config: fuzzyMatchConfig).matches(Array(descriptionToCandidates.keys), against: trimmedSearchTerm) {
+        for (candidate, filter) in descriptionToCandidates[result.candidate] ?? [] {
+            let current = bestByEntryId[candidate.entry.id]
+            if current == nil || result.match.score > current!.score {
+                bestByEntryId[candidate.entry.id] = (candidate, result.match.score, filter)
+            }
+        }
+    }
+
+    return AnySequence((exactCandidates.map { ($0, 1.0, nil) } + Array(bestByEntryId.values))
+        .map { candidate, score, matchedFilter -> AutocompleteSuggestion in
+            AutocompleteSuggestion(
+                source: .historySearch(candidate.entry.lastUsedAt),
+                content: .searchHistory(
+                    candidate.entry.filters,
+                    matchedFilter.map { HighlightedMatch(value: $0, string: $0.description, query: trimmedSearchTerm) },
+                    candidate.remainingFilters.filter { $0 != matchedFilter },
+                ),
+                rawScore: score,
+                biasedScore: score * recencyBias(age: candidate.entry.lastUsedAt),
+            )
+        }
+        .sorted { $0.biasedScore < $1.biasedScore }
     )
 }
 

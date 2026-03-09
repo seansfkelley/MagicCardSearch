@@ -3,6 +3,7 @@ extension AutocompleteSuggestion {
         switch source {
         case .pinnedFilter: "pin.fill"
         case .historyFilter: "clock.arrow.circlepath"
+        case .historySearch: "clock"
         case .filterType: "line.3.horizontal.decrease"
         case .enumeration: "list.bullet"
         case .reverseEnumeration: "list.bullet"
