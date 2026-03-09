@@ -8,4 +8,5 @@ let orderedMigrations: [(String, @Sendable (Database) throws -> Void)] = [
     ("add blob store", migrate_005_AddBlobStore),
     ("add pinned searches", migrate_006_AddPinnedSearches),
     ("truncate filter-related tables", migrate_007_TruncateFilterRelatedTables),
+    ("add recently viewed cards", migrate_008_AddRecentlyViewedCards),
 ]

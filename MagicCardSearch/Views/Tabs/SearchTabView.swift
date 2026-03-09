@@ -174,10 +174,14 @@ private struct DefaultSearchContent: View {
     @FetchAll(PinnedSearchEntry.order { $0.pinnedAt.desc() })
     private var pinnedSearches
 
+    @FetchAll(RecentlyViewedCard.order { $0.viewedAt.desc() }.limit(RecentlyViewedCardsStore.limit))
+    private var recentlyViewedCards
+
     var body: some View {
         List {
             pinnedSearchesSection
             recentSearchesSection
+            recentlyViewedCardsSection
             examplesSection
         }
         .contentMargins(.top, 20)
