@@ -28,6 +28,13 @@ struct RecentlyViewedCard: Identifiable {
     }
 }
 
+extension RecentlyViewedCard: CardDisplayable {
+    var frontFace: CardFaceDisplayable { frontCardFace }
+    var backFace: CardFaceDisplayable? { backCardFace }
+}
+
+extension RecentlyViewedCard.CardFace: CardFaceDisplayable {}
+
 @MainActor
 @Observable
 class RecentlyViewedCardsStore {

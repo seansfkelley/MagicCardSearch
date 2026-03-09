@@ -177,6 +177,8 @@ private struct DefaultSearchContent: View {
     @FetchAll(RecentlyViewedCard.order { $0.viewedAt.desc() }.limit(RecentlyViewedCardsStore.limit))
     private var recentlyViewedCards
 
+    @State private var recentlyViewedSheetState: RecentlyViewedSheetState?
+
     var body: some View {
         List {
             pinnedSearchesSection
@@ -185,6 +187,13 @@ private struct DefaultSearchContent: View {
             examplesSection
         }
         .contentMargins(.top, 20)
+        .sheet(item: $recentlyViewedSheetState) { state in
+            FixedListCardDetailNavigatorView(
+                cards: state.cards,
+                initialIndex: state.index,
+                searchState: $searchState
+            )
+        }
     }
 
     @ViewBuilder
@@ -306,6 +315,39 @@ private struct DefaultSearchContent: View {
         }
     }
 
+    @ViewBuilder
+    private var recentlyViewedCardsSection: some View {
+        if !recentlyViewedCards.isEmpty {
+            Section {
+                ScrollView(.horizontal) {
+                    LazyHStack(spacing: 8) {
+                        ForEach(Array(recentlyViewedCards.enumerated()), id: \.element.id) { index, card in
+                            CardView(
+                                card: card,
+                                quality: .normal,
+                                isFlipped: .constant(false),
+                                cornerRadius: 10,
+                                showFlipButton: false
+                            )
+                            .frame(width: 200)
+                            .onTapGesture {
+                                recentlyViewedSheetState = RecentlyViewedSheetState(
+                                    index: index,
+                                    cards: recentlyViewedCards
+                                )
+                            }
+                        }
+                    }
+                    .padding(.horizontal)
+                }
+                .listRowInsets(EdgeInsets())
+                .listRowBackground(Color.clear)
+            } header: {
+                Label("Recently Viewed", systemImage: "clock")
+            }
+        }
+    }
+
     private var examplesSection: some View {
         Section {
             ForEach(ExampleSearch.dailyExamples, id: \.title) { example in
@@ -332,5 +374,18 @@ private struct DefaultSearchContent: View {
         } header: {
             Label("Need Inspiration?", systemImage: "lightbulb.max")
         }
+    }
+}
+// MARK: - Recently Viewed Sheet State
+
+private struct RecentlyViewedSheetState: Identifiable {
+    let id: UUID
+    let index: Int
+    let cards: [RecentlyViewedCard]
+
+    init(index: Int, cards: [RecentlyViewedCard]) {
+        self.index = index
+        self.cards = cards
+        self.id = cards.indices.contains(index) ? cards[index].id : UUID()
     }
 }
