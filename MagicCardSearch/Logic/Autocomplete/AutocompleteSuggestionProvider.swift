@@ -8,7 +8,8 @@ private let logger = Logger(subsystem: "MagicCardSearch", category: "Autocomplet
 
 struct AutocompleteSuggestion {
     enum Source {
-        case pinnedFilter, historyFilter, filterType, enumeration, reverseEnumeration, name, fullText
+        case pinnedFilter, filterType, enumeration, reverseEnumeration, name, fullText
+        case historyFilter(Date)
     }
 
     enum Content: Hashable {
@@ -22,12 +23,25 @@ struct AutocompleteSuggestion {
     let score: Double
 
     var biasedScore: Double {
-        let bias: Double = switch source {
+        let fixedBias: Double = switch source {
         case .pinnedFilter: 1
         case .historyFilter: -1
         case .filterType, .enumeration, .reverseEnumeration, .name, .fullText: 0
         }
-        return score + bias
+        let proportionalBias: Double = switch source {
+        case .historyFilter(let lastUsedAt): recencyBias(lastUsedAt)
+        case .pinnedFilter, .filterType, .enumeration, .reverseEnumeration, .name, .fullText: 0
+        }
+        return score * proportionalBias + fixedBias
+    }
+
+    private func recencyBias(_ date: Date) -> Double {
+        let maxBias = 1.5
+        let minBias = 1.0
+        let decayWindow: TimeInterval = 7 * 24 * 3600
+        let age = -date.timeIntervalSinceNow
+
+        return minBias + (maxBias - minBias) * max(0, 1 - age / decayWindow)
     }
 }
 
@@ -60,56 +74,70 @@ class AutocompleteSuggestionProvider {
                 do {
                     let filters = pinnedFilters
                     group.addTask {
-                        Array(
-                            pinnedFilterSuggestions(for: partial, from: filters, searchTerm: searchTerm)
-                                .filter { isRelevantSuggestion($0, searchTerm: searchTerm, existingFilters: existingFilters) }
-                        )
+                        timed("pinned filter autocomplete suggestions") {
+                            Array(
+                                pinnedFilterSuggestions(for: partial, from: filters, searchTerm: searchTerm)
+                                    .filter { isRelevantSuggestion($0, searchTerm: searchTerm, existingFilters: existingFilters) }
+                            )
+                        }
                     }
                 }
                 do {
                     let history = filterHistoryEntries
                     group.addTask {
+                        timed("filter history autocomplete suggestions") {
+                            Array(
+                                filterHistorySuggestions(for: searchTerm, from: history)
+                                    .filter { isRelevantSuggestion($0, searchTerm: searchTerm, existingFilters: existingFilters) }
+                                    .prefix(20)
+                            )
+                        }
+                    }
+                }
+                group.addTask {
+                    timed("filter type autocomplete suggestions") {
                         Array(
-                            filterHistorySuggestions(for: searchTerm, from: history)
+                            filterTypeSuggestions(for: partial, searchTerm: searchTerm)
+                                .filter { isRelevantSuggestion($0, searchTerm: searchTerm, existingFilters: existingFilters) }
+                                .prefix(4)
+                        )
+                    }
+                }
+                group.addTask {
+                    timed("full text autocomplete suggestions") {
+                        Array(
+                            fullTextSuggestion(for: partial, searchTerm: searchTerm)
+                                .filter { isRelevantSuggestion($0, searchTerm: searchTerm, existingFilters: existingFilters) }
+                        )
+                    }
+                }
+                group.addTask {
+                    timed("reverse enumeration autocomplete suggestions") {
+                        Array(
+                            reverseEnumerationSuggestions(for: partial, catalogData: catalogData, searchTerm: searchTerm)
                                 .filter { isRelevantSuggestion($0, searchTerm: searchTerm, existingFilters: existingFilters) }
                                 .prefix(20)
                         )
                     }
                 }
                 group.addTask {
-                    Array(
-                        filterTypeSuggestions(for: partial, searchTerm: searchTerm)
-                            .filter { isRelevantSuggestion($0, searchTerm: searchTerm, existingFilters: existingFilters) }
-                            .prefix(4)
-                    )
-                }
-                group.addTask {
-                    Array(
-                        fullTextSuggestion(for: partial, searchTerm: searchTerm)
-                            .filter { isRelevantSuggestion($0, searchTerm: searchTerm, existingFilters: existingFilters) }
-                    )
-                }
-                group.addTask {
-                    Array(
-                        reverseEnumerationSuggestions(for: partial, catalogData: catalogData, searchTerm: searchTerm)
-                            .filter { isRelevantSuggestion($0, searchTerm: searchTerm, existingFilters: existingFilters) }
-                            .prefix(20)
-                    )
-                }
-                group.addTask {
-                    Array(
-                        enumerationSuggestions(for: partial, catalogData: catalogData, searchTerm: searchTerm)
-                            .filter { isRelevantSuggestion($0, searchTerm: searchTerm, existingFilters: existingFilters) }
-                            .prefix(40)
-                    )
+                    timed("enumeration autocomplete suggestions") {
+                        Array(
+                            enumerationSuggestions(for: partial, catalogData: catalogData, searchTerm: searchTerm)
+                                .filter { isRelevantSuggestion($0, searchTerm: searchTerm, existingFilters: existingFilters) }
+                                .prefix(20)
+                        )
+                    }
                 }
                 if let cardNames = self.scryfallCatalogs.cardNames {
                     group.addTask {
-                        Array(
-                            nameSuggestions(for: partial, in: cardNames, searchTerm: searchTerm)
-                                .filter { isRelevantSuggestion($0, searchTerm: searchTerm, existingFilters: existingFilters) }
-                                .prefix(10)
-                        )
+                        timed("name autocomplete suggestions") {
+                            Array(
+                                nameSuggestions(for: partial, in: cardNames, searchTerm: searchTerm)
+                                    .filter { isRelevantSuggestion($0, searchTerm: searchTerm, existingFilters: existingFilters) }
+                                    .prefix(10)
+                            )
+                        }
                     }
                 }
 
@@ -173,18 +201,19 @@ func pinnedFilterSuggestions(for partial: PartialFilterTerm, from pinnedFilters:
 
 func filterHistorySuggestions(for searchTerm: String, from filterHistoryEntries: [FilterHistoryEntry]) -> some Sequence<AutocompleteSuggestion> {
     let trimmedSearchTerm = searchTerm.trimmingCharacters(in: .whitespaces)
-    let filterByText = Dictionary(
-        filterHistoryEntries.map { ($0.filter.description, $0.filter) },
+    let entryByFilterDescription = Dictionary(
+        filterHistoryEntries.map { ($0.filter.description, $0) },
         // swiftlint:disable:next trailing_closure
         uniquingKeysWith: { first, _ in first },
     )
 
-    return FuzzyMatcher().matches(Array(filterByText.keys), against: trimmedSearchTerm)
+    return FuzzyMatcher().matches(Array(entryByFilterDescription.keys), against: trimmedSearchTerm)
         .lazy
         .map { result in
-            AutocompleteSuggestion(
-                source: .historyFilter,
-                content: .filter(WithHighlightedString(value: filterByText[result.candidate]!, string: result.candidate, searchTerm: searchTerm)),
+            let entry = entryByFilterDescription[result.candidate]!
+            return AutocompleteSuggestion(
+                source: .historyFilter(entry.lastUsedAt),
+                content: .filter(WithHighlightedString(value: entry.filter, string: result.candidate, searchTerm: searchTerm)),
                 score: result.match.score,
             )
         }
