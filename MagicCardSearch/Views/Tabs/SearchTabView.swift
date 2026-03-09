@@ -318,7 +318,15 @@ private struct SearchLandingView: View {
     @ViewBuilder
     private var recentlyViewedCardsSection: some View {
         if !recentlyViewedCards.isEmpty {
-            Section {
+            Section {} header: {
+                Label("Recently Viewed", systemImage: "clock")
+                    .listRowInsets(.bottom, 0)
+                    .listSectionMargins(.bottom, 0)
+            }
+            // Cute trick to put the real content in the header, from
+            // https://stackoverflow.com/questions/79584292/how-to-make-the-first-row-in-a-swiftui-list-span-edge-to-edge-like-in-apple-heal
+            // allows to have a non-rounded, edge-to-edge section.
+            Section {} header: {
                 ScrollView(.horizontal) {
                     LazyHStack(spacing: 8) {
                         ForEach(Array(recentlyViewedCards.enumerated()), id: \.element.id) { index, card in
@@ -339,11 +347,11 @@ private struct SearchLandingView: View {
                         }
                     }
                 }
+                .scrollIndicators(.never)
+                .frame(height: 120 / Card.aspectRatio)
                 .listRowInsets(.all, 0)
+                .listSectionMargins(.top, 0)
                 .listSectionMargins(.horizontal, 0)
-                .listRowBackground(Color.clear)
-            } header: {
-                Label("Recently Viewed", systemImage: "clock")
             }
         }
     }
