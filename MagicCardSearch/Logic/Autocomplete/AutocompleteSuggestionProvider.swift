@@ -8,8 +8,7 @@ private let logger = Logger(subsystem: "MagicCardSearch", category: "Autocomplet
 
 struct AutocompleteSuggestion {
     enum Source: Equatable {
-        case pinnedFilter, filterType, enumeration, reverseEnumeration, name, fullText
-        case historyFilter(Date)
+        case pinnedFilter, historyFilter, filterType, enumeration, reverseEnumeration, name, fullText
     }
 
     enum Content: Hashable {
@@ -216,23 +215,39 @@ func pinnedFilterSuggestions(for partial: PartialFilterTerm, from pinnedFilters:
 
 func filterHistorySuggestions(for searchTerm: String, from filterHistoryEntries: [FilterHistoryEntry]) -> some Sequence<AutocompleteSuggestion> {
     let trimmedSearchTerm = searchTerm.trimmingCharacters(in: .whitespaces)
+
+    guard !trimmedSearchTerm.isEmpty else {
+        return AnySequence(filterHistoryEntries
+            .lazy
+            .map {
+                AutocompleteSuggestion(
+                    source: .historyFilter,
+                    content: .filter(HighlightedMatch(value: $0.filter, string: $0.filter.description, query: "")),
+                    rawScore: 1.0,
+                    biasedScore: 1.0 * recencyBias(for: $0.lastUsedAt) - 0.6,
+                )
+            }
+        )
+    }
+
     let entryByFilterDescription = Dictionary(
         filterHistoryEntries.map { ($0.filter.description, $0) },
         // swiftlint:disable:next trailing_closure
         uniquingKeysWith: { first, _ in first },
     )
 
-    return FuzzyMatcher(config: fuzzyMatchConfig).matches(Array(entryByFilterDescription.keys), against: trimmedSearchTerm)
+    return AnySequence(FuzzyMatcher(config: fuzzyMatchConfig).matches(Array(entryByFilterDescription.keys), against: trimmedSearchTerm)
         .lazy
         .map { result in
             let entry = entryByFilterDescription[result.candidate]!
             return AutocompleteSuggestion(
-                source: .historyFilter(entry.lastUsedAt),
+                source: .historyFilter,
                 content: .filter(HighlightedMatch(value: entry.filter, string: result.candidate, query: searchTerm)),
                 rawScore: result.match.score,
                 biasedScore: result.match.score * recencyBias(for: entry.lastUsedAt) - 0.6,
             )
         }
+    )
 }
 
 func filterTypeSuggestions(for partial: PartialFilterTerm, searchTerm: String) -> some Sequence<AutocompleteSuggestion> {
