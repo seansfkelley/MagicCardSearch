@@ -76,7 +76,7 @@ private let scryfallIsEnumerationValues = [
     "scryland", "surveilland", "shadowland", "shockland", "storageland", "creatureland",
     "triland", "tangoland", "battleland", "masterpiece",
     // Not listed in the documentation, but discovered/mentioned elsewhere
-    "gamechanger", "reversible", "fullart", "textless",
+    "gamechanger", "reversible", "fullart", "textless", "misprint",
 ]
 
 // MARK: - Filter Definitions

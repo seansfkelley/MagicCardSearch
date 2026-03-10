@@ -245,6 +245,7 @@ private struct FilteredSearchHistoryList: View {
                                     text: match.string,
                                     highlightRanges: mutableMatch.highlights,
                                 )
+                                .padding(.vertical, 4)
 
                                 Spacer()
 
