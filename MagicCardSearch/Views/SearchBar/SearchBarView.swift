@@ -106,22 +106,32 @@ struct SearchBarView: View {
                     return
                 }
 
-                if (try? /^-?\(/.prefixMatch(in: searchState.searchText)) == nil {
-                    let partial = PartialFilterTerm.from(searchState.searchText)
+                if (try? /^-?\(/.prefixMatch(in: previous)) == nil {
+                    // Note that we use `previous` so that the additional space doesn't interfere
+                    // with our interpretation of what the filter was like before it potentially
+                    // became a multi-word name filter. This also means that we have to add the
+                    // space back when we update the search text.
+                    let partial = PartialFilterTerm.from(previous)
                     if case .name(let isExact, let term) = partial.content, case .bare(let content) = term {
                         searchState.searchText = PartialFilterTerm(
                             polarity: partial.polarity,
-                            content: .name(isExact, .unterminated(.doubleQuote, content)),
-                        )
-                        .description
+                            content: .name(isExact, .unterminated(.doubleQuote, content + " ")),
+                        ).description
                         searchState.desiredSearchSelection = nil
                         return
                     }
                 }
             }
 
-            if Self.didAppend(characterFrom: [" ", "'", "\"", ")", "/"], to: previous, toCreate: current, withSelection: searchState.actualSearchSelection) {
-                if case .valid(let filter) = searchState.searchText.toFilter() {
+            // n.b. we do NOT check for single-quote here because it is used for possessives (like
+            // `Urza's Saga`), which we do not want to terminate early (e.g. `Urza'`). Since single
+            // quotes can still function as syntax-level quoting like double quotes, this means we
+            // don't ever auto-close on typing a single quote character even though it would be the
+            // right thing to do. `Urza'` is technically a legal name-type filter, and there's not
+            // a great way to distinguish it from "regular" name-type filters other than to ignore
+            // trailing single quotes.
+            if Self.didAppend(characterFrom: [" ", "\"", ")", "/"], to: previous, toCreate: current, withSelection: searchState.actualSearchSelection) {
+                if case .valid(let filter) = current.toFilter() {
                     searchState.filters.append(filter)
                     searchState.searchText = ""
                     searchState.desiredSearchSelection = nil
@@ -159,7 +169,7 @@ struct SearchBarView: View {
         toCreate current: String,
         withSelection selection: Range<String.Index>,
     ) -> Bool {
-        guard current.count > previous.count else {
+        guard current.count == previous.count + 1 else {
             return false
         }
 
@@ -167,7 +177,11 @@ struct SearchBarView: View {
             return false
         }
 
-        return selection.upperBound == current.endIndex
+        guard selection.upperBound == current.endIndex else {
+            return false
+        }
+
+        return current.hasPrefix(previous)
     }
 
     private func insertSymbol(_ symbol: SymbolCode) {

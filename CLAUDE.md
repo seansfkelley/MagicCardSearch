@@ -21,6 +21,7 @@ This is an iOS app for searching the library of Magic: The Gathering ("MTG" or "
 - Overwhelmingly prefer using library functionality for basic algorithms or unoriginal UI patterns. It is better to make 80% of the requested feature with 20% of the code, unless told otherwise.
 - Run SwiftLint after your changes and ensure they adhere to the style.
 - Don't leave excessive comments.
+- NEVER use casting. If a type hint is not possible, write the code best-effort and then mention in your summary there were issues.
 - The linter is run as part of the build. There is no need to try to run it separately.
 
 ## Code Layout

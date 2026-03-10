@@ -605,7 +605,7 @@ struct SortCombinedSuggestionsTests {
 
     @Test("history source bias lowers a higher-scored suggestion below a lower-scored one")
     func historyBias() {
-        let history = makeSuggestion(source: .historyFilter(Date.now), filter: .term(.basic(.positive, "color", .equal, "red")), score: 0.95, biasedScore: -0.05)
+        let history = makeSuggestion(source: .historyFilter, filter: .term(.basic(.positive, "color", .equal, "red")), score: 0.95, biasedScore: -0.05)
         let other = makeSuggestion(source: .enumeration, filter: .term(.basic(.positive, "color", .equal, "blue")), score: 0.85)
 
         let result = sortCombinedSuggestions([history, other])

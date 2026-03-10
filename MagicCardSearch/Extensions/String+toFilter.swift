@@ -1,4 +1,4 @@
-enum ParsedFilter {
+enum ParsedFilter: Equatable {
     case empty
     case valid(FilterQuery<FilterTerm>)
     case autoterminated(FilterQuery<FilterTerm>)
