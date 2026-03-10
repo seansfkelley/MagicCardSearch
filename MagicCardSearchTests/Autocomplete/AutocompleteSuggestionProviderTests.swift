@@ -519,26 +519,30 @@ struct NameSuggestionsTests {
 
 // MARK: - AutocompleteSuggestion.recencyBias
 
-private let day: TimeInterval = 24 * 3600
-
 @Suite
 struct RecencyBiasTests {
     @Test("gaussian decay curve matches expected values at representative ages")
     func curve() {
-        let epsilon = 0.001
-        let samples: [(ageDays: Double, expected: Double)] = [
-            ( 0, 1.500),
-            ( 1, 1.490),
-            ( 2, 1.463),
-            ( 3, 1.420),
-            ( 4, 1.367),
-            ( 5, 1.309),
-            ( 6, 1.250),
-            ( 7, 1.195),
-            (10, 1.073),
-            (14, 1.011),
+        // These tests probably fail around DST (or, as they were written in range of DST, around
+        // times that are NOT around DST).
+        let epsilon = 0.01
+        let samples: [(deltaFromNowInDays: Int, expected: Double)] = [
+            (-14, 1.01),
+            (-10, 1.07),
+            ( -7, 1.19),
+            ( -6, 1.25),
+            ( -5, 1.31),
+            ( -4, 1.37),
+            ( -3, 1.42),
+            ( -2, 1.46),
+            ( -1, 1.49),
+            (  0, 1.50),
+            (  1, 1.50),
+            (  7, 1.50),
         ]
-        let actual = samples.map { recencyBias(age: $0.ageDays * day) }
+        let actual = samples.map {
+            recencyBias(for: Calendar.current.date(byAdding: .day, value: $0.deltaFromNowInDays, to: Date())!)
+        }
         let expected = samples.map(\.expected)
         let flooredDeltas = zip(actual, expected).map { abs($0 - $1) < epsilon ? 0 : $0 - $1 }
         #expect(flooredDeltas == samples.map { _ in 0.0 })
