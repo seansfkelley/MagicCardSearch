@@ -44,12 +44,14 @@ public struct PartialFilterTerm: Sendable, Equatable, CustomStringConvertible {
         
         case bare(String)
         case unterminated(QuotingType, String)
+        case uninitiated(QuotingType, String)
         case balanced(QuotingType, String)
         
         var description: String {
             switch self {
             case .bare(let content): content
             case .unterminated(let quote, let content): "\(quote)\(content)"
+            case .uninitiated(let quote, let content): "\(content)\(quote)"
             case .balanced(let quote, let content): "\(quote)\(content)\(quote)"
             }
         }
@@ -58,6 +60,7 @@ public struct PartialFilterTerm: Sendable, Equatable, CustomStringConvertible {
             switch self {
             case .bare: nil
             case .unterminated(let quote, _): quote
+            case .uninitiated(let quote, _): quote
             case .balanced(let quote, _): quote
             }
         }
@@ -66,6 +69,7 @@ public struct PartialFilterTerm: Sendable, Equatable, CustomStringConvertible {
             switch self {
             case .bare(let content): content
             case .unterminated(_, let content): content
+            case .uninitiated(_, let content): content
             case .balanced(_, let content): content
             }
         }
@@ -74,6 +78,7 @@ public struct PartialFilterTerm: Sendable, Equatable, CustomStringConvertible {
             switch self {
             case .bare(let content): content
             case .unterminated(_, let content): autoterminateQuotes ? content : nil
+            case .uninitiated(_, let content): nil
             case .balanced(_, let content): content
             }
         }
@@ -179,6 +184,12 @@ internal func matchPartialTerm(_ input: String, treatingRegexesAsLiterals: Bool 
         return close.isEmpty
         ? .unterminated(.doubleQuote, String(content))
         : .balanced(.doubleQuote, String(content))
+    } else if let match = input.wholeMatch(of: /^([^']+)'$/) {
+        let (_, content) = match.output
+        return .uninitiated(.singleQuote, String(content))
+    } else if let match = input.wholeMatch(of: /^([^"]+)"$/) {
+        let (_, content) = match.output
+        return .uninitiated(.doubleQuote, String(content))
     } else if !treatingRegexesAsLiterals, let match = input.wholeMatch(of: /^\/([^\/]*)(\/?)$/) {
         let (_, content, close) = match.output
         return close.isEmpty
