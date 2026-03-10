@@ -112,25 +112,25 @@ struct SearchBarView: View {
                     // became a multi-word name filter. This also means that we have to add the
                     // space back when we update the search text.
                     let partial = PartialFilterTerm.from(previous)
-                    if case .name(let isExact, let term) = partial.content, case .bare(let content) = term {
-                        searchState.searchText = PartialFilterTerm(
-                            polarity: partial.polarity,
-                            content: .name(isExact, .unterminated(.doubleQuote, content + " ")),
-                        ).description
-                        searchState.desiredSearchSelection = nil
-                        return
+                    if case .name(let isExact, let term) = partial.content {
+                        let parsed: (PartialFilterTerm.PartialTerm.QuotingType?, String)? = switch term {
+                        case .bare(let content): (.doubleQuote, content)
+                        case .uninitiated(let quote, let content): (quote.opposite, content + quote.rawValue)
+                        default: nil
+                        }
+                        if let parsed, let quote = parsed.0 {
+                            searchState.searchText = PartialFilterTerm(
+                                polarity: partial.polarity,
+                                content: .name(isExact, .unterminated(quote, parsed.1 + " ")),
+                            ).description
+                            searchState.desiredSearchSelection = nil
+                            return
+                        }
                     }
                 }
             }
 
-            // n.b. we do NOT check for single-quote here because it is used for possessives (like
-            // `Urza's Saga`), which we do not want to terminate early (e.g. `Urza'`). Since single
-            // quotes can still function as syntax-level quoting like double quotes, this means we
-            // don't ever auto-close on typing a single quote character even though it would be the
-            // right thing to do. `Urza'` is technically a legal name-type filter, and there's not
-            // a great way to distinguish it from "regular" name-type filters other than to ignore
-            // trailing single quotes.
-            if Self.didAppend(characterFrom: [" ", "\"", ")", "/"], to: previous, toCreate: current, withSelection: searchState.actualSearchSelection) {
+            if Self.didAppend(characterFrom: [" ", "'", "\"", ")", "/"], to: previous, toCreate: current, withSelection: searchState.actualSearchSelection) {
                 if case .valid(let filter) = current.toFilter() {
                     searchState.filters.append(filter)
                     searchState.searchText = ""

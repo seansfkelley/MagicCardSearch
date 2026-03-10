@@ -40,6 +40,14 @@ public struct PartialFilterTerm: Sendable, Equatable, CustomStringConvertible {
             var description: String {
                 self.rawValue
             }
+
+            var opposite: QuotingType? {
+                switch self {
+                case .singleQuote: .doubleQuote
+                case .doubleQuote: .singleQuote
+                case .forwardSlash: nil
+                }
+            }
         }
         
         case bare(String)
@@ -78,7 +86,7 @@ public struct PartialFilterTerm: Sendable, Equatable, CustomStringConvertible {
             switch self {
             case .bare(let content): content
             case .unterminated(_, let content): autoterminateQuotes ? content : nil
-            case .uninitiated(_, let content): nil
+            case .uninitiated: nil // we really can't guess where the quotes should start, so don't
             case .balanced(_, let content): content
             }
         }

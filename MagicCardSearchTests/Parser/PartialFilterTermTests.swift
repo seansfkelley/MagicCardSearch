@@ -431,6 +431,25 @@ struct PartialFilterTermTests {
             nil
         ),
 
+        // MARK: - Uninitiated quoted filters
+        TestCase(
+            "foo\"",
+            PartialFilterTerm(
+                polarity: .positive,
+                content: .name(false, .uninitiated(.doubleQuote, "foo"))
+            ),
+            nil
+        ),
+
+        TestCase(
+            "foo'",
+            PartialFilterTerm(
+                polarity: .positive,
+                content: .name(false, .uninitiated(.singleQuote, "foo"))
+            ),
+            nil
+        ),
+
         // MARK: - Empty strings
         TestCase(
             "",
