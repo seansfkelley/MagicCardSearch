@@ -17,7 +17,7 @@ struct FilterPartsRowView: View {
                     Image(systemName: suggestion.icon)
                         .foregroundStyle(.secondary)
 
-                    DebuggableRowContentView(suggestion: suggestion) {
+                    DebuggableScorableView(scorable: suggestion) {
                         HStack(spacing: 4) {
                             Text("\(polarity.description)\(filterType.canonicalName)")
                                 .foregroundStyle(.primary)

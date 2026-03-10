@@ -13,7 +13,7 @@ struct FilterTypeRowView: View {
                 Image(systemName: suggestion.icon)
                     .foregroundStyle(.secondary)
 
-                DebuggableRowContentView(suggestion: suggestion) {
+                DebuggableScorableView(scorable: suggestion) {
                     HorizontallyScrollablePillSelector(
                         label: highlighted.string,
                         labelRanges: highlighted.highlights,

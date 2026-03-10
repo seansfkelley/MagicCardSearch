@@ -28,6 +28,8 @@ private let fuzzyMatchConfig = MatchConfig(
 )
 
 struct AllSearchHistoryView: View {
+    private let buttonSize: CGFloat = 44
+
     @Environment(\.dismiss) private var dismiss
     @Environment(HistoryAndPinnedStore.self) private var historyAndPinnedStore
     @Binding var searchState: SearchState
@@ -49,7 +51,10 @@ struct AllSearchHistoryView: View {
 
     var body: some View {
         NavigationStack {
-            Group {
+            // HStack doesn't do anything except wrap the real content and maintain its own
+            // identity, which makes sure the main view doesn't get unmounted and remounted, which
+            // throws out focus state, every time it switches modes.
+            HStack {
                 if searchHistory.isEmpty {
                     ContentUnavailableView(
                         "No Recent Searches",
@@ -148,28 +153,32 @@ struct AllSearchHistoryView: View {
             }
             .safeAreaInset(edge: .bottom) {
                 if !isEditing {
-                    SearchBarLayout {
-                        TextField("Filter searches...", text: $filterText)
-                            .textFieldStyle(.plain)
-                            .textInputAutocapitalization(.never)
-                            .autocorrectionDisabled(true)
-                            .textContentType(.none)
-                            .focused($isSearchFocused)
+                    HStack {
+                        SearchBarLayout {
+                            TextField("Filter searches...", text: $filterText)
+                                .textFieldStyle(.plain)
+                                .textInputAutocapitalization(.never)
+                                .autocorrectionDisabled(true)
+                                .textContentType(.none)
+                                .focused($isSearchFocused)
+                        }
+                        .frame(height: buttonSize)
+                        .contentShape(Capsule())
+                        .glassEffect(.regular.interactive())
 
-                        if !filterText.isEmpty {
-                            Button {
-                                filterText = ""
-                            } label: {
-                                Image(systemName: "xmark.circle.fill")
-                                    .foregroundStyle(.secondary)
-                                    .imageScale(.large)
-                            }
-                            .buttonStyle(.plain)
+                        Spacer()
+
+                        Button {
+                            isSearchFocused = false
+                            filterText = ""
+                        } label: {
+                            Image(systemName: "xmark")
+                                .foregroundStyle(.black)
+                                .font(.system(size: 20))
+                                .frame(width: buttonSize, height: buttonSize)
+                                .glassEffect(.regular.interactive(), in: .circle)
                         }
                     }
-                    .frame(height: 44)
-                    .contentShape(Capsule())
-                    .glassEffect(.regular.interactive())
                     .padding(.bottom)
                     .padding(.horizontal, 20)
                 }
@@ -193,19 +202,25 @@ private struct FilteredSearchHistoryList: View {
         Set(pinnedSearches.map(\.filters))
     }
 
-    private var results: [(entry: SearchHistoryEntry, match: HighlightedMatch<String>, score: Double)] {
+    private var results: [(match: HighlightedMatch<SearchHistoryEntry>, score: Double)] {
         let trimmed = filterText.trimmingCharacters(in: .whitespaces)
-        guard !trimmed.isEmpty else { return [] }
+        guard !trimmed.isEmpty else {
+            return searchHistory.map {
+                (.init(value: $0, string: $0.filters.plaintext, query: ""), 1.0)
+            }
+        }
 
         let candidates = searchHistory.map { ($0.filters.plaintext, $0) }
-        let strings = candidates.map { $0.0 }
         let entryByText = Dictionary(candidates, uniquingKeysWith: { first, _ in first })
 
         return FuzzyMatcher(config: fuzzyMatchConfig)
-            .matches(strings, against: trimmed)
-            .compactMap { result -> (SearchHistoryEntry, HighlightedMatch<String>, Double)? in
+            .matches(candidates.map { $0.0 }, against: trimmed)
+            .compactMap { result -> (HighlightedMatch<SearchHistoryEntry>, Double)? in
                 guard let entry = entryByText[result.candidate] else { return nil }
-                return (entry, HighlightedMatch(value: result.candidate, string: result.candidate, query: trimmed), result.match.score)
+                return (
+                    HighlightedMatch(value: entry, string: result.candidate, query: trimmed),
+                    result.match.score,
+                )
             }
     }
 
@@ -217,37 +232,23 @@ private struct FilteredSearchHistoryList: View {
             ContentUnavailableView.search(text: filterText)
         } else {
             List {
-                ForEach(results, id: \.entry.id) { entry, match, score in
+                ForEach(results, id: \.match.value.id) { match, score in
                     var mutableMatch = match
                     Button {
-                        searchState.filters = entry.filters
+                        searchState.filters = match.value.filters
                         searchState.performSearch()
                         dismiss()
                     } label: {
-                        DebuggableRowContentView(
-                            suggestion: AutocompleteSuggestion(
-                                source: .historyFilter(entry.lastUsedAt),
-                                content: .filter(
-                                    HighlightedMatch(
-                                        value: FilterQuery<FilterTerm>.term(.name(.positive, false, entry.filters.plaintext)),
-                                        string: entry.filters.plaintext,
-                                        query: filterText
-                                    )
-                                ),
-                                rawScore: score,
-                                biasedScore: score
-                            )
-                        ) {
+                        DebuggableScorableView(scorable: score) {
                             HStack {
                                 HighlightedText(
                                     text: match.string,
-                                    highlightRanges: mutableMatch.highlights
+                                    highlightRanges: mutableMatch.highlights,
                                 )
-                                .padding(.vertical, 4)
 
                                 Spacer()
 
-                                if pinnedFilters.contains(entry.filters) {
+                                if pinnedFilters.contains(match.value.filters) {
                                     Image(systemName: "pin.fill")
                                         .foregroundStyle(.secondary)
                                 }
@@ -256,16 +257,16 @@ private struct FilteredSearchHistoryList: View {
                     }
                     .tint(.primary)
                     .swipeActions(edge: .leading, allowsFullSwipe: true) {
-                        if pinnedFilters.contains(entry.filters) {
+                        if pinnedFilters.contains(match.value.filters) {
                             Button {
-                                historyAndPinnedStore.unpin(search: entry.filters)
+                                historyAndPinnedStore.unpin(search: match.value.filters)
                             } label: {
                                 Label("Unpin", systemImage: "pin.slash")
                             }
                             .tint(.orange)
                         } else {
                             Button {
-                                historyAndPinnedStore.pin(search: entry.filters)
+                                historyAndPinnedStore.pin(search: match.value.filters)
                             } label: {
                                 Label("Pin", systemImage: "pin")
                             }
@@ -274,7 +275,7 @@ private struct FilteredSearchHistoryList: View {
                     }
                     .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                         Button(role: .destructive) {
-                            historyAndPinnedStore.delete(search: entry.filters)
+                            historyAndPinnedStore.delete(search: match.value.filters)
                         } label: {
                             Label("Delete", systemImage: "trash")
                         }

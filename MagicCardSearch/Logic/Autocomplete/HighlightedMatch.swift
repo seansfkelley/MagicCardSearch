@@ -1,4 +1,4 @@
-struct HighlightedMatch<T: Sendable & Hashable>: Hashable {
+struct HighlightedMatch<T: Sendable> {
     let value: T
     let string: String
     lazy var highlights = computeHighlights()
@@ -91,3 +91,6 @@ struct HighlightedMatch<T: Sendable & Hashable>: Hashable {
         return (a.first?.lowerBound ?? string.endIndex) < (b.first?.lowerBound ?? string.endIndex)
     }
 }
+
+extension HighlightedMatch: Equatable where T: Equatable {}
+extension HighlightedMatch: Hashable where T: Hashable {}

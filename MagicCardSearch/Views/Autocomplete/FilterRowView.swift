@@ -15,7 +15,7 @@ struct FilterRowView: View {
                     Image(systemName: suggestion.icon)
                         .foregroundStyle(.secondary)
 
-                    DebuggableRowContentView(suggestion: suggestion) {
+                    DebuggableScorableView(scorable: suggestion) {
                         HighlightedText(
                             text: highlighted.string,
                             highlightRanges: highlighted.highlights
