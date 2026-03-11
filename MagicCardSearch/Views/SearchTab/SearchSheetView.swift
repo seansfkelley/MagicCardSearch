@@ -1,0 +1,48 @@
+import SwiftUI
+import ScryfallKit
+import OSLog
+import SQLiteData
+
+struct SearchSheetView: View {
+    @Environment(\.dismiss) private var dismiss
+
+    @Binding var searchState: SearchState
+    @Binding var isSearchBarFocused: Bool
+
+    @State private var showSyntaxReference = false
+
+    var body: some View {
+        NavigationStack {
+            AutocompleteView(
+                searchState: $searchState,
+            )
+            .safeAreaInset(edge: .bottom) {
+                SearchBarAndPillsView(
+                    searchState: $searchState,
+                    isFocused: $isSearchBarFocused,
+                )
+            }
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        dismiss()
+                    } label: {
+                        Image(systemName: "xmark")
+                    }
+                }
+
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        showSyntaxReference = true
+                    } label: {
+                        Image(systemName: "book")
+                    }
+                }
+            }
+            .navigationBarTitleDisplayMode(.inline)
+        }
+        .sheet(isPresented: $showSyntaxReference) {
+            SyntaxReferenceView()
+        }
+    }
+}

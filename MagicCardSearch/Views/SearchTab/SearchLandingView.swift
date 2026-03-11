@@ -3,10 +3,20 @@ import ScryfallKit
 import OSLog
 import SQLiteData
 
-private let logger = Logger(subsystem: "MagicCardSearch", category: "SearchTabView")
+private let recentSearchesSoftLimit = 8
+private let recentSearchesHardLimit = 12
 
-// Seems to be the same for both the tab bar inset as well as the default list section inset.
-private let horizontalPadding: CGFloat = 20
+private struct RecentlyViewedSheetState: Identifiable {
+    let id: UUID
+    let index: Int
+    let cards: [RecentlyViewedCard]
+
+    init(index: Int, cards: [RecentlyViewedCard]) {
+        self.index = index
+        self.cards = cards
+        self.id = cards.indices.contains(index) ? cards[index].id : UUID()
+    }
+}
 
 private extension PinnedSearchEntry {
     var listId: String { "pinned:\(id ?? -1)" }
@@ -16,154 +26,14 @@ private extension SearchHistoryEntry {
     var listId: String { "history:\(id ?? -1)" }
 }
 
-struct SearchTabView: View {
-    @Binding var searchState: SearchState
-
-    @State private var showSearchSheet = false
-    @State private var showDisplayOptionsSheet = false
-    @State private var pendingSearchConfig: SearchConfiguration?
-    @State private var showAllSearchHistory = false
-    @State private var isSearchBarFocused = false
-
-    var body: some View {
-        NavigationStack {
-            Group {
-                if let results = searchState.results {
-                    SearchResultsGridView(list: results, searchState: $searchState)
-                } else {
-                    SearchLandingView(
-                        searchState: $searchState,
-                        showAllSearchHistory: $showAllSearchHistory,
-                    )
-                }
-            }
-            .safeAreaInset(edge: .bottom) {
-                FakeSearchBarButtonView(searchState: $searchState) {
-                    showSearchSheet = true
-                }
-                .padding(.bottom)
-                .padding(.horizontal, horizontalPadding) // trying to match the tab bar width
-            }
-            .toolbar {
-                if searchState.results != nil {
-                    ToolbarItem(placement: .topBarLeading) {
-                        Button {
-                            pendingSearchConfig = searchState.configuration
-                            showDisplayOptionsSheet = true
-                        } label: {
-                            Image(systemName: "arrow.up.arrow.down")
-                        }
-                    }
-
-                    ToolbarItem(placement: .topBarTrailing) {
-                        ShareLink(
-                            item: CardSearchService
-                                .buildSearchURL(
-                                    filters: searchState.filters,
-                                    config: searchState.configuration,
-                                    forAPI: false
-                                ) ?? URL(string: "https://scryfall.com")!
-                        ) {
-                            Image(systemName: "square.and.arrow.up")
-                        }
-                    }
-                }
-            }
-            .toolbarBackground(.hidden, for: .navigationBar)
-            .navigationBarTitleDisplayMode(.inline)
-        }
-        .onChange(of: searchState.filters) { _, newFilters in
-            searchState.results?.clearWarnings()
-            if newFilters.isEmpty {
-                searchState.results = nil
-            }
-        }
-        .onChange(of: searchState.searchNonce) {
-            showSearchSheet = false
-        }
-        .sheet(isPresented: $showSearchSheet) {
-            SearchSheetView(
-                searchState: $searchState,
-                isSearchBarFocused: $isSearchBarFocused,
-            )
-        }
-        .sheet(isPresented: $showDisplayOptionsSheet, onDismiss: {
-            if let pending = pendingSearchConfig, pending != searchState.configuration {
-                searchState.configuration = pending
-                searchState.performSearch()
-                searchState.configuration.save()
-            }
-            pendingSearchConfig = nil
-        }) {
-            DisplayOptionsView(searchConfig: Binding(
-                get: { pendingSearchConfig ?? searchState.configuration },
-                set: { pendingSearchConfig = $0 }
-            ))
-            .presentationDetents([.medium])
-        }
-        .sheet(isPresented: $showAllSearchHistory) {
-            AllSearchHistoryView(searchState: $searchState)
-        }
-    }
-}
-
-// MARK: - Search Sheet
-
-private struct SearchSheetView: View {
-    @Environment(\.dismiss) private var dismiss
-
-    @Binding var searchState: SearchState
-    @Binding var isSearchBarFocused: Bool
-
-    @State private var showSyntaxReference = false
-
-    var body: some View {
-        NavigationStack {
-            AutocompleteView(
-                searchState: $searchState,
-            )
-            .safeAreaInset(edge: .bottom) {
-                SearchBarAndPillsView(
-                    searchState: $searchState,
-                    isFocused: $isSearchBarFocused,
-                )
-            }
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button {
-                        dismiss()
-                    } label: {
-                        Image(systemName: "xmark")
-                    }
-                }
-
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        showSyntaxReference = true
-                    } label: {
-                        Image(systemName: "book")
-                    }
-                }
-            }
-            .navigationBarTitleDisplayMode(.inline)
-        }
-        .sheet(isPresented: $showSyntaxReference) {
-            SyntaxReferenceView()
-        }
-    }
-}
-
-// MARK: - Default Search Content
-
-private let recentSearchesSoftLimit = 8
-private let recentSearchesHardLimit = 12
-
-private struct SearchLandingView: View {
+struct SearchLandingView: View {
     let recentlyViewedCardWidth: CGFloat = 120
-
     @Environment(HistoryAndPinnedStore.self) private var historyAndPinnedStore
+
     @Binding var searchState: SearchState
-    @Binding var showAllSearchHistory: Bool
+
+    @State private var showAllSearchHistory = false
+    @State private var recentlyViewedSheetState: RecentlyViewedSheetState?
 
     @FetchAll(
         SearchHistoryEntry
@@ -182,8 +52,6 @@ private struct SearchLandingView: View {
     @FetchAll(RecentlyViewedCard.order { $0.viewedAt.desc() }.limit(RecentlyViewedCardsStore.limit))
     private var recentlyViewedCards
 
-    @State private var recentlyViewedSheetState: RecentlyViewedSheetState?
-
     var body: some View {
         List {
             pinnedSearchesSection
@@ -192,6 +60,9 @@ private struct SearchLandingView: View {
             examplesSection
         }
         .contentMargins(.top, 20)
+        .sheet(isPresented: $showAllSearchHistory) {
+            AllSearchHistoryView(searchState: $searchState)
+        }
         .sheet(item: $recentlyViewedSheetState) { state in
             FixedListCardDetailNavigatorView(
                 cards: state.cards,
@@ -349,10 +220,10 @@ private struct SearchLandingView: View {
                             }
                         }
                     }
-                    .padding(.horizontal, horizontalPadding)
+                    .padding(.horizontal, SearchTabConstants.horizontalPadding)
                 }
                 .scrollIndicators(.never)
-                .listRowInsets(.horizontal, -horizontalPadding)
+                .listRowInsets(.horizontal, -SearchTabConstants.horizontalPadding)
                 .listRowInsets(.vertical, 0)
                 .listSectionMargins(.top, 0)
                 .listSectionMargins(.horizontal, 0)
@@ -386,18 +257,5 @@ private struct SearchLandingView: View {
         } header: {
             Label("Need Inspiration?", systemImage: "lightbulb.max")
         }
-    }
-}
-// MARK: - Recently Viewed Sheet State
-
-private struct RecentlyViewedSheetState: Identifiable {
-    let id: UUID
-    let index: Int
-    let cards: [RecentlyViewedCard]
-
-    init(index: Int, cards: [RecentlyViewedCard]) {
-        self.index = index
-        self.cards = cards
-        self.id = cards.indices.contains(index) ? cards[index].id : UUID()
     }
 }
