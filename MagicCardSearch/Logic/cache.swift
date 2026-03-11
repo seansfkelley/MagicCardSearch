@@ -2,17 +2,6 @@ import Foundation
 import Cache
 import SwiftUI
 
-func bestEffortCache<Key: Hashable>(
-    memory: MemoryConfig,
-    disk: DiskConfig,
-) -> any StorageAware<Key, Data> {
-    bestEffortCache(
-        memory: memory,
-        disk: disk,
-        transformer: .init(toData: { x in x }, fromData: { x in x }),
-    )
-}
-
 func bestEffortCache<Key: Hashable, Value: Codable>(
     memory: MemoryConfig,
     disk: DiskConfig,

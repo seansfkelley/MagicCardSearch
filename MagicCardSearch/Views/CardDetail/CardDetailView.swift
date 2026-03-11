@@ -44,9 +44,7 @@ struct CardDetailView: View {
 
     @State private var relatedCardToShow: Card?
     @State private var isLoadingRelatedCard = false
-    @State private var rulingsResult: LoadableResult<[Card.Ruling], Error> = .unloaded
     private let cardSearchService = CardSearchService()
-    private let rulingsService = RulingsService.shared
 
     var body: some View {
         ScrollView {
@@ -137,28 +135,12 @@ struct CardDetailView: View {
                     PricesCardSection(prices: card.prices, purchaseUris: card.purchaseUris)
                 }
 
-                if case .unloaded = rulingsResult {
-                    // nop
-                } else if case .loading(let value, _) = rulingsResult, value?.isEmpty ?? true {
-                    // HACK: We use the empty array in a loading state to indicate that this is a
-                    // retry, which we DO want to render the view for.
-                } else if case .loaded(let value, _) = rulingsResult, value.isEmpty {
-                    // nop
-                } else {
+                RulingsCardSection(scryfallId: card.id) {
                     Divider().padding(.horizontal)
-
-                    RulingsCardSection(rulings: rulingsResult) {
-                        Task {
-                            await loadRulings(from: card.rulingsUri, isRetry: true)
-                        }
-                    }
                 }
             }
             .background(Color(.systemBackground))
             .padding(.top)
-        }
-        .task {
-            await loadRulings(from: card.rulingsUri)
         }
         .sheet(item: $relatedCardToShow) { relatedCard in
             NavigationStack {
@@ -279,21 +261,6 @@ struct CardDetailView: View {
         } catch {
             // TODO: Handle error appropriately (e.g., show alert)
             print("Error loading related card: \(error)")
-        }
-    }
-
-    private func loadRulings(from urlString: String, isRetry: Bool = false) async {
-        rulingsResult = isRetry ? .loading([], nil) : .loading(nil, nil)
-
-        do {
-            let fetchedRulings = try await rulingsService.fetchRulings(
-                from: urlString,
-                oracleId: card.oracleId
-            )
-            rulingsResult = rulingsResult.asLoaded(fetchedRulings)
-        } catch {
-            rulingsResult = rulingsResult.asErrored(error)
-            logger.error("error loading rulings for cardId=\(card.id) cardId=\(card.id) error=\(error)")
         }
     }
 }

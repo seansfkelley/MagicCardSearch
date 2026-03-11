@@ -47,34 +47,20 @@ enum LoadableResult<T, E: Error> {
     func asErrored(_ error: E, keepingData: Bool = true) -> LoadableResult<T, E> {
         .errored(keepingData ? latestValue : nil, error)
     }
-}
 
-@Observable
-class StatefulLoadable<T> {
-    public private(set) var value: LoadableResult<T, any Error> = .unloaded
-
-    private let fetcher: () async throws -> T
-
-    init(fetcher: @escaping () async throws -> T) {
-        self.fetcher = fetcher
-    }
-
-    func load(force: Bool = false) async -> Void {
-        if !force {
-            if case .unloaded = value {
-                // nop
-            } else {
-                return
-            }
-        }
-
+    @MainActor
+    static func load(
+        _ setter: (LoadableResult<T, any Error>) -> Void,
+        _ initial: LoadableResult<T, any Error>? = nil,
+        fetcher: @escaping () async throws -> T,
+    ) async -> Void {
+        setter(.loading(initial?.latestValue, initial?.latestError))
         do {
-            value = value.asLoading()
             let result = try await fetcher()
-            value = .loaded(result, nil)
+            setter(.loaded(result, nil))
         } catch {
-            value = .errored(value.latestValue, error)
-            logger.error("error while loading StatefulLoadable error=\(error)")
+            logger.error("error in LoadableResult.load error=\(error)")
+            setter(.errored(initial?.latestValue, error))
         }
     }
 }

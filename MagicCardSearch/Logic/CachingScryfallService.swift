@@ -6,6 +6,7 @@ import Observation
 private let logger = Logger(subsystem: "MagicCardSearch", category: "CachingScryfallService")
 
 @Observable
+@MainActor
 class CachingScryfallService {
     @ObservationIgnored
     private let client = ScryfallClient(logger: logger)
@@ -18,6 +19,7 @@ class CachingScryfallService {
 
     func rulings(forScryfallId id: UUID) async throws -> [Card.Ruling] {
         if let cached = try? rulingsCache.entry(forKey: id) {
+            logger.debug("hit rulings cache for scryfall ID=\(id)")
             return cached.object
         }
 
@@ -28,6 +30,7 @@ class CachingScryfallService {
 
         do {
             try rulingsCache.setObject(rulings.data, forKey: id, expiry: nil)
+            logger.debug("stored rulings cache value for scryfall ID=\(id)")
         } catch {
             logger.error("error while setting cache for rulings for card with scryfall ID=\(id) error=\(error)")
         }
