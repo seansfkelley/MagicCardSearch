@@ -47,8 +47,9 @@ struct RulingsCardSection<DividerContent: View>: View {
                                 ProgressView()
                             } description: {
                                 Text("Loading rulings...")
-                                    .padding(.top, 10)
+                                    .padding(.top)
                             }
+                            .padding(.vertical)
                             .frame(maxWidth: .infinity, alignment: .center)
                         case .loaded(let rulings, _):
                             let builder = TextWithSymbolsBuilder(

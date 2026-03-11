@@ -5,42 +5,54 @@ import SwiftSoup
 
 private let logger = Logger(subsystem: "MagicCardSearch", category: "CardTagsSection")
 
-private enum LoadError: Error, LocalizedError {
-    case cardNotFound
-
-    var errorDescription: String? {
-        switch self {
-        case .cardNotFound: "Card tags not found"
-        }
-    }
+@MainActor
+protocol TagsService {
+    func tags(forCollectorNumber collectorNumber: String, inSet setCode: String) async throws -> TaggerCard?
 }
+
+extension CachingScryfallService: TagsService {}
 
 struct ScryfallTagsCardSection: View {
     @ScaledMetric private var iconWidth = CardDetailConstants.defaultSectionIconWidth
 
-    var searchState: Binding<SearchState>?
     let setCode: String
     let collectorNumber: String
+    var searchState: Binding<SearchState>?
+    let tagsService: TagsService
+
     @State private var isExpanded = false
-    @State private var card: LoadableResult<TaggerCard, Error> = .unloaded
+    @State private var card: LoadableResult<TaggerCard?, Error> = .unloaded
     @State private var relatedCardToShow: Card?
     @State private var loadingRelationshipId: UUID?
     private let cardSearchService = CardSearchService()
+
+    init(
+        setCode: String,
+        collectorNumber: String,
+        searchState: Binding<SearchState>? = nil,
+        tagsService: TagsService? = nil
+    ) {
+        self.setCode = setCode
+        self.collectorNumber = collectorNumber
+        self.searchState = searchState
+        self.tagsService = tagsService ?? CachingScryfallService.shared
+    }
 
     var body: some View {
         DisclosureGroup(
             isExpanded: $isExpanded,
             content: {
-                if case .loading = card {
+                switch card {
+                case .unloaded, .loading:
                     ContentUnavailableView {
                         ProgressView()
                     } description: {
                         Text("Loading tags...")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .padding(.top)
                     }
                     .padding(.vertical)
-                } else if case .errored(_, let error) = card {
+                    .frame(maxWidth: .infinity, alignment: .center)
+                case .errored(_, let error):
                     ContentUnavailableView {
                         Label("Failed to Load Tags", systemImage: "exclamationmark.triangle")
                     } description: {
@@ -51,28 +63,28 @@ struct ScryfallTagsCardSection: View {
                             .tint(.blue)
                     }
                     .padding(.vertical)
-                } else if let cardValue = card.latestValue, cardValue.taggings.isEmpty && cardValue.relationships.isEmpty {
-                    ContentUnavailableView {
-                        Label("No Tags", systemImage: "tag.slash")
-                    } description: {
-                        Text("This card doesn't have any tags yet.")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                    .padding(.vertical)
-                } else if let cardValue = card.latestValue {
-                    TagListView(
-                        card: cardValue,
-                        loadingRelationshipId: loadingRelationshipId,
-                        searchState: searchState,
-                    ) { relationshipId, foreignKeyId, foreignKey in
-                        Task {
-                            await loadRelatedCard(
-                                relationshipId: relationshipId,
-                                foreignKeyId: foreignKeyId,
-                                foreignKey: foreignKey
-                            )
+                case .loaded(let loadedCard, _):
+                    if let cardValue = loadedCard, !cardValue.taggings.isEmpty || !cardValue.relationships.isEmpty {
+                        TagListView(
+                            card: cardValue,
+                            loadingRelationshipId: loadingRelationshipId,
+                            searchState: searchState,
+                        ) { relationshipId, foreignKeyId, foreignKey in
+                            Task {
+                                await loadRelatedCard(
+                                    relationshipId: relationshipId,
+                                    foreignKeyId: foreignKeyId,
+                                    foreignKey: foreignKey
+                                )
+                            }
                         }
+                    } else {
+                        ContentUnavailableView {
+                            Label("No Tags", systemImage: "tag.slash")
+                        } description: {
+                            Text("This card doesn't have any tags yet.")
+                        }
+                        .padding(.vertical)
                     }
                 }
             },
@@ -115,17 +127,9 @@ struct ScryfallTagsCardSection: View {
     }
 
     private func loadTags() {
-        card = .loading(nil, nil)
-
         Task {
-            do {
-                guard let loadedCard = try await TaggerCard.fetch(setCode: setCode, collectorNumber: collectorNumber) else {
-                    throw LoadError.cardNotFound
-                }
-                card = .loaded(loadedCard, nil)
-            } catch {
-                logger.error("error while trying to fetch tagged card for set=\(setCode) collectorNumber=\(collectorNumber) error=\(error)")
-                card = .errored(card.latestValue, error)
+            await LoadableResult<TaggerCard?, any Error>.load({ card = $0 }) {
+                try await tagsService.tags(forCollectorNumber: collectorNumber, inSet: setCode)
             }
         }
     }
@@ -531,5 +535,217 @@ private struct AnnotationPopover: View {
         .frame(idealHeight: popoverHeight)
         .onPreferenceChange(HeightKey.self) { popoverHeight = $0 }
         .presentationCompactAdaptation(.popover)
+    }
+}
+
+// MARK: - Previews
+
+private struct MockTagsService: TagsService {
+    enum Behavior {
+        case loaded(TaggerCard?)
+        case loadingForever
+        case errored(any Error)
+    }
+
+    let behavior: Behavior
+
+    func tags(forCollectorNumber collectorNumber: String, inSet setCode: String) async throws -> TaggerCard? {
+        switch behavior {
+        case .loaded(let card):
+            return card
+        case .loadingForever:
+            try await Task.sleep(for: .seconds(9999))
+            return nil
+        case .errored(let error):
+            throw error
+        }
+    }
+}
+
+private let sampleOracleId = UUID()
+private let sampleIllustrationId = UUID()
+private let samplePrintingId = UUID()
+
+private let sampleTaggerCard = TaggerCard(
+    name: "Lightning Bolt",
+    oracleId: sampleOracleId,
+    illustrationId: sampleIllustrationId,
+    printingId: samplePrintingId,
+    taggings: [
+        TaggerCard.Tagging(
+            annotation: nil,
+            createdAt: Date(),
+            foreignKey: .oracleId,
+            id: UUID(),
+            tag: TaggerCard.Tagging.Tag(
+                ancestorTags: nil,
+                createdAt: Date(),
+                description: nil,
+                id: UUID(),
+                name: "burn",
+                namespace: .card,
+                slug: "burn",
+                status: .goodStanding
+            ),
+            weight: .veryStrong
+        ),
+        TaggerCard.Tagging(
+            annotation: "Deals 3 damage for just one mana, the gold standard for red removal.",
+            createdAt: Date(),
+            foreignKey: .oracleId,
+            id: UUID(),
+            tag: TaggerCard.Tagging.Tag(
+                ancestorTags: nil,
+                createdAt: Date(),
+                description: nil,
+                id: UUID(),
+                name: "removal",
+                namespace: .card,
+                slug: "removal",
+                status: .goodStanding
+            ),
+            weight: .strong
+        ),
+        TaggerCard.Tagging(
+            annotation: nil,
+            createdAt: Date(),
+            foreignKey: .printingId,
+            id: UUID(),
+            tag: TaggerCard.Tagging.Tag(
+                ancestorTags: nil,
+                createdAt: Date(),
+                description: nil,
+                id: UUID(),
+                name: "classic frame",
+                namespace: .print,
+                slug: "classic-frame",
+                status: .goodStanding
+            ),
+            weight: .median
+        ),
+        TaggerCard.Tagging(
+            annotation: nil,
+            createdAt: Date(),
+            foreignKey: .illustrationId,
+            id: UUID(),
+            tag: TaggerCard.Tagging.Tag(
+                ancestorTags: nil,
+                createdAt: Date(),
+                description: nil,
+                id: UUID(),
+                name: "lightning",
+                namespace: .artwork,
+                slug: "lightning",
+                status: .goodStanding
+            ),
+            weight: .median
+        ),
+    ],
+    relationships: [
+        TaggerCard.Relationship(
+            annotation: nil,
+            createdAt: Date(),
+            classifier: .similarTo,
+            classifierInverse: .similarTo,
+            foreignKey: .oracleId,
+            id: UUID(),
+            relatedId: sampleOracleId,
+            relatedName: "Lightning Bolt",
+            status: .goodStanding,
+            subjectId: UUID(),
+            subjectName: "Shock"
+        ),
+        TaggerCard.Relationship(
+            annotation: nil,
+            createdAt: Date(),
+            classifier: .betterThan,
+            classifierInverse: .worseThan,
+            foreignKey: .oracleId,
+            id: UUID(),
+            relatedId: sampleOracleId,
+            relatedName: "Lightning Bolt",
+            status: .goodStanding,
+            subjectId: UUID(),
+            subjectName: "Shock"
+        ),
+        TaggerCard.Relationship(
+            annotation: "Both cards deal damage to any target for low mana cost.",
+            createdAt: Date(),
+            classifier: .relatedTo,
+            classifierInverse: .relatedTo,
+            foreignKey: .oracleId,
+            id: UUID(),
+            relatedId: sampleOracleId,
+            relatedName: "Lightning Bolt",
+            status: .goodStanding,
+            subjectId: UUID(),
+            subjectName: "Char"
+        ),
+        TaggerCard.Relationship(
+            annotation: nil,
+            createdAt: Date(),
+            classifier: .referencedBy,
+            classifierInverse: .referencesTo,
+            foreignKey: .oracleId,
+            id: UUID(),
+            relatedId: sampleOracleId,
+            relatedName: "Lightning Bolt",
+            status: .goodStanding,
+            subjectId: UUID(),
+            subjectName: "Forked Bolt"
+        ),
+        TaggerCard.Relationship(
+            annotation: nil,
+            createdAt: Date(),
+            classifier: .colorshifted,
+            classifierInverse: .colorshifted,
+            foreignKey: .illustrationId,
+            id: UUID(),
+            relatedId: sampleIllustrationId,
+            relatedName: "Lightning Bolt",
+            status: .goodStanding,
+            subjectId: UUID(),
+            subjectName: "Chain Lightning"
+        ),
+    ]
+)
+
+#Preview("Loaded with tags") {
+    ScrollView {
+        ScryfallTagsCardSection(
+            setCode: "lea",
+            collectorNumber: "161",
+            tagsService: MockTagsService(behavior: .loaded(sampleTaggerCard))
+        )
+    }
+}
+
+#Preview("Loading") {
+    ScrollView {
+        ScryfallTagsCardSection(
+            setCode: "lea",
+            collectorNumber: "161",
+            tagsService: MockTagsService(behavior: .loadingForever)
+        )
+    }
+}
+
+#Preview("No tags") {
+    ScrollView {
+        ScryfallTagsCardSection(
+            setCode: "lea",
+            collectorNumber: "161",
+            tagsService: MockTagsService(behavior: .loaded(nil))
+        )
+    }
+}
+
+#Preview("Errored") {
+    ScrollView {
+        ScryfallTagsCardSection(
+            setCode: "lea",
+            collectorNumber: "161",
+            tagsService: MockTagsService(behavior: .errored(URLError(.notConnectedToInternet)))
+        )
     }
 }

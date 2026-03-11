@@ -106,9 +106,9 @@ struct CardDetailView: View {
 
                 Divider().padding(.horizontal)
                 ScryfallTagsCardSection(
-                    searchState: searchState,
                     setCode: card.set,
                     collectorNumber: card.collectorNumber,
+                    searchState: searchState,
                 )
 
                 if let allParts = card.allParts {
