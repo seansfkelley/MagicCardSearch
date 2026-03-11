@@ -5,6 +5,8 @@ import SwiftSoup
 
 private let logger = Logger(subsystem: "MagicCardSearch", category: "CardTagsSection")
 
+private let tagIconWidth = 24.0
+
 @MainActor
 protocol TagsService {
     func tags(forCollectorNumber collectorNumber: String, inSet setCode: String) async throws -> TaggerCard?
@@ -30,12 +32,14 @@ struct ScryfallTagsCardSection: View {
         setCode: String,
         collectorNumber: String,
         searchState: Binding<SearchState>? = nil,
-        tagsService: TagsService? = nil
+        tagsService: TagsService? = nil,
+        initiallyExpanded: Bool = false
     ) {
         self.setCode = setCode
         self.collectorNumber = collectorNumber
         self.searchState = searchState
         self.tagsService = tagsService ?? CachingScryfallService.shared
+        self._isExpanded = State(initialValue: initiallyExpanded)
     }
 
     var body: some View {
@@ -99,6 +103,11 @@ struct ScryfallTagsCardSection: View {
         )
         .tint(.primary)
         .padding(.horizontal)
+        .onAppear {
+            if isExpanded {
+                loadTags()
+            }
+        }
         .onChange(of: isExpanded) { _, expanded in
             if expanded, case .unloaded = card {
                 loadTags()
@@ -301,6 +310,8 @@ private struct CombinedSectionView: View {
 }
 
 private struct TagRow: View {
+    @ScaledMetric private var iconWidth = tagIconWidth
+
     let tagging: TaggerCard.Tagging
     let iconName: String
     var searchState: Binding<SearchState>?
@@ -334,6 +345,7 @@ private struct TagRow: View {
                 Image(systemName: iconName)
                     .foregroundStyle(.secondary)
             }
+            .frame(minWidth: iconWidth)
             .buttonStyle(.plain)
             .popover(isPresented: $showIconTooltip) {
                 AnnotationPopover(annotation: namespaceDescription)
@@ -418,14 +430,14 @@ private struct TagRow: View {
 }
 
 private struct RelationshipRow: View {
+    @ScaledMetric private var iconWidth = tagIconWidth
+
     let relationship: TaggerCard.Relationship
     let card: TaggerCard
     let isLoading: Bool
     let onTap: (UUID, UUID, TaggerCard.ForeignKey) -> Void
     @State private var showAnnotation = false
     @State private var showClassifierTooltip = false
-
-    private let iconWidth: CGFloat = 20
 
     var body: some View {
         Button {
@@ -441,8 +453,8 @@ private struct RelationshipRow: View {
                         Image(systemName: classifier.symbolName)
                             .scaleEffect(x: classifier.scaleX)
                             .foregroundStyle(.secondary)
-                            .frame(width: iconWidth)
                     }
+                    .frame(minWidth: iconWidth)
                     .buttonStyle(.plain)
                     .popover(isPresented: $showClassifierTooltip) {
                         AnnotationPopover(annotation: classifier.description)
@@ -765,7 +777,8 @@ private let sampleTaggerCard = TaggerCard(
         ScryfallTagsCardSection(
             setCode: "lea",
             collectorNumber: "161",
-            tagsService: MockTagsService(behavior: .loaded(sampleTaggerCard))
+            tagsService: MockTagsService(behavior: .loaded(sampleTaggerCard)),
+            initiallyExpanded: true
         )
     }
 }
@@ -775,7 +788,8 @@ private let sampleTaggerCard = TaggerCard(
         ScryfallTagsCardSection(
             setCode: "lea",
             collectorNumber: "161",
-            tagsService: MockTagsService(behavior: .loadingForever)
+            tagsService: MockTagsService(behavior: .loadingForever),
+            initiallyExpanded: true
         )
     }
 }
@@ -785,7 +799,8 @@ private let sampleTaggerCard = TaggerCard(
         ScryfallTagsCardSection(
             setCode: "lea",
             collectorNumber: "161",
-            tagsService: MockTagsService(behavior: .loaded(nil))
+            tagsService: MockTagsService(behavior: .loaded(nil)),
+            initiallyExpanded: true
         )
     }
 }
@@ -795,7 +810,8 @@ private let sampleTaggerCard = TaggerCard(
         ScryfallTagsCardSection(
             setCode: "lea",
             collectorNumber: "161",
-            tagsService: MockTagsService(behavior: .errored(URLError(.notConnectedToInternet)))
+            tagsService: MockTagsService(behavior: .errored(URLError(.notConnectedToInternet))),
+            initiallyExpanded: true
         )
     }
 }
