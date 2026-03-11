@@ -8,7 +8,6 @@ struct MagicCardSearchApp: App {
     private var historyAndPinnedStore: HistoryAndPinnedStore
     private var recentlyViewedCardsStore: RecentlyViewedCardsStore
     private var scryfallCatalogs: ScryfallCatalogs
-    private var scryfallService = CachingScryfallService()
 
     init() {
         let database = try! appDatabase()
@@ -33,7 +32,6 @@ struct MagicCardSearchApp: App {
             .environment(historyAndPinnedStore)
             .environment(recentlyViewedCardsStore)
             .environment(scryfallCatalogs)
-            .environment(scryfallService)
             .task {
                 await scryfallCatalogs.hydrate()
             }

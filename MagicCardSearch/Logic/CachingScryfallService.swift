@@ -5,13 +5,12 @@ import Observation
 
 private let logger = Logger(subsystem: "MagicCardSearch", category: "CachingScryfallService")
 
-@Observable
 @MainActor
 class CachingScryfallService {
-    @ObservationIgnored
+    static let shared = CachingScryfallService()
+
     private let client = ScryfallClient(logger: logger)
 
-    @ObservationIgnored
     private let rulingsCache: any StorageAware<UUID, [Card.Ruling]> = bestEffortCache(
         memory: .init(expiry: .never, countLimit: 500),
         disk: .init(name: "rulings", expiry: .seconds(60 * 60 * 24 * 30)),
