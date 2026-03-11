@@ -99,51 +99,12 @@ struct SearchBarView: View {
                 showSymbolPicker = false
             }
 
-            if Self.didAppend(characterFrom: [" "], to: previous, toCreate: current, withSelection: searchState.actualSearchSelection) {
-                if current.allSatisfy({ $0.isWhitespace }) {
-                    searchState.searchText = ""
-                    searchState.desiredSearchSelection = nil
-                    return
-                }
-
-                if (try? /^-?\(/.prefixMatch(in: previous)) == nil {
-                    // Note that we use `previous` so that the additional space doesn't interfere
-                    // with our interpretation of what the filter was like before it potentially
-                    // became a multi-word name filter. This also means that we have to add the
-                    // space back when we update the search text.
-                    let partial = PartialFilterTerm.from(previous)
-                    if case .name(let isExact, let term) = partial.content {
-                        let parsed: (PartialFilterTerm.PartialTerm.QuotingType?, String)? = switch term {
-                        case .bare(let content): (.doubleQuote, content)
-                        case .uninitiated(let quote, let content): (quote.opposite, content + quote.rawValue)
-                        default: nil
-                        }
-                        if let parsed, let quote = parsed.0 {
-                            searchState.searchText = PartialFilterTerm(
-                                polarity: partial.polarity,
-                                content: .name(isExact, .unterminated(quote, parsed.1 + " ")),
-                            ).description
-                            searchState.desiredSearchSelection = nil
-                            return
-                        }
-                    }
-                }
-            }
-
-            if Self.didAppend(characterFrom: [" ", "'", "\"", ")", "/"], to: previous, toCreate: current, withSelection: searchState.actualSearchSelection) {
-                if case .valid(let filter) = current.toFilter() {
+            if let (filter, newText, newSelection) = maybeAutoUpdateSearchText(previous: previous, current: current, selection: searchState.actualSearchSelection) {
+                if let filter {
                     searchState.filters.append(filter)
-                    searchState.searchText = ""
-                    searchState.desiredSearchSelection = nil
                 }
-                return
-            }
-
-            if let (newText, newSelection) = removeAutoinsertedWhitespace(current, searchState.actualSearchSelection),
-               newText != searchState.searchText {
                 searchState.searchText = newText
-                searchState.desiredSearchSelection = .init(range: newSelection)
-                return
+                searchState.desiredSearchSelection = newSelection.map { TextSelection(range: $0) }
             }
         }
         .onChange(of: searchState.filters) {
@@ -161,27 +122,6 @@ struct SearchBarView: View {
         .onChange(of: isFocused) {
             fieldFocused = isFocused
         }
-    }
-
-    private static func didAppend(
-        characterFrom characters: Set<Character>,
-        to previous: String,
-        toCreate current: String,
-        withSelection selection: Range<String.Index>,
-    ) -> Bool {
-        guard current.count == previous.count + 1 else {
-            return false
-        }
-
-        guard let lastCharacter = current.last, characters.contains(lastCharacter) else {
-            return false
-        }
-
-        guard selection.upperBound == current.endIndex else {
-            return false
-        }
-
-        return current.hasPrefix(previous)
     }
 
     private func insertSymbol(_ symbol: SymbolCode) {
