@@ -243,3 +243,180 @@ private struct FlippableCardFaceView: View {
 // invasion of zendikar
 // https://api.scryfall.com/cards/8fed056f-a8f5-41ec-a7d2-a80a238872d1
 
+// MARK: - Previews
+
+private struct PreviewCardFace: CardFaceDisplayable, Sendable {
+    let name: String
+    let imageUris: Card.ImageUris?
+}
+
+private struct PreviewCard: CardDisplayable, Sendable {
+    private let _frontFace: PreviewCardFace
+    private var _backFace: PreviewCardFace?
+    var frontFaceOrientation: Card.Orientation
+    var backFaceOrientation: Card.Orientation
+
+    init(
+        frontFace: PreviewCardFace,
+        backFace: PreviewCardFace? = nil,
+        frontFaceOrientation: Card.Orientation = .portrait,
+        backFaceOrientation: Card.Orientation = .portrait,
+    ) {
+        self._frontFace = frontFace
+        self._backFace = backFace
+        self.frontFaceOrientation = frontFaceOrientation
+        self.backFaceOrientation = backFaceOrientation
+    }
+
+    var frontFace: CardFaceDisplayable { _frontFace }
+    var backFace: CardFaceDisplayable? { _backFace }
+}
+
+private extension PreviewCard {
+    // Lightning Bolt (normal, single-faced)
+    static let lightningBolt = PreviewCard(
+        frontFace: PreviewCardFace(
+            name: "Lightning Bolt",
+            imageUris: .init(
+                small: "https://cards.scryfall.io/small/front/7/7/77c6fa74-5543-42ac-9ead-0e890b188e99.jpg?1706239968",
+                normal: "https://cards.scryfall.io/normal/front/7/7/77c6fa74-5543-42ac-9ead-0e890b188e99.jpg?1706239968",
+                large: "https://cards.scryfall.io/large/front/7/7/77c6fa74-5543-42ac-9ead-0e890b188e99.jpg?1706239968",
+                png: "https://cards.scryfall.io/png/front/7/7/77c6fa74-5543-42ac-9ead-0e890b188e99.png?1706239968",
+                artCrop: "https://cards.scryfall.io/art_crop/front/7/7/77c6fa74-5543-42ac-9ead-0e890b188e99.jpg?1706239968",
+                borderCrop: "https://cards.scryfall.io/border_crop/front/7/7/77c6fa74-5543-42ac-9ead-0e890b188e99.jpg?1706239968"
+            )
+        ),
+    )
+
+    // Life // Death (split, landscape)
+    static let lifeAndDeath = PreviewCard(
+        frontFace: PreviewCardFace(
+            name: "Life // Death",
+            imageUris: .init(
+                small: "https://cards.scryfall.io/small/front/e/1/e16d52ca-f8de-4852-9bff-9d208e5f678f.jpg?1677291168",
+                normal: "https://cards.scryfall.io/normal/front/e/1/e16d52ca-f8de-4852-9bff-9d208e5f678f.jpg?1677291168",
+                large: "https://cards.scryfall.io/large/front/e/1/e16d52ca-f8de-4852-9bff-9d208e5f678f.jpg?1677291168",
+                png: "https://cards.scryfall.io/png/front/e/1/e16d52ca-f8de-4852-9bff-9d208e5f678f.png?1677291168",
+                artCrop: "https://cards.scryfall.io/art_crop/front/e/1/e16d52ca-f8de-4852-9bff-9d208e5f678f.jpg?1677291168",
+                borderCrop: "https://cards.scryfall.io/border_crop/front/e/1/e16d52ca-f8de-4852-9bff-9d208e5f678f.jpg?1677291168"
+            )
+        ),
+        frontFaceOrientation: .landscape,
+    )
+
+    // Consign // Oblivion (split with Aftermath, either orientation)
+    static let consignAndOblivion = PreviewCard(
+        frontFace: PreviewCardFace(
+            name: "Consign // Oblivion",
+            imageUris: .init(
+                small: "https://cards.scryfall.io/small/front/1/c/1c1ead90-10d8-4217-80e4-6f40320c5569.jpg?1710406499",
+                normal: "https://cards.scryfall.io/normal/front/1/c/1c1ead90-10d8-4217-80e4-6f40320c5569.jpg?1710406499",
+                large: "https://cards.scryfall.io/large/front/1/c/1c1ead90-10d8-4217-80e4-6f40320c5569.jpg?1710406499",
+                png: "https://cards.scryfall.io/png/front/1/c/1c1ead90-10d8-4217-80e4-6f40320c5569.png?1710406499",
+                artCrop: "https://cards.scryfall.io/art_crop/front/1/c/1c1ead90-10d8-4217-80e4-6f40320c5569.jpg?1710406499",
+                borderCrop: "https://cards.scryfall.io/border_crop/front/1/c/1c1ead90-10d8-4217-80e4-6f40320c5569.jpg?1710406499"
+            )
+        ),
+        frontFaceOrientation: .either,
+    )
+
+    // Liliana, Heretical Healer // Liliana, Defiant Necromancer (transform, creature to planeswalker)
+    static let liliana = PreviewCard(
+        frontFace: PreviewCardFace(
+            name: "Liliana, Heretical Healer",
+            imageUris: .init(
+                small: "https://cards.scryfall.io/small/front/d/8/d8b718d8-fca3-4b3e-9448-6067c8656a9a.jpg?1748260439",
+                normal: "https://cards.scryfall.io/normal/front/d/8/d8b718d8-fca3-4b3e-9448-6067c8656a9a.jpg?1748260439",
+                large: "https://cards.scryfall.io/large/front/d/8/d8b718d8-fca3-4b3e-9448-6067c8656a9a.jpg?1748260439",
+                png: "https://cards.scryfall.io/png/front/d/8/d8b718d8-fca3-4b3e-9448-6067c8656a9a.png?1748260439",
+                artCrop: "https://cards.scryfall.io/art_crop/front/d/8/d8b718d8-fca3-4b3e-9448-6067c8656a9a.jpg?1748260439",
+                borderCrop: "https://cards.scryfall.io/border_crop/front/d/8/d8b718d8-fca3-4b3e-9448-6067c8656a9a.jpg?1748260439"
+            )
+        ),
+        backFace: PreviewCardFace(
+            name: "Liliana, Defiant Necromancer",
+            imageUris: .init(
+                small: "https://cards.scryfall.io/small/back/d/8/d8b718d8-fca3-4b3e-9448-6067c8656a9a.jpg?1748260439",
+                normal: "https://cards.scryfall.io/normal/back/d/8/d8b718d8-fca3-4b3e-9448-6067c8656a9a.jpg?1748260439",
+                large: "https://cards.scryfall.io/large/back/d/8/d8b718d8-fca3-4b3e-9448-6067c8656a9a.jpg?1748260439",
+                png: "https://cards.scryfall.io/png/back/d/8/d8b718d8-fca3-4b3e-9448-6067c8656a9a.png?1748260439",
+                artCrop: "https://cards.scryfall.io/art_crop/back/d/8/d8b718d8-fca3-4b3e-9448-6067c8656a9a.jpg?1748260439",
+                borderCrop: "https://cards.scryfall.io/border_crop/back/d/8/d8b718d8-fca3-4b3e-9448-6067c8656a9a.jpg?1748260439"
+            )
+        ),
+    )
+
+    // Invasion of Zendikar // Awakened Skyclave (transform, double-faced)
+    static let invasionOfZendikar = PreviewCard(
+        frontFace: PreviewCardFace(
+            name: "Invasion of Zendikar",
+            imageUris: .init(
+                small: "https://cards.scryfall.io/small/front/8/f/8fed056f-a8f5-41ec-a7d2-a80a238872d1.jpg?1739656250",
+                normal: "https://cards.scryfall.io/normal/front/8/f/8fed056f-a8f5-41ec-a7d2-a80a238872d1.jpg?1739656250",
+                large: "https://cards.scryfall.io/large/front/8/f/8fed056f-a8f5-41ec-a7d2-a80a238872d1.jpg?1739656250",
+                png: "https://cards.scryfall.io/png/front/8/f/8fed056f-a8f5-41ec-a7d2-a80a238872d1.png?1739656250",
+                artCrop: "https://cards.scryfall.io/art_crop/front/8/f/8fed056f-a8f5-41ec-a7d2-a80a238872d1.jpg?1739656250",
+                borderCrop: "https://cards.scryfall.io/border_crop/front/8/f/8fed056f-a8f5-41ec-a7d2-a80a238872d1.jpg?1739656250"
+            )
+        ),
+        backFace: PreviewCardFace(
+            name: "Awakened Skyclave",
+            imageUris: .init(
+                small: "https://cards.scryfall.io/small/back/8/f/8fed056f-a8f5-41ec-a7d2-a80a238872d1.jpg?1739656250",
+                normal: "https://cards.scryfall.io/normal/back/8/f/8fed056f-a8f5-41ec-a7d2-a80a238872d1.jpg?1739656250",
+                large: "https://cards.scryfall.io/large/back/8/f/8fed056f-a8f5-41ec-a7d2-a80a238872d1.jpg?1739656250",
+                png: "https://cards.scryfall.io/png/back/8/f/8fed056f-a8f5-41ec-a7d2-a80a238872d1.png?1739656250",
+                artCrop: "https://cards.scryfall.io/art_crop/back/8/f/8fed056f-a8f5-41ec-a7d2-a80a238872d1.jpg?1739656250",
+                borderCrop: "https://cards.scryfall.io/border_crop/back/8/f/8fed056f-a8f5-41ec-a7d2-a80a238872d1.jpg?1739656250"
+            )
+        ),
+        frontFaceOrientation: .landscape,
+    )
+
+    // Invalid (no image URIs)
+    static let invalid = PreviewCard(
+        frontFace: PreviewCardFace(name: "Invalid Card", imageUris: nil)
+    )
+}
+
+#Preview("Lightning Bolt") {
+    @Previewable @State var isFlipped = false
+    CardView(card: PreviewCard.lightningBolt, quality: .normal, isFlipped: $isFlipped, cornerRadius: 12)
+        .frame(width: 300)
+        .padding()
+}
+
+#Preview("Life // Death") {
+    @Previewable @State var isFlipped = false
+    CardView(card: PreviewCard.lifeAndDeath, quality: .normal, isFlipped: $isFlipped, cornerRadius: 12)
+        .frame(width: 300)
+        .padding()
+}
+
+#Preview("Consign // Oblivion") {
+    @Previewable @State var isFlipped = false
+    CardView(card: PreviewCard.consignAndOblivion, quality: .normal, isFlipped: $isFlipped, cornerRadius: 12)
+        .frame(width: 300)
+        .padding()
+}
+
+#Preview("Liliana, Heretical Healer") {
+    @Previewable @State var isFlipped = false
+    CardView(card: PreviewCard.liliana, quality: .normal, isFlipped: $isFlipped, cornerRadius: 12)
+        .frame(width: 300)
+        .padding()
+}
+
+#Preview("Invasion of Zendikar") {
+    @Previewable @State var isFlipped = false
+    CardView(card: PreviewCard.invasionOfZendikar, quality: .normal, isFlipped: $isFlipped, cornerRadius: 12)
+        .frame(width: 300)
+        .padding()
+}
+
+#Preview("Invalid") {
+    @Previewable @State var isFlipped = false
+    CardView(card: PreviewCard.invalid, quality: .normal, isFlipped: $isFlipped, cornerRadius: 12)
+        .frame(width: 300)
+        .padding()
+}
