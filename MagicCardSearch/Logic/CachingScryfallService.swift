@@ -12,13 +12,13 @@ class CachingScryfallService {
     private let client = ScryfallClient(logger: logger)
 
     private let rulingsCache: any StorageAware<UUID, [Card.Ruling]> = bestEffortCache(
-        memory: .init(expiry: .never, countLimit: 500),
-        disk: .init(name: "rulings", expiry: .seconds(60 * 60 * 24 * 30)),
+        memory: .init(expiry: .days(30), countLimit: 500),
+        disk: .init(name: "rulings", expiry: .days(30)),
     )
 
     private let tagsCache: any StorageAware<String, TaggerCard> = bestEffortCache(
-        memory: .init(expiry: .never, countLimit: 500),
-        disk: .init(name: "tags", expiry: .seconds(60 * 60 * 24 * 30)),
+        memory: .init(expiry: .days(7), countLimit: 500),
+        disk: .init(name: "tags", expiry: .days(7)),
     )
 
     func rulings(forScryfallId id: UUID) async throws -> [Card.Ruling] {
