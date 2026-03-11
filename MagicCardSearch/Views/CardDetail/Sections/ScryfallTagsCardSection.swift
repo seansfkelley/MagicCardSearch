@@ -306,6 +306,7 @@ private struct TagRow: View {
     var searchState: Binding<SearchState>?
     @State private var showAnnotation = false
     @State private var showWeightTooltip = false
+    @State private var showIconTooltip = false
 
     private var filterTerm: FilterTerm? {
         switch tagging.tag.namespace {
@@ -316,10 +317,27 @@ private struct TagRow: View {
         }
     }
 
+    private var namespaceDescription: String {
+        switch tagging.tag.namespace {
+        case .card: "Gameplay tag — describes how this card functions mechanically."
+        case .artwork: "Artwork tag — describes the art on this card."
+        case .print: "Printing tag — describes properties of this specific printing."
+        case .unknown: "Unknown tag type."
+        }
+    }
+
     var body: some View {
         HStack(spacing: 8) {
-            Image(systemName: iconName)
-                .foregroundStyle(.secondary)
+            Button {
+                showIconTooltip = true
+            } label: {
+                Image(systemName: iconName)
+                    .foregroundStyle(.secondary)
+            }
+            .buttonStyle(.plain)
+            .popover(isPresented: $showIconTooltip) {
+                AnnotationPopover(annotation: namespaceDescription)
+            }
 
             Text(tagging.tag.name)
                 .font(.body)
@@ -405,6 +423,7 @@ private struct RelationshipRow: View {
     let isLoading: Bool
     let onTap: (UUID, UUID, TaggerCard.ForeignKey) -> Void
     @State private var showAnnotation = false
+    @State private var showClassifierTooltip = false
 
     private let iconWidth: CGFloat = 20
 
@@ -416,9 +435,18 @@ private struct RelationshipRow: View {
         } label: {
             HStack(spacing: 8) {
                 if let classifier = relationship.otherClassifier(as: card) {
-                    relationIcon(for: classifier)
-                        .foregroundStyle(.secondary)
-                        .frame(width: iconWidth)
+                    Button {
+                        showClassifierTooltip = true
+                    } label: {
+                        Image(systemName: classifier.symbolName)
+                            .scaleEffect(x: classifier.scaleX)
+                            .foregroundStyle(.secondary)
+                            .frame(width: iconWidth)
+                    }
+                    .buttonStyle(.plain)
+                    .popover(isPresented: $showClassifierTooltip) {
+                        AnnotationPopover(annotation: classifier.description)
+                    }
                 }
 
                 Text(relationship.otherName(as: card) ?? "Unknown")
@@ -456,10 +484,13 @@ private struct RelationshipRow: View {
         .buttonStyle(.plain)
         .disabled(relationship.otherId(as: card) == nil)
     }
+}
 
-    // swiftlint:disable:next cyclomatic_complexity
-    private func relationIcon(for classifier: TaggerCard.Relationship.Classifier) -> some View {
-        let symbolName = switch classifier {
+// MARK: - Classifier extension
+
+private extension TaggerCard.Relationship.Classifier {
+    var symbolName: String {
+        switch self {
         case .similarTo, .relatedTo, .mirrors: "equal"
         case .betterThan: "greaterthan"
         case .worseThan: "lessthan"
@@ -474,9 +505,28 @@ private struct RelationshipRow: View {
         case .comesBefore: "clock.arrow.trianglehead.counterclockwise.rotate.90"
         case .unknown: "questionmark.circle"
         }
-        
-        return Image(systemName: symbolName)
-            .scaleEffect(x: classifier == .comesBefore ? -1 : 1)
+    }
+
+    var scaleX: CGFloat { self == .comesBefore ? -1 : 1 }
+
+    var description: String {
+        switch self {
+        case .similarTo: "Similar to..."
+        case .relatedTo: "Related to..."
+        case .mirrors: "Mirrors..."
+        case .betterThan: "Better than..."
+        case .worseThan: "Worse than..."
+        case .referencesTo: "References..."
+        case .referencedBy: "Referenced by..."
+        case .withBody: "...with a body."
+        case .withoutBody: "...without a body."
+        case .colorshifted: "Colorshifted from..."
+        case .depictedIn: "Depicted in..."
+        case .depicts: "Depicts..."
+        case .comesAfter: "This art happens after the art from..."
+        case .comesBefore: "This art happens before the art from..."
+        case .unknown: "Related to..."
+        }
     }
 }
 
