@@ -13,6 +13,23 @@ func bestEffortCache<Key: Hashable>(
     )
 }
 
+func bestEffortCache<Key: Hashable, Value: Codable>(
+    memory: MemoryConfig,
+    disk: DiskConfig,
+) -> any StorageAware<Key, Value> {
+    (
+        try? Storage(
+            diskConfig: disk,
+            memoryConfig: memory,
+            fileManager: .default,
+            transformer: .init(
+                toData: { x in try JSONEncoder().encode(x) },
+                fromData: { x in try JSONDecoder().decode(Value.self, from: x) },
+            ),
+        )
+    ) ?? StrongMemoryStorage<Key, Value>(config: memory)
+}
+
 func bestEffortCache<Key: Hashable, Value>(
     memory: MemoryConfig,
     disk: DiskConfig,
