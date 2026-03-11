@@ -1,19 +1,32 @@
 import SwiftUI
 import ScryfallKit
 
+struct CardLegalitiesSection: View {
+    let card: Card
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            LegalityListView(card: card)
+        }
+        .padding(.horizontal)
+        .padding(.vertical, 12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
 // MARK: - Legality Configuration Manager
 
 @MainActor
 @Observable
-class LegalityConfiguration {
+private class LegalityConfiguration {
     static let shared = LegalityConfiguration()
-    
+
     private let userDefaultsKey = "legalityFormatOrder"
     private let dividerIndexKey = "legalityDividerIndex"
-    
+
     var formatOrder: [Format]
     var dividerIndex: Int
-    
+
     private init() {
         let defaultDividerIndex = 5
         let defaultOrder: [Format] = [
@@ -40,29 +53,29 @@ class LegalityConfiguration {
             .timeless,
             .vintage,
         ]
-        
+
         if let savedData = UserDefaults.standard.data(forKey: userDefaultsKey),
            let decoded = try? JSONDecoder().decode([String].self, from: savedData) {
             let savedFormats = decoded.compactMap { Format(rawValue: $0) }
-            
+
             var mergedOrder = savedFormats
             for format in defaultOrder where !mergedOrder.contains(format) {
                 mergedOrder.append(format)
             }
-            
+
             self.formatOrder = mergedOrder
         } else {
             self.formatOrder = defaultOrder
         }
-        
+
         self.dividerIndex = UserDefaults.standard
             .object(forKey: dividerIndexKey) as? Int ?? defaultDividerIndex
-        
+
         if dividerIndex > formatOrder.count {
             dividerIndex = formatOrder.count
         }
     }
-    
+
     func save() {
         let rawValues = formatOrder.map { $0.rawValue }
         if let encoded = try? JSONEncoder().encode(rawValues) {
@@ -70,7 +83,7 @@ class LegalityConfiguration {
         }
         UserDefaults.standard.set(dividerIndex, forKey: dividerIndexKey)
     }
-    
+
     func update(formatOrder: [Format], dividerIndex: Int) {
         self.formatOrder = formatOrder
         self.dividerIndex = dividerIndex
@@ -80,11 +93,11 @@ class LegalityConfiguration {
 
 // MARK: - Main View
 
-struct LegalityListView: View {
+private struct LegalityListView: View {
     @ScaledMetric private var iconWidth = CardDetailConstants.defaultSectionIconWidth
-    
+
     let card: Card
-    
+
     @Bindable var configuration = LegalityConfiguration.shared
     @State private var isEditMode = false
 
@@ -96,7 +109,7 @@ struct LegalityListView: View {
                     .font(.headline)
 
                 Spacer()
-                
+
                 Button {
                     isEditMode = true
                 } label: {
@@ -106,7 +119,7 @@ struct LegalityListView: View {
                 }
                 .buttonStyle(.automatic)
             }
-            
+
             VStack(spacing: 0) {
                 ForEach(Array(configuration.formatOrder.prefix(configuration.dividerIndex)), id: \.self) { format in
                     LegalityItemView(
@@ -130,34 +143,34 @@ private struct LegalityEditView: View {
     @Environment(\.dismiss) private var dismiss
     let card: Card
     var configuration: LegalityConfiguration
-    
+
     @State private var workingFormatOrder: [Format]
     @State private var workingDividerIndex: Int
-    
+
     init(card: Card, configuration: LegalityConfiguration) {
         self.card = card
         self.configuration = configuration
         self._workingFormatOrder = State(wrappedValue: configuration.formatOrder)
         self._workingDividerIndex = State(wrappedValue: configuration.dividerIndex)
     }
-    
+
     private func listItems() -> [LegalityListItem] {
         var items: [LegalityListItem] = []
-        
+
         for (index, format) in workingFormatOrder.enumerated() {
             if index == workingDividerIndex {
                 items.append(.divider)
             }
             items.append(.format(format))
         }
-        
+
         if workingDividerIndex >= workingFormatOrder.count {
             items.append(.divider)
         }
-        
+
         return items
     }
-    
+
     var body: some View {
         NavigationStack {
             List {
@@ -204,14 +217,14 @@ private struct LegalityEditView: View {
             .environment(\.editMode, .constant(.active))
         }
     }
-    
+
     private func handleMove(from source: IndexSet, to destination: Int) {
         var items = listItems()
         items.move(fromOffsets: source, toOffset: destination)
         workingFormatOrder = items.compactMap { if case .format(let format) = $0 { format } else { nil } }
         workingDividerIndex = items.firstIndex(of: .divider)!
     }
-    
+
     private enum LegalityListItem: Equatable, Hashable {
         case format(Format)
         case divider
@@ -224,18 +237,18 @@ private struct LegalityItemView: View {
     let format: Format
     let legality: Card.Legality
     let isGameChanger: Bool
-    
+
     var body: some View {
         HStack(spacing: 12) {
             Text(format.label)
                 .font(.body)
                 .frame(maxWidth: .infinity, alignment: .leading)
-            
+
             HStack(spacing: 6) {
                 Image(systemName: legalityIcon)
                     .font(.caption)
                     .foregroundStyle(.white)
-                
+
                 Text(legalityDisplayText.uppercased())
                     .font(.caption)
                     .fontWeight(.semibold)
@@ -249,7 +262,7 @@ private struct LegalityItemView: View {
             )
         }
     }
-    
+
     private var legalityDisplayText: String {
         return if format == .commander && isGameChanger {
             "\(legality.label)/GC"
@@ -257,12 +270,12 @@ private struct LegalityItemView: View {
             legality.label
         }
     }
-    
+
     private var legalityIcon: String {
         if format == .commander && legality == .legal && isGameChanger {
             return "exclamationmark"
         }
-        
+
         return switch legality {
         case .legal: "checkmark"
         case .notLegal: "xmark"
@@ -270,7 +283,7 @@ private struct LegalityItemView: View {
         case .banned: "circle.slash"
         }
     }
-    
+
     private var legalityColor: Color {
         if format == .commander && legality == .legal && isGameChanger {
             // TODO: Different color?
@@ -285,6 +298,7 @@ private struct LegalityItemView: View {
         }
     }
 }
+
 // MARK: - Previews
 
 #Preview("All Legality States") {
@@ -294,25 +308,25 @@ private struct LegalityItemView: View {
             legality: .legal,
             isGameChanger: false
         )
-    
+
         LegalityItemView(
             format: .commander,
             legality: .legal,
             isGameChanger: true
         )
-        
+
         LegalityItemView(
             format: .modern,
             legality: .notLegal,
             isGameChanger: false
         )
-        
+
         LegalityItemView(
             format: .vintage,
             legality: .restricted,
             isGameChanger: false
         )
-        
+
         LegalityItemView(
             format: .legacy,
             legality: .banned,

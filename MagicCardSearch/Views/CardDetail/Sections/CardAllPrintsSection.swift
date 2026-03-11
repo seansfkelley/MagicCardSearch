@@ -7,7 +7,50 @@ import Cache
 
 private let logger = Logger(subsystem: "MagicCardSearch", category: "CardAllPrintsView")
 
-struct CardAllPrintsView: View {
+struct CardAllPrintsSection: View {
+    @ScaledMetric private var iconWidth = CardDetailConstants.defaultSectionIconWidth
+
+    let oracleId: String
+    let currentCardId: UUID
+
+    @State private var showingPrintsSheet = false
+
+    var body: some View {
+        Button {
+            showingPrintsSheet = true
+        } label: {
+            HStack {
+                Label {
+                    Text("All Prints")
+                } icon: {
+                    Image(systemName: "rectangle.stack")
+                        .rotationEffect(.degrees(90))
+                }
+                .labelReservedIconWidth(iconWidth)
+                .font(.headline)
+                // pixel-push to make it line up with the adjacent DisclosureGroup
+                .padding(.vertical, 3)
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 14)) // determinted empirically to match DisclosureGroup
+                    .foregroundStyle(.primary)
+                    .fontWeight(.semibold)
+            }
+            .padding()
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .sheet(isPresented: $showingPrintsSheet) {
+            CardAllPrintsView(oracleId: oracleId, initialCardId: currentCardId)
+        }
+    }
+}
+
+// MARK: - Card All Prints View
+
+private struct CardAllPrintsView: View {
     private struct CacheKey: Hashable, CustomStringConvertible {
         let oracleId: String
         let filterSettings: PrintFilterSettings
@@ -23,7 +66,7 @@ struct CardAllPrintsView: View {
     }
 
     // This was initially put in because of my inability to figure out proper request lifecycling,
-    // but I eventually decided that it's probably a good idea regardless since.
+    // but I eventually decided that it's probably a good idea regardless.
     //
     // The problem with lifecycling was that I cannot figure out how, for a view like this deeply
     // nested in the view hierarchy, how to ensure it only makes the request only if something
@@ -46,13 +89,13 @@ struct CardAllPrintsView: View {
     @SceneStorage("allPrintsIndex") private var currentIndex: Int = 0
     @State private var showFilterPopover = false
     @State private var printFilterSettings = PrintFilterSettings()
-    
+
     @Environment(\.dismiss) private var dismiss
     @Environment(BookmarkedCardsStore.self) private var bookmarkedCardsStore
     @FetchAll private var bookmarks: [BookmarkedCard]
 
     // MARK: - Filter Settings
-    
+
     private var scryfallSearchUrl: URL? {
         let baseURL = "https://scryfall.com/search"
         var components = URLComponents(string: baseURL)
@@ -63,11 +106,11 @@ struct CardAllPrintsView: View {
         ]
         return components?.url
     }
-    
+
     private var currentPrints: [Card] {
         objectList.value.latestValue?.data ?? []
     }
-    
+
     private var currentCard: Card? {
         guard currentIndex >= 0 && currentIndex < currentPrints.count else {
             return nil
@@ -127,7 +170,7 @@ struct CardAllPrintsView: View {
                         .buttonStyle(.borderedProminent)
                     }
                 }
-                
+
                 if case .loading = objectList.value {
                     VStack {
                         Spacer()
@@ -155,7 +198,7 @@ struct CardAllPrintsView: View {
                         Image(systemName: "xmark")
                     }
                 }
-                
+
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         showFilterPopover.toggle()
@@ -170,7 +213,7 @@ struct CardAllPrintsView: View {
                             .presentationCompactAdaptation(.popover)
                     }
                 }
-                
+
                 if let currentCard, let bookmark = bookmarks.first(where: { $0.id == currentCard.id }) {
                     ToolbarItem(placement: .topBarTrailing) {
                         Button {
@@ -238,7 +281,7 @@ struct CardAllPrintsView: View {
             } else {
                 currentPrints[safe: currentIndex]?.id
             }
-            
+
             await objectList.loadAllRemainingPages().value
 
             if let targetCardId,
@@ -256,7 +299,7 @@ struct CardAllPrintsView: View {
 private struct CardPrintsDetailView: View {
     let cards: [Card]
     @Binding var currentIndex: Int
-    
+
     // It seems that these cannot share a position object, so we bridge between the two and,
     // unfortunately, also the currentIndex binding from the parent.
     @State private var mainScrollPosition = ScrollPosition(idType: UUID.self)
@@ -268,7 +311,7 @@ private struct CardPrintsDetailView: View {
         guard currentIndex >= 0 && currentIndex < cards.count else { return nil }
         return cards[currentIndex]
     }
-    
+
     var body: some View {
         GeometryReader { geometry in
             VStack(spacing: 0) {
@@ -279,7 +322,7 @@ private struct CardPrintsDetailView: View {
                     screenWidth: geometry.size.width,
                     isFlipped: $isFlipped
                 )
-                
+
                 ThumbnailPreviewStrip(
                     cards: cards,
                     scrollPosition: $thumbnailScrollPosition,
@@ -287,9 +330,9 @@ private struct CardPrintsDetailView: View {
                     screenWidth: geometry.size.width,
                     isFlipped: isFlipped
                 )
-                
+
                 Spacer()
-                
+
                 Text("\(currentIndex + 1) of \(cards.count)")
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -344,7 +387,7 @@ private struct PagingCardImageView: View {
     @Binding var isFlipped: Bool
 
     @State private var scrollPhase: ScrollPhase = .idle
-    
+
     var body: some View {
         ScrollView(.horizontal) {
             LazyHStack(spacing: 0) {
@@ -357,7 +400,7 @@ private struct PagingCardImageView: View {
                             cornerRadius: 16,
                         )
                         .padding(.horizontal)
-                        
+
                         CardSetInfoSection(
                             setCode: card.set,
                             setName: card.setName,
@@ -401,14 +444,14 @@ private struct ThumbnailPreviewStrip: View {
     var partialScrollOffsetFraction: CGFloat
     let screenWidth: CGFloat
     var isFlipped: Bool
-    
+
     private let thumbnailHeight: CGFloat = 100
     private let thumbnailSpacing: CGFloat = 8
-    
+
     private var thumbnailWidth: CGFloat {
         thumbnailHeight * Card.aspectRatio
     }
-    
+
     var body: some View {
         ScrollView(.horizontal) {
             LazyHStack(spacing: thumbnailSpacing) {
