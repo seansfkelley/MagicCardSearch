@@ -2,7 +2,6 @@ import SwiftUI
 
 struct SearchBarAndPillsView: View {
     @Binding var searchState: SearchState
-    @Binding var isFocused: Bool
 
     @State var showWarningsPopover: Bool = false
     @Namespace private var animation
@@ -54,10 +53,7 @@ struct SearchBarAndPillsView: View {
                         .padding(.horizontal)
                 }
 
-                SearchBarView(
-                    searchState: $searchState,
-                    isFocused: $isFocused,
-                )
+                SearchBarView(searchState: $searchState)
             }
             .contentShape(Rectangle())
             .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 20))

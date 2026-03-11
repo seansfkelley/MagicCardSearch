@@ -7,15 +7,13 @@ private let logger = Logger(subsystem: "MagicCardSearch", category: "SearchBarVi
 
 struct SearchBarView: View {
     @Binding var searchState: SearchState
-    @Binding var isFocused: Bool
 
     @FocusState private var fieldFocused: Bool
     @State private var showSymbolPicker = false
     private let textFieldDelegate: SearchTextFieldDelegate
 
-    init(searchState: Binding<SearchState>, isFocused: Binding<Bool>) {
+    init(searchState: Binding<SearchState>) {
         self._searchState = searchState
-        self._isFocused = isFocused
 
         // The only reason this is here is because UITextField.delegate is weak, so we need to
         // retain it as long as this view is alive.
@@ -115,12 +113,6 @@ struct SearchBarView: View {
             // didn't 100% test that this was necessary, but it does work as written and I spent way
             // too long fucking about with selection so I left it as-is.
             searchState.desiredSearchSelection = nil
-        }
-        .onChange(of: fieldFocused) {
-            isFocused = fieldFocused
-        }
-        .onChange(of: isFocused) {
-            fieldFocused = isFocused
         }
     }
 

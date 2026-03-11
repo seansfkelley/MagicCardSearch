@@ -11,7 +11,6 @@ struct SearchTabView: View {
     @State private var showSearchSheet = false
     @State private var showDisplayOptionsSheet = false
     @State private var pendingSearchConfig: SearchConfiguration?
-    @State private var isSearchBarFocused = false
 
     var body: some View {
         NavigationStack {
@@ -67,10 +66,7 @@ struct SearchTabView: View {
             showSearchSheet = false
         }
         .sheet(isPresented: $showSearchSheet) {
-            SearchSheetView(
-                searchState: $searchState,
-                isSearchBarFocused: $isSearchBarFocused,
-            )
+            SearchSheetView(searchState: $searchState)
         }
         .sheet(isPresented: $showDisplayOptionsSheet, onDismiss: {
             if let pending = pendingSearchConfig, pending != searchState.configuration {
