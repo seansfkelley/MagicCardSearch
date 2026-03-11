@@ -21,6 +21,7 @@ func didAppend(
     return current.hasPrefix(previous)
 }
 
+// swiftlint:disable:next cyclomatic_complexity
 func maybeAutoUpdateSearchText(
     previous: String,
     current: String,
