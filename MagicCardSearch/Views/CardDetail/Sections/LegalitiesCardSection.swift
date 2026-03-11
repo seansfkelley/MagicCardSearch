@@ -1,7 +1,7 @@
 import SwiftUI
 import ScryfallKit
 
-struct CardLegalitiesSection: View {
+struct LegalitiesCardSection: View {
     let card: Card
 
     var body: some View {

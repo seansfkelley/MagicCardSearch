@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct CardArtistSection: View {
+struct ArtistCardSection: View {
     let artist: String
 
     var body: some View {

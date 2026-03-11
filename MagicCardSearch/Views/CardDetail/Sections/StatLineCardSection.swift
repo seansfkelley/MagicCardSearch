@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct CardStatSection: View {
+struct StatLineCardSection: View {
     let value: String
     let label: String?
 

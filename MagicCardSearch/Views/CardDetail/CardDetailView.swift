@@ -77,14 +77,14 @@ struct CardDetailView: View {
                     
                     if !allArtists.isEmpty {
                         Divider().padding(.horizontal)
-                        CardArtistSection(artist: allArtists.joined(separator: ", "))
+                        ArtistCardSection(artist: allArtists.joined(separator: ", "))
                     }
                 } else {
                     cardFaceDetailsView(face: card)
                 }
 
                 Divider().padding(.horizontal)
-                CardSetInfoSection(
+                SetMetadataCardSection(
                     setCode: card.set,
                     setName: card.setName,
                     collectorNumber: card.collectorNumber,
@@ -95,19 +95,19 @@ struct CardDetailView: View {
 
                 if card.setType != .token {
                     Divider().padding(.horizontal)
-                    CardLegalitiesSection(card: card)
+                    LegalitiesCardSection(card: card)
                 }
 
                 if let oracleId = card.bestEffortOracleId {
                     Divider().padding(.horizontal)
-                    CardAllPrintsSection(
+                    AllPrintsCardSection(
                         oracleId: oracleId,
                         currentCardId: card.id
                     )
                 }
 
                 Divider().padding(.horizontal)
-                CardTagsSection(
+                ScryfallTagsCardSection(
                     searchState: searchState,
                     setCode: card.set,
                     collectorNumber: card.collectorNumber,
@@ -121,7 +121,7 @@ struct CardDetailView: View {
                     if !otherParts.isEmpty {
                         Divider().padding(.horizontal)
 
-                        CardRelatedPartsSection(
+                        RelatedPartsCardSection(
                             otherParts: otherParts.sorted { $0.name < $1.name },
                             isLoadingRelatedCard: isLoadingRelatedCard
                         ) { partId in
@@ -132,9 +132,9 @@ struct CardDetailView: View {
                     }
                 }
 
-                if CardPricesSection.hasPrices(card: card) {
+                if PricesCardSection.hasPrices(card: card) {
                     Divider().padding(.horizontal)
-                    CardPricesSection(prices: card.prices, purchaseUris: card.purchaseUris)
+                    PricesCardSection(prices: card.prices, purchaseUris: card.purchaseUris)
                 }
 
                 if case .unloaded = rulingsResult {
@@ -147,7 +147,7 @@ struct CardDetailView: View {
                 } else {
                     Divider().padding(.horizontal)
 
-                    CardRulingsSection(rulings: rulingsResult) {
+                    RulingsCardSection(rulings: rulingsResult) {
                         Task {
                             await loadRulings(from: card.rulingsUri, isRetry: true)
                         }
@@ -244,25 +244,25 @@ struct CardDetailView: View {
 
         if let power = face.power, let toughness = face.toughness, !power.isEmpty || !toughness.isEmpty {
             Divider().padding(.horizontal)
-            CardStatSection(value: "\(power)/\(toughness)")
+            StatLineCardSection(value: "\(power)/\(toughness)")
                 .textSelection(.enabled)
         }
         
         if let loyalty = face.loyalty, !loyalty.isEmpty {
             Divider().padding(.horizontal)
-            CardStatSection(value: loyalty, label: "Loyalty")
+            StatLineCardSection(value: loyalty, label: "Loyalty")
                 .textSelection(.enabled)
         }
         
         if let defense = face.defense, !defense.isEmpty {
             Divider().padding(.horizontal)
-            CardStatSection(value: defense, label: "Defense")
+            StatLineCardSection(value: defense, label: "Defense")
                 .textSelection(.enabled)
         }
 
         if showArtist, let artist = face.artist, !artist.isEmpty {
             Divider().padding(.horizontal)
-            CardArtistSection(artist: artist)
+            ArtistCardSection(artist: artist)
                 .textSelection(.enabled)
         }
     }

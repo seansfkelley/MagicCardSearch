@@ -1,7 +1,7 @@
 import SwiftUI
 import ScryfallKit
 
-struct CardSetInfoSection: View {
+struct SetMetadataCardSection: View {
     let setCode: String
     let setName: String
     let collectorNumber: String

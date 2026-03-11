@@ -1,7 +1,7 @@
 import SwiftUI
 import ScryfallKit
 
-struct CardRulingsSection: View {
+struct RulingsCardSection: View {
     @ScaledMetric private var iconWidth = CardDetailConstants.defaultSectionIconWidth
 
     let rulings: LoadableResult<[Card.Ruling], Error>

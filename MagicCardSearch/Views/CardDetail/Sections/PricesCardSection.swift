@@ -1,7 +1,7 @@
 import SwiftUI
 import ScryfallKit
 
-struct CardPricesSection: View {
+struct PricesCardSection: View {
     @ScaledMetric private var iconWidth = CardDetailConstants.defaultSectionIconWidth
 
     let prices: Card.Prices
@@ -18,25 +18,25 @@ struct CardPricesSection: View {
         return usdAvailable || eurAvailable || tixAvailable
     }
 
+    @ViewBuilder
+    private var label: some View {
+        Label("Buy It", systemImage: "dollarsign")
+            .labelReservedIconWidth(iconWidth)
+            .font(.headline)
+            .padding(.trailing, 8)
+    }
+
     var body: some View {
         ZStack {
             HStack {
-                Label("Buy It", systemImage: "dollarsign")
-                    .labelReservedIconWidth(iconWidth)
-                    .font(.headline)
-                    .padding(.trailing, 8)
-                    .opacity(textOpacity)
+                label.opacity(textOpacity)
                 Spacer()
             }
             
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
-                    Label("Buy It", systemImage: "dollarsign")
-                        .labelReservedIconWidth(iconWidth)
-                        .font(.headline)
-                        .padding(.trailing, 8)
-                        .hidden()
-                    
+                    label.hidden()
+
                     if let purchaseUris {
                         ForEach(Vendor.allCases, id: \.rawValue) { vendor in
                             if let url = purchaseUris[vendor.rawValue] {

@@ -1,7 +1,7 @@
 import SwiftUI
 import ScryfallKit
 
-struct CardRelatedPartsSection: View {
+struct RelatedPartsCardSection: View {
     @ScaledMetric private var iconWidth = CardDetailConstants.defaultSectionIconWidth
 
     let otherParts: [Card.RelatedCard]

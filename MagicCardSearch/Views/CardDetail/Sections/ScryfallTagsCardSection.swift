@@ -15,7 +15,7 @@ private enum LoadError: Error, LocalizedError {
     }
 }
 
-struct CardTagsSection: View {
+struct ScryfallTagsCardSection: View {
     @ScaledMetric private var iconWidth = CardDetailConstants.defaultSectionIconWidth
 
     var searchState: Binding<SearchState>?
