@@ -139,18 +139,20 @@ struct CardSetInfoSection: View {
 // MARK: - Card Related Parts Section
 
 struct CardRelatedPartsSection: View {
+    @ScaledMetric private var iconWidth = CardDetailConstants.defaultSectionIconWidth
+
     let otherParts: [Card.RelatedCard]
     let isLoadingRelatedCard: Bool
     let onPartTapped: (UUID) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text("Related Parts")
+            Label("Related Parts", systemImage: "link")
+                .labelReservedIconWidth(iconWidth)
                 .font(.headline)
-                .fontWeight(.semibold)
                 .padding(.horizontal)
                 .padding(.top, 17)
-                .padding(.bottom, 12)
+                .padding(.bottom, 10)
 
             ForEach(otherParts) { part in
                 Button {
@@ -197,6 +199,8 @@ struct CardRelatedPartsSection: View {
 // MARK: - Card Rulings Section
 
 struct CardRulingsSection: View {
+    @ScaledMetric private var iconWidth = CardDetailConstants.defaultSectionIconWidth
+
     let rulings: LoadableResult<[Card.Ruling], Error>
     let onRetry: () -> Void
 
@@ -205,9 +209,9 @@ struct CardRulingsSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Rulings")
+            Label("Rulings", systemImage: "book.and.wrench")
+                .labelReservedIconWidth(iconWidth)
                 .font(.headline)
-                .fontWeight(.semibold)
 
             VStack(alignment: .leading, spacing: 16) {
                 if case .loading = rulings {
@@ -259,6 +263,8 @@ struct CardRulingsSection: View {
 // MARK: - Card Other Prints Section
 
 struct CardAllPrintsSection: View {
+    @ScaledMetric private var iconWidth = CardDetailConstants.defaultSectionIconWidth
+
     let oracleId: String
     let currentCardId: UUID
 
@@ -269,10 +275,16 @@ struct CardAllPrintsSection: View {
             showingPrintsSheet = true
         } label: {
             HStack {
-                Text("All Prints")
-                    .font(.headline)
-                    // pixel-push to make it line up with the adjacent DisclosureGroup
-                    .padding(.vertical, 3)
+                Label {
+                    Text("All Prints")
+                } icon: {
+                    Image(systemName: "rectangle.stack")
+                        .rotationEffect(.degrees(90))
+                }
+                .labelReservedIconWidth(iconWidth)
+                .font(.headline)
+                // pixel-push to make it line up with the adjacent DisclosureGroup
+                .padding(.vertical, 3)
 
                 Spacer()
 

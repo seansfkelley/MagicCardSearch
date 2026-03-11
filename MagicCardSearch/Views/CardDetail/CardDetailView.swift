@@ -82,11 +82,6 @@ struct CardDetailView: View {
                 } else {
                     cardFaceDetailsView(face: card)
                 }
-                
-                if card.setType != .token {
-                    Divider().padding(.horizontal)
-                    CardLegalitiesSection(card: card)
-                }
 
                 Divider().padding(.horizontal)
                 CardSetInfoSection(
@@ -97,6 +92,11 @@ struct CardDetailView: View {
                     lang: card.lang,
                     releasedAtAsDate: card.releasedAtAsDate,
                 )
+
+                if card.setType != .token {
+                    Divider().padding(.horizontal)
+                    CardLegalitiesSection(card: card)
+                }
 
                 if let oracleId = card.bestEffortOracleId {
                     Divider().padding(.horizontal)

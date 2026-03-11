@@ -16,6 +16,8 @@ private enum LoadError: Error, LocalizedError {
 }
 
 struct CardTagsSection: View {
+    @ScaledMetric private var iconWidth = CardDetailConstants.defaultSectionIconWidth
+
     var searchState: Binding<SearchState>?
     let setCode: String
     let collectorNumber: String
@@ -75,7 +77,8 @@ struct CardTagsSection: View {
                 }
             },
             label: {
-                Text("Scryfall Tags")
+                Label("Scryfall Tags", systemImage: "tag")
+                    .labelReservedIconWidth(iconWidth)
                     .font(.headline)
                     .fontWeight(.semibold)
                     .foregroundStyle(.primary)

@@ -2,10 +2,12 @@ import SwiftUI
 import ScryfallKit
 
 struct CardPricesSection: View {
+    @ScaledMetric private var iconWidth = CardDetailConstants.defaultSectionIconWidth
+
     let prices: Card.Prices
     let purchaseUris: [String: String]?
     
-    private let textFadeExtent: CGFloat = 36
+    private let textFadeExtent: CGFloat = 30
     @State var textOpacity: CGFloat = 1
     
     static func hasPrices(card: Card) -> Bool {
@@ -19,9 +21,9 @@ struct CardPricesSection: View {
     var body: some View {
         ZStack {
             HStack {
-                Text("Buy It")
+                Label("Buy It", systemImage: "dollarsign")
+                    .labelReservedIconWidth(iconWidth)
                     .font(.headline)
-                    .fontWeight(.semibold)
                     .padding(.trailing, 8)
                     .opacity(textOpacity)
                 Spacer()
@@ -29,9 +31,9 @@ struct CardPricesSection: View {
             
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
-                    Text("Buy It")
+                    Label("Buy It", systemImage: "dollarsign")
+                        .labelReservedIconWidth(iconWidth)
                         .font(.headline)
-                        .fontWeight(.semibold)
                         .padding(.trailing, 8)
                         .hidden()
                     

@@ -22,7 +22,7 @@ class LegalityConfiguration {
             .modern,
             .legacy,
             .pauper,
-            // below the fold!
+            // below the fold! (by default)
             .alchemy,
             .brawl,
             .duel,
@@ -81,6 +81,8 @@ class LegalityConfiguration {
 // MARK: - Main View
 
 struct LegalityListView: View {
+    @ScaledMetric private var iconWidth = CardDetailConstants.defaultSectionIconWidth
+    
     let card: Card
     
     @Bindable var configuration = LegalityConfiguration.shared
@@ -89,9 +91,10 @@ struct LegalityListView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text("Legality")
+                Label("Legality", systemImage: "checkmark.seal")
+                    .labelReservedIconWidth(iconWidth)
                     .font(.headline)
-                
+
                 Spacer()
                 
                 Button {
