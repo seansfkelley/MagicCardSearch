@@ -16,6 +16,11 @@ class CachingScryfallService {
         disk: .init(name: "rulings", expiry: .seconds(60 * 60 * 24 * 30)),
     )
 
+    private let tagsCache: any StorageAware<String, TaggerCard> = bestEffortCache(
+        memory: .init(expiry: .never, countLimit: 500),
+        disk: .init(name: "tags", expiry: .seconds(60 * 60 * 24 * 30)),
+    )
+
     func rulings(forScryfallId id: UUID) async throws -> [Card.Ruling] {
         if let cached = try? rulingsCache.entry(forKey: id) {
             logger.debug("hit rulings cache for scryfall ID=\(id)")
@@ -35,5 +40,27 @@ class CachingScryfallService {
         }
 
         return rulings.data
+    }
+
+    func tags(forCollectorNumber collectorNumber: String, inSet setCode: String) async throws -> TaggerCard? {
+        let cacheKey = "\(setCode)/\(collectorNumber)"
+
+        if let cached = try? tagsCache.entry(forKey: cacheKey) {
+            logger.debug("hit tags cache for set=\(setCode) collectorNumber=\(collectorNumber)")
+            return cached.object
+        }
+
+        guard let card = try await TaggerCard.fetch(setCode: setCode, collectorNumber: collectorNumber) else {
+            return nil
+        }
+
+        do {
+            try tagsCache.setObject(card, forKey: cacheKey, expiry: nil)
+            logger.debug("stored tags cache value for set=\(setCode) collectorNumber=\(collectorNumber)")
+        } catch {
+            logger.error("error while setting cache for tags for set=\(setCode) collectorNumber=\(collectorNumber) error=\(error)")
+        }
+
+        return card
     }
 }
