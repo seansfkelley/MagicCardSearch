@@ -38,6 +38,10 @@ struct RecentlyViewedCard: Identifiable {
 extension RecentlyViewedCard: CardDisplayable {
     var frontFace: CardFaceDisplayable { frontCardFace }
     var backFace: CardFaceDisplayable? { backCardFace }
+
+    // We don't display these in an environment where this makes sense so ignore the feature.
+    var frontFaceOrientation: Card.Orientation { .portrait }
+    var backFaceOrientation: Card.Orientation { .portrait }
 }
 
 extension RecentlyViewedCard.CardFace: CardFaceDisplayable {}

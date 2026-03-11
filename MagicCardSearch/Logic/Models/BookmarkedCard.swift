@@ -48,11 +48,10 @@ struct BookmarkedCard: Identifiable {
 
 // MARK: - CardDisplayable Conformance
 extension BookmarkedCard: CardDisplayable {
-    var frontFace: CardFaceDisplayable {
-        frontCardFace
-    }
+    var frontFace: CardFaceDisplayable { frontCardFace }
+    var backFace: CardFaceDisplayable? { backCardFace }
     
-    var backFace: CardFaceDisplayable? {
-        backCardFace
-    }
+    // We don't display these in an environment where this makes sense so ignore the feature.
+    var frontFaceOrientation: Card.Orientation { .portrait }
+    var backFaceOrientation: Card.Orientation { .portrait }
 }

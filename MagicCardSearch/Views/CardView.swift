@@ -2,9 +2,20 @@ import SwiftUI
 import ScryfallKit
 import NukeUI
 
+extension Card {
+    enum Orientation {
+        case portrait, landscape, either
+    }
+}
+
 protocol CardDisplayable {
     var frontFace: CardFaceDisplayable { get }
     var backFace: CardFaceDisplayable? { get }
+
+    // It's hard to thread the necessary data to the face itself without implementing wrapper types,
+    // so just keep it at the whole-card level.
+    var frontFaceOrientation: Card.Orientation { get }
+    var backFaceOrientation: Card.Orientation { get }
 }
 
 extension Card: CardDisplayable {
@@ -21,6 +32,23 @@ extension Card: CardDisplayable {
         } else {
             nil
         }
+    }
+
+    var frontFaceOrientation: Orientation {
+        if layout == .split {
+            keywords.contains("Aftermath") ? .either : .landscape
+        } else if typeLine?.starts(with: "Battle ") ?? false {
+            // While listed in the documentation, no cards actually have layout:battle, so we have
+            // to inspect the type line instead.
+            .landscape
+        } else {
+            .portrait
+        }
+    }
+
+    var backFaceOrientation: Orientation {
+        // I think this is it?
+        layout == .meld ? .landscape : .portrait
     }
 }
 
@@ -80,6 +108,8 @@ struct CardView: View {
                 FlippableCardFaceView(
                     frontFace: card.frontFace,
                     backFace: backFace,
+                    frontFaceOrientation: card.frontFaceOrientation,
+                    backFaceOrientation: card.backFaceOrientation,
                     quality: quality,
                     isShowingBackFace: $isFlipped,
                     cornerRadius: cornerRadius,
@@ -151,6 +181,8 @@ private extension VerticalAlignment {
 private struct FlippableCardFaceView: View {
     let frontFace: CardFaceDisplayable
     let backFace: CardFaceDisplayable
+    let frontFaceOrientation: Card.Orientation
+    let backFaceOrientation: Card.Orientation
     let quality: CardImageQuality
     @Binding var isShowingBackFace: Bool
     let cornerRadius: CGFloat
@@ -201,3 +233,13 @@ private struct FlippableCardFaceView: View {
         }
     }
 }
+
+// lightning bolt
+// https://api.scryfall.com/cards/77c6fa74-5543-42ac-9ead-0e890b188e99
+// life // death
+// https://api.scryfall.com/cards/e16d52ca-f8de-4852-9bff-9d208e5f678f
+// consign // oblivion
+// https://api.scryfall.com/cards/1c1ead90-10d8-4217-80e4-6f40320c5569
+// invasion of zendikar
+// https://api.scryfall.com/cards/8fed056f-a8f5-41ec-a7d2-a80a238872d1
+
