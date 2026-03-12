@@ -4,7 +4,9 @@ import NukeUI
 
 extension Card {
     enum Orientation {
-        case portrait, landscape, either
+        case portrait, landscape
+        // TODO: When implemented, will require a lot of valid combinations for flippable faces.
+        // case either
     }
 }
 
@@ -36,7 +38,9 @@ extension Card: CardDisplayable {
 
     var frontFaceOrientation: Orientation {
         if layout == .split {
-            keywords.contains("Aftermath") ? .either : .landscape
+            keywords.contains("Aftermath")
+            ? .portrait // .either
+            : .landscape
         } else if typeLine?.starts(with: "Battle ") ?? false {
             // While listed in the documentation, no cards actually have layout:battle, so we have
             // to inspect the type line instead.
@@ -118,6 +122,7 @@ struct CardView: View {
             } else {
                 CardFaceView(
                     face: card.frontFace,
+                    orientation: card.frontFaceOrientation,
                     quality: quality,
                     cornerRadius: cornerRadius,
                 )
@@ -130,40 +135,48 @@ struct CardView: View {
 
 private struct CardFaceView: View {
     let face: CardFaceDisplayable
+    let orientation: Card.Orientation
     let quality: CardImageQuality
     let cornerRadius: CGFloat
     
     var body: some View {
-        if let imageUrlString = quality.uri(from: face.imageUris),
-           let url = URL(string: imageUrlString) {
-            LazyImage(url: url) { state in
-                if let image = state.image {
-                    image
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .contextMenu {
-                            if let shareUrlString = CardImageQuality.bestQualityUri(from: face.imageUris),
-                               let url = URL(string: shareUrlString) {
-                                ShareLink(item: url, preview: SharePreview(face.name, image: image))
-                            }
-                            
-                            Button {
-                                if let container = state.imageContainer {
-                                    UIPasteboard.general.image = container.image
+        ZStack {
+            CardPlaceholderView(name: "", cornerRadius: cornerRadius)
+                .hidden()
+
+            if let imageUrlString = quality.uri(from: face.imageUris),
+               let url = URL(string: imageUrlString) {
+                LazyImage(url: url) { state in
+                    if let image = state.image {
+                        image
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .contextMenu {
+                                if let shareUrlString = CardImageQuality.bestQualityUri(from: face.imageUris),
+                                   let url = URL(string: shareUrlString) {
+                                    ShareLink(item: url, preview: SharePreview(face.name, image: image))
                                 }
-                            } label: {
-                                Label("Copy", systemImage: "doc.on.doc")
+
+                                Button {
+                                    if let container = state.imageContainer {
+                                        UIPasteboard.general.image = container.image
+                                    }
+                                } label: {
+                                    Label("Copy", systemImage: "doc.on.doc")
+                                }
                             }
-                        }
-                        .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
-                } else if state.error != nil {
-                    CardPlaceholderView(name: face.name, cornerRadius: cornerRadius)
-                } else {
-                    CardPlaceholderView(name: face.name, cornerRadius: cornerRadius, with: .spinner)
+                            .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+                            .rotationEffect(orientation == .landscape ? .degrees(90) : .zero)
+                            .scaleEffect(orientation == .portrait ? 1 : Card.aspectRatio)
+                    } else if state.error != nil {
+                        CardPlaceholderView(name: face.name, cornerRadius: cornerRadius)
+                    } else {
+                        CardPlaceholderView(name: face.name, cornerRadius: cornerRadius, with: .spinner)
+                    }
                 }
+            } else {
+                CardPlaceholderView(name: face.name, cornerRadius: cornerRadius)
             }
-        } else {
-            CardPlaceholderView(name: face.name, cornerRadius: cornerRadius)
         }
     }
 }
@@ -187,35 +200,47 @@ private struct FlippableCardFaceView: View {
     @Binding var isShowingBackFace: Bool
     let cornerRadius: CGFloat
     let showFlipButton: Bool
-    
+
+    nonisolated(unsafe) private var currentOrientation: Card.Orientation {
+        isShowingBackFace ? backFaceOrientation : frontFaceOrientation
+    }
+
+    private var rotationAxis: (x: CGFloat, y: CGFloat, z: CGFloat) {
+        frontFaceOrientation == backFaceOrientation
+        ? (x: 0, y: 1, z: 0)
+        : (x: 1, y: -1, z: 0)
+    }
+
     var body: some View {
         ZStack(alignment: Alignment(horizontal: .trailing, vertical: .centeredOnArt)) {
             ZStack {
                 CardFaceView(
                     face: frontFace,
+                    orientation: frontFaceOrientation,
                     quality: quality,
                     cornerRadius: cornerRadius,
                 )
                 .opacity(isShowingBackFace ? 0 : 1)
                 .rotation3DEffect(
                     .degrees(isShowingBackFace ? 180 : 0),
-                    axis: (x: 0, y: 1, z: 0)
+                    axis: rotationAxis,
                 )
-                
+
                 CardFaceView(
                     face: backFace,
+                    orientation: backFaceOrientation,
                     quality: quality,
                     cornerRadius: cornerRadius,
                 )
                 .opacity(isShowingBackFace ? 1 : 0)
                 .rotation3DEffect(
                     .degrees(isShowingBackFace ? 0 : -180),
-                    axis: (x: 0, y: 1, z: 0)
+                    axis: rotationAxis,
                 )
             }
             .animation(.spring(response: 0.4, dampingFraction: 0.8), value: isShowingBackFace)
-            .alignmentGuide(.centeredOnArt) { $0.height * 0.33 }
-            
+            .alignmentGuide(.centeredOnArt) { $0.height * 0.37 }
+
             if showFlipButton {
                 Button {
                     isShowingBackFace.toggle()
@@ -228,7 +253,6 @@ private struct FlippableCardFaceView: View {
                 .buttonStyle(.glass)
                 .buttonBorderShape(.circle)
                 .shadow(color: .black.opacity(0.2), radius: 3, x: 0, y: 2)
-                .alignmentGuide(.centeredOnArt) { $0[VerticalAlignment.center] }
             }
         }
     }
@@ -317,7 +341,7 @@ private extension PreviewCard {
                 borderCrop: "https://cards.scryfall.io/border_crop/front/1/c/1c1ead90-10d8-4217-80e4-6f40320c5569.jpg?1710406499"
             )
         ),
-        frontFaceOrientation: .either,
+        frontFaceOrientation: .portrait, // .either,
     )
 
     // Liliana, Heretical Healer // Liliana, Defiant Necromancer (transform, creature to planeswalker)
