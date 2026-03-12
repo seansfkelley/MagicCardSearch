@@ -202,23 +202,28 @@ private struct FilteredSearchHistoryList: View {
         Set(pinnedSearches.map(\.filters))
     }
 
-    private var results: [(match: HighlightedMatch<SearchHistoryEntry>, score: Double)] {
+    private var results: [(match: DeferredMatchHighlight<SearchHistoryEntry>, score: Double)] {
         let trimmed = filterText.trimmingCharacters(in: .whitespaces)
+        let emptyMatcher = FuzzyMatcher(config: fuzzyMatchConfig)
         guard !trimmed.isEmpty else {
+            let emptyQuery = emptyMatcher.prepare("")
             return searchHistory.map {
-                (.init(value: $0, string: $0.filters.plaintext, query: ""), 1.0)
+                (.init(value: $0, string: $0.filters.plaintext, matcher: emptyMatcher, query: emptyQuery), 1.0)
             }
         }
 
         let candidates = searchHistory.map { ($0.filters.plaintext, $0) }
+        // swiftlint:disable:next trailing_closure
         let entryByText = Dictionary(candidates, uniquingKeysWith: { first, _ in first })
 
-        return FuzzyMatcher(config: fuzzyMatchConfig)
+        let matcher = FuzzyMatcher(config: fuzzyMatchConfig)
+        let preparedQuery = matcher.prepare(trimmed)
+        return matcher
             .matches(candidates.map { $0.0 }, against: trimmed)
-            .compactMap { result -> (HighlightedMatch<SearchHistoryEntry>, Double)? in
+            .compactMap { result -> (DeferredMatchHighlight<SearchHistoryEntry>, Double)? in
                 guard let entry = entryByText[result.candidate] else { return nil }
                 return (
-                    HighlightedMatch(value: entry, string: result.candidate, query: trimmed),
+                    DeferredMatchHighlight(value: entry, string: result.candidate, matcher: matcher, query: preparedQuery),
                     result.match.score,
                 )
             }

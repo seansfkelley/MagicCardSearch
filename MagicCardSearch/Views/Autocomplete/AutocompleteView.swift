@@ -87,12 +87,13 @@ struct AutocompleteView: View {
         case .filterType:
             FilterTypeRowView(
                 suggestion: suggestion,
+                searchText: searchState.searchText,
                 orderedAllComparisons: orderedAllComparisons,
                 orderedEqualityComparison: orderedEqualityComparison,
                 onSelect: setScopedString
             )
         case .filterParts:
-            FilterPartsRowView(suggestion: suggestion) {
+            FilterPartsRowView(suggestion: suggestion, searchText: searchState.searchText) {
                 addScopedFilter(.term($0))
             }
         }
@@ -104,6 +105,7 @@ struct AutocompleteView: View {
 
         let row = FilterRowView(
             suggestion: suggestion,
+            searchText: searchState.searchText,
             showImmediateSearchIcon: suggestion.source == .name && scopedRange == nil,
         ) { filter in
             if suggestion.source == .name && scopedRange == nil {
@@ -118,9 +120,9 @@ struct AutocompleteView: View {
         case .pinnedFilter:
             row
                 .swipeActions(edge: .leading, allowsFullSwipe: true) {
-                    if case .filter(let highlighted) = suggestion.content {
+                    if case .filter(let match) = suggestion.content {
                         Button {
-                            historyAndPinnedStore.unpin(filter: highlighted.value)
+                            historyAndPinnedStore.unpin(filter: match.value)
                             nonce += 1
                         } label: {
                             Label("Unpin", systemImage: "pin.slash")
@@ -129,9 +131,9 @@ struct AutocompleteView: View {
                     }
                 }
                 .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                    if case .filter(let highlighted) = suggestion.content {
+                    if case .filter(let match) = suggestion.content {
                         Button(role: .destructive) {
-                            historyAndPinnedStore.delete(filter: highlighted.value)
+                            historyAndPinnedStore.delete(filter: match.value)
                             nonce += 1
                         } label: {
                             Label("Delete", systemImage: "trash")
@@ -141,14 +143,14 @@ struct AutocompleteView: View {
         case .historyFilter:
             row
                 .swipeActions(edge: .leading, allowsFullSwipe: true) {
-                    if case .filter(let highlighted) = suggestion.content {
-                        pinSwipeAction(for: highlighted.value)
+                    if case .filter(let match) = suggestion.content {
+                        pinSwipeAction(for: match.value)
                     }
                 }
                 .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                    if case .filter(let highlighted) = suggestion.content {
+                    if case .filter(let match) = suggestion.content {
                         Button(role: .destructive) {
-                            historyAndPinnedStore.delete(filter: highlighted.value)
+                            historyAndPinnedStore.delete(filter: match.value)
                             nonce += 1
                         } label: {
                             Label("Delete", systemImage: "trash")
@@ -158,8 +160,8 @@ struct AutocompleteView: View {
         case .enumeration:
             row
                 .swipeActions(edge: .leading, allowsFullSwipe: true) {
-                    if case .filter(let highlighted) = suggestion.content {
-                        pinSwipeAction(for: highlighted.value)
+                    if case .filter(let match) = suggestion.content {
+                        pinSwipeAction(for: match.value)
                     }
                 }
         default:

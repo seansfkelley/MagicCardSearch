@@ -1,17 +1,17 @@
 import SwiftUI
 
 struct FilterPartsRowView: View {
-    var suggestion: AutocompleteSuggestion
+    let suggestion: AutocompleteSuggestion
+    let searchText: String
     let onSelect: (FilterTerm) -> Void
 
     @State private var showingPopover = false
 
     var body: some View {
         switch suggestion.content {
-        case .filterParts(let polarity, let filterType, var highlighted):
-            let value = highlighted.value
+        case .filterParts(let polarity, let filterType, let match):
             Button {
-                onSelect(.basic(polarity, filterType.canonicalName, .including, value))
+                onSelect(.basic(polarity, filterType.canonicalName, .including, match.value))
             } label: {
                 HStack(spacing: 12) {
                     Image(systemName: suggestion.icon)
@@ -40,13 +40,19 @@ struct FilterPartsRowView: View {
                             .popover(isPresented: $showingPopover) {
                                 ComparisonGridPicker(comparisonKinds: filterType.comparisonKinds) { comparison in
                                     showingPopover = false
-                                    onSelect(.basic(polarity, filterType.canonicalName, comparison, value))
+                                    onSelect(.basic(polarity, filterType.canonicalName, comparison, match.value))
                                 }
                                 .presentationCompactAdaptation(.popover)
                             }
                             
-                            HighlightedText(text: highlighted.string, highlightRanges: highlighted.highlights)
-                                .foregroundStyle(.primary)
+                            HighlightedText(
+                                text: match.string,
+                                highlightRanges: autocompleteFuzzyMatcher.highlight(
+                                    match.string,
+                                    against: autocompleteFuzzyMatcher.prepare(searchText),
+                                ) ?? []
+                            )
+                            .foregroundStyle(.primary)
                             
                             Spacer(minLength: 0)
                         }

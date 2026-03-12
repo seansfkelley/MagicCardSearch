@@ -1,5 +1,6 @@
 import Testing
 import Foundation
+import FuzzyMatch
 import SQLiteData
 import DependenciesTestSupport
 @testable import MagicCardSearch
@@ -559,12 +560,11 @@ struct SortCombinedSuggestionsTests {
         score: Double,
         biasedScore: Double? = nil
     ) -> AutocompleteSuggestion {
-        let text = filter.description
         return AutocompleteSuggestion(
             source: source,
-            content: .filter(HighlightedMatch(value: filter, string: text, query: "")),
+            content: .filter(.init(value: filter, string: filter.description)),
             rawScore: score,
-            biasedScore: biasedScore ?? score
+            biasedScore: biasedScore ?? score,
         )
     }
 

@@ -1,25 +1,31 @@
 import SwiftUI
 
 struct FilterTypeRowView: View {
-    var suggestion: AutocompleteSuggestion
+    let suggestion: AutocompleteSuggestion
+    let searchText: String
     let orderedAllComparisons: [Comparison]
     let orderedEqualityComparison: [Comparison]
     let onSelect: (String) -> Void
 
     var body: some View {
         switch suggestion.content {
-        case .filterType(var highlighted):
+        case .filterType(let match):
             HStack(spacing: 12) {
                 Image(systemName: suggestion.icon)
                     .foregroundStyle(.secondary)
 
                 DebuggableScorableView(scorable: suggestion) {
                     HorizontallyScrollablePillSelector(
-                        label: highlighted.string,
-                        labelRanges: highlighted.highlights,
-                        options: highlighted.value.filterType.comparisonKinds == .all ? orderedAllComparisons : orderedEqualityComparison
+                        label: match.string,
+                        labelRanges: autocompleteFuzzyMatcher.highlight(
+                            match.string,
+                            against: autocompleteFuzzyMatcher.prepare(searchText),
+                        ) ?? [],
+                        options: match.value.filterType.comparisonKinds == .all
+                        ? orderedAllComparisons
+                        : orderedEqualityComparison
                     ) { comparison in
-                        onSelect("\(highlighted.string)\(comparison.rawValue)")
+                        onSelect("\(match.string)\(comparison.rawValue)")
                     }
                 }
             }

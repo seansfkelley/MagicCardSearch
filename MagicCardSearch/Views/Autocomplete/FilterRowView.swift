@@ -2,14 +2,15 @@ import SwiftUI
 
 struct FilterRowView: View {
     let suggestion: AutocompleteSuggestion
+    let searchText: String
     let showImmediateSearchIcon: Bool
     let onTap: (FilterQuery<FilterTerm>) -> Void
 
     var body: some View {
         switch suggestion.content {
-        case .filter(var highlighted):
+        case .filter(let match):
             Button {
-                onTap(highlighted.value)
+                onTap(match.value)
             } label: {
                 HStack(spacing: 12) {
                     Image(systemName: suggestion.icon)
@@ -17,8 +18,11 @@ struct FilterRowView: View {
 
                     DebuggableScorableView(scorable: suggestion) {
                         HighlightedText(
-                            text: highlighted.string,
-                            highlightRanges: highlighted.highlights
+                            text: match.string,
+                            highlightRanges: autocompleteFuzzyMatcher.highlight(
+                                match.string,
+                                against: autocompleteFuzzyMatcher.prepare(searchText),
+                            ) ?? []
                         )
                     }
 
@@ -39,4 +43,3 @@ struct FilterRowView: View {
         }
     }
 }
-

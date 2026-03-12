@@ -917,8 +917,8 @@
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/ordo-one/FuzzyMatch";
 			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 1.2.2;
+				branch = "fuzzy-highlight";
+				kind = branch;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */

@@ -42,8 +42,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/ordo-one/FuzzyMatch",
       "state" : {
-        "revision" : "3b096d7890e5b41e69bb0099296f208c24490c62",
-        "version" : "1.2.2"
+        "branch" : "fuzzy-highlight",
+        "revision" : "faf43343cd1407e7f59188490d7d919945f942e0"
       }
     },
     {
