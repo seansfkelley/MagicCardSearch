@@ -140,43 +140,36 @@ private struct CardFaceView: View {
     let cornerRadius: CGFloat
     
     var body: some View {
-        ZStack {
-            CardPlaceholderView(name: "", cornerRadius: cornerRadius)
-                .hidden()
-
-            if let imageUrlString = quality.uri(from: face.imageUris),
-               let url = URL(string: imageUrlString) {
-                LazyImage(url: url) { state in
-                    if let image = state.image {
-                        image
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .contextMenu {
-                                if let shareUrlString = CardImageQuality.bestQualityUri(from: face.imageUris),
-                                   let url = URL(string: shareUrlString) {
-                                    ShareLink(item: url, preview: SharePreview(face.name, image: image))
-                                }
-
-                                Button {
-                                    if let container = state.imageContainer {
-                                        UIPasteboard.general.image = container.image
-                                    }
-                                } label: {
-                                    Label("Copy", systemImage: "doc.on.doc")
-                                }
+        if let imageUrlString = quality.uri(from: face.imageUris),
+           let url = URL(string: imageUrlString) {
+            LazyImage(url: url) { state in
+                if let image = state.image {
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .contextMenu {
+                            if let shareUrlString = CardImageQuality.bestQualityUri(from: face.imageUris),
+                               let url = URL(string: shareUrlString) {
+                                ShareLink(item: url, preview: SharePreview(face.name, image: image))
                             }
-                            .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
-                            .rotationEffect(orientation == .landscape ? .degrees(90) : .zero)
-                            .scaleEffect(orientation == .portrait ? 1 : Card.aspectRatio)
-                    } else if state.error != nil {
-                        CardPlaceholderView(name: face.name, cornerRadius: cornerRadius)
-                    } else {
-                        CardPlaceholderView(name: face.name, cornerRadius: cornerRadius, with: .spinner)
-                    }
+
+                            Button {
+                                if let container = state.imageContainer {
+                                    UIPasteboard.general.image = container.image
+                                }
+                            } label: {
+                                Label("Copy", systemImage: "doc.on.doc")
+                            }
+                        }
+                        .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+                } else if state.error != nil {
+                    CardPlaceholderView(name: face.name, cornerRadius: cornerRadius)
+                } else {
+                    CardPlaceholderView(name: face.name, cornerRadius: cornerRadius, with: .spinner)
                 }
-            } else {
-                CardPlaceholderView(name: face.name, cornerRadius: cornerRadius)
             }
+        } else {
+            CardPlaceholderView(name: face.name, cornerRadius: cornerRadius)
         }
     }
 }
@@ -201,14 +194,8 @@ private struct FlippableCardFaceView: View {
     let cornerRadius: CGFloat
     let showFlipButton: Bool
 
-    nonisolated(unsafe) private var currentOrientation: Card.Orientation {
-        isShowingBackFace ? backFaceOrientation : frontFaceOrientation
-    }
-
     private var rotationAxis: (x: CGFloat, y: CGFloat, z: CGFloat) {
-        frontFaceOrientation == backFaceOrientation
-        ? (x: 0, y: 1, z: 0)
-        : (x: 1, y: -1, z: 0)
+        (x: 0, y: 1, z: 0)
     }
 
     var body: some View {
