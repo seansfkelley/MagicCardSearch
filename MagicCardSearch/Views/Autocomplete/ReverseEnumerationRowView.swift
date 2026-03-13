@@ -44,9 +44,9 @@ struct FilterPartsRowView: View {
                                 .presentationCompactAdaptation(.popover)
                             }
                             
-                            HighlightedText(
+                            BoldedRangeText(
                                 text: match.string,
-                                highlightRanges: match.highlights
+                                ranges: match.highlights
                             )
                             .foregroundStyle(.primary)
                             

@@ -57,14 +57,14 @@ private struct HorizontallyScrollablePillSelector<T: PillSelectorOption>: View {
 
     var body: some View {
         ZStack(alignment: .leading) {
-            HighlightedText(text: label, highlightRanges: labelRanges)
+            BoldedRangeText(text: label, ranges: labelRanges)
                 .foregroundStyle(.primary)
                 .opacity(labelOpacity)
                 .padding(.trailing, 8)
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
-                    HighlightedText(text: label, highlightRanges: labelRanges)
+                    BoldedRangeText(text: label, ranges: labelRanges)
                         .padding(.trailing, 8)
                         .hidden()
 
@@ -72,9 +72,9 @@ private struct HorizontallyScrollablePillSelector<T: PillSelectorOption>: View {
                         Button {
                             onTapOption(option.value)
                         } label: {
-                            HighlightedText(
+                            BoldedRangeText(
                                 text: option.label,
-                                highlightRange: option.range,
+                                ranges: option.range.map { [$0] } ?? [],
                             )
                             .frame(width: 24, height: 24)
                         }

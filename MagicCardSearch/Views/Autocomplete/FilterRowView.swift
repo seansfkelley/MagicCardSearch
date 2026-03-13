@@ -16,9 +16,9 @@ struct FilterRowView: View {
                         .foregroundStyle(.secondary)
 
                     DebuggableScorableView(scorable: suggestion) {
-                        HighlightedText(
+                        BoldedRangeText(
                             text: match.string,
-                            highlightRanges: match.highlights
+                            ranges: match.highlights
                         )
                     }
 

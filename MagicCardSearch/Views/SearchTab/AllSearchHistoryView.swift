@@ -261,9 +261,9 @@ private struct FilteredSearchHistoryList: View {
                     } label: {
                         DebuggableScorableView(scorable: suggestion.biasedScore) {
                             HStack {
-                                HighlightedText(
+                                BoldedRangeText(
                                     text: suggestion.string,
-                                    highlightRanges: suggestion.highlights,
+                                    ranges: suggestion.highlights,
                                 )
                                 .padding(.vertical, 4)
 
