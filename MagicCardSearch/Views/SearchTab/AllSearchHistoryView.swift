@@ -30,6 +30,7 @@ private let fuzzyMatchConfig = MatchConfig(
 private struct SearchHistorySuggestion {
     let content: SearchHistoryEntry
     let string: String
+    let highlights: [Range<String.Index>]
     let rawScore: Double
     let biasedScore: Double
 }
@@ -218,6 +219,7 @@ private struct FilteredSearchHistoryList: View {
                 SearchHistorySuggestion(
                     content: $0,
                     string: $0.filters.plaintext,
+                    highlights: [],
                     rawScore: 1.0,
                     biasedScore: recencyBias(for: $0.lastUsedAt),
                 )
@@ -227,6 +229,7 @@ private struct FilteredSearchHistoryList: View {
         let candidates = searchHistory.map { ($0.filters.plaintext, $0) }
         // swiftlint:disable:next trailing_closure
         let entryByText = Dictionary(candidates, uniquingKeysWith: { first, _ in first })
+        let query = matcher.prepare(trimmed)
 
         return matcher
             .matches(candidates.map { $0.0 }, against: trimmed)
@@ -235,6 +238,7 @@ private struct FilteredSearchHistoryList: View {
                 return SearchHistorySuggestion(
                     content: entry,
                     string: result.candidate,
+                    highlights: matcher.highlight(result.candidate, against: query) ?? [],
                     rawScore: result.match.score,
                     biasedScore: result.match.score * recencyBias(for: entry.lastUsedAt),
                 )
@@ -259,10 +263,7 @@ private struct FilteredSearchHistoryList: View {
                             HStack {
                                 HighlightedText(
                                     text: suggestion.string,
-                                    highlightRanges: matcher.highlight(
-                                        suggestion.string,
-                                        against: matcher.prepare(filterText),
-                                    ) ?? [],
+                                    highlightRanges: suggestion.highlights,
                                 )
                                 .padding(.vertical, 4)
 
