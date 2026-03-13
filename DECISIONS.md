@@ -29,13 +29,21 @@ This library is thinner than I thought at first. I keep it around mostly because
 
 There have been some mild annoyances beyond the fact that it's slightly out of date, but never enough to effectively copy-paste it into this project and reimplement the networking portion, which is the alternative.
 
-## On-device Name Autocomplete
+## Autocomplete
+
+### On-device Name Autocomplete
 
 Scryfall's name-autocomplete API is perfectly competent, but doesn't bring any domain knowledge, so isn't any better than whatever string search feature I can come up with on my own.
 
 The FuzzyMatch library is insanely fast. A release build of the app gets ~5M iterations/sec (33,666 card names in 0.006535 seconds) which is not just faster than network but apparently-instantaneous to the user. (n.b. a debug build does the same in .360s, so optimization matters a LOT.)
 
 Given that I already have machinery in place to fetch catalogs from Scryfall, FuzzyMatch improves not just the UX but also keeps the implementation simpler since name autocomplete is the only supported autocomplete that would conceivably go to network (and therefore introduce a bunch of error handling and loading states).
+
+### Single-stream Autocomplete Logic
+
+An earlier implementation of the autocomplete logic split every provider into its own task and streamed results back to the view consumer. Beyond the code complexity and concurrency issues, this also caused a visible flicker as the first thing that happened is the results would be wiped.
+
+FuzzyMatch is so fast that it's feasible to run all the logic on one shot so the results are only replaced when there are ones to replace them. This also allows better cancellation semantics since the big chunk of work can be aborted partway through instead of being shattered into a bunch of pieces that are too small to bother cancelling.
 
 ## Caching
 

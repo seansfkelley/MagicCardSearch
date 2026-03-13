@@ -38,8 +38,8 @@ class SearchState {
     public var configuration = SearchConfiguration.load()
     public var results: ScryfallObjectList<Card>?
     public private(set) var searchNonce = 0
-    public var suggestions: AsyncStream<[AutocompleteSuggestion]> {
-        suggestionProvider.getSuggestions(for: selectedFilter.text, existingFilters: Set(filters))
+    public func getSuggestions() async throws -> [AutocompleteSuggestion] {
+        try await suggestionProvider.getSuggestions(for: selectedFilter.text, existingFilters: Set(filters))
     }
 
     // TODO: Cache this based on the inputs?

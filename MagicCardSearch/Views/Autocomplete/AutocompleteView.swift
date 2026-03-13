@@ -71,9 +71,8 @@ struct AutocompleteView: View {
         .listStyle(.plain)
         .scrollDismissesKeyboard(.interactively)
         .task(id: searchSuggestionKey) {
-            for await newSuggestions in searchState.suggestions {
-                suggestions = newSuggestions
-            }
+            guard let newSuggestions = try? await searchState.getSuggestions() else { return }
+            suggestions = newSuggestions
         }
     }
 
