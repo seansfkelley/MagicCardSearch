@@ -4,7 +4,6 @@ import ScryfallKit
 struct SearchResultsGridView: View {
     let list: ScryfallObjectList<Card>
     @Binding var searchState: SearchState
-
     @State private var selectedCardIndex: Int?
     @State private var cardFlipStates: [UUID: Bool] = [:]
 

@@ -7,8 +7,8 @@ private let logger = Logger(subsystem: "MagicCardSearch", category: "SearchTabVi
 
 struct SearchTabView: View {
     @Binding var searchState: SearchState
+    @Binding var showSearchSheet: Bool
 
-    @State private var showSearchSheet = false
     @State private var showDisplayOptionsSheet = false
     @State private var pendingSearchConfig: SearchConfiguration?
 
