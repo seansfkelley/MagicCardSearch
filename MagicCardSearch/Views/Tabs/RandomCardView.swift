@@ -64,6 +64,8 @@ private enum ScrollItem: Hashable {
 // MARK: - RandomCardView
 
 struct RandomCardView: View {
+    @Binding var advanceCard: Bool
+
     @State private var history: [HistoryEntry] = []
     @State private var scrollPosition: ScrollItem?
     @State private var cardFlipStates: [UUID: Bool] = [:]
@@ -189,6 +191,29 @@ struct RandomCardView: View {
                 }
             case .placeholder:
                 fetchNextCard()
+            }
+        }
+        .onChange(of: advanceCard) {
+            guard advanceCard else { return }
+            advanceCard = false
+            withAnimation {
+                switch scrollPosition {
+                case .intro, nil:
+                    if let first = history.first {
+                        scrollPosition = .entry(first.id, 0)
+                    } else {
+                        scrollPosition = .placeholder
+                    }
+                case .entry(_, let index):
+                    let nextIndex = index + 1
+                    if let next = history[safe: nextIndex] {
+                        scrollPosition = .entry(next.id, nextIndex)
+                    } else {
+                        scrollPosition = .placeholder
+                    }
+                case .placeholder:
+                    break
+                }
             }
         }
         .sheet(isPresented: $showingFilterSheet) {

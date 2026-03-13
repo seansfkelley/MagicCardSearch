@@ -9,6 +9,7 @@ struct ContentView: View {
     @AppStorage("selectedTab") private var selectedTab: Tab = .search
     @State private var searchState: SearchState
     @State private var showSearchSheet = false
+    @State private var advanceRandomCard = false
 
     // UITabBarController.delegate is weak, so we retain it here.
     private let tabDelegate: SearchTabDelegate
@@ -40,7 +41,7 @@ struct ContentView: View {
             }
 
             SwiftUI.Tab("Random", systemImage: "shuffle", value: Tab.random) {
-                RandomCardView()
+                RandomCardView(advanceCard: $advanceRandomCard)
             }
 
             SwiftUI.Tab("Search", systemImage: "magnifyingglass", value: Tab.search) {
@@ -49,6 +50,7 @@ struct ContentView: View {
         }
         .onAppear {
             tabDelegate.onSearchTabTapped = { showSearchSheet = true }
+            tabDelegate.onRandomTabTapped = { advanceRandomCard = true }
         }
         .introspect(.tabView, on: .iOS(.v26)) { tabBarController in
             tabBarController.delegate = tabDelegate
@@ -59,15 +61,22 @@ struct ContentView: View {
 // MARK: - Search Tab Delegate
 
 private final class SearchTabDelegate: NSObject, UITabBarControllerDelegate {
+    var onRandomTabTapped: (() -> Void)?
     var onSearchTabTapped: (() -> Void)?
 
     func tabBarController(
         _ tabBarController: UITabBarController,
         shouldSelect viewController: UIViewController
     ) -> Bool {
-        if tabBarController.selectedViewController === viewController,
-           tabBarController.selectedIndex == 3 {
-            onSearchTabTapped?()
+        if tabBarController.selectedViewController === viewController {
+            switch tabBarController.selectedIndex {
+            case 2:
+                onRandomTabTapped?()
+            case 3:
+                onSearchTabTapped?()
+            default:
+                break
+            }
         }
         return true
     }
