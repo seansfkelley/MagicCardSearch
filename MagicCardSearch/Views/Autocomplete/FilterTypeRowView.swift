@@ -36,13 +36,11 @@ private protocol PillSelectorOption {
 
     var value: Value { get }
     var label: String { get }
-    var range: Range<String.Index>? { get }
 }
 
 extension Comparison: PillSelectorOption {
     var value: Comparison { self }
     var label: String { rawValue }
-    var range: Range<String.Index>? { nil }
 }
 
 private struct HorizontallyScrollablePillSelector<T: PillSelectorOption>: View {
@@ -72,11 +70,10 @@ private struct HorizontallyScrollablePillSelector<T: PillSelectorOption>: View {
                         Button {
                             onTapOption(option.value)
                         } label: {
-                            BoldedRangeText(
-                                text: option.label,
-                                ranges: option.range.map { [$0] } ?? [],
-                            )
-                            .frame(width: 24, height: 24)
+                            Text(option.label)
+                                .foregroundStyle(.primary)
+                                .lineLimit(1)
+                                .frame(width: 24, height: 24)
                         }
                         .clipShape(Circle())
                         // Unfortunately this makes it slightly transparent, so you can see the
