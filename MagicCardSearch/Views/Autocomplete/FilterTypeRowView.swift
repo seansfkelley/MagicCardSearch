@@ -2,7 +2,6 @@ import SwiftUI
 
 struct FilterTypeRowView: View {
     let suggestion: AutocompleteSuggestion
-    let searchText: String
     let orderedAllComparisons: [Comparison]
     let orderedEqualityComparison: [Comparison]
     let onSelect: (String) -> Void
@@ -17,10 +16,7 @@ struct FilterTypeRowView: View {
                 DebuggableScorableView(scorable: suggestion) {
                     HorizontallyScrollablePillSelector(
                         label: match.string,
-                        labelRanges: autocompleteFuzzyMatcher.highlight(
-                            match.string,
-                            against: autocompleteFuzzyMatcher.prepare(searchText),
-                        ) ?? [],
+                        labelRanges: match.highlights,
                         options: match.value.filterType.comparisonKinds == .all
                         ? orderedAllComparisons
                         : orderedEqualityComparison

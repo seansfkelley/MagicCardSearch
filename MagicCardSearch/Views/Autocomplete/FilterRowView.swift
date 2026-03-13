@@ -2,7 +2,6 @@ import SwiftUI
 
 struct FilterRowView: View {
     let suggestion: AutocompleteSuggestion
-    let searchText: String
     let showImmediateSearchIcon: Bool
     let onTap: (FilterQuery<FilterTerm>) -> Void
 
@@ -19,10 +18,7 @@ struct FilterRowView: View {
                     DebuggableScorableView(scorable: suggestion) {
                         HighlightedText(
                             text: match.string,
-                            highlightRanges: autocompleteFuzzyMatcher.highlight(
-                                match.string,
-                                against: autocompleteFuzzyMatcher.prepare(searchText),
-                            ) ?? []
+                            highlightRanges: match.highlights
                         )
                     }
 

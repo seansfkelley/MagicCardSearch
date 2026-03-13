@@ -161,7 +161,7 @@ class AutocompleteSuggestionProvider {
     }
 }
 
-let autocompleteFuzzyMatcher = FuzzyMatcher(config: MatchConfig(
+private let fuzzyMatcher = FuzzyMatcher(config: MatchConfig(
     minScore: 0.85,
     algorithm: .editDistance(
         .init(
@@ -210,8 +210,8 @@ func pinnedFilterSuggestions(for partial: PartialFilterTerm, from pinnedFilters:
         uniquingKeysWith: { first, _ in first },
     )
 
-    let query = autocompleteFuzzyMatcher.prepare(trimmedSearchTerm)
-    return autocompleteFuzzyMatcher.matches(Array(filterByText.keys), against: query)
+    let query = fuzzyMatcher.prepare(trimmedSearchTerm)
+    return fuzzyMatcher.matches(Array(filterByText.keys), against: query)
         .lazy
         .map { result in
             AutocompleteSuggestion(
@@ -220,7 +220,7 @@ func pinnedFilterSuggestions(for partial: PartialFilterTerm, from pinnedFilters:
                     .init(
                         value: filterByText[result.candidate]!,
                         string: result.candidate,
-                        highlights: autocompleteFuzzyMatcher.highlight(result.candidate, against: query) ?? [],
+                        highlights: fuzzyMatcher.highlight(result.candidate, against: query) ?? [],
                     ),
                 ),
                 rawScore: result.match.score,
@@ -258,8 +258,8 @@ func filterHistorySuggestions(for searchTerm: String, from filterHistoryEntries:
         uniquingKeysWith: { first, _ in first },
     )
 
-    let query = autocompleteFuzzyMatcher.prepare(trimmedSearchTerm)
-    return AnySequence(autocompleteFuzzyMatcher.matches(Array(entryByFilterDescription.keys), against: query)
+    let query = fuzzyMatcher.prepare(trimmedSearchTerm)
+    return AnySequence(fuzzyMatcher.matches(Array(entryByFilterDescription.keys), against: query)
         .lazy
         .map { result in
             let entry = entryByFilterDescription[result.candidate]!
@@ -269,7 +269,7 @@ func filterHistorySuggestions(for searchTerm: String, from filterHistoryEntries:
                     .init(
                         value: entry.filter,
                         string: result.candidate,
-                        highlights: autocompleteFuzzyMatcher.highlight(result.candidate, against: query) ?? [],
+                        highlights: fuzzyMatcher.highlight(result.candidate, against: query) ?? [],
                     ),
                 ),
                 rawScore: result.match.score,
@@ -300,10 +300,10 @@ func filterTypeSuggestions(for partial: PartialFilterTerm, searchTerm: String) -
         return AnySequence([])
     }
 
-    let query = autocompleteFuzzyMatcher.prepare(partialTerm.incompleteContent)
+    let query = fuzzyMatcher.prepare(partialTerm.incompleteContent)
     var seen = Set<String>()
     var deduplicated: [(String, ScryfallFilterType, Double)] = []
-    for result in autocompleteFuzzyMatcher.matches(Array(scryfallFilterByType.keys), against: query) {
+    for result in fuzzyMatcher.matches(Array(scryfallFilterByType.keys), against: query) {
         if let filterType = scryfallFilterByType[result.candidate], seen.insert(filterType.canonicalName).inserted {
             deduplicated.append((result.candidate, filterType, result.match.score))
         }
@@ -319,7 +319,7 @@ func filterTypeSuggestions(for partial: PartialFilterTerm, searchTerm: String) -
                     .init(
                         value: FilterTypeSuggestion(polarity: partial.polarity, filterType: filterType),
                         string: string,
-                        highlights: (autocompleteFuzzyMatcher.highlight(candidate, against: query) ?? [])
+                        highlights: (fuzzyMatcher.highlight(candidate, against: query) ?? [])
                             .shift(by: partial.polarity == .negative ? 1 : 0, in: string),
                     ),
                 ),
@@ -381,13 +381,13 @@ func enumerationSuggestions(for partial: PartialFilterTerm, catalogData: Enumera
         return AnySequence([])
     }
 
-    let query = autocompleteFuzzyMatcher.prepare(partialValue.incompleteContent)
+    let query = fuzzyMatcher.prepare(partialValue.incompleteContent)
 
     let matched: [(String, Double)] = if query.original.isEmpty {
         allCandidates.sorted { $0.localizedStandardCompare($1) == .orderedAscending }.map { ($0, 0) }
     } else {
         timed("enumerationSuggestions fuzzy match") {
-            autocompleteFuzzyMatcher.matches(allCandidates, against: query).map { ($0.candidate, $0.match.score) }
+            fuzzyMatcher.matches(allCandidates, against: query).map { ($0.candidate, $0.match.score) }
         }
     }
 
@@ -395,13 +395,18 @@ func enumerationSuggestions(for partial: PartialFilterTerm, catalogData: Enumera
         .lazy
         .map { candidate, score in
             let filter = FilterTerm.basic(partial.polarity, filterTypeName.lowercased(), comparison, candidate)
+            let filterText = filter.description
             return AutocompleteSuggestion(
                 source: .enumeration,
                 content: .filter(
                     .init(
                         value: .term(filter),
-                        string: filter.description,
-                        highlights: [], // TODO
+                        string: filterText,
+                        highlights: (query.original.isEmpty ? [] : fuzzyMatcher.highlight(candidate, against: query) ?? [])
+                            .shift(
+                                by: filterText.distance(from: filterText.startIndex, to: filter.suggestedEditingRange.lowerBound),
+                                in: filterText,
+                            ),
                     ),
                 ),
                 rawScore: score,
@@ -429,10 +434,10 @@ func reverseEnumerationSuggestions(for partial: PartialFilterTerm, catalogData: 
         "watermark": -0.4, // not super cluttery but also almost never useful
     ]
 
+    let query = fuzzyMatcher.prepare(partialTerm.incompleteContent)
     let matchResults: [(candidate: String, filterTypes: [ScryfallFilterType], score: Double, biasedScore: Double)] =
         timed("reverseEnumerationSuggestions fuzzy match") {
-            var buffer = autocompleteFuzzyMatcher.makeBuffer()
-            let prepared = autocompleteFuzzyMatcher.prepare(partialTerm.incompleteContent)
+            var buffer = fuzzyMatcher.makeBuffer()
 
             var results: [(candidate: String, filterTypes: [ScryfallFilterType], score: Double, biasedScore: Double)] = []
             var unbiasedValueToFilterTypes: [String: [ScryfallFilterType]] = [:]
@@ -441,7 +446,7 @@ func reverseEnumerationSuggestions(for partial: PartialFilterTerm, catalogData: 
                 guard !values.isEmpty else { continue }
                 if let bias = biasedFilterTypes[filterType.canonicalName] {
                     for candidate in values {
-                        if let match = autocompleteFuzzyMatcher.score(candidate, against: prepared, buffer: &buffer) {
+                        if let match = fuzzyMatcher.score(candidate, against: query, buffer: &buffer) {
                             results.append((candidate, [filterType], match.score, match.score + bias))
                         }
                     }
@@ -452,7 +457,7 @@ func reverseEnumerationSuggestions(for partial: PartialFilterTerm, catalogData: 
                 }
             }
             for candidate in unbiasedValueToFilterTypes.keys {
-                if let match = autocompleteFuzzyMatcher.score(candidate, against: prepared, buffer: &buffer) {
+                if let match = fuzzyMatcher.score(candidate, against: query, buffer: &buffer) {
                     results.append((candidate, unbiasedValueToFilterTypes[candidate]!, match.score, match.score))
                 }
             }
@@ -466,7 +471,15 @@ func reverseEnumerationSuggestions(for partial: PartialFilterTerm, catalogData: 
                 filterTypes.map { filterType in
                     AutocompleteSuggestion(
                         source: .reverseEnumeration,
-                        content: .filterParts(partial.polarity, filterType, .init(value: candidate, string: candidate)),
+                        content: .filterParts(
+                            partial.polarity,
+                            filterType,
+                            .init(
+                                value: candidate,
+                                string: candidate,
+                                highlights: fuzzyMatcher.highlight(candidate, against: query) ?? [],
+                            ),
+                        ),
                         rawScore: score,
                         biasedScore: biasedScore,
                     )
@@ -499,8 +512,9 @@ func nameSuggestions(for partial: PartialFilterTerm, in cardNames: [String], sea
         return AnySequence([])
     }
 
+    let query = fuzzyMatcher.prepare(name)
     let matches = timed("nameSuggestions fuzzy match") {
-        autocompleteFuzzyMatcher.matches(cardNames, against: name)
+        fuzzyMatcher.matches(cardNames, against: query)
     }
 
     return AnySequence(matches
@@ -511,10 +525,21 @@ func nameSuggestions(for partial: PartialFilterTerm, in cardNames: [String], sea
             } else {
                 .name(partial.polarity, true, result.candidate)
             }
+            let filterText = filter.description
 
             return AutocompleteSuggestion(
                 source: .name,
-                content: .filter(.init(value: .term(filter), string: filter.description)),
+                content: .filter(
+                    .init(
+                        value: .term(filter),
+                        string: filterText,
+                        highlights: (fuzzyMatcher.highlight(result.candidate, against: query) ?? [])
+                            .shift(
+                                by: filterText.distance(from: filterText.startIndex, to: filter.suggestedEditingRange.lowerBound),
+                                in: filterText,
+                            )
+                    ),
+                ),
                 rawScore: result.match.score,
                 biasedScore: result.match.score,
             )

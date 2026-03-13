@@ -87,13 +87,12 @@ struct AutocompleteView: View {
         case .filterType:
             FilterTypeRowView(
                 suggestion: suggestion,
-                searchText: searchState.searchText,
                 orderedAllComparisons: orderedAllComparisons,
                 orderedEqualityComparison: orderedEqualityComparison,
                 onSelect: setScopedString
             )
         case .filterParts:
-            FilterPartsRowView(suggestion: suggestion, searchText: searchState.searchText) {
+            FilterPartsRowView(suggestion: suggestion) {
                 addScopedFilter(.term($0))
             }
         }
@@ -105,7 +104,6 @@ struct AutocompleteView: View {
 
         let row = FilterRowView(
             suggestion: suggestion,
-            searchText: searchState.searchText,
             showImmediateSearchIcon: suggestion.source == .name && scopedRange == nil,
         ) { filter in
             if suggestion.source == .name && scopedRange == nil {

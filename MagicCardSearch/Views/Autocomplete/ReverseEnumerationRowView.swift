@@ -2,7 +2,6 @@ import SwiftUI
 
 struct FilterPartsRowView: View {
     let suggestion: AutocompleteSuggestion
-    let searchText: String
     let onSelect: (FilterTerm) -> Void
 
     @State private var showingPopover = false
@@ -47,10 +46,7 @@ struct FilterPartsRowView: View {
                             
                             HighlightedText(
                                 text: match.string,
-                                highlightRanges: autocompleteFuzzyMatcher.highlight(
-                                    match.string,
-                                    against: autocompleteFuzzyMatcher.prepare(searchText),
-                                ) ?? []
+                                highlightRanges: match.highlights
                             )
                             .foregroundStyle(.primary)
                             
