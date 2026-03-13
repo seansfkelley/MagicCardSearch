@@ -27,6 +27,13 @@ private let fuzzyMatchConfig = MatchConfig(
     algorithm: .editDistance(.default)
 )
 
+private struct SearchHistorySuggestion {
+    let content: SearchHistoryEntry
+    let string: String
+    let rawScore: Double
+    let biasedScore: Double
+}
+
 struct AllSearchHistoryView: View {
     private let buttonSize: CGFloat = 44
 
@@ -202,13 +209,18 @@ private struct FilteredSearchHistoryList: View {
         Set(pinnedSearches.map(\.filters))
     }
 
-    private var results: [(match: DeferredMatchHighlight<SearchHistoryEntry>, score: Double)] {
+    private let matcher = FuzzyMatcher(config: fuzzyMatchConfig)
+
+    private var results: [SearchHistorySuggestion] {
         let trimmed = filterText.trimmingCharacters(in: .whitespaces)
-        let emptyMatcher = FuzzyMatcher(config: fuzzyMatchConfig)
         guard !trimmed.isEmpty else {
-            let emptyQuery = emptyMatcher.prepare("")
             return searchHistory.map {
-                (.init(value: $0, string: $0.filters.plaintext, matcher: emptyMatcher, query: emptyQuery), 1.0)
+                SearchHistorySuggestion(
+                    content: $0,
+                    string: $0.filters.plaintext,
+                    rawScore: 1.0,
+                    biasedScore: recencyBias(for: $0.lastUsedAt),
+                )
             }
         }
 
@@ -216,15 +228,15 @@ private struct FilteredSearchHistoryList: View {
         // swiftlint:disable:next trailing_closure
         let entryByText = Dictionary(candidates, uniquingKeysWith: { first, _ in first })
 
-        let matcher = FuzzyMatcher(config: fuzzyMatchConfig)
-        let preparedQuery = matcher.prepare(trimmed)
         return matcher
             .matches(candidates.map { $0.0 }, against: trimmed)
-            .compactMap { result -> (DeferredMatchHighlight<SearchHistoryEntry>, Double)? in
+            .compactMap { result in
                 guard let entry = entryByText[result.candidate] else { return nil }
-                return (
-                    DeferredMatchHighlight(value: entry, string: result.candidate, matcher: matcher, query: preparedQuery),
-                    result.match.score,
+                return SearchHistorySuggestion(
+                    content: entry,
+                    string: result.candidate,
+                    rawScore: result.match.score,
+                    biasedScore: result.match.score * recencyBias(for: entry.lastUsedAt),
                 )
             }
     }
@@ -237,24 +249,26 @@ private struct FilteredSearchHistoryList: View {
             ContentUnavailableView.search(text: filterText)
         } else {
             List {
-                ForEach(results, id: \.match.value.id) { match, score in
-                    var mutableMatch = match
+                ForEach(results, id: \.content.id) { suggestion in
                     Button {
-                        searchState.filters = match.value.filters
+                        searchState.filters = suggestion.content.filters
                         searchState.performSearch()
                         dismiss()
                     } label: {
-                        DebuggableScorableView(scorable: score) {
+                        DebuggableScorableView(scorable: suggestion.biasedScore) {
                             HStack {
                                 HighlightedText(
-                                    text: match.string,
-                                    highlightRanges: mutableMatch.highlights,
+                                    text: suggestion.string,
+                                    highlightRanges: matcher.highlight(
+                                        suggestion.string,
+                                        against: matcher.prepare(filterText),
+                                    ) ?? [],
                                 )
                                 .padding(.vertical, 4)
 
                                 Spacer()
 
-                                if pinnedFilters.contains(match.value.filters) {
+                                if pinnedFilters.contains(suggestion.content.filters) {
                                     Image(systemName: "pin.fill")
                                         .foregroundStyle(.secondary)
                                 }
@@ -263,16 +277,16 @@ private struct FilteredSearchHistoryList: View {
                     }
                     .tint(.primary)
                     .swipeActions(edge: .leading, allowsFullSwipe: true) {
-                        if pinnedFilters.contains(match.value.filters) {
+                        if pinnedFilters.contains(suggestion.content.filters) {
                             Button {
-                                historyAndPinnedStore.unpin(search: match.value.filters)
+                                historyAndPinnedStore.unpin(search: suggestion.content.filters)
                             } label: {
                                 Label("Unpin", systemImage: "pin.slash")
                             }
                             .tint(.orange)
                         } else {
                             Button {
-                                historyAndPinnedStore.pin(search: match.value.filters)
+                                historyAndPinnedStore.pin(search: suggestion.content.filters)
                             } label: {
                                 Label("Pin", systemImage: "pin")
                             }
@@ -281,7 +295,7 @@ private struct FilteredSearchHistoryList: View {
                     }
                     .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                         Button(role: .destructive) {
-                            historyAndPinnedStore.delete(search: match.value.filters)
+                            historyAndPinnedStore.delete(search: suggestion.content.filters)
                         } label: {
                             Label("Delete", systemImage: "trash")
                         }
