@@ -189,8 +189,8 @@ struct AllSearchHistoryView: View {
                         Spacer()
 
                         Button {
-                            isSearchFocused = false
                             filterText = ""
+                            isSearchFocused = false
                         } label: {
                             Image(systemName: "xmark")
                                 .foregroundStyle(.primary)
@@ -198,6 +198,7 @@ struct AllSearchHistoryView: View {
                                 .frame(width: buttonSize, height: buttonSize)
                                 .glassEffect(.regular.interactive(), in: .circle)
                         }
+                        .buttonStyle(.plain)
                     }
                     .padding(.bottom)
                     .padding(.horizontal, 20)

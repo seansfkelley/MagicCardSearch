@@ -74,11 +74,12 @@ struct FakeSearchBarButtonView: View {
                         onTap()
                     }) {
                         Image(systemName: "xmark")
-                            .foregroundStyle(.red)
+                            .foregroundStyle(.primary)
                             .font(.system(size: 20))
                             .frame(width: buttonSize, height: buttonSize)
                             .glassEffect(.regular.interactive(), in: .circle)
                     }
+                    .buttonStyle(.plain)
                 }
             }
         }
