@@ -64,6 +64,11 @@ private enum ScrollItem: Hashable {
 // MARK: - RandomCardView
 
 struct RandomCardView: View {
+    // FIXME: This is dumb as hell because in reality it's just a thunk that the parent can call.
+    // A view model owned by the parent, so it can imperatively trigger advancement, would be the
+    // right way to do this, but since it needs data stores injected and would have to watch its
+    // own scroll position to reactively trigger loads, it's actually a huge pain in the ass to
+    // implement. So we do this total nonsense.
     @Binding var advanceCard: Bool
 
     @State private var history: [HistoryEntry] = []
