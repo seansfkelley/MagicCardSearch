@@ -196,9 +196,10 @@ struct AllSearchHistoryView: View {
                                 .foregroundStyle(.primary)
                                 .font(.system(size: 20))
                                 .frame(width: buttonSize, height: buttonSize)
-                                .glassEffect(.regular.interactive(), in: .circle)
                         }
                         .buttonStyle(.plain)
+                        .contentShape(Circle())
+                        .glassEffect(.regular.interactive())
                     }
                     .padding(.bottom)
                     .padding(.horizontal, 20)

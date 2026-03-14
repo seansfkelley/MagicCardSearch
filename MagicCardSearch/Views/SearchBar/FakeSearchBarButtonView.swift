@@ -69,7 +69,7 @@ struct FakeSearchBarButtonView: View {
 
                 if !searchState.filters.isEmpty {
                     Spacer()
-                    Button(role: .destructive, action: {
+                    Button(action: {
                         searchState.clearAll()
                         onTap()
                     }) {
@@ -77,9 +77,10 @@ struct FakeSearchBarButtonView: View {
                             .foregroundStyle(.primary)
                             .font(.system(size: 20))
                             .frame(width: buttonSize, height: buttonSize)
-                            .glassEffect(.regular.interactive(), in: .circle)
                     }
                     .buttonStyle(.plain)
+                    .contentShape(Circle())
+                    .glassEffect(.regular.interactive())
                 }
             }
         }
