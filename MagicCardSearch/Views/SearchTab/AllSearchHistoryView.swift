@@ -69,7 +69,7 @@ struct AllSearchHistoryView: View {
                         systemImage: "clock.arrow.circlepath",
                         description: Text("Your search history will appear here.")
                     )
-                } else if isSearchFocused {
+                } else if isSearchFocused || !filterText.isEmpty {
                     FilteredSearchHistoryList(
                         searchHistory: searchHistory,
                         pinnedSearches: pinnedSearches,
@@ -169,6 +169,18 @@ struct AllSearchHistoryView: View {
                                 .autocorrectionDisabled(true)
                                 .textContentType(.none)
                                 .focused($isSearchFocused)
+
+                            if !filterText.isEmpty {
+                                Button(action: {
+                                    filterText = ""
+                                    isSearchFocused = true
+                                }) {
+                                    Image(systemName: "xmark.circle.fill")
+                                        .foregroundStyle(.secondary)
+                                        .imageScale(.large)
+                                }
+                                .buttonStyle(.plain)
+                            }
                         }
                         .frame(height: buttonSize)
                         .contentShape(Capsule())
@@ -181,7 +193,7 @@ struct AllSearchHistoryView: View {
                             filterText = ""
                         } label: {
                             Image(systemName: "xmark")
-                                .foregroundStyle(.black)
+                                .foregroundStyle(.primary)
                                 .font(.system(size: 20))
                                 .frame(width: buttonSize, height: buttonSize)
                                 .glassEffect(.regular.interactive(), in: .circle)
