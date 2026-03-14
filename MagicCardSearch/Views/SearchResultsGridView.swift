@@ -101,8 +101,8 @@ struct SearchResultsGridView: View {
                 searchState: $searchState,
             )
         }
-        .onChange(of: searchState.filters) {
-            selectedCardIndex = nil
+        .onChange(of: searchState.searchNonce) {
+            cardFlipStates = [:]
         }
         .onChange(of: searchState.results?.value.latestValue?.data ?? []) { _, newValue in
             // This is a bit of a jank way to implement "auto-open on one search result" but it is
