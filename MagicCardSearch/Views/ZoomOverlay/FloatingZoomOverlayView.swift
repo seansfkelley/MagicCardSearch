@@ -63,11 +63,10 @@ private struct OverlayGestureView: UIViewRepresentable {
         let pinch = UIPinchGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handlePinch))
         let pan = UIPanGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handlePan))
         let tap = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleTap))
-        pan.minimumNumberOfTouches = 2
-        pan.maximumNumberOfTouches = 2
 
         pinch.delegate = context.coordinator
         pan.delegate = context.coordinator
+        tap.delegate = context.coordinator
 
         view.addGestureRecognizer(pinch)
         view.addGestureRecognizer(pan)
@@ -123,5 +122,13 @@ private struct OverlayGestureView: UIViewRepresentable {
             _ gestureRecognizer: UIGestureRecognizer,
             shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer
         ) -> Bool { true }
+
+        func gestureRecognizer(
+            _ gestureRecognizer: UIGestureRecognizer,
+            shouldRequireFailureOf other: UIGestureRecognizer
+        ) -> Bool {
+            // Tap only fires if the pan hasn't recognized first.
+            gestureRecognizer is UITapGestureRecognizer && other is UIPanGestureRecognizer
+        }
     }
 }
