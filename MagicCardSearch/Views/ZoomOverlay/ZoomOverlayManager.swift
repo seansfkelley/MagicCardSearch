@@ -14,12 +14,6 @@ final class ZoomOverlayManager: ObservableObject {
     @Published var offset: CGSize = .zero
     @Published var cornerRadius: CGFloat = 0
 
-    static let minScale: CGFloat = 1.2
-    static let maxScale: CGFloat = 1.7
-    /// The scale at which the background reaches full black.
-    static let fullOpacityScale: CGFloat = 1.4
-
-
     private init() {}
 
     func present(image: UIImage, from frame: CGRect, cornerRadius: CGFloat) {
@@ -46,7 +40,7 @@ final class ZoomOverlayManager: ObservableObject {
             height: screenSize.height / 2 - frame.midY
         )
         withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-            self.scale = ZoomOverlayManager.fullOpacityScale
+            self.scale = ZoomOverlayConstants.fullOpacityScale
             self.offset = targetOffset
         }
     }
@@ -56,23 +50,23 @@ final class ZoomOverlayManager: ObservableObject {
     /// if scale is outside [minScale, maxScale].
     func commitGesture() {
         isGestureActive = false
-        if scale <= Self.minScale {
+        if scale <= ZoomOverlayConstants.minScale {
             dismiss()
-        } else if scale > Self.maxScale {
+        } else if scale > ZoomOverlayConstants.maxScale {
             withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                scale = Self.maxScale
+                scale = ZoomOverlayConstants.maxScale
             }
         }
     }
 
     func snapToBoundsIfNeeded() {
-        if scale < Self.minScale {
+        if scale < ZoomOverlayConstants.minScale {
             withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                scale = Self.minScale
+                scale = ZoomOverlayConstants.minScale
             }
-        } else if scale > Self.maxScale {
+        } else if scale > ZoomOverlayConstants.maxScale {
             withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                scale = Self.maxScale
+                scale = ZoomOverlayConstants.maxScale
             }
         }
     }
@@ -85,6 +79,36 @@ final class ZoomOverlayManager: ObservableObject {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
             self.isVisible = false
             self.image = nil
+        }
+    }
+
+    /// Flings the card a short distance in the direction of `velocity`,
+    /// then animates back to the source position and dismisses.
+    func fling(velocity: CGVector) {
+        let speed = sqrt(velocity.dx * velocity.dx + velocity.dy * velocity.dy)
+        guard speed > 0 else { dismiss(); return }
+
+        let normalX = velocity.dx / speed
+        let normalY = velocity.dy / speed
+        let flingOffset = CGSize(
+            width: offset.width + normalX * ZoomOverlayConstants.flingDistance,
+            height: offset.height + normalY * ZoomOverlayConstants.flingDistance
+        )
+
+        let flingDuration: Double = 0.12
+        withAnimation(.easeOut(duration: flingDuration)) {
+            offset = flingOffset
+            scale = max(1, scale - 0.15)
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + flingDuration) {
+            withAnimation(.spring(response: 0.22, dampingFraction: 0.8)) {
+                self.scale = 1
+                self.offset = .zero
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.22) {
+                self.isVisible = false
+                self.image = nil
+            }
         }
     }
 }

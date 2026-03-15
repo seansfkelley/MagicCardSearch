@@ -42,7 +42,7 @@ struct FloatingZoomOverlayView: View {
 
     private var backgroundOpacity: Double {
         let liveScale = Double(manager.scale)
-        let t = (liveScale - ZoomOverlayManager.minScale) / (ZoomOverlayManager.fullOpacityScale - ZoomOverlayManager.minScale)
+        let t = (liveScale - ZoomOverlayConstants.minScale) / (ZoomOverlayConstants.fullOpacityScale - ZoomOverlayConstants.minScale)
         return UnitCurve.easeOut.value(at: max(0, min(1, t)))
     }
 }
@@ -84,7 +84,7 @@ private struct OverlayGestureView: UIViewRepresentable {
                 scaleAtGestureBegan = manager.scale
             case .changed:
                 let rawScale = scaleAtGestureBegan * recognizer.scale
-                let clampedScale = rubberBand(rawScale, min: ZoomOverlayManager.minScale, max: ZoomOverlayManager.maxScale)
+                let clampedScale = rubberBand(rawScale, min: ZoomOverlayConstants.minScale, max: ZoomOverlayConstants.maxScale)
                 let effectiveDScale = clampedScale / manager.scale
                 let centroid = recognizer.location(in: nil)
                 let imageCenterX = manager.sourceFrame.midX + manager.offset.width
@@ -96,7 +96,7 @@ private struct OverlayGestureView: UIViewRepresentable {
                 manager.scale = clampedScale
             case .ended:
                 manager.snapToBoundsIfNeeded()
-                if manager.scale <= ZoomOverlayManager.minScale { manager.dismiss() }
+                if manager.scale <= ZoomOverlayConstants.minScale { manager.dismiss() }
             case .cancelled, .failed:
                 manager.dismiss()
             default:
@@ -105,11 +105,22 @@ private struct OverlayGestureView: UIViewRepresentable {
         }
 
         @objc func handlePan(_ recognizer: UIPanGestureRecognizer) {
-            guard recognizer.state == .changed || recognizer.state == .began else { return }
-            let t = recognizer.translation(in: nil)
-            manager.offset.width += t.x
-            manager.offset.height += t.y
-            recognizer.setTranslation(.zero, in: nil)
+            switch recognizer.state {
+            case .began, .changed:
+                let t = recognizer.translation(in: nil)
+                manager.offset.width += t.x
+                manager.offset.height += t.y
+                recognizer.setTranslation(.zero, in: nil)
+            case .ended:
+                let v = recognizer.velocity(in: nil)
+                let speed = sqrt(v.x * v.x + v.y * v.y)
+                if speed > ZoomOverlayConstants.flingVelocityThreshold {
+                    manager.fling(velocity: CGVector(dx: v.x, dy: v.y))
+                }
+                // If not a flick, just leave it where it is (the overlay stays up).
+            default:
+                break
+            }
         }
 
         @objc func handleTap(_ recognizer: UITapGestureRecognizer) {

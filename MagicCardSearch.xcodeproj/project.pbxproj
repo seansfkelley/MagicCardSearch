@@ -13,6 +13,7 @@
 		210E245C2F0858DC008C05C1 /* DependenciesTestSupport in Frameworks */ = {isa = PBXBuildFile; productRef = 210E245B2F0858DC008C05C1 /* DependenciesTestSupport */; };
 		21332B992EF5D04100C80208 /* Algorithms in Frameworks */ = {isa = PBXBuildFile; productRef = 21332B982EF5D04100C80208 /* Algorithms */; };
 		213F299A2EE9285400E058DB /* SVGKitSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 213F29992EE9285400E058DB /* SVGKitSwift */; };
+		215A81D52F6776C600CC937F /* ZoomOverlayConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 215A81D42F6776C600CC937F /* ZoomOverlayConstants.swift */; };
 		21874B3A2F07045300E07D9A /* SQLiteData in Frameworks */ = {isa = PBXBuildFile; productRef = 21874B392F07045300E07D9A /* SQLiteData */; };
 		218E3DEC2F5A0C7D00AA066E /* Cache in Frameworks */ = {isa = PBXBuildFile; productRef = 218E3DEB2F5A0C7D00AA066E /* Cache */; };
 		21A856BD2EE3AAE400E72541 /* ScryfallKit in Frameworks */ = {isa = PBXBuildFile; productRef = 21A856BC2EE3AAE400E72541 /* ScryfallKit */; };
@@ -51,6 +52,7 @@
 		2137B5AD2EE139C60066BF7E /* MagicCardSearch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MagicCardSearch.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		2137B5BA2EE139C70066BF7E /* MagicCardSearchTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MagicCardSearchTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		2137B5C42EE139C70066BF7E /* MagicCardSearchUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MagicCardSearchUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		215A81D42F6776C600CC937F /* ZoomOverlayConstants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZoomOverlayConstants.swift; sourceTree = "<group>"; };
 		21A5FC512EE9E76E0034E695 /* .swiftlint.yml */ = {isa = PBXFileReference; lastKnownFileType = text.yaml; path = .swiftlint.yml; sourceTree = "<group>"; };
 		21B334112F0C53C50048627E /* CARD_EXAMPLES.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = CARD_EXAMPLES.md; sourceTree = "<group>"; };
 		21B726BD2F0AFCDA00D2F951 /* DECISIONS.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = DECISIONS.md; sourceTree = "<group>"; };
@@ -175,6 +177,7 @@
 				2137B5C72EE139C70066BF7E /* MagicCardSearchUITests */,
 				21A856BB2EE3AAE400E72541 /* Frameworks */,
 				2137B5AE2EE139C60066BF7E /* Products */,
+				215A81D42F6776C600CC937F /* ZoomOverlayConstants.swift */,
 			);
 			sourceTree = "<group>";
 		};
@@ -419,6 +422,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				215A81D52F6776C600CC937F /* ZoomOverlayConstants.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

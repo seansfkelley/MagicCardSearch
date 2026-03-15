@@ -89,7 +89,7 @@ struct ZoomGestureView: UIViewRepresentable {
                 presentIfNeeded(view: view)
                 // recognizer.scale is cumulative since .began, matching MagnificationGesture.value.
                 let rawScale = scaleAtGestureBegan * recognizer.scale
-                let clampedScale = rubberBand(rawScale, min: ZoomOverlayManager.minScale, max: ZoomOverlayManager.maxScale)
+                let clampedScale = rubberBand(rawScale, min: ZoomOverlayConstants.minScale, max: ZoomOverlayConstants.maxScale)
                 let effectiveDScale = clampedScale / manager.scale
                 // Centroid in screen space, converted to offset from image center.
                 let centroid = recognizer.location(in: nil)
