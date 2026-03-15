@@ -17,17 +17,14 @@ struct ZoomGestureView: UIViewRepresentable {
         view.backgroundColor = .clear
 
         let pinch = UIPinchGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handlePinch))
-        let rotation = UIRotationGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleRotation))
         let pan = UIPanGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handlePan))
         pan.minimumNumberOfTouches = 2
         pan.maximumNumberOfTouches = 2
 
         pinch.delegate = context.coordinator
-        rotation.delegate = context.coordinator
         pan.delegate = context.coordinator
 
         view.addGestureRecognizer(pinch)
-        view.addGestureRecognizer(rotation)
         view.addGestureRecognizer(pan)
 
         return view
@@ -72,17 +69,6 @@ struct ZoomGestureView: UIViewRepresentable {
                 manager.scale *= dScale
             case .ended, .cancelled, .failed:
                 manager.commitGesture()
-            default:
-                break
-            }
-        }
-
-        @objc func handleRotation(_ recognizer: UIRotationGestureRecognizer) {
-            switch recognizer.state {
-            case .began, .changed:
-                presentIfNeeded()
-                manager.rotation += Angle(radians: recognizer.rotation)
-                recognizer.rotation = 0
             default:
                 break
             }

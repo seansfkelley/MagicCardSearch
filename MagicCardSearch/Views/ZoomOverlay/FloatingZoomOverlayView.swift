@@ -6,7 +6,6 @@ struct FloatingZoomOverlayView: View {
     // Gesture state accumulators
     @GestureState private var dragDelta: CGSize = .zero
     @GestureState private var scaleDelta: CGFloat = 1
-    @GestureState private var rotationDelta: Angle = .zero
 
     var body: some View {
         ZStack {
@@ -24,7 +23,6 @@ struct FloatingZoomOverlayView: View {
                     .frame(width: manager.sourceFrame.width, height: manager.sourceFrame.height)
                     .clipShape(RoundedRectangle(cornerRadius: manager.cornerRadius))
                     .scaleEffect(manager.scale * scaleDelta)
-                    .rotationEffect(manager.rotation + rotationDelta)
                     .offset(
                         x: manager.offset.width + dragDelta.width,
                         y: manager.offset.height + dragDelta.height
@@ -68,16 +66,7 @@ struct FloatingZoomOverlayView: View {
                 }
             }
 
-        let rotate = RotationGesture()
-            .updating($rotationDelta) { value, state, _ in
-                state = value
-            }
-            .onEnded { value in
-                manager.rotation += value
-            }
-
         return magnify
             .simultaneously(with: drag)
-            .simultaneously(with: rotate)
     }
 }

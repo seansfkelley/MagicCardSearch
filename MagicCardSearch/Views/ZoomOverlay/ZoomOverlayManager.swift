@@ -12,7 +12,6 @@ final class ZoomOverlayManager: ObservableObject {
     @Published var sourceFrame: CGRect = .zero
     @Published var scale: CGFloat = 1
     @Published var offset: CGSize = .zero
-    @Published var rotation: Angle = .zero
     @Published var cornerRadius: CGFloat = 0
 
     private init() {}
@@ -22,7 +21,6 @@ final class ZoomOverlayManager: ObservableObject {
         self.sourceFrame = frame
         self.scale = 1
         self.offset = .zero
-        self.rotation = .zero
         self.cornerRadius = cornerRadius
         self.isGestureActive = true
         self.isVisible = true
@@ -41,7 +39,6 @@ final class ZoomOverlayManager: ObservableObject {
         withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
             scale = 1
             offset = .zero
-            rotation = .zero
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
             self.isVisible = false
