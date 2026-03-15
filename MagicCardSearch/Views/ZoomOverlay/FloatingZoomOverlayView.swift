@@ -17,72 +17,111 @@ private func rubberBand(_ raw: CGFloat, min: CGFloat, max: CGFloat, coefficient:
 struct FloatingZoomOverlayView: View {
     @EnvironmentObject private var manager: ZoomOverlayManager
 
-    // Gesture state accumulators
-    @GestureState private var dragDelta: CGSize = .zero
-    @GestureState private var scaleDelta: CGFloat = 1
-
     var body: some View {
         ZStack {
             if manager.isVisible, let image = manager.image {
                 Color.black
                     .opacity(backgroundOpacity)
                     .ignoresSafeArea()
-                    .onTapGesture {
-                        manager.dismiss()
-                    }
 
                 Image(uiImage: image)
                     .resizable()
                     .aspectRatio(contentMode: .fit)
                     .frame(width: manager.sourceFrame.width, height: manager.sourceFrame.height)
                     .clipShape(RoundedRectangle(cornerRadius: manager.cornerRadius))
-                    .scaleEffect(rubberBand(manager.scale * scaleDelta, min: minScale, max: maxScale))
-                    .offset(
-                        x: manager.offset.width + dragDelta.width,
-                        y: manager.offset.height + dragDelta.height
-                    )
+                    .scaleEffect(manager.scale)
+                    .offset(x: manager.offset.width, y: manager.offset.height)
                     .position(x: manager.sourceFrame.midX, y: manager.sourceFrame.midY)
-                    .gesture(manager.isGestureActive ? nil : combinedGesture)
+                    .allowsHitTesting(false)
+
+                if !manager.isGestureActive {
+                    OverlayGestureView()
+                        .ignoresSafeArea()
+                }
             }
         }
         .ignoresSafeArea()
     }
 
     private var backgroundOpacity: Double {
-        let liveScale = Double(rubberBand(manager.scale * scaleDelta, min: minScale, max: maxScale))
+        let liveScale = Double(manager.scale)
         let fullOpacityScaleFactor = 1.5
         let t = (liveScale - 1.0) / (fullOpacityScaleFactor - 1.0)
         return max(0, min(1, t))
     }
+}
 
-    private var combinedGesture: some Gesture {
-        let drag = DragGesture(minimumDistance: 0)
-            .updating($dragDelta) { value, state, _ in
-                state = value.translation
-            }
-            .onEnded { value in
-                manager.offset.width += value.translation.width
-                manager.offset.height += value.translation.height
-            }
+/// Full-screen UIKit gesture view for the post-commit overlay phase.
+/// Covers the entire window so gestures on the background also register.
+private struct OverlayGestureView: UIViewRepresentable {
+    func makeCoordinator() -> Coordinator { Coordinator() }
 
-        let magnify = MagnificationGesture()
-            .updating($scaleDelta) { value, state, _ in
-                // Rubber-band the delta so visual feedback resists past bounds.
-                let raw = manager.scale * value
-                let clamped = rubberBand(raw, min: minScale, max: maxScale)
-                state = clamped / manager.scale
-            }
-            .onEnded { value in
-                let rawScale = manager.scale * value
-                if rawScale <= minScale {
-                    manager.dismiss()
-                } else {
-                    manager.scale = rubberBand(rawScale, min: minScale, max: maxScale)
-                    manager.snapToBoundsIfNeeded()
-                }
-            }
+    func makeUIView(context: Context) -> UIView {
+        let view = UIView()
+        view.backgroundColor = .clear
 
-        return magnify
-            .simultaneously(with: drag)
+        let pinch = UIPinchGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handlePinch))
+        let pan = UIPanGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handlePan))
+        let tap = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleTap))
+        pan.minimumNumberOfTouches = 2
+        pan.maximumNumberOfTouches = 2
+
+        pinch.delegate = context.coordinator
+        pan.delegate = context.coordinator
+
+        view.addGestureRecognizer(pinch)
+        view.addGestureRecognizer(pan)
+        view.addGestureRecognizer(tap)
+
+        return view
+    }
+
+    func updateUIView(_ uiView: UIView, context: Context) {}
+
+    @MainActor
+    final class Coordinator: NSObject, UIGestureRecognizerDelegate {
+        private var manager: ZoomOverlayManager { .shared }
+        private var scaleAtGestureBegan: CGFloat = 1
+
+        @objc func handlePinch(_ recognizer: UIPinchGestureRecognizer) {
+            switch recognizer.state {
+            case .began:
+                scaleAtGestureBegan = manager.scale
+            case .changed:
+                let rawScale = scaleAtGestureBegan * recognizer.scale
+                let clampedScale = rubberBand(rawScale, min: minScale, max: maxScale)
+                let effectiveDScale = clampedScale / manager.scale
+                let centroid = recognizer.location(in: nil)
+                let imageCenterX = manager.sourceFrame.midX + manager.offset.width
+                let imageCenterY = manager.sourceFrame.midY + manager.offset.height
+                let cx = centroid.x - imageCenterX
+                let cy = centroid.y - imageCenterY
+                manager.offset.width += cx * (1 - effectiveDScale)
+                manager.offset.height += cy * (1 - effectiveDScale)
+                manager.scale = clampedScale
+            case .ended, .cancelled, .failed:
+                manager.snapToBoundsIfNeeded()
+                if manager.scale <= minScale { manager.dismiss() }
+            default:
+                break
+            }
+        }
+
+        @objc func handlePan(_ recognizer: UIPanGestureRecognizer) {
+            guard recognizer.state == .changed || recognizer.state == .began else { return }
+            let t = recognizer.translation(in: nil)
+            manager.offset.width += t.x
+            manager.offset.height += t.y
+            recognizer.setTranslation(.zero, in: nil)
+        }
+
+        @objc func handleTap(_ recognizer: UITapGestureRecognizer) {
+            manager.dismiss()
+        }
+
+        func gestureRecognizer(
+            _ gestureRecognizer: UIGestureRecognizer,
+            shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer
+        ) -> Bool { true }
     }
 }
