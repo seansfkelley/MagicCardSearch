@@ -153,6 +153,13 @@ private struct CardFaceView: View {
                     image
                         .resizable()
                         .aspectRatio(contentMode: .fit)
+                        .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+                        .if(enableZoomGestures) { view in
+                            view.zoomGestures(
+                                uiImage: state.imageContainer?.image,
+                                clipShape: AnyShape(RoundedRectangle(cornerRadius: cornerRadius)),
+                            )
+                        }
                         .contextMenu {
                             if let shareUrlString = CardImageQuality.bestQualityUri(from: face.imageUris),
                                let url = URL(string: shareUrlString) {
@@ -166,13 +173,6 @@ private struct CardFaceView: View {
                             } label: {
                                 Label("Copy", systemImage: "doc.on.doc")
                             }
-                        }
-                        .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
-                        .if(enableZoomGestures) { view in
-                            view.zoomGestures(
-                                uiImage: state.imageContainer?.image,
-                                clipShape: AnyShape(RoundedRectangle(cornerRadius: cornerRadius)),
-                            )
                         }
                 } else if state.error != nil {
                     CardPlaceholderView(name: face.name, cornerRadius: cornerRadius)
