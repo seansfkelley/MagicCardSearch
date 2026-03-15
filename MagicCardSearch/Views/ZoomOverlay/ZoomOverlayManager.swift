@@ -28,11 +28,6 @@ final class ZoomOverlayManager: ObservableObject {
         self.isVisible = true
     }
 
-    /// Called on every onChanged of the originating gesture.
-    func updateScale(_ scale: CGFloat) {
-        self.scale = scale
-    }
-
     /// Called on onEnded of the originating gesture. Hands off to the overlay's
     /// own gestures, or dismisses if scale is at or below 1.
     func commitGesture() {

@@ -37,10 +37,10 @@ struct FloatingZoomOverlayView: View {
     }
 
     private var backgroundOpacity: Double {
-        // Fade in background as user zooms or pans
-        let zoomAmount = abs(manager.scale - 1)
-        let panAmount = sqrt(pow(manager.offset.width, 2) + pow(manager.offset.height, 2)) / 200
-        return min(0.6, Double(zoomAmount * 0.5 + panAmount * 0.3))
+        // 0 at scale 1.0, 1 at scale 1.3, clamped.
+        let fullOpacity = 1.3
+        let t = (Double(manager.scale) - 1.0) / (fullOpacity - 1.0)
+        return max(0, min(1, t))
     }
 
     private var combinedGesture: some Gesture {

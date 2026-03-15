@@ -166,19 +166,16 @@ private struct CardFaceView: View {
                             }
                             .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
                             .opacity(zoomOverlayIsShowingThisImage(state: state) ? 0 : 1)
-                            .gesture(
-                                MagnificationGesture(minimumScaleDelta: 0.01)
-                                    .onChanged { value in
-                                        guard let uiImage = state.imageContainer?.image else { return }
-                                        if !zoomOverlay.isVisible {
-                                            let frame = geo.frame(in: .global)
-                                            zoomOverlay.present(image: uiImage, from: frame, cornerRadius: cornerRadius)
-                                        }
-                                        zoomOverlay.updateScale(value)
+                            .overlay(
+                                Group {
+                                    if let uiImage = state.imageContainer?.image {
+                                        ZoomGestureView(
+                                            uiImage: uiImage,
+                                            sourceFrame: geo.frame(in: .global),
+                                            cornerRadius: cornerRadius
+                                        )
                                     }
-                                    .onEnded { _ in
-                                        zoomOverlay.commitGesture()
-                                    }
+                                }
                             )
                     }
                 } else if state.error != nil {
