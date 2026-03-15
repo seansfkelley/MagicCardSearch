@@ -1,6 +1,23 @@
 import SwiftUI
 
-/// A transparent UIView overlay that installs pinch, rotation, and 2-finger pan
+private let minScale: CGFloat = 1.0
+private let maxScale: CGFloat = 1.7
+
+/// Returns a rubber-banded value when `raw` exceeds [min, max].
+/// `coefficient` controls resistance: smaller = gentler (more travel past bound),
+/// larger = stiffer. Uses the standard UIScrollView-style formula: excess / (1 + excess * coefficient).
+private func rubberBand(_ raw: CGFloat, min: CGFloat, max: CGFloat, coefficient: CGFloat = 0.15) -> CGFloat {
+    if raw < min {
+        let excess = min - raw
+        return min - excess / (1 + excess * coefficient)
+    } else if raw > max {
+        let excess = raw - max
+        return max + excess / (1 + excess * coefficient)
+    }
+    return raw
+}
+
+/// A transparent UIView overlay that installs pinch and 2-finger pan
 /// gesture recognizers, all recognizing simultaneously. Drives ZoomOverlayManager
 /// for the originating gesture phase.
 struct ZoomGestureView: UIViewRepresentable {
@@ -39,6 +56,10 @@ struct ZoomGestureView: UIViewRepresentable {
         private let cornerRadius: CGFloat
         private var manager: ZoomOverlayManager { .shared }
 
+        // Scale at the moment the pinch began, used to compute cumulative scale
+        // so rubber-banding sees total overshoot rather than per-frame deltas.
+        private var scaleAtGestureBegan: CGFloat = 1
+
         init(uiImage: UIImage, sourceFrame: CGRect, cornerRadius: CGFloat) {
             self.uiImage = uiImage
             self.sourceFrame = sourceFrame
@@ -53,20 +74,24 @@ struct ZoomGestureView: UIViewRepresentable {
 
         @objc func handlePinch(_ recognizer: UIPinchGestureRecognizer) {
             switch recognizer.state {
-            case .began, .changed:
+            case .began:
                 presentIfNeeded()
-                let dScale = recognizer.scale
-                recognizer.scale = 1
+                scaleAtGestureBegan = manager.scale
+            case .changed:
+                presentIfNeeded()
+                // recognizer.scale is cumulative since .began, matching MagnificationGesture.value.
+                let rawScale = scaleAtGestureBegan * recognizer.scale
+                let clampedScale = rubberBand(rawScale, min: minScale, max: maxScale)
+                let effectiveDScale = clampedScale / manager.scale
                 // Centroid in screen space, converted to offset from image center.
                 let centroid = recognizer.location(in: nil)
                 let imageCenterX = manager.sourceFrame.midX + manager.offset.width
                 let imageCenterY = manager.sourceFrame.midY + manager.offset.height
                 let cx = centroid.x - imageCenterX
                 let cy = centroid.y - imageCenterY
-                // Translate so the point under the fingers stays fixed.
-                manager.offset.width += cx * (1 - dScale)
-                manager.offset.height += cy * (1 - dScale)
-                manager.scale *= dScale
+                manager.offset.width += cx * (1 - effectiveDScale)
+                manager.offset.height += cy * (1 - effectiveDScale)
+                manager.scale = clampedScale
             case .ended, .cancelled, .failed:
                 manager.commitGesture()
             default:

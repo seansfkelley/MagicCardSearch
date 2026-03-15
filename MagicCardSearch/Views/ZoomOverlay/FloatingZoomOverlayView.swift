@@ -1,5 +1,19 @@
 import SwiftUI
 
+private let minScale: CGFloat = 1.0
+private let maxScale: CGFloat = 2.0
+
+private func rubberBand(_ raw: CGFloat, min: CGFloat, max: CGFloat, coefficient: CGFloat = 0.15) -> CGFloat {
+    if raw < min {
+        let excess = min - raw
+        return min - excess / (1 + excess * coefficient)
+    } else if raw > max {
+        let excess = raw - max
+        return max + excess / (1 + excess * coefficient)
+    }
+    return raw
+}
+
 struct FloatingZoomOverlayView: View {
     @EnvironmentObject private var manager: ZoomOverlayManager
 
@@ -22,7 +36,7 @@ struct FloatingZoomOverlayView: View {
                     .aspectRatio(contentMode: .fit)
                     .frame(width: manager.sourceFrame.width, height: manager.sourceFrame.height)
                     .clipShape(RoundedRectangle(cornerRadius: manager.cornerRadius))
-                    .scaleEffect(manager.scale * scaleDelta)
+                    .scaleEffect(rubberBand(manager.scale * scaleDelta, min: minScale, max: maxScale))
                     .offset(
                         x: manager.offset.width + dragDelta.width,
                         y: manager.offset.height + dragDelta.height
@@ -35,9 +49,7 @@ struct FloatingZoomOverlayView: View {
     }
 
     private var backgroundOpacity: Double {
-        // 0 at scale 1.0, 1 at scale 1.3, clamped. Uses live scaleDelta so it
-        // tracks during in-progress gestures, not just committed values.
-        let liveScale = Double(manager.scale * scaleDelta)
+        let liveScale = Double(rubberBand(manager.scale * scaleDelta, min: minScale, max: maxScale))
         let fullOpacityScaleFactor = 1.5
         let t = (liveScale - 1.0) / (fullOpacityScaleFactor - 1.0)
         return max(0, min(1, t))
@@ -55,14 +67,18 @@ struct FloatingZoomOverlayView: View {
 
         let magnify = MagnificationGesture()
             .updating($scaleDelta) { value, state, _ in
-                state = value
+                // Rubber-band the delta so visual feedback resists past bounds.
+                let raw = manager.scale * value
+                let clamped = rubberBand(raw, min: minScale, max: maxScale)
+                state = clamped / manager.scale
             }
             .onEnded { value in
-                let finalScale = manager.scale * value
-                if finalScale <= 1 {
+                let rawScale = manager.scale * value
+                if rawScale <= minScale {
                     manager.dismiss()
                 } else {
-                    manager.scale = finalScale
+                    manager.scale = rubberBand(rawScale, min: minScale, max: maxScale)
+                    manager.snapToBoundsIfNeeded()
                 }
             }
 

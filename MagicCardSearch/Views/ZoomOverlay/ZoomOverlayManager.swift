@@ -26,12 +26,32 @@ final class ZoomOverlayManager: ObservableObject {
         self.isVisible = true
     }
 
+    private let minScale: CGFloat = 1.0
+    private let maxScale: CGFloat = 2.0
+
     /// Called on onEnded of the originating gesture. Hands off to the overlay's
-    /// own gestures, or dismisses if scale is at or below 1.
+    /// own gestures, or dismisses if scale is at or below 1. Snaps back to bounds
+    /// if scale is outside [minScale, maxScale].
     func commitGesture() {
         isGestureActive = false
-        if scale <= 1 {
+        if scale <= minScale {
             dismiss()
+        } else if scale > maxScale {
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                scale = maxScale
+            }
+        }
+    }
+
+    func snapToBoundsIfNeeded() {
+        if scale < minScale {
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                scale = minScale
+            }
+        } else if scale > maxScale {
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                scale = maxScale
+            }
         }
     }
 
