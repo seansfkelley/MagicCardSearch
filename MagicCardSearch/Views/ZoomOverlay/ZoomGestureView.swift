@@ -92,8 +92,10 @@ struct ZoomGestureView: UIViewRepresentable {
                 manager.offset.width += cx * (1 - effectiveDScale)
                 manager.offset.height += cy * (1 - effectiveDScale)
                 manager.scale = clampedScale
-            case .ended, .cancelled, .failed:
+            case .ended:
                 manager.commitGesture()
+            case .cancelled, .failed:
+                manager.dismiss()
             default:
                 break
             }

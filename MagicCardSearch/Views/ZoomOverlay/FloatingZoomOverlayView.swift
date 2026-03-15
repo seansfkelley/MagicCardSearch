@@ -98,9 +98,11 @@ private struct OverlayGestureView: UIViewRepresentable {
                 manager.offset.width += cx * (1 - effectiveDScale)
                 manager.offset.height += cy * (1 - effectiveDScale)
                 manager.scale = clampedScale
-            case .ended, .cancelled, .failed:
+            case .ended:
                 manager.snapToBoundsIfNeeded()
                 if manager.scale <= minScale { manager.dismiss() }
+            case .cancelled, .failed:
+                manager.dismiss()
             default:
                 break
             }
