@@ -145,8 +145,6 @@ private struct CardFaceView: View {
     let cornerRadius: CGFloat
     var enableZoomGestures: Bool = false
 
-    @ObservedObject private var zoomOverlay = ZoomOverlayManager.shared
-
     var body: some View {
         if let imageUrlString = quality.uri(from: face.imageUris),
            let url = URL(string: imageUrlString) {
@@ -171,17 +169,9 @@ private struct CardFaceView: View {
                                 }
                             }
                             .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
-                            .if(enableZoomGestures) { view in
-                                view
-                                    .opacity(zoomOverlayIsShowingThisImage(state: state) ? 0 : 1)
-                                    .overlay(
-                                        Group {
-                                            if let uiImage = state.imageContainer?.image {
-                                                ZoomGestureView(uiImage: uiImage, cornerRadius: cornerRadius)
-                                            }
-                                        }
-                                    )
-                            }
+                            .if(enableZoomGestures, transform: { view in
+                                view.zoomGestures(uiImage: state.imageContainer?.image, cornerRadius: cornerRadius)
+                            })
                     }
                 } else if state.error != nil {
                     CardPlaceholderView(name: face.name, cornerRadius: cornerRadius)
@@ -194,14 +184,6 @@ private struct CardFaceView: View {
         }
     }
 
-    private func zoomOverlayIsShowingThisImage(state: LazyImageState) -> Bool {
-        // Keep visible during the originating gesture so the overlay renders on top
-        // without a gap; hide only once the gesture hands off to the overlay.
-        guard zoomOverlay.isVisible,
-              let overlayImage = zoomOverlay.image,
-              let thisImage = state.imageContainer?.image else { return false }
-        return overlayImage === thisImage
-    }
 }
 
 private extension VerticalAlignment {

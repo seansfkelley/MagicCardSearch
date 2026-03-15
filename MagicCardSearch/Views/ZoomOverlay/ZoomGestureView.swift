@@ -14,6 +14,34 @@ private func rubberBand(_ raw: CGFloat, min: CGFloat, max: CGFloat, coefficient:
     return raw
 }
 
+private struct ZoomGestureModifier: ViewModifier {
+    let uiImage: UIImage?
+    let cornerRadius: CGFloat
+
+    @ObservedObject private var zoomOverlay = ZoomOverlayManager.shared
+
+    func body(content: Content) -> some View {
+        content
+            .opacity(isShowingThisImage ? 0 : 1)
+            .overlay(Group {
+                if let uiImage {
+                    ZoomGestureView(uiImage: uiImage, cornerRadius: cornerRadius)
+                }
+            })
+    }
+
+    private var isShowingThisImage: Bool {
+        guard let uiImage, zoomOverlay.isVisible else { return false }
+        return zoomOverlay.image === uiImage
+    }
+}
+
+extension View {
+    func zoomGestures(uiImage: UIImage?, cornerRadius: CGFloat) -> some View {
+        modifier(ZoomGestureModifier(uiImage: uiImage, cornerRadius: cornerRadius))
+    }
+}
+
 /// A transparent UIView overlay that installs pinch and 2-finger pan
 /// gesture recognizers, all recognizing simultaneously. Drives ZoomOverlayManager
 /// for the originating gesture phase.
