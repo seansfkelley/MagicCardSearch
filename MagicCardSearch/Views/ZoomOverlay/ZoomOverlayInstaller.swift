@@ -24,7 +24,7 @@ enum ZoomOverlayInstaller {
         )
         host.view.backgroundColor = .clear
 
-        let overlayWindow = PassthroughWindow(windowScene: windowScene)
+        let overlayWindow = UIWindow(windowScene: windowScene)
         overlayWindow.windowLevel = .alert + 1
         overlayWindow.backgroundColor = .clear
         overlayWindow.isUserInteractionEnabled = false
@@ -44,12 +44,4 @@ enum ZoomOverlayInstaller {
     }
 }
 
-/// A UIWindow that passes hit-tests through to the window below when it has no
-/// interactive content at the tapped point.
-private final class PassthroughWindow: UIWindow {
-    override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
-        let view = super.hitTest(point, with: event)
-        return view === rootViewController?.view ? nil : view
-    }
-}
 
