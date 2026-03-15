@@ -14,7 +14,7 @@ final class ZoomOverlayManager: ObservableObject {
     @Published var offset: CGSize = .zero
     @Published var cornerRadius: CGFloat = 0
 
-    static let minScale: CGFloat = 1.0
+    static let minScale: CGFloat = 1.1
     static let maxScale: CGFloat = 1.7
     /// The scale at which the background reaches full black.
     static let fullOpacityScale: CGFloat = 1.4
