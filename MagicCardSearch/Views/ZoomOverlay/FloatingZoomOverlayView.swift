@@ -37,9 +37,11 @@ struct FloatingZoomOverlayView: View {
     }
 
     private var backgroundOpacity: Double {
-        // 0 at scale 1.0, 1 at scale 1.3, clamped.
-        let fullOpacity = 1.3
-        let t = (Double(manager.scale) - 1.0) / (fullOpacity - 1.0)
+        // 0 at scale 1.0, 1 at scale 1.3, clamped. Uses live scaleDelta so it
+        // tracks during in-progress gestures, not just committed values.
+        let liveScale = Double(manager.scale * scaleDelta)
+        let fullOpacityScaleFactor = 1.5
+        let t = (liveScale - 1.0) / (fullOpacityScaleFactor - 1.0)
         return max(0, min(1, t))
     }
 

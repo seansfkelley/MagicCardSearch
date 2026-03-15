@@ -192,7 +192,7 @@ private struct CardFaceView: View {
     private func zoomOverlayIsShowingThisImage(state: LazyImageState) -> Bool {
         // Keep visible during the originating gesture so the overlay renders on top
         // without a gap; hide only once the gesture hands off to the overlay.
-        guard zoomOverlay.isVisible, !zoomOverlay.isGestureActive,
+        guard zoomOverlay.isVisible,
               let overlayImage = zoomOverlay.image,
               let thisImage = state.imageContainer?.image else { return false }
         return overlayImage === thisImage

@@ -58,8 +58,18 @@ struct ZoomGestureView: UIViewRepresentable {
             switch recognizer.state {
             case .began, .changed:
                 presentIfNeeded()
-                manager.scale *= recognizer.scale
+                let dScale = recognizer.scale
                 recognizer.scale = 1
+                // Centroid in screen space, converted to offset from image center.
+                let centroid = recognizer.location(in: nil)
+                let imageCenterX = manager.sourceFrame.midX + manager.offset.width
+                let imageCenterY = manager.sourceFrame.midY + manager.offset.height
+                let cx = centroid.x - imageCenterX
+                let cy = centroid.y - imageCenterY
+                // Translate so the point under the fingers stays fixed.
+                manager.offset.width += cx * (1 - dScale)
+                manager.offset.height += cy * (1 - dScale)
+                manager.scale *= dScale
             case .ended, .cancelled, .failed:
                 manager.commitGesture()
             default:
