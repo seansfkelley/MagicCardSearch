@@ -139,8 +139,6 @@ private struct CardFaceView: View {
     let quality: CardImageQuality
     let cornerRadius: CGFloat
 
-    @GestureState private var isPinching: Bool = false
-
     @ObservedObject private var zoomOverlay = ZoomOverlayManager.shared
 
     var body: some View {
@@ -170,12 +168,16 @@ private struct CardFaceView: View {
                             .opacity(zoomOverlayIsShowingThisImage(state: state) ? 0 : 1)
                             .gesture(
                                 MagnificationGesture(minimumScaleDelta: 0.01)
-                                    .updating($isPinching) { _, state, _ in state = true }
                                     .onChanged { value in
-                                        guard let uiImage = state.imageContainer?.image,
-                                              !zoomOverlay.isVisible else { return }
-                                        let frame = geo.frame(in: .global)
-                                        zoomOverlay.present(image: uiImage, from: frame, cornerRadius: cornerRadius, initialScale: value)
+                                        guard let uiImage = state.imageContainer?.image else { return }
+                                        if !zoomOverlay.isVisible {
+                                            let frame = geo.frame(in: .global)
+                                            zoomOverlay.present(image: uiImage, from: frame, cornerRadius: cornerRadius)
+                                        }
+                                        zoomOverlay.updateScale(value)
+                                    }
+                                    .onEnded { _ in
+                                        zoomOverlay.commitGesture()
                                     }
                             )
                     }
@@ -191,7 +193,9 @@ private struct CardFaceView: View {
     }
 
     private func zoomOverlayIsShowingThisImage(state: LazyImageState) -> Bool {
-        guard zoomOverlay.isVisible,
+        // Keep visible during the originating gesture so the overlay renders on top
+        // without a gap; hide only once the gesture hands off to the overlay.
+        guard zoomOverlay.isVisible, !zoomOverlay.isGestureActive,
               let overlayImage = zoomOverlay.image,
               let thisImage = state.imageContainer?.image else { return false }
         return overlayImage === thisImage

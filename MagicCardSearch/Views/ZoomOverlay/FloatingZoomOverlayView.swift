@@ -30,7 +30,7 @@ struct FloatingZoomOverlayView: View {
                         y: manager.offset.height + dragDelta.height
                     )
                     .position(x: manager.sourceFrame.midX, y: manager.sourceFrame.midY)
-                    .gesture(combinedGesture)
+                    .gesture(manager.isGestureActive ? nil : combinedGesture)
             }
         }
         .ignoresSafeArea()

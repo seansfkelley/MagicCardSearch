@@ -35,10 +35,13 @@ enum ZoomOverlayInstaller {
 
         Self.overlayWindow = overlayWindow
 
-        // Mirror isVisible onto the window so touches pass through when inactive.
-        cancellable = manager.$isVisible.sink { isVisible in
-            overlayWindow.isUserInteractionEnabled = isVisible
-        }
+        // Enable interaction only after the originating gesture has ended and
+        // handed off to the overlay's own gestures.
+        cancellable = manager.$isGestureActive
+            .combineLatest(manager.$isVisible)
+            .sink { isGestureActive, isVisible in
+                overlayWindow.isUserInteractionEnabled = isVisible && !isGestureActive
+            }
 
         isInstalled = true
     }

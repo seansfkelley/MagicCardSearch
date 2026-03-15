@@ -6,6 +6,8 @@ final class ZoomOverlayManager: ObservableObject {
     static let shared = ZoomOverlayManager()
 
     @Published var isVisible: Bool = false
+    /// True while the originating gesture in CardFaceView still owns the transform.
+    @Published var isGestureActive: Bool = false
     @Published var image: UIImage?
     @Published var sourceFrame: CGRect = .zero
     @Published var scale: CGFloat = 1
@@ -15,14 +17,29 @@ final class ZoomOverlayManager: ObservableObject {
 
     private init() {}
 
-    func present(image: UIImage, from frame: CGRect, cornerRadius: CGFloat, initialScale: CGFloat = 1) {
+    func present(image: UIImage, from frame: CGRect, cornerRadius: CGFloat) {
         self.image = image
         self.sourceFrame = frame
-        self.scale = initialScale
+        self.scale = 1
         self.offset = .zero
         self.rotation = .zero
         self.cornerRadius = cornerRadius
+        self.isGestureActive = true
         self.isVisible = true
+    }
+
+    /// Called on every onChanged of the originating gesture.
+    func updateScale(_ scale: CGFloat) {
+        self.scale = scale
+    }
+
+    /// Called on onEnded of the originating gesture. Hands off to the overlay's
+    /// own gestures, or dismisses if scale is at or below 1.
+    func commitGesture() {
+        isGestureActive = false
+        if scale <= 1 {
+            dismiss()
+        }
     }
 
     func dismiss() {
