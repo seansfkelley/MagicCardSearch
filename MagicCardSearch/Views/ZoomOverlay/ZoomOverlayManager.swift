@@ -12,27 +12,27 @@ final class ZoomOverlayManager: ObservableObject {
     @Published var sourceFrame: CGRect = .zero
     @Published var scale: CGFloat = 1
     @Published var offset: CGSize = .zero
-    @Published var cornerRadius: CGFloat = 0
+    @Published var clipShape: AnyShape?
 
     private init() {}
 
-    func present(image: UIImage, from frame: CGRect, cornerRadius: CGFloat) {
+    func present(image: UIImage, from frame: CGRect, clipShape: AnyShape?) {
         self.image = image
         self.sourceFrame = frame
         self.scale = 1
         self.offset = .zero
-        self.cornerRadius = cornerRadius
+        self.clipShape = clipShape
         self.isGestureActive = true
         self.isVisible = true
     }
 
     /// Presents the overlay, animates to fullOpacityScale, and centers the image on screen.
-    func presentFilled(image: UIImage, from frame: CGRect, cornerRadius: CGFloat, screenSize: CGSize) {
+    func presentFilled(image: UIImage, from frame: CGRect, clipShape: AnyShape? = nil, screenSize: CGSize) {
         self.image = image
         self.sourceFrame = frame
         self.scale = 1
         self.offset = .zero
-        self.cornerRadius = cornerRadius
+        self.clipShape = clipShape
         self.isGestureActive = false
         self.isVisible = true
         let targetOffset = CGSize(

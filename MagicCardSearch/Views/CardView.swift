@@ -150,29 +150,30 @@ private struct CardFaceView: View {
            let url = URL(string: imageUrlString) {
             LazyImage(url: url) { state in
                 if let image = state.image {
-                    GeometryReader { geo in
-                        image
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .contextMenu {
-                                if let shareUrlString = CardImageQuality.bestQualityUri(from: face.imageUris),
-                                   let url = URL(string: shareUrlString) {
-                                    ShareLink(item: url, preview: SharePreview(face.name, image: image))
-                                }
-
-                                Button {
-                                    if let container = state.imageContainer {
-                                        UIPasteboard.general.image = container.image
-                                    }
-                                } label: {
-                                    Label("Copy", systemImage: "doc.on.doc")
-                                }
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .contextMenu {
+                            if let shareUrlString = CardImageQuality.bestQualityUri(from: face.imageUris),
+                               let url = URL(string: shareUrlString) {
+                                ShareLink(item: url, preview: SharePreview(face.name, image: image))
                             }
-                            .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
-                            .if(enableZoomGestures, transform: { view in
-                                view.zoomGestures(uiImage: state.imageContainer?.image, cornerRadius: cornerRadius)
-                            })
-                    }
+
+                            Button {
+                                if let container = state.imageContainer {
+                                    UIPasteboard.general.image = container.image
+                                }
+                            } label: {
+                                Label("Copy", systemImage: "doc.on.doc")
+                            }
+                        }
+                        .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+                        .if(enableZoomGestures) { view in
+                            view.zoomGestures(
+                                uiImage: state.imageContainer?.image,
+                                clipShape: AnyShape(RoundedRectangle(cornerRadius: cornerRadius)),
+                            )
+                        }
                 } else if state.error != nil {
                     CardPlaceholderView(name: face.name, cornerRadius: cornerRadius)
                 } else {
@@ -183,7 +184,6 @@ private struct CardFaceView: View {
             CardPlaceholderView(name: face.name, cornerRadius: cornerRadius)
         }
     }
-
 }
 
 private extension VerticalAlignment {

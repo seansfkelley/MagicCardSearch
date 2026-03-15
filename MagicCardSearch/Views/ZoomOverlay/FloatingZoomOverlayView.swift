@@ -25,7 +25,7 @@ struct FloatingZoomOverlayView: View {
                     .resizable()
                     .aspectRatio(contentMode: .fit)
                     .frame(width: manager.sourceFrame.width, height: manager.sourceFrame.height)
-                    .clipShape(RoundedRectangle(cornerRadius: manager.cornerRadius))
+                    .if(manager.clipShape != nil) { $0.clipShape(manager.clipShape!) }
                     .scaleEffect(manager.scale)
                     .offset(x: manager.offset.width, y: manager.offset.height)
                     .position(x: manager.sourceFrame.midX, y: manager.sourceFrame.midY)

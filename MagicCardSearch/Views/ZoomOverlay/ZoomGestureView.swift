@@ -16,7 +16,7 @@ private func rubberBand(_ raw: CGFloat, min: CGFloat, max: CGFloat, coefficient:
 
 private struct ZoomGestureModifier: ViewModifier {
     let uiImage: UIImage?
-    let cornerRadius: CGFloat
+    let clipShape: AnyShape?
 
     @ObservedObject private var zoomOverlay = ZoomOverlayManager.shared
 
@@ -25,7 +25,7 @@ private struct ZoomGestureModifier: ViewModifier {
             .opacity(isShowingThisImage ? 0 : 1)
             .overlay(Group {
                 if let uiImage {
-                    ZoomGestureView(uiImage: uiImage, cornerRadius: cornerRadius)
+                    ZoomGestureView(uiImage: uiImage, clipShape: clipShape)
                 }
             })
     }
@@ -37,8 +37,8 @@ private struct ZoomGestureModifier: ViewModifier {
 }
 
 extension View {
-    func zoomGestures(uiImage: UIImage?, cornerRadius: CGFloat) -> some View {
-        modifier(ZoomGestureModifier(uiImage: uiImage, cornerRadius: cornerRadius))
+    func zoomGestures(uiImage: UIImage?, clipShape: AnyShape?) -> some View {
+        modifier(ZoomGestureModifier(uiImage: uiImage, clipShape: clipShape))
     }
 }
 
@@ -47,10 +47,10 @@ extension View {
 /// for the originating gesture phase.
 struct ZoomGestureView: UIViewRepresentable {
     let uiImage: UIImage
-    let cornerRadius: CGFloat
+    let clipShape: AnyShape?
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(uiImage: uiImage, cornerRadius: cornerRadius)
+        Coordinator(uiImage: uiImage, clipShape: clipShape)
     }
 
     func makeUIView(context: Context) -> UIView {
@@ -82,16 +82,16 @@ struct ZoomGestureView: UIViewRepresentable {
     @MainActor
     final class Coordinator: NSObject, UIGestureRecognizerDelegate {
         private let uiImage: UIImage
-        private let cornerRadius: CGFloat
+        private let clipShape: AnyShape?
         private var manager: ZoomOverlayManager { .shared }
 
         // Scale at the moment the pinch began, used to compute cumulative scale
         // so rubber-banding sees total overshoot rather than per-frame deltas.
         private var scaleAtGestureBegan: CGFloat = 1
 
-        init(uiImage: UIImage, cornerRadius: CGFloat) {
+        init(uiImage: UIImage, clipShape: AnyShape?) {
             self.uiImage = uiImage
-            self.cornerRadius = cornerRadius
+            self.clipShape = clipShape
         }
 
         private func currentFrame(for view: UIView) -> CGRect {
@@ -100,7 +100,7 @@ struct ZoomGestureView: UIViewRepresentable {
 
         private func presentIfNeeded(view: UIView) {
             if !manager.isVisible {
-                manager.present(image: uiImage, from: currentFrame(for: view), cornerRadius: cornerRadius)
+                manager.present(image: uiImage, from: currentFrame(for: view), clipShape: clipShape)
             }
         }
 
@@ -138,7 +138,7 @@ struct ZoomGestureView: UIViewRepresentable {
             guard recognizer.state == .ended,
                   let view = recognizer.view,
                   let screenSize = view.window?.screen.bounds.size else { return }
-            manager.presentFilled(image: uiImage, from: currentFrame(for: view), cornerRadius: cornerRadius, screenSize: screenSize)
+            manager.presentFilled(image: uiImage, from: currentFrame(for: view), clipShape: clipShape, screenSize: screenSize)
         }
 
         @objc func handlePan(_ recognizer: UIPanGestureRecognizer) {
