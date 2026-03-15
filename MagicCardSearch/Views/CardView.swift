@@ -138,30 +138,47 @@ private struct CardFaceView: View {
     let orientation: Card.Orientation
     let quality: CardImageQuality
     let cornerRadius: CGFloat
-    
+
+    @GestureState private var isPinching: Bool = false
+
+    @ObservedObject private var zoomOverlay = ZoomOverlayManager.shared
+
     var body: some View {
         if let imageUrlString = quality.uri(from: face.imageUris),
            let url = URL(string: imageUrlString) {
             LazyImage(url: url) { state in
                 if let image = state.image {
-                    image
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .contextMenu {
-                            if let shareUrlString = CardImageQuality.bestQualityUri(from: face.imageUris),
-                               let url = URL(string: shareUrlString) {
-                                ShareLink(item: url, preview: SharePreview(face.name, image: image))
-                            }
-
-                            Button {
-                                if let container = state.imageContainer {
-                                    UIPasteboard.general.image = container.image
+                    GeometryReader { geo in
+                        image
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .contextMenu {
+                                if let shareUrlString = CardImageQuality.bestQualityUri(from: face.imageUris),
+                                   let url = URL(string: shareUrlString) {
+                                    ShareLink(item: url, preview: SharePreview(face.name, image: image))
                                 }
-                            } label: {
-                                Label("Copy", systemImage: "doc.on.doc")
+
+                                Button {
+                                    if let container = state.imageContainer {
+                                        UIPasteboard.general.image = container.image
+                                    }
+                                } label: {
+                                    Label("Copy", systemImage: "doc.on.doc")
+                                }
                             }
-                        }
-                        .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+                            .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+                            .opacity(zoomOverlayIsShowingThisImage(state: state) ? 0 : 1)
+                            .gesture(
+                                MagnificationGesture(minimumScaleDelta: 0.01)
+                                    .updating($isPinching) { _, state, _ in state = true }
+                                    .onChanged { _ in
+                                        guard let uiImage = state.imageContainer?.image,
+                                              !zoomOverlay.isVisible else { return }
+                                        let frame = geo.frame(in: .global)
+                                        zoomOverlay.present(image: uiImage, from: frame, cornerRadius: cornerRadius)
+                                    }
+                            )
+                    }
                 } else if state.error != nil {
                     CardPlaceholderView(name: face.name, cornerRadius: cornerRadius)
                 } else {
@@ -171,6 +188,13 @@ private struct CardFaceView: View {
         } else {
             CardPlaceholderView(name: face.name, cornerRadius: cornerRadius)
         }
+    }
+
+    private func zoomOverlayIsShowingThisImage(state: LazyImageState) -> Bool {
+        guard zoomOverlay.isVisible,
+              let overlayImage = zoomOverlay.image,
+              let thisImage = state.imageContainer?.image else { return false }
+        return overlayImage === thisImage
     }
 }
 
