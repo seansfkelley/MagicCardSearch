@@ -15,10 +15,10 @@ final class ZoomOverlayManager: ObservableObject {
 
     private init() {}
 
-    func present(image: UIImage, from frame: CGRect, cornerRadius: CGFloat) {
+    func present(image: UIImage, from frame: CGRect, cornerRadius: CGFloat, initialScale: CGFloat = 1) {
         self.image = image
         self.sourceFrame = frame
-        self.scale = 1
+        self.scale = initialScale
         self.offset = .zero
         self.rotation = .zero
         self.cornerRadius = cornerRadius
@@ -26,13 +26,14 @@ final class ZoomOverlayManager: ObservableObject {
     }
 
     func dismiss() {
-        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
             scale = 1
             offset = .zero
             rotation = .zero
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
             self.isVisible = false
+            self.image = nil
         }
     }
 }

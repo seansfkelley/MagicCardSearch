@@ -171,11 +171,11 @@ private struct CardFaceView: View {
                             .gesture(
                                 MagnificationGesture(minimumScaleDelta: 0.01)
                                     .updating($isPinching) { _, state, _ in state = true }
-                                    .onChanged { _ in
+                                    .onChanged { value in
                                         guard let uiImage = state.imageContainer?.image,
                                               !zoomOverlay.isVisible else { return }
                                         let frame = geo.frame(in: .global)
-                                        zoomOverlay.present(image: uiImage, from: frame, cornerRadius: cornerRadius)
+                                        zoomOverlay.present(image: uiImage, from: frame, cornerRadius: cornerRadius, initialScale: value)
                                     }
                             )
                     }

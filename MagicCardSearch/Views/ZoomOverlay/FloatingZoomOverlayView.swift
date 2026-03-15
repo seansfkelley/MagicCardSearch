@@ -58,9 +58,11 @@ struct FloatingZoomOverlayView: View {
                 state = value
             }
             .onEnded { value in
-                manager.scale *= value
-                if manager.scale < 0.5 {
+                let finalScale = manager.scale * value
+                if finalScale <= 1 {
                     manager.dismiss()
+                } else {
+                    manager.scale = finalScale
                 }
             }
 
