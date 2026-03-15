@@ -91,7 +91,7 @@ struct CardView: View {
     @Binding var isFlipped: Bool
     let cornerRadius: CGFloat
     let showFlipButton: Bool
-    let tapToZoom: Bool
+    let enableZoomGestures: Bool
 
     init(
         card: CardDisplayable,
@@ -99,14 +99,14 @@ struct CardView: View {
         isFlipped: Binding<Bool>,
         cornerRadius: CGFloat,
         showFlipButton: Bool = true,
-        tapToZoom: Bool = false
+        enableZoomGestures: Bool = false
     ) {
         self.card = card
         self.quality = quality
         self._isFlipped = isFlipped
         self.cornerRadius = cornerRadius
         self.showFlipButton = showFlipButton
-        self.tapToZoom = tapToZoom
+        self.enableZoomGestures = enableZoomGestures
     }
 
     var body: some View {
@@ -121,7 +121,7 @@ struct CardView: View {
                     isShowingBackFace: $isFlipped,
                     cornerRadius: cornerRadius,
                     showFlipButton: showFlipButton,
-                    tapToZoom: tapToZoom
+                    enableZoomGestures: enableZoomGestures
                 )
             } else {
                 CardFaceView(
@@ -129,7 +129,7 @@ struct CardView: View {
                     orientation: card.frontFaceOrientation,
                     quality: quality,
                     cornerRadius: cornerRadius,
-                    tapToZoom: tapToZoom
+                    enableZoomGestures: enableZoomGestures
                 )
             }
         }
@@ -143,7 +143,7 @@ private struct CardFaceView: View {
     let orientation: Card.Orientation
     let quality: CardImageQuality
     let cornerRadius: CGFloat
-    var tapToZoom: Bool = false
+    var enableZoomGestures: Bool = false
 
     @ObservedObject private var zoomOverlay = ZoomOverlayManager.shared
 
@@ -171,18 +171,17 @@ private struct CardFaceView: View {
                                 }
                             }
                             .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
-                            .opacity(zoomOverlayIsShowingThisImage(state: state) ? 0 : 1)
-                            .overlay(
-                                Group {
-                                    if let uiImage = state.imageContainer?.image {
-                                        ZoomGestureView(
-                                            uiImage: uiImage,
-                                            cornerRadius: cornerRadius,
-                                            tapToZoom: tapToZoom
-                                        )
-                                    }
-                                }
-                            )
+                            .if(enableZoomGestures) { view in
+                                view
+                                    .opacity(zoomOverlayIsShowingThisImage(state: state) ? 0 : 1)
+                                    .overlay(
+                                        Group {
+                                            if let uiImage = state.imageContainer?.image {
+                                                ZoomGestureView(uiImage: uiImage, cornerRadius: cornerRadius)
+                                            }
+                                        }
+                                    )
+                            }
                     }
                 } else if state.error != nil {
                     CardPlaceholderView(name: face.name, cornerRadius: cornerRadius)
@@ -224,7 +223,7 @@ private struct FlippableCardFaceView: View {
     @Binding var isShowingBackFace: Bool
     let cornerRadius: CGFloat
     let showFlipButton: Bool
-    var tapToZoom: Bool = false
+    var enableZoomGestures: Bool = false
 
     private var rotationAxis: (x: CGFloat, y: CGFloat, z: CGFloat) {
         (x: 0, y: 1, z: 0)
@@ -238,7 +237,7 @@ private struct FlippableCardFaceView: View {
                     orientation: frontFaceOrientation,
                     quality: quality,
                     cornerRadius: cornerRadius,
-                    tapToZoom: tapToZoom
+                    enableZoomGestures: enableZoomGestures
                 )
                 .opacity(isShowingBackFace ? 0 : 1)
                 .rotation3DEffect(
@@ -251,7 +250,7 @@ private struct FlippableCardFaceView: View {
                     orientation: backFaceOrientation,
                     quality: quality,
                     cornerRadius: cornerRadius,
-                    tapToZoom: tapToZoom
+                    enableZoomGestures: enableZoomGestures
                 )
                 .opacity(isShowingBackFace ? 1 : 0)
                 .rotation3DEffect(

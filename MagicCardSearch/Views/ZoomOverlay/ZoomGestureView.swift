@@ -20,10 +20,9 @@ private func rubberBand(_ raw: CGFloat, min: CGFloat, max: CGFloat, coefficient:
 struct ZoomGestureView: UIViewRepresentable {
     let uiImage: UIImage
     let cornerRadius: CGFloat
-    var tapToZoom: Bool = false
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(uiImage: uiImage, cornerRadius: cornerRadius, tapToZoom: tapToZoom)
+        Coordinator(uiImage: uiImage, cornerRadius: cornerRadius)
     }
 
     func makeUIView(context: Context) -> UIView {
@@ -56,17 +55,15 @@ struct ZoomGestureView: UIViewRepresentable {
     final class Coordinator: NSObject, UIGestureRecognizerDelegate {
         private let uiImage: UIImage
         private let cornerRadius: CGFloat
-        private let tapToZoom: Bool
         private var manager: ZoomOverlayManager { .shared }
 
         // Scale at the moment the pinch began, used to compute cumulative scale
         // so rubber-banding sees total overshoot rather than per-frame deltas.
         private var scaleAtGestureBegan: CGFloat = 1
 
-        init(uiImage: UIImage, cornerRadius: CGFloat, tapToZoom: Bool) {
+        init(uiImage: UIImage, cornerRadius: CGFloat) {
             self.uiImage = uiImage
             self.cornerRadius = cornerRadius
-            self.tapToZoom = tapToZoom
         }
 
         private func currentFrame(for view: UIView) -> CGRect {
@@ -110,8 +107,7 @@ struct ZoomGestureView: UIViewRepresentable {
         }
 
         @objc func handleTap(_ recognizer: UITapGestureRecognizer) {
-            guard tapToZoom,
-                  recognizer.state == .ended,
+            guard recognizer.state == .ended,
                   let view = recognizer.view,
                   let screenSize = view.window?.screen.bounds.size else { return }
             manager.presentFilled(image: uiImage, from: currentFrame(for: view), cornerRadius: cornerRadius, screenSize: screenSize)

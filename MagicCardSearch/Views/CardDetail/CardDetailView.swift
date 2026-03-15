@@ -54,7 +54,7 @@ struct CardDetailView: View {
                     quality: .large,
                     isFlipped: $isFlipped,
                     cornerRadius: 16,
-                    tapToZoom: true
+                    enableZoomGestures: true
                 )
                 .padding(.horizontal)
                 .padding(.bottom, 24)
