@@ -24,9 +24,10 @@ struct ZoomGestureView: UIViewRepresentable {
     let uiImage: UIImage
     let sourceFrame: CGRect
     let cornerRadius: CGFloat
+    var tapToZoom: Bool = false
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(uiImage: uiImage, sourceFrame: sourceFrame, cornerRadius: cornerRadius)
+        Coordinator(uiImage: uiImage, sourceFrame: sourceFrame, cornerRadius: cornerRadius, tapToZoom: tapToZoom)
     }
 
     func makeUIView(context: Context) -> UIView {
@@ -35,14 +36,20 @@ struct ZoomGestureView: UIViewRepresentable {
 
         let pinch = UIPinchGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handlePinch))
         let pan = UIPanGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handlePan))
+        let tap = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleTap))
         pan.minimumNumberOfTouches = 2
         pan.maximumNumberOfTouches = 2
 
         pinch.delegate = context.coordinator
         pan.delegate = context.coordinator
+        tap.delegate = context.coordinator
+
+        // Tap only fires if pinch hasn't recognized.
+        tap.require(toFail: pinch)
 
         view.addGestureRecognizer(pinch)
         view.addGestureRecognizer(pan)
+        view.addGestureRecognizer(tap)
 
         return view
     }
@@ -54,16 +61,18 @@ struct ZoomGestureView: UIViewRepresentable {
         private let uiImage: UIImage
         private let sourceFrame: CGRect
         private let cornerRadius: CGFloat
+        private let tapToZoom: Bool
         private var manager: ZoomOverlayManager { .shared }
 
         // Scale at the moment the pinch began, used to compute cumulative scale
         // so rubber-banding sees total overshoot rather than per-frame deltas.
         private var scaleAtGestureBegan: CGFloat = 1
 
-        init(uiImage: UIImage, sourceFrame: CGRect, cornerRadius: CGFloat) {
+        init(uiImage: UIImage, sourceFrame: CGRect, cornerRadius: CGFloat, tapToZoom: Bool) {
             self.uiImage = uiImage
             self.sourceFrame = sourceFrame
             self.cornerRadius = cornerRadius
+            self.tapToZoom = tapToZoom
         }
 
         private func presentIfNeeded() {
@@ -99,6 +108,13 @@ struct ZoomGestureView: UIViewRepresentable {
             default:
                 break
             }
+        }
+
+        @objc func handleTap(_ recognizer: UITapGestureRecognizer) {
+            guard tapToZoom,
+                  recognizer.state == .ended,
+                  let screenSize = recognizer.view?.window?.screen.bounds.size else { return }
+            manager.presentFilled(image: uiImage, from: sourceFrame, cornerRadius: cornerRadius, screenSize: screenSize)
         }
 
         @objc func handlePan(_ recognizer: UIPanGestureRecognizer) {

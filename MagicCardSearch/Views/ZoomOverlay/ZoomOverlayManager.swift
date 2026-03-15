@@ -26,6 +26,23 @@ final class ZoomOverlayManager: ObservableObject {
         self.isVisible = true
     }
 
+    /// Presents the overlay and animates to the scale that fills the screen to
+    /// the nearest edge (horizontal or vertical), capped at maxScale.
+    func presentFilled(image: UIImage, from frame: CGRect, cornerRadius: CGFloat, screenSize: CGSize) {
+        self.image = image
+        self.sourceFrame = frame
+        self.scale = 1
+        self.offset = .zero
+        self.cornerRadius = cornerRadius
+        self.isGestureActive = false
+        self.isVisible = true
+        let fillScale = min(screenSize.width / frame.width, screenSize.height / frame.height)
+        let targetScale = min(fillScale, maxScale)
+        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+            self.scale = targetScale
+        }
+    }
+
     private let minScale: CGFloat = 1.0
     private let maxScale: CGFloat = 2.0
 
