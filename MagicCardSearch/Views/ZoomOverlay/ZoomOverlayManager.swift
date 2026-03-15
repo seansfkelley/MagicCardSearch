@@ -14,6 +14,11 @@ final class ZoomOverlayManager: ObservableObject {
     @Published var offset: CGSize = .zero
     @Published var cornerRadius: CGFloat = 0
 
+    static let minScale: CGFloat = 1.0
+    static let maxScale: CGFloat = 1.7
+    /// The scale at which the background reaches full black.
+    static let fullOpacityScale: CGFloat = 1.4
+
     private init() {}
 
     func present(image: UIImage, from frame: CGRect, cornerRadius: CGFloat) {
@@ -26,8 +31,7 @@ final class ZoomOverlayManager: ObservableObject {
         self.isVisible = true
     }
 
-    /// Presents the overlay and animates to the scale that fills the screen to
-    /// the nearest edge (horizontal or vertical), capped at maxScale.
+    /// Presents the overlay, animates to fullOpacityScale, and centers the image on screen.
     func presentFilled(image: UIImage, from frame: CGRect, cornerRadius: CGFloat, screenSize: CGSize) {
         self.image = image
         self.sourceFrame = frame
@@ -36,38 +40,38 @@ final class ZoomOverlayManager: ObservableObject {
         self.cornerRadius = cornerRadius
         self.isGestureActive = false
         self.isVisible = true
-        let fillScale = min(screenSize.width / frame.width, screenSize.height / frame.height)
-        let targetScale = min(fillScale, maxScale)
+        let targetOffset = CGSize(
+            width: screenSize.width / 2 - frame.midX,
+            height: screenSize.height / 2 - frame.midY
+        )
         withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-            self.scale = targetScale
+            self.scale = ZoomOverlayManager.fullOpacityScale
+            self.offset = targetOffset
         }
     }
-
-    private let minScale: CGFloat = 1.0
-    private let maxScale: CGFloat = 2.0
 
     /// Called on onEnded of the originating gesture. Hands off to the overlay's
     /// own gestures, or dismisses if scale is at or below 1. Snaps back to bounds
     /// if scale is outside [minScale, maxScale].
     func commitGesture() {
         isGestureActive = false
-        if scale <= minScale {
+        if scale <= Self.minScale {
             dismiss()
-        } else if scale > maxScale {
+        } else if scale > Self.maxScale {
             withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                scale = maxScale
+                scale = Self.maxScale
             }
         }
     }
 
     func snapToBoundsIfNeeded() {
-        if scale < minScale {
+        if scale < Self.minScale {
             withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                scale = minScale
+                scale = Self.minScale
             }
-        } else if scale > maxScale {
+        } else if scale > Self.maxScale {
             withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                scale = maxScale
+                scale = Self.maxScale
             }
         }
     }

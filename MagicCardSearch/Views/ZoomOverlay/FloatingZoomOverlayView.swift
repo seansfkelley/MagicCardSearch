@@ -1,8 +1,5 @@
 import SwiftUI
 
-private let minScale: CGFloat = 1.0
-private let maxScale: CGFloat = 2.0
-
 private func rubberBand(_ raw: CGFloat, min: CGFloat, max: CGFloat, coefficient: CGFloat = 0.15) -> CGFloat {
     if raw < min {
         let excess = min - raw
@@ -45,8 +42,7 @@ struct FloatingZoomOverlayView: View {
 
     private var backgroundOpacity: Double {
         let liveScale = Double(manager.scale)
-        let fullOpacityScaleFactor = 1.5
-        let t = (liveScale - 1.0) / (fullOpacityScaleFactor - 1.0)
+        let t = (liveScale - 1.0) / (ZoomOverlayManager.fullOpacityScale - 1.0)
         return max(0, min(1, t))
     }
 }
@@ -88,7 +84,7 @@ private struct OverlayGestureView: UIViewRepresentable {
                 scaleAtGestureBegan = manager.scale
             case .changed:
                 let rawScale = scaleAtGestureBegan * recognizer.scale
-                let clampedScale = rubberBand(rawScale, min: minScale, max: maxScale)
+                let clampedScale = rubberBand(rawScale, min: ZoomOverlayManager.minScale, max: ZoomOverlayManager.maxScale)
                 let effectiveDScale = clampedScale / manager.scale
                 let centroid = recognizer.location(in: nil)
                 let imageCenterX = manager.sourceFrame.midX + manager.offset.width
@@ -100,7 +96,7 @@ private struct OverlayGestureView: UIViewRepresentable {
                 manager.scale = clampedScale
             case .ended:
                 manager.snapToBoundsIfNeeded()
-                if manager.scale <= minScale { manager.dismiss() }
+                if manager.scale <= ZoomOverlayManager.minScale { manager.dismiss() }
             case .cancelled, .failed:
                 manager.dismiss()
             default:

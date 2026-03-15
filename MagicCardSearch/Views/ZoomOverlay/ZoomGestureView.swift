@@ -1,8 +1,5 @@
 import SwiftUI
 
-private let minScale: CGFloat = 1.0
-private let maxScale: CGFloat = 1.7
-
 /// Returns a rubber-banded value when `raw` exceeds [min, max].
 /// `coefficient` controls resistance: smaller = gentler (more travel past bound),
 /// larger = stiffer. Uses the standard UIScrollView-style formula: excess / (1 + excess * coefficient).
@@ -90,7 +87,7 @@ struct ZoomGestureView: UIViewRepresentable {
                 presentIfNeeded()
                 // recognizer.scale is cumulative since .began, matching MagnificationGesture.value.
                 let rawScale = scaleAtGestureBegan * recognizer.scale
-                let clampedScale = rubberBand(rawScale, min: minScale, max: maxScale)
+                let clampedScale = rubberBand(rawScale, min: ZoomOverlayManager.minScale, max: ZoomOverlayManager.maxScale)
                 let effectiveDScale = clampedScale / manager.scale
                 // Centroid in screen space, converted to offset from image center.
                 let centroid = recognizer.location(in: nil)
