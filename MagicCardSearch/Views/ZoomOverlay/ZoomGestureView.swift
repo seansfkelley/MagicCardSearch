@@ -19,12 +19,11 @@ private func rubberBand(_ raw: CGFloat, min: CGFloat, max: CGFloat, coefficient:
 /// for the originating gesture phase.
 struct ZoomGestureView: UIViewRepresentable {
     let uiImage: UIImage
-    let sourceFrame: CGRect
     let cornerRadius: CGFloat
     var tapToZoom: Bool = false
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(uiImage: uiImage, sourceFrame: sourceFrame, cornerRadius: cornerRadius, tapToZoom: tapToZoom)
+        Coordinator(uiImage: uiImage, cornerRadius: cornerRadius, tapToZoom: tapToZoom)
     }
 
     func makeUIView(context: Context) -> UIView {
@@ -56,7 +55,6 @@ struct ZoomGestureView: UIViewRepresentable {
     @MainActor
     final class Coordinator: NSObject, UIGestureRecognizerDelegate {
         private let uiImage: UIImage
-        private let sourceFrame: CGRect
         private let cornerRadius: CGFloat
         private let tapToZoom: Bool
         private var manager: ZoomOverlayManager { .shared }
@@ -65,26 +63,30 @@ struct ZoomGestureView: UIViewRepresentable {
         // so rubber-banding sees total overshoot rather than per-frame deltas.
         private var scaleAtGestureBegan: CGFloat = 1
 
-        init(uiImage: UIImage, sourceFrame: CGRect, cornerRadius: CGFloat, tapToZoom: Bool) {
+        init(uiImage: UIImage, cornerRadius: CGFloat, tapToZoom: Bool) {
             self.uiImage = uiImage
-            self.sourceFrame = sourceFrame
             self.cornerRadius = cornerRadius
             self.tapToZoom = tapToZoom
         }
 
-        private func presentIfNeeded() {
+        private func currentFrame(for view: UIView) -> CGRect {
+            view.convert(view.bounds, to: nil)
+        }
+
+        private func presentIfNeeded(view: UIView) {
             if !manager.isVisible {
-                manager.present(image: uiImage, from: sourceFrame, cornerRadius: cornerRadius)
+                manager.present(image: uiImage, from: currentFrame(for: view), cornerRadius: cornerRadius)
             }
         }
 
         @objc func handlePinch(_ recognizer: UIPinchGestureRecognizer) {
+            guard let view = recognizer.view else { return }
             switch recognizer.state {
             case .began:
-                presentIfNeeded()
+                presentIfNeeded(view: view)
                 scaleAtGestureBegan = manager.scale
             case .changed:
-                presentIfNeeded()
+                presentIfNeeded(view: view)
                 // recognizer.scale is cumulative since .began, matching MagnificationGesture.value.
                 let rawScale = scaleAtGestureBegan * recognizer.scale
                 let clampedScale = rubberBand(rawScale, min: ZoomOverlayManager.minScale, max: ZoomOverlayManager.maxScale)
@@ -110,14 +112,15 @@ struct ZoomGestureView: UIViewRepresentable {
         @objc func handleTap(_ recognizer: UITapGestureRecognizer) {
             guard tapToZoom,
                   recognizer.state == .ended,
-                  let screenSize = recognizer.view?.window?.screen.bounds.size else { return }
-            manager.presentFilled(image: uiImage, from: sourceFrame, cornerRadius: cornerRadius, screenSize: screenSize)
+                  let view = recognizer.view,
+                  let screenSize = view.window?.screen.bounds.size else { return }
+            manager.presentFilled(image: uiImage, from: currentFrame(for: view), cornerRadius: cornerRadius, screenSize: screenSize)
         }
 
         @objc func handlePan(_ recognizer: UIPanGestureRecognizer) {
             switch recognizer.state {
             case .began, .changed:
-                presentIfNeeded()
+                if let view = recognizer.view { presentIfNeeded(view: view) }
                 let t = recognizer.translation(in: recognizer.view)
                 manager.offset.width += t.x
                 manager.offset.height += t.y

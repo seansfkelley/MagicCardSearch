@@ -177,7 +177,6 @@ private struct CardFaceView: View {
                                     if let uiImage = state.imageContainer?.image {
                                         ZoomGestureView(
                                             uiImage: uiImage,
-                                            sourceFrame: geo.frame(in: .global),
                                             cornerRadius: cornerRadius,
                                             tapToZoom: tapToZoom
                                         )
