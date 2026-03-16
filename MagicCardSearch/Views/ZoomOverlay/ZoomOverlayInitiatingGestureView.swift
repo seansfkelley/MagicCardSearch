@@ -70,8 +70,8 @@ struct ZoomOverlayInitiatingGestureView: UIViewRepresentable {
                     image: uiImage,
                     in: screenSpaceFrame(for: view),
                     screenSize: screenSize(for: view),
-                    withGesture: true,
-                    clippingTo: clipShape,
+                    clippingImageWith: clipShape,
+                    with: .continuingGesture,
                 )
             case .changed:
                 state.applyScale(recognizer.scale, aroundCentroid: recognizer.location(in: nil))
@@ -97,9 +97,8 @@ struct ZoomOverlayInitiatingGestureView: UIViewRepresentable {
                 image: uiImage,
                 in: frame,
                 screenSize: size,
-                withGesture: false,
-                clippingTo: clipShape,
-                andZoomTo: targetOffset,
+                clippingImageWith: clipShape,
+                with: .autoZoomTo(targetOffset),
             )
         }
 

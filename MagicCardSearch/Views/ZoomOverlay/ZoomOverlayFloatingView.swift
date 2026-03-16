@@ -15,7 +15,7 @@ struct ZoomOverlayFloatingView: View {
                     .frame(width: state.sourceFrame.width, height: state.sourceFrame.height)
                     .if(state.clipShape != nil) { $0.clipShape(state.clipShape!) }
                     .scaleEffect(state.scale)
-                    .offset(x: state.offset.width, y: state.offset.height)
+                    .offset(x: state.translation.width, y: state.translation.height)
                     .position(x: state.sourceFrame.midX, y: state.sourceFrame.midY)
                     .allowsHitTesting(false)
 

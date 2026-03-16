@@ -31,9 +31,10 @@ The single source of truth. A `@MainActor` singleton (`ObservableObject`) that h
 Key methods:
 
 - `show` sets up state for the given originating view and seamlessly transitions to the overlay view.
-- `maybeCommitInitiatingGesture` is called when the initiating gesture ends and decides whether to revert (auto-dismiss) or to continue (and enable the overlay's interactions). 
-- `dismiss` (and overloads) animates seamlessly back to the originating view's position, then shows it.
-- `snapTo*Bounds` animates the overlay back to the configured bounds. 
+- `initiatingGestureFinished` is called when the initiating gesture ends and decides whether to revert (auto-dismiss) or to continue (and enable the overlay's interactions).
+- `apply*` methods apply one frame of gesture input, rubber-banding as appropriate.
+- `finished*` methods snap back and potentially auto-dismiss, rubber-banding as appropriate.
+- `dismiss` (and overloads) animates seamlessly back to the originating view's position, then hides the overlay.
 
 ### `ZoomOverlayInitiatingGestureView`
 

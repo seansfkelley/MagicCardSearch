@@ -11,9 +11,14 @@ final class ZoomOverlayState: ObservableObject {
     @Published public private(set) var clipShape: AnyShape?
     @Published public private(set) var screenSize: CGSize = .zero
     @Published public private(set) var scale: CGFloat = 1
-    @Published public private(set) var offset: CGSize = .zero
+    @Published public private(set) var translation: CGSize = .zero
 
     private init() {}
+
+    enum ShowType {
+        case continuingGesture
+        case autoZoomTo(CGSize)
+    }
 
     // MARK: - Gesture Lifecycle
 
@@ -22,23 +27,25 @@ final class ZoomOverlayState: ObservableObject {
         image: UIImage,
         in frame: CGRect,
         screenSize: CGSize,
-        withGesture: Bool,
-        clippingTo clipShape: AnyShape? = nil,
-        andZoomTo zoomTo: CGSize? = nil,
+        clippingImageWith clipShape: AnyShape? = nil,
+        with showType: ShowType,
     ) {
         self.image = image
         self.sourceFrame = frame
         self.screenSize = screenSize
         self.scale = 1
-        self.offset = .zero
+        self.translation = .zero
         self.clipShape = clipShape
         self.isVisible = true
-        self.isInitiatingGesture = withGesture
 
-        if let zoomTo {
+        switch showType {
+        case .continuingGesture:
+            isInitiatingGesture = true
+            case .autoZoomTo(let size):
+            isInitiatingGesture = false
             withAnimation(ZoomOverlayConstants.presentCenteredAnimation) {
                 scale = ZoomOverlayConstants.maxOpacityReachedAtScaleFactor
-                offset = zoomTo
+                translation = size
             }
         }
     }
@@ -46,22 +53,26 @@ final class ZoomOverlayState: ObservableObject {
     /// Called when the originating pinch gesture ends. Hands off to the overlay's
     /// own gestures, or dismisses if scale is at or below minScale.
     func initiatingGestureFinished() {
+        guard isInitiatingGesture else { return }
+
         isInitiatingGesture = false
 
         finishedScaling()
-        // This is not-DRY but I couldn't figure out how to only pan if the zoom decided we should
-        // stick around without breaking things up into a bunch of smaller private methods. This
-        // is close enough.
+        // This is not-DRY but I couldn't figure out how to only translate if the scale decided we
+        // should stick around without breaking things up into a bunch of smaller private methods.
+        // This is close enough.
         if scale >= ZoomOverlayConstants.minRetainedZoomScale {
-            finishedPanning()
+            finishedTranslating()
         }
     }
 
     /// Animates scale and offset back to identity, then hides the overlay.
     func dismiss() {
+        isInitiatingGesture = false
+
         withAnimation(ZoomOverlayConstants.snapBackAnimation, completionCriteria: .logicallyComplete) {
             scale = 1
-            offset = .zero
+            translation = .zero
         } completion: {
             self.isVisible = false
             self.image = nil
@@ -70,6 +81,8 @@ final class ZoomOverlayState: ObservableObject {
 
     /// Throws the image in the fling direction, then springs back and dismisses.
     func dismiss(withFling velocity: CGVector) {
+        isInitiatingGesture = false
+        
         let speed = sqrt(velocity.dx * velocity.dx + velocity.dy * velocity.dy)
         guard speed > 0 else {
             dismiss()
@@ -79,17 +92,17 @@ final class ZoomOverlayState: ObservableObject {
         let normalX = velocity.dx / speed
         let normalY = velocity.dy / speed
         let flingOffset = CGSize(
-            width: offset.width + normalX * ZoomOverlayConstants.flingDistance,
-            height: offset.height + normalY * ZoomOverlayConstants.flingDistance
+            width: translation.width + normalX * ZoomOverlayConstants.flingDistance,
+            height: translation.height + normalY * ZoomOverlayConstants.flingDistance
         )
 
         withAnimation(ZoomOverlayConstants.flingThrowAnimation, completionCriteria: .logicallyComplete) {
-            offset = flingOffset
+            translation = flingOffset
             scale = max(1, scale - ZoomOverlayConstants.flingScaleReduction)
         } completion: {
             withAnimation(ZoomOverlayConstants.flingReturnAnimation, completionCriteria: .logicallyComplete) {
                 self.scale = 1
-                self.offset = .zero
+                self.translation = .zero
             } completion: {
                 self.isVisible = false
                 self.image = nil
@@ -109,29 +122,29 @@ final class ZoomOverlayState: ObservableObject {
             coefficient: ZoomOverlayConstants.scaleRubberBandCoefficient
         )
         let effectiveScale = rubberBandedScale / scale
-        let imageCenterX = sourceFrame.midX + offset.width
-        let imageCenterY = sourceFrame.midY + offset.height
-        offset.width += (centroid.x - imageCenterX) * (1 - effectiveScale)
-        offset.height += (centroid.y - imageCenterY) * (1 - effectiveScale)
+        let imageCenterX = sourceFrame.midX + translation.width
+        let imageCenterY = sourceFrame.midY + translation.height
+        translation.width += (centroid.x - imageCenterX) * (1 - effectiveScale)
+        translation.height += (centroid.y - imageCenterY) * (1 - effectiveScale)
         scale = rubberBandedScale
     }
 
-    func applyTranslation(rawRelative translation: CGPoint) {
-        offset.width += translation.x
-        offset.height += translation.y
+    func applyTranslation(rawRelative relative: CGPoint) {
+        translation.width += relative.x
+        translation.height += relative.y
     }
 
-    func applyTranslation(rubberBandedFromAbsolute translation: CGSize) {
-        let (boundsX, boundsY) = panBounds()
-        offset = CGSize(
+    func applyTranslation(rubberBandedFromAbsolute absolute: CGSize) {
+        let (boundsX, boundsY) = translationBounds()
+        translation = CGSize(
             width: rubberBand(
-                translation.width,
+                absolute.width,
                 min: boundsX.min,
                 max: boundsX.max,
                 coefficient: ZoomOverlayConstants.panRubberBandCoefficient,
             ),
             height: rubberBand(
-                translation.height,
+                absolute.height,
                 min: boundsY.min,
                 max: boundsY.max,
                 coefficient: ZoomOverlayConstants.panRubberBandCoefficient,
@@ -152,26 +165,26 @@ final class ZoomOverlayState: ObservableObject {
         }
     }
 
-    /// Snaps pan offset to the allowed bounds if it's currently outside them.
-    func finishedPanning() {
-        let (boundsX, boundsY) = panBounds()
+    /// Snaps translation to the allowed bounds if it's currently outside them.
+    func finishedTranslating() {
+        let (boundsX, boundsY) = translationBounds()
 
-        var newOffset = CGSize(
-            width: max(boundsX.min, min(boundsX.max, offset.width)),
-            height: max(boundsY.min, min(boundsY.max, offset.height)),
+        let newOffset = CGSize(
+            width: max(boundsX.min, min(boundsX.max, translation.width)),
+            height: max(boundsY.min, min(boundsY.max, translation.height)),
         )
 
-        if newOffset != offset {
+        if newOffset != translation {
             withAnimation(ZoomOverlayConstants.snapBackAnimation) {
-                offset = newOffset
+                translation = newOffset
             }
         }
     }
 
-    // MARK: - Pan Bounds
+    // MARK: - Translation Bounds
 
     /// Returns the allowed (min, max) offset range for both axes.
-    private func panBounds() -> (x: (min: CGFloat, max: CGFloat), y: (min: CGFloat, max: CGFloat)) {
+    private func translationBounds() -> (x: (min: CGFloat, max: CGFloat), y: (min: CGFloat, max: CGFloat)) {
         let padding = min(screenSize.width, screenSize.height) * ZoomOverlayConstants.panEdgeBufferFraction
 
         func boundsForAxis(
@@ -200,5 +213,21 @@ final class ZoomOverlayState: ObservableObject {
                 axisLength: screenSize.height
             )
         )
+    }
+}
+
+// Visible for testing.
+/// Rubber-bands `raw` against [min, max] using the standard UIScrollView-style formula.
+/// Values within bounds pass through unchanged; values outside are damped by `coefficient`.
+/// Smaller coefficient = more stretch past the boundary.
+func rubberBand(_ raw: CGFloat, min: CGFloat, max: CGFloat, coefficient: CGFloat) -> CGFloat {
+    if raw < min {
+        let excess = min - raw
+        return min - excess / (1 + excess * coefficient)
+    } else if raw > max {
+        let excess = raw - max
+        return max + excess / (1 + excess * coefficient)
+    } else {
+        return raw
     }
 }

@@ -62,7 +62,7 @@ struct ZoomOverlayFloatingGestureView: UIViewRepresentable {
         @objc func handlePan(_ recognizer: UIPanGestureRecognizer) {
             switch recognizer.state {
             case .began:
-                rawOffset = state.offset
+                rawOffset = state.translation
             case .changed:
                 // swiftlint:disable:next identifier_name
                 let t = recognizer.translation(in: nil)
@@ -94,7 +94,7 @@ struct ZoomOverlayFloatingGestureView: UIViewRepresentable {
                 if speed > ZoomOverlayConstants.flingVelocityThreshold {
                     state.dismiss(withFling: CGVector(dx: v.x, dy: v.y))
                 } else {
-                    state.finishedPanning()
+                    state.finishedTranslating()
                 }
             case .possible, .cancelled, .failed:
                 break

@@ -1,7 +1,7 @@
 import SwiftUI
 
 enum ZoomOverlayConstants {
-    // MARK: - Scale
+    // MARK: - Zoom
     /// Below this scale the overlay dismisses instead of committing to the floating phase.
     static let minRetainedZoomScale: CGFloat = 1.2
     /// Above this scale the overlay rubber-bands rather than zooming further.
