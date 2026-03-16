@@ -37,6 +37,27 @@ extension Card: CardDetailDisplayable {
     }
 }
 
+struct PlaceholderCardDetailView: View {
+    let name: String?
+    let cornerRadius: CGFloat
+    let decoration: PlaceholderCardView.Decoration
+
+    init(name: String?, cornerRadius: CGFloat, with decoration: PlaceholderCardView.Decoration = .none) {
+        self.name = name
+        self.cornerRadius = cornerRadius
+        self.decoration = decoration
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            PlaceholderCardView(name: name, cornerRadius: cornerRadius, with: decoration)
+                .padding(.horizontal)
+            Spacer()
+        }
+        .padding(.top)
+    }
+}
+
 struct CardDetailView: View {
     let card: Card
     @Binding var isFlipped: Bool
@@ -266,7 +287,7 @@ struct CardDetailView: View {
     }
 }
 
-#Preview {
+#Preview("Lightning Bolt") {
     @Previewable @State var card: Card?
     @Previewable @State var isFlipped = false
     let id = UUID(uuidString: "f29ba16f-c8fb-42fe-aabf-87089cb214a7")!
@@ -284,4 +305,8 @@ struct CardDetailView: View {
                 card = try? await CardSearchService().fetchCard(byScryfallId: id)
             }
     }
+}
+
+#Preview("Placeholder") {
+    PlaceholderCardDetailView(name: "Lightning Bolt", cornerRadius: 16, with: .spinner)
 }

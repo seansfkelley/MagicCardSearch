@@ -109,7 +109,7 @@ struct RandomCardView: View {
                                 case .failure(let error):
                                     // VStack mimics the pinned-to-top visuals of the real CardDetailView.
                                     VStack(spacing: 0) {
-                                        CardPlaceholderView(name: nil, cornerRadius: 16, with: .error(error, nil))
+                                        PlaceholderCardView(name: nil, cornerRadius: 16, with: .error(error, nil))
                                             .padding(.horizontal)
                                         Spacer()
                                     }
@@ -123,7 +123,7 @@ struct RandomCardView: View {
 
                         // VStack mimics the pinned-to-top visuals of the real CardDetailView.
                         VStack(spacing: 0) {
-                            CardPlaceholderView(name: nil, cornerRadius: 16, with: .spinner)
+                            PlaceholderCardView(name: nil, cornerRadius: 16, with: .spinner)
                                 .padding(.horizontal)
                             Spacer()
                         }

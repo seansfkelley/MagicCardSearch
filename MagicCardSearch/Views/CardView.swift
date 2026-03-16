@@ -175,13 +175,13 @@ private struct CardFaceView: View {
                             }
                         }
                 } else if state.error != nil {
-                    CardPlaceholderView(name: face.name, cornerRadius: cornerRadius)
+                    PlaceholderCardView(name: face.name, cornerRadius: cornerRadius)
                 } else {
-                    CardPlaceholderView(name: face.name, cornerRadius: cornerRadius, with: .spinner)
+                    PlaceholderCardView(name: face.name, cornerRadius: cornerRadius, with: .spinner)
                 }
             }
         } else {
-            CardPlaceholderView(name: face.name, cornerRadius: cornerRadius)
+            PlaceholderCardView(name: face.name, cornerRadius: cornerRadius)
         }
     }
 }

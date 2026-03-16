@@ -159,3 +159,37 @@ struct SearchResultsGridView: View {
         }
     }
 }
+
+private struct SearchResultsGridPreview: View {
+    @State private var searchState: SearchState
+    private let scryfallCatalogs: ScryfallCatalogs
+    private let bookmarkedCardsStore: BookmarkedCardsStore
+    private let recentlyViewedCardsStore: RecentlyViewedCardsStore
+    private let list: ScryfallObjectList<Card>
+
+    init(query: String) {
+        let database = try! appDatabase()
+        self.scryfallCatalogs = .init(database: database)
+        self._searchState = State(initialValue: SearchState(
+            historyAndPinnedStore: HistoryAndPinnedStore(database: database),
+            scryfallCatalogs: scryfallCatalogs,
+        ))
+        self.bookmarkedCardsStore = .init(database: database)
+        self.recentlyViewedCardsStore = .init(database: database)
+        self.list = .init { page in
+            try await ScryfallClient().searchCards(query: query, page: page)
+        }
+    }
+
+    var body: some View {
+        SearchResultsGridView(list: list, searchState: $searchState)
+            .environment(scryfallCatalogs)
+            .environment(bookmarkedCardsStore)
+            .environment(recentlyViewedCardsStore)
+            .task { list.loadNextPage() }
+    }
+}
+
+#Preview {
+    SearchResultsGridPreview(query: "color:izzet t:instant order:edhrec mv>=4")
+}

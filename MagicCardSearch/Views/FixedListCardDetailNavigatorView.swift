@@ -39,7 +39,7 @@ struct FixedListCardDetailNavigatorView<C: CardDisplayable & Identifiable<UUID>>
                 ScrollView(.horizontal) {
                     LazyHStack(spacing: 0) {
                         ForEach(Array(cards.enumerated()), id: \.element.id) { index, card in
-                            cardView(for: card, with: geometry)
+                            cardView(for: card)
                                 .frame(width: geometry.size.width, height: geometry.size.height)
                                 .containerRelativeFrame(.horizontal)
                                 .id(index)
@@ -114,16 +114,16 @@ struct FixedListCardDetailNavigatorView<C: CardDisplayable & Identifiable<UUID>>
     }
 
     @ViewBuilder
-    private func cardView(for card: C, with geometry: GeometryProxy) -> some View {
+    private func cardView(for card: C) -> some View {
         switch loadedCards[card.id] {
         case .loaded(let fullCard):
             CardDetailView(card: fullCard, isFlipped: $cardFlipStates.for(card.id), searchState: searchState)
         case .loading:
-            CardPlaceholderView(name: card.frontFace.name, cornerRadius: 16, with: .spinner)
+            PlaceholderCardDetailView(name: card.frontFace.name, cornerRadius: 16, with: .spinner)
         case .failed(let error):
-            CardPlaceholderView(name: card.frontFace.name, cornerRadius: 16, with: .error(error, { load(card: card) }))
+            PlaceholderCardDetailView(name: card.frontFace.name, cornerRadius: 16, with: .error(error, { load(card: card) }))
         case nil:
-            CardPlaceholderView(name: card.frontFace.name, cornerRadius: 16, with: .spinner)
+            PlaceholderCardDetailView(name: card.frontFace.name, cornerRadius: 16, with: .spinner)
                 .onAppear { load(card: card) }
         }
     }

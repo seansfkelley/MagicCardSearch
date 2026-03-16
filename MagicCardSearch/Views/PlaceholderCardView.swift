@@ -1,7 +1,7 @@
 import SwiftUI
 import ScryfallKit
 
-struct CardPlaceholderView: View {
+struct PlaceholderCardView: View {
     enum Decoration {
         case none, spinner
         case image(String)
@@ -132,11 +132,11 @@ private struct PreviewError: LocalizedError {
 #Preview {
     ScrollView {
         VStack {
-            CardPlaceholderView(name: nil, cornerRadius: 16, with: .none)
-            CardPlaceholderView(name: nil, cornerRadius: 16, with: .image("shuffle"))
-            CardPlaceholderView(name: "Lightning Bolt", cornerRadius: 16, with: .spinner)
-            CardPlaceholderView(name: "Lightning Bolt", cornerRadius: 16, with: .error(PreviewError("Could not connect to Scryfall."), nil))
-            CardPlaceholderView(name: "Lightning Bolt", cornerRadius: 16, with: .error(PreviewError("The Internet connection appears to be offline."), {}))
+            PlaceholderCardView(name: nil, cornerRadius: 16, with: .none)
+            PlaceholderCardView(name: nil, cornerRadius: 16, with: .image("shuffle"))
+            PlaceholderCardView(name: "Lightning Bolt", cornerRadius: 16, with: .spinner)
+            PlaceholderCardView(name: "Lightning Bolt", cornerRadius: 16, with: .error(PreviewError("Could not connect to Scryfall."), nil))
+            PlaceholderCardView(name: "Lightning Bolt", cornerRadius: 16, with: .error(PreviewError("The Internet connection appears to be offline."), {}))
         }
         .padding()
     }
