@@ -63,6 +63,8 @@ private struct OverlayGestureView: UIViewRepresentable {
 
     func updateUIView(_ uiView: UIView, context: Context) {}
 
+    // n.b. can't make this private and don't want to rename it, so can't pull it out to file scope
+    // else it will collide with the other Coordinator and generally be vague.
     @MainActor
     final class Coordinator: NSObject, UIGestureRecognizerDelegate {
         private var manager: ZoomOverlayState { .shared }

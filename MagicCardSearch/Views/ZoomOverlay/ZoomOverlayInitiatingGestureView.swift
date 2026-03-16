@@ -22,6 +22,8 @@ struct ZoomOverlayInitiatingGestureView: UIViewRepresentable {
 
     func updateUIView(_ uiView: UIView, context: Context) {}
 
+    // n.b. can't make this private and don't want to rename it, so can't pull it out to file scope
+    // else it will collide with the other Coordinator and generally be vague.
     @MainActor
     final class Coordinator: NSObject, UIGestureRecognizerDelegate {
         private let uiImage: UIImage
@@ -149,11 +151,15 @@ struct ZoomOverlayInitiatingGestureView: UIViewRepresentable {
         }
     }
 }
+
 private extension UIView {
     var firstScrollViewAncestor: UIScrollView? {
         var view = superview
+        // swiftlint:disable:next identifier_name
         while let v = view {
-            if let scrollView = v as? UIScrollView { return scrollView }
+            if let scrollView = v as? UIScrollView {
+                return scrollView
+            }
             view = v.superview
         }
         return nil
@@ -171,4 +177,3 @@ private extension UIScrollView {
         return offset.x < minX || offset.x > maxX || offset.y < minY || offset.y > maxY
     }
 }
-
