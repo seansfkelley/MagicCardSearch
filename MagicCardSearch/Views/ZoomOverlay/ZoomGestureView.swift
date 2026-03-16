@@ -1,19 +1,5 @@
 import SwiftUI
 
-/// Returns a rubber-banded value when `raw` exceeds [min, max].
-/// `coefficient` controls resistance: smaller = gentler (more travel past bound),
-/// larger = stiffer. Uses the standard UIScrollView-style formula: excess / (1 + excess * coefficient).
-private func rubberBand(_ raw: CGFloat, min: CGFloat, max: CGFloat, coefficient: CGFloat = 0.15) -> CGFloat {
-    if raw < min {
-        let excess = min - raw
-        return min - excess / (1 + excess * coefficient)
-    } else if raw > max {
-        let excess = raw - max
-        return max + excess / (1 + excess * coefficient)
-    }
-    return raw
-}
-
 private struct ZoomGestureModifier: ViewModifier {
     let uiImage: UIImage?
     let clipShape: AnyShape?
@@ -42,9 +28,8 @@ extension View {
     }
 }
 
-/// A transparent UIView overlay that installs pinch and 2-finger pan
-/// gesture recognizers, all recognizing simultaneously. Drives ZoomOverlayManager
-/// for the originating gesture phase.
+/// Transparent UIView overlay on the card that drives ZoomOverlayManager
+/// during the originating gesture phase (before the overlay takes over).
 struct ZoomGestureView: UIViewRepresentable {
     let uiImage: UIImage
     let clipShape: AnyShape?
@@ -85,24 +70,23 @@ struct ZoomGestureView: UIViewRepresentable {
         private let clipShape: AnyShape?
         private var manager: ZoomOverlayManager { .shared }
 
-        // Scale at the moment the pinch began, used to compute cumulative scale
-        // so rubber-banding sees total overshoot rather than per-frame deltas.
-        private var scaleAtGestureBegan: CGFloat = 1
-        /// Raw (unrubber-banded) offset accumulated during a pan gesture.
-        private var rawOffset: CGSize = .zero
+        // Cumulative scale at pinch start, so rubber-banding sees total overshoot.
+        private var scaleAtPinchBegan: CGFloat = 1
+        // Raw (unrubber-banded) offset accumulated during a pan gesture.
+        private var rawPanOffset: CGSize = .zero
 
         init(uiImage: UIImage, clipShape: AnyShape?) {
             self.uiImage = uiImage
             self.clipShape = clipShape
         }
 
-        private func currentFrame(for view: UIView) -> CGRect {
+        private func screenSpaceFrame(for view: UIView) -> CGRect {
             view.convert(view.bounds, to: nil)
         }
 
         private func presentIfNeeded(view: UIView) {
             if !manager.isVisible {
-                manager.present(image: uiImage, from: currentFrame(for: view), clipShape: clipShape)
+                manager.present(image: uiImage, from: screenSpaceFrame(for: view), clipShape: clipShape)
             }
         }
 
@@ -111,24 +95,21 @@ struct ZoomGestureView: UIViewRepresentable {
             switch recognizer.state {
             case .began:
                 presentIfNeeded(view: view)
-                scaleAtGestureBegan = manager.scale
+                scaleAtPinchBegan = manager.scale
             case .changed:
                 presentIfNeeded(view: view)
-                // recognizer.scale is cumulative since .began, matching MagnificationGesture.value.
-                let rawScale = scaleAtGestureBegan * recognizer.scale
-                let clampedScale = rubberBand(rawScale, min: ZoomOverlayConstants.minScale, max: ZoomOverlayConstants.maxScale)
+                // recognizer.scale is cumulative since .began.
+                let rawScale = scaleAtPinchBegan * recognizer.scale
+                let clampedScale = rubberBand(rawScale, min: ZoomOverlayConstants.minScale, max: ZoomOverlayConstants.maxScale, coefficient: ZoomOverlayConstants.scaleRubberBandCoefficient)
                 let effectiveDScale = clampedScale / manager.scale
-                // Centroid in screen space, converted to offset from image center.
                 let centroid = recognizer.location(in: nil)
                 let imageCenterX = manager.sourceFrame.midX + manager.offset.width
                 let imageCenterY = manager.sourceFrame.midY + manager.offset.height
-                let cx = centroid.x - imageCenterX
-                let cy = centroid.y - imageCenterY
-                manager.offset.width += cx * (1 - effectiveDScale)
-                manager.offset.height += cy * (1 - effectiveDScale)
+                manager.offset.width += (centroid.x - imageCenterX) * (1 - effectiveDScale)
+                manager.offset.height += (centroid.y - imageCenterY) * (1 - effectiveDScale)
                 manager.scale = clampedScale
             case .ended:
-                manager.commitGesture()
+                manager.commitPinchGesture()
             case .cancelled, .failed:
                 manager.dismiss()
             default:
@@ -140,7 +121,7 @@ struct ZoomGestureView: UIViewRepresentable {
             guard recognizer.state == .ended,
                   let view = recognizer.view,
                   let screenSize = view.window?.screen.bounds.size else { return }
-            manager.presentFilled(image: uiImage, from: currentFrame(for: view), clipShape: clipShape, screenSize: screenSize)
+            manager.presentCentered(image: uiImage, from: screenSpaceFrame(for: view), clipShape: clipShape, screenSize: screenSize)
         }
 
         @objc func handlePan(_ recognizer: UIPanGestureRecognizer) {
@@ -148,20 +129,14 @@ struct ZoomGestureView: UIViewRepresentable {
             switch recognizer.state {
             case .began:
                 if let view = recognizer.view { presentIfNeeded(view: view) }
-                rawOffset = manager.offset
+                rawPanOffset = manager.offset
             case .changed:
                 if let view = recognizer.view { presentIfNeeded(view: view) }
                 let t = recognizer.translation(in: recognizer.view)
-                rawOffset.width += t.x
-                rawOffset.height += t.y
+                rawPanOffset.width += t.x
+                rawPanOffset.height += t.y
                 recognizer.setTranslation(.zero, in: recognizer.view)
-                let scaledW = manager.sourceFrame.width * manager.scale
-                let scaledH = manager.sourceFrame.height * manager.scale
-                let minDim = min(screenSize.width, screenSize.height)
-                let boundsX = manager.panBoundsForAxis(scaledImageSize: scaledW, sourceCenter: manager.sourceFrame.midX, screenSize: screenSize.width, minScreenDimension: minDim)
-                let boundsY = manager.panBoundsForAxis(scaledImageSize: scaledH, sourceCenter: manager.sourceFrame.midY, screenSize: screenSize.height, minScreenDimension: minDim)
-                manager.offset.width = manager.rubberBandOffset(rawOffset.width, min: boundsX.min, max: boundsX.max)
-                manager.offset.height = manager.rubberBandOffset(rawOffset.height, min: boundsY.min, max: boundsY.max)
+                manager.offset = manager.rubberBandedPanOffset(raw: rawPanOffset, screenSize: screenSize)
             default:
                 break
             }
@@ -180,6 +155,5 @@ struct ZoomGestureView: UIViewRepresentable {
             }
             return true
         }
-
     }
 }

@@ -1,16 +1,5 @@
 import SwiftUI
 
-private func rubberBand(_ raw: CGFloat, min: CGFloat, max: CGFloat, coefficient: CGFloat = 0.15) -> CGFloat {
-    if raw < min {
-        let excess = min - raw
-        return min - excess / (1 + excess * coefficient)
-    } else if raw > max {
-        let excess = raw - max
-        return max + excess / (1 + excess * coefficient)
-    }
-    return raw
-}
-
 struct FloatingZoomOverlayView: View {
     @EnvironmentObject private var manager: ZoomOverlayManager
 
@@ -41,8 +30,7 @@ struct FloatingZoomOverlayView: View {
     }
 
     private var backgroundOpacity: Double {
-        let liveScale = Double(manager.scale)
-        let t = (liveScale - ZoomOverlayConstants.minScale) / (ZoomOverlayConstants.fullOpacityScale - ZoomOverlayConstants.minScale)
+        let t = (Double(manager.scale) - ZoomOverlayConstants.minScale) / (ZoomOverlayConstants.fullOpacityScale - ZoomOverlayConstants.minScale)
         return UnitCurve.easeOut.value(at: max(0, min(1, t))) * ZoomOverlayConstants.fullOpacity
     }
 }
@@ -77,8 +65,7 @@ private struct OverlayGestureView: UIViewRepresentable {
     final class Coordinator: NSObject, UIGestureRecognizerDelegate {
         private var manager: ZoomOverlayManager { .shared }
         private var scaleAtGestureBegan: CGFloat = 1
-        /// Raw (unrubber-banded) offset accumulated during a pan gesture.
-        private var rawOffset: CGSize = .zero
+        private var rawPanOffset: CGSize = .zero
 
         @objc func handlePinch(_ recognizer: UIPinchGestureRecognizer) {
             switch recognizer.state {
@@ -86,18 +73,16 @@ private struct OverlayGestureView: UIViewRepresentable {
                 scaleAtGestureBegan = manager.scale
             case .changed:
                 let rawScale = scaleAtGestureBegan * recognizer.scale
-                let clampedScale = rubberBand(rawScale, min: ZoomOverlayConstants.minScale, max: ZoomOverlayConstants.maxScale)
+                let clampedScale = rubberBand(rawScale, min: ZoomOverlayConstants.minScale, max: ZoomOverlayConstants.maxScale, coefficient: ZoomOverlayConstants.scaleRubberBandCoefficient)
                 let effectiveDScale = clampedScale / manager.scale
                 let centroid = recognizer.location(in: nil)
                 let imageCenterX = manager.sourceFrame.midX + manager.offset.width
                 let imageCenterY = manager.sourceFrame.midY + manager.offset.height
-                let cx = centroid.x - imageCenterX
-                let cy = centroid.y - imageCenterY
-                manager.offset.width += cx * (1 - effectiveDScale)
-                manager.offset.height += cy * (1 - effectiveDScale)
+                manager.offset.width += (centroid.x - imageCenterX) * (1 - effectiveDScale)
+                manager.offset.height += (centroid.y - imageCenterY) * (1 - effectiveDScale)
                 manager.scale = clampedScale
             case .ended:
-                manager.snapToBoundsIfNeeded()
+                manager.snapScaleToBoundsIfNeeded()
                 if manager.scale <= ZoomOverlayConstants.minScale { manager.dismiss() }
             case .cancelled, .failed:
                 manager.dismiss()
@@ -110,26 +95,20 @@ private struct OverlayGestureView: UIViewRepresentable {
             let screenSize = recognizer.view?.window?.screen.bounds.size ?? UIScreen.main.bounds.size
             switch recognizer.state {
             case .began:
-                rawOffset = manager.offset
+                rawPanOffset = manager.offset
             case .changed:
                 let t = recognizer.translation(in: nil)
-                rawOffset.width += t.x
-                rawOffset.height += t.y
+                rawPanOffset.width += t.x
+                rawPanOffset.height += t.y
                 recognizer.setTranslation(.zero, in: nil)
-                let scaledW = manager.sourceFrame.width * manager.scale
-                let scaledH = manager.sourceFrame.height * manager.scale
-                let minDim = min(screenSize.width, screenSize.height)
-                let boundsX = manager.panBoundsForAxis(scaledImageSize: scaledW, sourceCenter: manager.sourceFrame.midX, screenSize: screenSize.width, minScreenDimension: minDim)
-                let boundsY = manager.panBoundsForAxis(scaledImageSize: scaledH, sourceCenter: manager.sourceFrame.midY, screenSize: screenSize.height, minScreenDimension: minDim)
-                manager.offset.width = manager.rubberBandOffset(rawOffset.width, min: boundsX.min, max: boundsX.max)
-                manager.offset.height = manager.rubberBandOffset(rawOffset.height, min: boundsY.min, max: boundsY.max)
+                manager.offset = manager.rubberBandedPanOffset(raw: rawPanOffset, screenSize: screenSize)
             case .ended:
                 let v = recognizer.velocity(in: nil)
                 let speed = sqrt(v.x * v.x + v.y * v.y)
                 if speed > ZoomOverlayConstants.flingVelocityThreshold {
                     manager.fling(velocity: CGVector(dx: v.x, dy: v.y))
                 } else {
-                    manager.snapOffsetToPanBoundsIfNeeded(screenSize: screenSize)
+                    manager.snapPanOffsetIfNeeded(screenSize: screenSize)
                 }
             default:
                 break
