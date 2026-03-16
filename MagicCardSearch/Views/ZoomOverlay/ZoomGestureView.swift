@@ -99,7 +99,7 @@ struct ZoomGestureView: UIViewRepresentable {
                 presentIfNeeded(view: view)
                 // recognizer.scale is cumulative since .began.
                 let rawScale = scaleAtPinchBegan * recognizer.scale
-                let clampedScale = rubberBand(rawScale, min: ZoomOverlayConstants.minScale, max: ZoomOverlayConstants.maxScale, coefficient: ZoomOverlayConstants.scaleRubberBandCoefficient)
+                let clampedScale = rubberBand(rawScale, min: ZoomOverlayConstants.minRetainedZoomScale, max: ZoomOverlayConstants.maxNonRubberbandingZoomScale, coefficient: ZoomOverlayConstants.scaleRubberBandCoefficient)
                 let effectiveDScale = clampedScale / manager.scale
                 let centroid = recognizer.location(in: nil)
                 let imageCenterX = manager.sourceFrame.midX + manager.offset.width
@@ -121,7 +121,7 @@ struct ZoomGestureView: UIViewRepresentable {
             guard recognizer.state == .ended,
                   let view = recognizer.view,
                   let screenSize = view.window?.screen.bounds.size else { return }
-            manager.presentCentered(image: uiImage, from: screenSpaceFrame(for: view), clipShape: clipShape, screenSize: screenSize)
+            manager.present(image: uiImage, from: screenSpaceFrame(for: view), clipShape: clipShape, centeredIn: screenSize)
         }
 
         @objc func handlePan(_ recognizer: UIPanGestureRecognizer) {

@@ -1,5 +1,4 @@
 import SwiftUI
-import Combine
 
 @MainActor
 final class ZoomOverlayManager: ObservableObject {
@@ -18,18 +17,8 @@ final class ZoomOverlayManager: ObservableObject {
 
     // MARK: - Presentation
 
-    func present(image: UIImage, from frame: CGRect, clipShape: AnyShape?) {
-        self.image = image
-        self.sourceFrame = frame
-        self.scale = 1
-        self.offset = .zero
-        self.clipShape = clipShape
-        self.isInitiatingGesture = true
-        self.isVisible = true
-    }
-
     /// Presents and animates the image to fill the screen, centered.
-    func presentCentered(image: UIImage, from frame: CGRect, clipShape: AnyShape? = nil, screenSize: CGSize) {
+    func present(image: UIImage, from frame: CGRect, clipShape: AnyShape? = nil, centeredIn screenSize: CGSize? = nil) {
         self.image = image
         self.sourceFrame = frame
         self.scale = 1
@@ -37,13 +26,15 @@ final class ZoomOverlayManager: ObservableObject {
         self.clipShape = clipShape
         self.isInitiatingGesture = false
         self.isVisible = true
-        let targetOffset = CGSize(
-            width: screenSize.width / 2 - frame.midX,
-            height: screenSize.height / 2 - frame.midY
-        )
-        withAnimation(ZoomOverlayConstants.presentCenteredSpring) {
-            self.scale = ZoomOverlayConstants.fullOpacityScale
-            self.offset = targetOffset
+        if let screenSize {
+            let targetOffset = CGSize(
+                width: screenSize.width / 2 - frame.midX,
+                height: screenSize.height / 2 - frame.midY
+            )
+            withAnimation(ZoomOverlayConstants.presentCenteredAnimation) {
+                self.scale = ZoomOverlayConstants.fullOpacityReachedAtScaleFactor
+                self.offset = targetOffset
+            }
         }
     }
 
@@ -53,12 +44,12 @@ final class ZoomOverlayManager: ObservableObject {
     /// own gestures, or dismisses if scale is at or below minScale.
     func commitPinchGesture(screenSize: CGSize) {
         isInitiatingGesture = false
-        if scale <= ZoomOverlayConstants.minScale {
+        if scale <= ZoomOverlayConstants.minRetainedZoomScale {
             dismiss()
         } else {
-            if scale > ZoomOverlayConstants.maxScale {
-                withAnimation(ZoomOverlayConstants.snapSpring) {
-                    scale = ZoomOverlayConstants.maxScale
+            if scale > ZoomOverlayConstants.maxNonRubberbandingZoomScale {
+                withAnimation(ZoomOverlayConstants.snapBackAnimation) {
+                    scale = ZoomOverlayConstants.maxNonRubberbandingZoomScale
                 }
             }
             snapPanOffsetIfNeeded(screenSize: screenSize)
@@ -66,7 +57,7 @@ final class ZoomOverlayManager: ObservableObject {
     }
 
     func dismiss() {
-        withAnimation(ZoomOverlayConstants.snapSpring, completionCriteria: .logicallyComplete) {
+        withAnimation(ZoomOverlayConstants.snapBackAnimation, completionCriteria: .logicallyComplete) {
             scale = 1
             offset = .zero
         } completion: {
@@ -92,7 +83,7 @@ final class ZoomOverlayManager: ObservableObject {
             offset = flingOffset
             scale = max(1, scale - ZoomOverlayConstants.flingScaleReduction)
         } completion: {
-            withAnimation(ZoomOverlayConstants.flingReturnSpring, completionCriteria: .logicallyComplete) {
+            withAnimation(ZoomOverlayConstants.flingReturnAnimation, completionCriteria: .logicallyComplete) {
                 self.scale = 1
                 self.offset = .zero
             } completion: {
@@ -106,13 +97,13 @@ final class ZoomOverlayManager: ObservableObject {
 
     /// Snaps scale to [minScale, maxScale] if outside bounds.
     func snapScaleToBoundsIfNeeded() {
-        if scale < ZoomOverlayConstants.minScale {
-            withAnimation(ZoomOverlayConstants.snapSpring) {
-                scale = ZoomOverlayConstants.minScale
+        if scale < ZoomOverlayConstants.minRetainedZoomScale {
+            withAnimation(ZoomOverlayConstants.snapBackAnimation) {
+                scale = ZoomOverlayConstants.minRetainedZoomScale
             }
-        } else if scale > ZoomOverlayConstants.maxScale {
-            withAnimation(ZoomOverlayConstants.snapSpring) {
-                scale = ZoomOverlayConstants.maxScale
+        } else if scale > ZoomOverlayConstants.maxNonRubberbandingZoomScale {
+            withAnimation(ZoomOverlayConstants.snapBackAnimation) {
+                scale = ZoomOverlayConstants.maxNonRubberbandingZoomScale
             }
         }
     }
@@ -126,7 +117,7 @@ final class ZoomOverlayManager: ObservableObject {
         newOffset.height = max(boundsY.min, min(boundsY.max, newOffset.height))
 
         if newOffset != offset {
-            withAnimation(ZoomOverlayConstants.snapSpring) {
+            withAnimation(ZoomOverlayConstants.snapBackAnimation) {
                 offset = newOffset
             }
         }

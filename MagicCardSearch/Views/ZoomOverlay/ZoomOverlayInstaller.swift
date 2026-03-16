@@ -3,7 +3,6 @@ import Combine
 
 /// Hosts the FloatingZoomOverlayView in a dedicated UIWindow above all other windows,
 /// including SwiftUI sheet/fullScreenCover presentations.
-/// Must be called with a live UIViewController whose view is already in the window hierarchy.
 @MainActor
 enum ZoomOverlayInstaller {
     private static var isInstalled = false

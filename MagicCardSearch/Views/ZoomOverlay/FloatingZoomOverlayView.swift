@@ -30,8 +30,8 @@ struct FloatingZoomOverlayView: View {
     }
 
     private var backgroundOpacity: Double {
-        let t = (Double(manager.scale) - 1.0) / (ZoomOverlayConstants.fullOpacityScale - 1.0)
-        return UnitCurve.easeOut.value(at: max(0, min(1, t))) * ZoomOverlayConstants.fullOpacity
+        let t = (Double(manager.scale) - 1.0) / (ZoomOverlayConstants.fullOpacityReachedAtScaleFactor - 1.0)
+        return UnitCurve.easeOut.value(at: max(0, min(1, t))) * ZoomOverlayConstants.maxLightboxOpacity
     }
 }
 
@@ -80,7 +80,7 @@ private struct OverlayGestureView: UIViewRepresentable {
                 scaleAtGestureBegan = manager.scale
             case .changed:
                 let rawScale = scaleAtGestureBegan * recognizer.scale
-                let clampedScale = rubberBand(rawScale, min: ZoomOverlayConstants.minScale, max: ZoomOverlayConstants.maxScale, coefficient: ZoomOverlayConstants.scaleRubberBandCoefficient)
+                let clampedScale = rubberBand(rawScale, min: ZoomOverlayConstants.minRetainedZoomScale, max: ZoomOverlayConstants.maxNonRubberbandingZoomScale, coefficient: ZoomOverlayConstants.scaleRubberBandCoefficient)
                 let effectiveDScale = clampedScale / manager.scale
                 let centroid = recognizer.location(in: nil)
                 let imageCenterX = manager.sourceFrame.midX + manager.offset.width
@@ -90,7 +90,7 @@ private struct OverlayGestureView: UIViewRepresentable {
                 manager.scale = clampedScale
             case .ended:
                 manager.snapScaleToBoundsIfNeeded()
-                if manager.scale <= ZoomOverlayConstants.minScale { manager.dismiss() }
+                if manager.scale <= ZoomOverlayConstants.minRetainedZoomScale { manager.dismiss() }
             case .cancelled, .failed:
                 manager.dismiss()
             default:
@@ -121,7 +121,7 @@ private struct OverlayGestureView: UIViewRepresentable {
             case .ended:
                 let v = recognizer.velocity(in: nil)
                 let speed = sqrt(v.x * v.x + v.y * v.y)
-                guard manager.scale > ZoomOverlayConstants.minScale else { break }
+                guard manager.scale > ZoomOverlayConstants.minRetainedZoomScale else { break }
                 if speed > ZoomOverlayConstants.flingVelocityThreshold {
                     manager.fling(velocity: CGVector(dx: v.x, dy: v.y))
                 } else {
