@@ -1,12 +1,11 @@
 import Foundation
 import ScryfallKit
 import OSLog
-import SQLiteData
 import SwiftSoup
+import Cache
 
 private let logger = Logger(subsystem: "MagicCardSearch", category: "ScryfallCatalogs")
 
-private let oneDay: TimeInterval = 60 * 60 * 24
 private let jsonDecoder: JSONDecoder = {
     var decoder = JSONDecoder()
     decoder.dateDecodingStrategy = .iso8601
@@ -20,121 +19,197 @@ private let jsonEncoder: JSONEncoder = {
 
 private typealias CatalogType = Catalog.`Type`
 
-// swiftlint:disable attributes
+// MARK: - CachedBlob
+
+@propertyWrapper
+class CachedBlob<Value: Codable> {
+    private let key: String
+    private var valueCache: Result<Value, Error>?
+    var storage: Storage<String, Data>?
+
+    init(_ key: String) {
+        self.key = key
+    }
+
+    var wrappedValue: Value? {
+        if case .success(let value) = valueCache { return value }
+
+        guard let storage else { return nil }
+
+        do {
+            let data = try storage.object(forKey: key)
+            let value = try jsonDecoder.decode(Value.self, from: data)
+            valueCache = .success(value)
+            return value
+        } catch {
+            logger.warning("failed to load or decode cached value for key=\(self.key) error=\(error)")
+            valueCache = .failure(error)
+            return nil
+        }
+    }
+
+    var projectedValue: CachedBlob<Value> { self }
+
+    func store(_ value: Value) {
+        guard let storage else {
+            logger.warning("attempted to store value for key=\(self.key) but storage is nil")
+            return
+        }
+        do {
+            let data = try jsonEncoder.encode(value)
+            try storage.setObject(data, forKey: key)
+            valueCache = .success(value)
+        } catch {
+            logger.error("failed to encode or cache value for key=\(self.key) error=\(error)")
+        }
+    }
+}
+
+// MARK: - CachedBlobProtocol
+
+protocol CachedBlobProtocol: AnyObject {
+    var storage: Storage<String, Data>? { get set }
+}
+
+extension CachedBlob: CachedBlobProtocol {}
+
+// MARK: - ScryfallCatalogs
+
 @MainActor
 @Observable
 class ScryfallCatalogs {
+    public private(set) var catalogChangeNonce: Int = 0
+
     @ObservationIgnored
-    @TransformedBlob("sets", { data in
-        let parsed = try jsonDecoder.decode([MTGSet].self, from: data)
-        return Dictionary(uniqueKeysWithValues: parsed.map { (SetCode($0.code), $0) })
-    })
+    @CachedBlob("sets")
     public var sets: [SetCode: MTGSet]?
 
     @ObservationIgnored
-    @TransformedBlob("symbology", { data in
-        let parsed = try jsonDecoder.decode([Card.Symbol].self, from: data)
-        return Dictionary(uniqueKeysWithValues: parsed.map { (SymbolCode($0.symbol), $0) })
-    })
+    @CachedBlob("symbology")
     public var symbology: [SymbolCode: Card.Symbol]?
 
     @ObservationIgnored
-    @TransformedBlob("symbolSvgs")
+    @CachedBlob("symbolSvgs")
     public var symbolSvgs: [SymbolCode: Data]?
 
     @ObservationIgnored
-    @TransformedBlob("artTags")
+    @CachedBlob("artTags")
     public var artTags: [String]?
 
     @ObservationIgnored
-    @TransformedBlob("oracleTags")
+    @CachedBlob("oracleTags")
     public var oracleTags: [String]?
 
     @ObservationIgnored
-    @TransformedBlob(CatalogType.abilityWords.rawValue)
+    @CachedBlob(CatalogType.abilityWords.rawValue)
     public var abilityWords: [String]?
 
     @ObservationIgnored
-    @TransformedBlob(CatalogType.artifactTypes.rawValue)
+    @CachedBlob(CatalogType.artifactTypes.rawValue)
     public var artifactTypes: [String]?
 
     @ObservationIgnored
-    @TransformedBlob(CatalogType.artistNames.rawValue)
+    @CachedBlob(CatalogType.artistNames.rawValue)
     public var artistNames: [String]?
 
     @ObservationIgnored
-    @TransformedBlob(CatalogType.battleTypes.rawValue)
+    @CachedBlob(CatalogType.battleTypes.rawValue)
     public var battleTypes: [String]?
 
     @ObservationIgnored
-    @TransformedBlob(CatalogType.cardNames.rawValue)
+    @CachedBlob(CatalogType.cardNames.rawValue)
     public var cardNames: [String]?
 
     @ObservationIgnored
-    @TransformedBlob(CatalogType.cardTypes.rawValue)
+    @CachedBlob(CatalogType.cardTypes.rawValue)
     public var cardTypes: [String]?
 
     @ObservationIgnored
-    @TransformedBlob(CatalogType.creatureTypes.rawValue)
+    @CachedBlob(CatalogType.creatureTypes.rawValue)
     public var creatureTypes: [String]?
 
     @ObservationIgnored
-    @TransformedBlob(CatalogType.enchantmentTypes.rawValue)
+    @CachedBlob(CatalogType.enchantmentTypes.rawValue)
     public var enchantmentTypes: [String]?
 
     @ObservationIgnored
-    @TransformedBlob(CatalogType.flavorWords.rawValue)
+    @CachedBlob(CatalogType.flavorWords.rawValue)
     public var flavorWords: [String]?
 
     @ObservationIgnored
-    @TransformedBlob(CatalogType.keywordAbilities.rawValue)
+    @CachedBlob(CatalogType.keywordAbilities.rawValue)
     public var keywordAbilities: [String]?
 
     @ObservationIgnored
-    @TransformedBlob(CatalogType.keywordActions.rawValue)
+    @CachedBlob(CatalogType.keywordActions.rawValue)
     public var keywordActions: [String]?
 
     @ObservationIgnored
-    @TransformedBlob(CatalogType.landTypes.rawValue)
+    @CachedBlob(CatalogType.landTypes.rawValue)
     public var landTypes: [String]?
 
     @ObservationIgnored
-    @TransformedBlob(CatalogType.loyalties.rawValue)
+    @CachedBlob(CatalogType.loyalties.rawValue)
     public var loyalties: [String]?
 
     @ObservationIgnored
-    @TransformedBlob(CatalogType.planeswalkerTypes.rawValue)
+    @CachedBlob(CatalogType.planeswalkerTypes.rawValue)
     public var planeswalkerTypes: [String]?
 
     @ObservationIgnored
-    @TransformedBlob(CatalogType.powers.rawValue)
+    @CachedBlob(CatalogType.powers.rawValue)
     public var powers: [String]?
 
     @ObservationIgnored
-    @TransformedBlob(CatalogType.spellTypes.rawValue)
+    @CachedBlob(CatalogType.spellTypes.rawValue)
     public var spellTypes: [String]?
 
     @ObservationIgnored
-    @TransformedBlob(CatalogType.supertypes.rawValue)
+    @CachedBlob(CatalogType.supertypes.rawValue)
     public var supertypes: [String]?
 
     @ObservationIgnored
-    @TransformedBlob(CatalogType.toughnesses.rawValue)
+    @CachedBlob(CatalogType.toughnesses.rawValue)
     public var toughnesses: [String]?
 
     @ObservationIgnored
-    @TransformedBlob(CatalogType.watermarks.rawValue)
+    @CachedBlob(CatalogType.watermarks.rawValue)
     public var watermarks: [String]?
 
     @ObservationIgnored
-    @TransformedBlob(CatalogType.wordBank.rawValue)
+    @CachedBlob(CatalogType.wordBank.rawValue)
     public var wordBank: [String]?
 
-    private let database: any DatabaseWriter
-
-    public init(database: DatabaseWriter) {
-        self.database = database
+    // This is pretty foul but it's the best I can figure out without resorting to a macro or
+    // some weird indirect initialization thunk specified on every single field.
+    private var allBlobs: [any CachedBlobProtocol] {
+        [
+            $sets, $symbology, $symbolSvgs, $artTags, $oracleTags,
+            $abilityWords, $artifactTypes, $artistNames, $battleTypes,
+            $cardNames, $cardTypes, $creatureTypes, $enchantmentTypes,
+            $flavorWords, $keywordAbilities, $keywordActions, $landTypes,
+            $loyalties, $planeswalkerTypes, $powers, $spellTypes,
+            $supertypes, $toughnesses, $watermarks, $wordBank,
+        ]
     }
+
+    private let cache: Storage<String, Data>? = {
+        let disk = try? DiskStorage<String, Data>(
+            config: .init(name: "scryfall-catalogs", expiry: .days(30)),
+            fileManager: .default,
+            transformer: .passthrough,
+        )
+        return disk.map {
+            Storage(
+                hybridStorage: HybridStorage(
+                    memoryStorage: .init(config: .init(expiry: .days(1))),
+                    diskStorage: $0,
+                ),
+            )
+        }
+    }()
+
+    private var didHydrate = false
 
     public func hydrate() async {
         guard !isRunningTests() else {
@@ -142,32 +217,40 @@ class ScryfallCatalogs {
             return
         }
 
+        guard let cache else {
+            logger.warning("cache is nil; skipping hydration")
+            return
+        }
+
+        guard !didHydrate else {
+            logger.warning("hydrate() called more than once; skipping")
+            return
+        }
+
+        didHydrate = true
+
+        for blob in allBlobs {
+            blob.storage = cache
+        }
+
         let client = ScryfallClient(logger: logger)
 
         for type in CatalogType.allCases {
-            await fetch(type.rawValue, expiringAfterDays: type == .cardNames ? 7 : 30) {
+            await fetch(type.rawValue, expiry: type == .cardNames ? .days(7) : nil) {
                 try await client.getCatalog(catalogType: type).data
             }
         }
 
-        await fetch("sets") { try await client.getSets().data }
-        await fetch("symbology") { try await client.getSymbology().data }
-
-        let symbology: [Card.Symbol]?
-        do {
-            symbology = try await database.read { db in
-                if let blob = try (BlobEntry.where { $0.key.eq("symbology") }.fetchOne(db)) {
-                    try jsonDecoder.decode([Card.Symbol].self, from: blob.value)
-                } else {
-                    nil
-                }
-            }
-        } catch {
-            symbology = nil
-            logger.warning("failed to load or parse symbology; will not attempt to load SVGs error=\(error)")
+        await fetch("sets") {
+            let sets = try await client.getSets().data
+            return Dictionary(uniqueKeysWithValues: sets.map { (SetCode($0.code), $0) })
+        }
+        await fetch("symbology") {
+            let symbols = try await client.getSymbology().data
+            return Dictionary(uniqueKeysWithValues: symbols.map { (SymbolCode($0.symbol), $0) })
         }
 
-        if let symbology {
+        if let symbology = symbology.map({ Array($0.values) }) {
             await fetch("symbolSvgs") { await fetchSymbolSvgs(symbols: symbology) }
         }
 
@@ -175,28 +258,23 @@ class ScryfallCatalogs {
         await fetch("oracleTags") { try await fetchTags(matchingHrefPrefix: "/search?q=oracletag") }
     }
 
-    private func fetch<T: Codable>(_ key: String, expiringAfterDays expirationInDays: Int = 30, using fetcher: () async throws -> T) async {
-        let existing: BlobEntry?
-        do {
-            existing = try await database.read { db in
-                try BlobEntry.where { $0.key.eq(key) }.fetchOne(db)
-            }
-        } catch {
-            existing = nil
-            logger.warning("failed while reading blob for key=\(key) from database; will re-fetch error=\(error)")
-        }
+    private func fetch<T: Codable>(_ key: String, expiry: Expiry? = nil, using fetcher: () async throws -> T) async {
+        guard let cache else { return }
 
-        if let existing {
-            if existing.insertedAt >= Date(timeIntervalSinceNow: -Double(expirationInDays) * oneDay) {
-                do {
-                    _ = try jsonDecoder.decode(T.self, from: existing.value)
-                    logger.info("already have valid blob for key=\(key); not fetching")
-                    return
-                } catch {
-                    logger.warning("blob for key=\(key) existed but could not be parsed; will re-fetch error=\(error)")
-                }
-            } else {
-                logger.info("blob for key=\(key) existed but is expired; will re-fetch")
+        // Cache.object(forKey:) throws StorageError.notFound or .expired if unavailable.
+        if let existing = try? cache.object(forKey: key) {
+            if (try? jsonDecoder.decode(T.self, from: existing)) != nil {
+                logger.info("already have valid cached value for key=\(key); not fetching")
+                catalogChangeNonce += 1
+                return
+            }
+
+            logger.warning("cached value for key=\(key) could not be parsed; will re-fetch")
+
+            do {
+                try cache.removeObject(forKey: key)
+            } catch {
+                logger.warning("failed to proactively remove cache entry for key=\(key); continuing error=\(error)")
             }
         }
 
@@ -204,24 +282,20 @@ class ScryfallCatalogs {
         do {
             result = try await fetcher()
         } catch {
-            logger.error("error fetching blob data for key=\(key) from Scryfall; will continue without error=\(error)")
+            logger.error("error fetching data for key=\(key) from Scryfall; will continue without it error=\(error)")
             return
         }
 
         do {
-            let value = try jsonEncoder.encode(result)
-
-            _ = try await database.write { db in
-                try BlobEntry
-                    .insert { BlobEntry(key: key, value: value) }
-                    .execute(db)
-            }
+            let data = try jsonEncoder.encode(result)
+            try cache.setObject(data, forKey: key, expiry: expiry)
+            catalogChangeNonce += 1
         } catch {
-            logger.error("error writing blob for key=\(key) to store error=\(error)")
+            logger.error("error caching value for key=\(key) error=\(error)")
             return
         }
 
-        logger.info("fetched and cached blob for key=\(key)")
+        logger.info("fetched and cached value for key=\(key)")
     }
 
     private func fetchSymbolSvgs(symbols: [Card.Symbol]) async -> [SymbolCode: Data] {
@@ -293,7 +367,7 @@ class ScryfallCatalogs {
     private func fetchTags(matchingHrefPrefix hrefPrefix: String) async throws -> [String] {
         let url = URL(string: "https://scryfall.com/docs/tagger-tags")!
         let (data, response) = try await URLSession.shared.data(from: url)
-        
+
         guard let httpResponse = response as? HTTPURLResponse,
               (200...299).contains(httpResponse.statusCode) else {
             let statusCode = (response as? HTTPURLResponse)?.statusCode ?? -1
@@ -305,7 +379,7 @@ class ScryfallCatalogs {
                 ]
             )
         }
-        
+
         guard let html = String(data: data, encoding: .utf8) else {
             throw URLError(
                 .cannotDecodeContentData,
@@ -315,7 +389,7 @@ class ScryfallCatalogs {
                 ]
             )
         }
-        
+
         let document = try SwiftSoup.parse(html)
         let anchors = try document.select("a[href^=\(hrefPrefix)]")
         return try anchors.map { try $0.text() }.filter { !$0.isEmpty }.sorted()
@@ -347,4 +421,4 @@ class ScryfallCatalogs {
         }
     }
 }
-// swiftlint:enable attributes
+

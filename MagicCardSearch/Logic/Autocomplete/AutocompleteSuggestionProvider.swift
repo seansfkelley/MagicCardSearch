@@ -144,8 +144,8 @@ class AutocompleteSuggestionProvider {
 
                 if let cardNames {
                     try Task.checkCancellation()
-                    suggestions.append( contentsOf:
-                        timed("name autocomplete suggestions") {
+                    suggestions.append(
+                        contentsOf: timed("name autocomplete suggestions") {
                             nameSuggestions(for: partial, in: cardNames, searchTerm: searchTerm)
                                 .filter { !isRedundantSuggestion($0, existingFilters: existingFilters) }
                                 .prefix(10)

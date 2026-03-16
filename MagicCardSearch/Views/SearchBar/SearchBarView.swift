@@ -117,8 +117,8 @@ struct SearchBarView: View {
     }
 
     private func insertSymbol(_ symbol: SymbolCode) {
-        searchState.searchText.replaceSubrange(searchState.actualSearchSelection, with: symbol.normalized)
-        let index = searchState.searchText.index(searchState.actualSearchSelection.lowerBound, offsetBy: symbol.normalized.count)
+        searchState.searchText.replaceSubrange(searchState.actualSearchSelection, with: symbol.rawValue)
+        let index = searchState.searchText.index(searchState.actualSearchSelection.lowerBound, offsetBy: symbol.rawValue.count)
         searchState.desiredSearchSelection = .init(insertionPoint: index)
     }
 }

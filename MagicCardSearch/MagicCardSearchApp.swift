@@ -20,7 +20,7 @@ struct MagicCardSearchApp: App {
         bookmarkedCardsStore = .init(database: database)
         historyAndPinnedStore = .init(database: database)
         recentlyViewedCardsStore = .init(database: database)
-        scryfallCatalogs = .init(database: database)
+        scryfallCatalogs = .init()
     }
     
     var body: some Scene {

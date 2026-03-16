@@ -169,7 +169,7 @@ private struct SearchResultsGridPreview: View {
 
     init(query: String) {
         let database = try! appDatabase()
-        self.scryfallCatalogs = .init(database: database)
+        self.scryfallCatalogs = .init()
         self._searchState = State(initialValue: SearchState(
             historyAndPinnedStore: HistoryAndPinnedStore(database: database),
             scryfallCatalogs: scryfallCatalogs,

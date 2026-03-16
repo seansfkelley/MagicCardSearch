@@ -27,7 +27,7 @@ struct SetIconView: View {
         let setCode: SetCode
         let size: CGFloat
 
-        var description: String { "\(setCode.normalized)@\(size)" }
+        var description: String { "\(setCode.rawValue)@\(size)" }
     }
 
     private static let svgDataCache: any StorageAware<SetCode, Data> = bestEffortCache(
@@ -95,7 +95,7 @@ struct SetIconView: View {
             if svgData != nil {
                 logger.trace("hit cache for SVG data for icon with key=\(renderedImageCacheKey)")
             } else {
-                logger.info("requesting SVG data for icon for set=\(setCode.normalized) from url=\(url)")
+                logger.info("requesting SVG data for icon for set=\(setCode.rawValue) from url=\(url)")
                 let (data, _) = try await URLSession.shared.data(from: url)
                 svgData = data
                 try Self.svgDataCache.setObject(data, forKey: setCode, expiry: nil)

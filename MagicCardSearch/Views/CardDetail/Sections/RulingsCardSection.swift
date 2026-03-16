@@ -158,7 +158,7 @@ private let sampleRulings: [Card.Ruling] = [
             scryfallService: MockRulingsService(behavior: .loaded(sampleRulings))
         )
     }
-    .environment(ScryfallCatalogs(database: try! appDatabase()))
+    .environment(ScryfallCatalogs())
 }
 
 #Preview("Loaded with no rulings") {
@@ -168,7 +168,7 @@ private let sampleRulings: [Card.Ruling] = [
             scryfallService: MockRulingsService(behavior: .loaded([]))
         )
     }
-    .environment(ScryfallCatalogs(database: try! appDatabase()))
+    .environment(ScryfallCatalogs())
 }
 
 #Preview("Loading forever") {
@@ -178,7 +178,7 @@ private let sampleRulings: [Card.Ruling] = [
             scryfallService: MockRulingsService(behavior: .loadingForever)
         )
     }
-    .environment(ScryfallCatalogs(database: try! appDatabase()))
+    .environment(ScryfallCatalogs())
 }
 
 #Preview("Errored") {
@@ -188,5 +188,5 @@ private let sampleRulings: [Card.Ruling] = [
             scryfallService: MockRulingsService(behavior: .errored(URLError(.notConnectedToInternet)))
         )
     }
-    .environment(ScryfallCatalogs(database: try! appDatabase()))
+    .environment(ScryfallCatalogs())
 }

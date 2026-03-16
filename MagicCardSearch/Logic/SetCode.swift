@@ -1,11 +1,15 @@
-struct SetCode: Equatable, Hashable, Sendable, Codable, CustomStringConvertible {
-    let normalized: String
+struct SetCode: RawRepresentable, Equatable, Hashable, Sendable, Codable, CodingKeyRepresentable, CustomStringConvertible {
+    let rawValue: String
 
     init(_ set: String) {
-        self.normalized = set.trimmingCharacters(in: .whitespaces).uppercased()
+        self.rawValue = set.trimmingCharacters(in: .whitespaces).uppercased()
+    }
+
+    init?(rawValue: String) {
+        self.init(rawValue)
     }
 
     var description: String {
-        "Set[\(normalized)]"
+        "Set[\(rawValue)]"
     }
 }

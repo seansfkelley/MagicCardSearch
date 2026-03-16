@@ -298,7 +298,7 @@ struct CardDetailView: View {
                 .navigationTitle(card.name)
                 .navigationBarTitleDisplayMode(.inline)
         }
-        .environment(ScryfallCatalogs(database: try! appDatabase()))
+        .environment(ScryfallCatalogs())
     } else {
         ProgressView()
             .task {

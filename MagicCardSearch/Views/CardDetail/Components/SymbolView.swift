@@ -19,7 +19,7 @@ struct SymbolView: View {
         let symbol: SymbolCode
         let targetSize: CGFloat
         
-        var description: String { "\(symbol.normalized)@\(targetSize)" }
+        var description: String { "\(symbol.rawValue)@\(targetSize)" }
     }
 
     private static let renderedImageCache: any StorageAware<RenderedImageCacheKey, UIImage> = bestEffortCache(
@@ -68,7 +68,7 @@ struct SymbolView: View {
                     .aspectRatio(contentMode: .fit)
                     .frame(width: targetSize, height: targetSize)
             } else {
-                Text(symbol.normalized)
+                Text(symbol.rawValue)
                     .font(.system(size: targetSize * 0.5))
                     .foregroundStyle(.secondary)
                     .frame(width: targetSize, height: targetSize)
