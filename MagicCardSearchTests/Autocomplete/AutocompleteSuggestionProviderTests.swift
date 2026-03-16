@@ -562,7 +562,7 @@ struct SortCombinedSuggestionsTests {
     ) -> AutocompleteSuggestion {
         return AutocompleteSuggestion(
             source: source,
-            content: .filter(.init(value: filter, string: filter.description)),
+            content: .filter(.init(value: filter, string: filter.description, highlights: [])),
             rawScore: score,
             biasedScore: biasedScore ?? score,
         )

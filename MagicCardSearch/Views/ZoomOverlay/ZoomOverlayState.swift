@@ -2,7 +2,7 @@ import SwiftUI
 
 @MainActor
 final class ZoomOverlayState: ObservableObject {
-    static let shared = ZoomOverlayState()
+    static let shared = ZoomOverlayState(yesThisIsTheSingletonOrTestCode: true)
 
     @Published public private(set) var isVisible: Bool = false
     @Published public private(set) var isInitiatingGesture: Bool = false
@@ -13,7 +13,11 @@ final class ZoomOverlayState: ObservableObject {
     @Published public private(set) var scale: CGFloat = 1
     @Published public private(set) var translation: CGSize = .zero
 
-    private init() {}
+    private let enableAnimations: Bool
+
+    init(yesThisIsTheSingletonOrTestCode: Bool, enableAnimations: Bool = true) {
+        self.enableAnimations = enableAnimations
+    }
 
     enum ShowType {
         case continuingGesture
@@ -41,9 +45,9 @@ final class ZoomOverlayState: ObservableObject {
         switch showType {
         case .continuingGesture:
             isInitiatingGesture = true
-            case .autoZoomTo(let size):
+        case .autoZoomTo(let size):
             isInitiatingGesture = false
-            withAnimation(ZoomOverlayConstants.presentCenteredAnimation) {
+            animate(ZoomOverlayConstants.presentCenteredAnimation) {
                 scale = ZoomOverlayConstants.maxOpacityReachedAtScaleFactor
                 translation = size
             }
@@ -70,7 +74,7 @@ final class ZoomOverlayState: ObservableObject {
     func dismiss() {
         isInitiatingGesture = false
 
-        withAnimation(ZoomOverlayConstants.snapBackAnimation, completionCriteria: .logicallyComplete) {
+        animate(ZoomOverlayConstants.snapBackAnimation) {
             scale = 1
             translation = .zero
         } completion: {
@@ -96,11 +100,11 @@ final class ZoomOverlayState: ObservableObject {
             height: translation.height + normalY * ZoomOverlayConstants.flingDistance
         )
 
-        withAnimation(ZoomOverlayConstants.flingThrowAnimation, completionCriteria: .logicallyComplete) {
+        animate(ZoomOverlayConstants.flingThrowAnimation) {
             translation = flingOffset
             scale = max(1, scale - ZoomOverlayConstants.flingScaleReduction)
         } completion: {
-            withAnimation(ZoomOverlayConstants.flingReturnAnimation, completionCriteria: .logicallyComplete) {
+            self.animate(ZoomOverlayConstants.flingReturnAnimation) {
                 self.scale = 1
                 self.translation = .zero
             } completion: {
@@ -159,7 +163,7 @@ final class ZoomOverlayState: ObservableObject {
         if scale < ZoomOverlayConstants.minRetainedZoomScale {
             dismiss()
         } else if scale > ZoomOverlayConstants.maxNonRubberBandingZoomScale {
-            withAnimation(ZoomOverlayConstants.snapBackAnimation) {
+            animate(ZoomOverlayConstants.snapBackAnimation) {
                 scale = ZoomOverlayConstants.maxNonRubberBandingZoomScale
             }
         }
@@ -175,7 +179,7 @@ final class ZoomOverlayState: ObservableObject {
         )
 
         if newOffset != translation {
-            withAnimation(ZoomOverlayConstants.snapBackAnimation) {
+            animate(ZoomOverlayConstants.snapBackAnimation) {
                 translation = newOffset
             }
         }
@@ -213,6 +217,32 @@ final class ZoomOverlayState: ObservableObject {
                 axisLength: screenSize.height
             )
         )
+    }
+
+    // MARK: - Animation Helpers
+
+    // Runs `body` immediately when `disableAnimations` is true, otherwise wraps in `withAnimation`.
+    private func animate(_ animation: Animation? = nil, _ body: () -> Void) {
+        if enableAnimations {
+            withAnimation(animation, body)
+        } else {
+            body()
+        }
+    }
+
+    // Runs `body` immediately when `disableAnimations` is true, otherwise wraps in `withAnimation`
+    // with a completion handler that fires after the logical animation completes.
+    private func animate(
+        _ animation: Animation?,
+        _ body: () -> Void,
+        completion: @escaping () -> Void
+    ) {
+        if enableAnimations {
+            withAnimation(animation, completionCriteria: .logicallyComplete, body, completion: completion)
+        } else {
+            body()
+            completion()
+        }
     }
 }
 
