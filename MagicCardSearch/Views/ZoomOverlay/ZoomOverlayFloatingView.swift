@@ -1,11 +1,11 @@
 import SwiftUI
 
-struct FloatingZoomOverlayView: View {
-    @EnvironmentObject private var manager: ZoomOverlayManager
+struct ZoomOverlayFloatingView: View {
+    @EnvironmentObject private var state: ZoomOverlayState
 
     var body: some View {
         ZStack {
-            if manager.isVisible, let image = manager.image {
+            if state.isVisible, let image = state.image {
                 Color.black
                     .opacity(backgroundOpacity)
                     .ignoresSafeArea()
@@ -13,14 +13,14 @@ struct FloatingZoomOverlayView: View {
                 Image(uiImage: image)
                     .resizable()
                     .aspectRatio(contentMode: .fit)
-                    .frame(width: manager.sourceFrame.width, height: manager.sourceFrame.height)
-                    .if(manager.clipShape != nil) { $0.clipShape(manager.clipShape!) }
-                    .scaleEffect(manager.scale)
-                    .offset(x: manager.offset.width, y: manager.offset.height)
-                    .position(x: manager.sourceFrame.midX, y: manager.sourceFrame.midY)
+                    .frame(width: state.sourceFrame.width, height: state.sourceFrame.height)
+                    .if(state.clipShape != nil) { $0.clipShape(state.clipShape!) }
+                    .scaleEffect(state.scale)
+                    .offset(x: state.offset.width, y: state.offset.height)
+                    .position(x: state.sourceFrame.midX, y: state.sourceFrame.midY)
                     .allowsHitTesting(false)
 
-                if !manager.isInitiatingGesture {
+                if !state.isInitiatingGesture {
                     OverlayGestureView()
                         .ignoresSafeArea()
                 }
@@ -30,7 +30,7 @@ struct FloatingZoomOverlayView: View {
     }
 
     private var backgroundOpacity: Double {
-        let t = (Double(manager.scale) - 1.0) / (ZoomOverlayConstants.fullOpacityReachedAtScaleFactor - 1.0)
+        let t = (Double(state.scale) - 1.0) / (ZoomOverlayConstants.fullOpacityReachedAtScaleFactor - 1.0)
         return UnitCurve.easeOut.value(at: max(0, min(1, t))) * ZoomOverlayConstants.maxLightboxOpacity
     }
 }
@@ -65,7 +65,7 @@ private struct OverlayGestureView: UIViewRepresentable {
 
     @MainActor
     final class Coordinator: NSObject, UIGestureRecognizerDelegate {
-        private var manager: ZoomOverlayManager { .shared }
+        private var manager: ZoomOverlayState { .shared }
         private var scaleAtGestureBegan: CGFloat = 1
         private var rawPanOffset: CGSize = .zero
         weak var pinchRecognizer: UIPinchGestureRecognizer?

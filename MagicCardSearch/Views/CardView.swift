@@ -155,9 +155,9 @@ private struct CardFaceView: View {
                         .aspectRatio(contentMode: .fit)
                         .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
                         .if(enableZoomGestures) { view in
-                            view.zoomGestures(
-                                uiImage: state.imageContainer?.image,
-                                clipShape: AnyShape(RoundedRectangle(cornerRadius: cornerRadius)),
+                            view.zoomOverlay(
+                                for: state.imageContainer?.image,
+                                clippingTo: AnyShape(RoundedRectangle(cornerRadius: cornerRadius)),
                             )
                         }
                         .contextMenu {

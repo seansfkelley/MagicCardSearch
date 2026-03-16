@@ -12,10 +12,10 @@ enum ZoomOverlayInstaller {
     static func installIfNeeded(in window: UIWindow) {
         guard !isInstalled, let windowScene = window.windowScene else { return }
 
-        let manager = ZoomOverlayManager.shared
+        let manager = ZoomOverlayState.shared
 
         let host = UIHostingController(
-            rootView: FloatingZoomOverlayView()
+            rootView: ZoomOverlayFloatingView()
                 .environmentObject(manager)
         )
         host.view.backgroundColor = .clear

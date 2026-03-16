@@ -1,36 +1,8 @@
 import SwiftUI
 
-private struct ZoomGestureModifier: ViewModifier {
-    let uiImage: UIImage?
-    let clipShape: AnyShape?
-
-    @ObservedObject private var zoomOverlay = ZoomOverlayManager.shared
-
-    func body(content: Content) -> some View {
-        content
-            .opacity(isShowingThisImage ? 0 : 1)
-            .overlay(Group {
-                if let uiImage {
-                    ZoomGestureView(uiImage: uiImage, clipShape: clipShape)
-                }
-            })
-    }
-
-    private var isShowingThisImage: Bool {
-        guard let uiImage, zoomOverlay.isVisible else { return false }
-        return zoomOverlay.image === uiImage
-    }
-}
-
-extension View {
-    func zoomGestures(uiImage: UIImage?, clipShape: AnyShape?) -> some View {
-        modifier(ZoomGestureModifier(uiImage: uiImage, clipShape: clipShape))
-    }
-}
-
-/// Transparent UIView overlay on the card that drives ZoomOverlayManager
+/// Transparent UIView overlay that drives ZoomOverlayState
 /// during the originating gesture phase (before the overlay takes over).
-struct ZoomGestureView: UIViewRepresentable {
+struct ZoomOverlayInitiatingGestureView: UIViewRepresentable {
     let uiImage: UIImage
     let clipShape: AnyShape?
 
@@ -54,7 +26,7 @@ struct ZoomGestureView: UIViewRepresentable {
     final class Coordinator: NSObject, UIGestureRecognizerDelegate {
         private let uiImage: UIImage
         private let clipShape: AnyShape?
-        private var manager: ZoomOverlayManager { .shared }
+        private var manager: ZoomOverlayState { .shared }
 
         // Cumulative scale at pinch start, so rubber-banding sees total overshoot.
         private var scaleAtPinchBegan: CGFloat = 1
@@ -122,7 +94,14 @@ struct ZoomGestureView: UIViewRepresentable {
 
         @objc func handleTap(_ recognizer: UITapGestureRecognizer) {
             guard recognizer.state == .ended, let view = recognizer.view else { return }
-            manager.initiate(with: uiImage, from: screenSpaceFrame(for: view), screenSize: screenSize(for: view), clippingTo: clipShape, centered: true)
+            let frame = screenSpaceFrame(for: view)
+            let size = screenSize(for: view)
+            manager.initiate(with: uiImage, from: frame, screenSize: size, clippingTo: clipShape)
+            let targetOffset = CGSize(width: size.width / 2 - frame.midX, height: size.height / 2 - frame.midY)
+            withAnimation(ZoomOverlayConstants.presentCenteredAnimation) {
+                manager.scale = ZoomOverlayConstants.fullOpacityReachedAtScaleFactor
+                manager.offset = targetOffset
+            }
         }
 
         @objc func handlePan(_ recognizer: UIPanGestureRecognizer) {

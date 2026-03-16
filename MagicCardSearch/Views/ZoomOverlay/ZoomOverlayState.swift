@@ -1,8 +1,8 @@
 import SwiftUI
 
 @MainActor
-final class ZoomOverlayManager: ObservableObject {
-    static let shared = ZoomOverlayManager()
+final class ZoomOverlayState: ObservableObject {
+    static let shared = ZoomOverlayState()
 
     @Published var isVisible: Bool = false
     /// True while the originating gesture in ZoomGestureView still owns the transform.
@@ -19,7 +19,7 @@ final class ZoomOverlayManager: ObservableObject {
     // MARK: - Gesture Lifecycle
 
     /// Presents the overlay and optionally animates the image to fill the screen, centered.
-    func initiate(with image: UIImage, from frame: CGRect, screenSize: CGSize, clippingTo clipShape: AnyShape? = nil, centered: Bool = false) {
+    func initiate(with image: UIImage, from frame: CGRect, screenSize: CGSize, clippingTo clipShape: AnyShape? = nil) {
         self.image = image
         self.sourceFrame = frame
         self.screenSize = screenSize
@@ -28,16 +28,6 @@ final class ZoomOverlayManager: ObservableObject {
         self.clipShape = clipShape
         self.isInitiatingGesture = false
         self.isVisible = true
-        if centered {
-            let targetOffset = CGSize(
-                width: screenSize.width / 2 - frame.midX,
-                height: screenSize.height / 2 - frame.midY
-            )
-            withAnimation(ZoomOverlayConstants.presentCenteredAnimation) {
-                self.scale = ZoomOverlayConstants.fullOpacityReachedAtScaleFactor
-                self.offset = targetOffset
-            }
-        }
     }
 
     /// Called when the originating pinch gesture ends. Hands off to the overlay's
