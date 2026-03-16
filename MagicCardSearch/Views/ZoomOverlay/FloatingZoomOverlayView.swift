@@ -105,6 +105,7 @@ private struct OverlayGestureView: UIViewRepresentable {
             case .ended:
                 let v = recognizer.velocity(in: nil)
                 let speed = sqrt(v.x * v.x + v.y * v.y)
+                guard manager.scale > ZoomOverlayConstants.minScale else { break }
                 if speed > ZoomOverlayConstants.flingVelocityThreshold {
                     manager.fling(velocity: CGVector(dx: v.x, dy: v.y))
                 } else {
