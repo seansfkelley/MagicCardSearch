@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftUIIntrospect
 import SQLiteData
 import OSLog
 
@@ -32,6 +33,9 @@ struct MagicCardSearchApp: App {
             .environment(historyAndPinnedStore)
             .environment(recentlyViewedCardsStore)
             .environment(scryfallCatalogs)
+            .introspect(.window, on: .iOS(.v26)) { window in
+                ZoomOverlayInstaller.installIfNeeded(in: window)
+            }
             .task {
                 await scryfallCatalogs.hydrate()
             }

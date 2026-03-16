@@ -54,7 +54,6 @@ struct ContentView: View {
         }
         .introspect(.tabView, on: .iOS(.v26)) { tabBarController in
             tabBarController.delegate = tabDelegate
-            ZoomOverlayInstaller.installIfNeeded(from: tabBarController)
         }
     }
 }

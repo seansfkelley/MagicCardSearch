@@ -11,9 +11,9 @@ enum ZoomOverlayInstaller {
     // Retained for the lifetime of the app.
     private static var cancellable: AnyCancellable?
 
-    static func installIfNeeded(from viewController: UIViewController) {
+    static func installIfNeeded(in window: UIWindow) {
         guard !isInstalled,
-              let windowScene = viewController.view.window?.windowScene
+              let windowScene = window.windowScene
         else { return }
 
         let manager = ZoomOverlayManager.shared
@@ -31,7 +31,7 @@ enum ZoomOverlayInstaller {
         overlayWindow.rootViewController = host
         overlayWindow.makeKeyAndVisible()
         // Don't keep this as key window — yield key status back to the main window.
-        viewController.view.window?.makeKey()
+        window.makeKey()
 
         Self.overlayWindow = overlayWindow
 
