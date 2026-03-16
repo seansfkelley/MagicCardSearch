@@ -45,26 +45,9 @@ struct ZoomOverlayFloatingGestureView: UIViewRepresentable {
             case .began:
                 recognizer.scale = state.scale
             case .changed:
-                let rubberBandedScale = rubberBand(
-                    recognizer.scale,
-                    min: ZoomOverlayConstants.minRetainedZoomScale,
-                    max: ZoomOverlayConstants.maxNonRubberBandingZoomScale,
-                    coefficient: ZoomOverlayConstants.scaleRubberBandCoefficient,
-                )
-                let effectiveScale = rubberBandedScale / state.scale
-                let centroid = recognizer.location(in: nil)
-                let imageCenterX = state.sourceFrame.midX + state.offset.width
-                let imageCenterY = state.sourceFrame.midY + state.offset.height
-                state.offset.width += (centroid.x - imageCenterX) * (1 - effectiveScale)
-                state.offset.height += (centroid.y - imageCenterY) * (1 - effectiveScale)
-                state.scale = rubberBandedScale
-            case .ended:
-                state.snapToScaleBounds()
-                if state.scale <= ZoomOverlayConstants.minRetainedZoomScale {
-                    state.dismiss()
-                }
-            case .cancelled, .failed:
-                state.dismiss()
+                state.applyScale(recognizer.scale, aroundCentroid: recognizer.location(in: nil))
+            case .ended, .cancelled, .failed:
+                state.finishedScaling()
             case .possible:
                 break
             @unknown default:
@@ -94,12 +77,11 @@ struct ZoomOverlayFloatingGestureView: UIViewRepresentable {
                 if pinchRecognizer.state == .began || pinchRecognizer.state == .changed {
                     // During a simultaneous pinch+pan, apply translation directly so it
                     // doesn't fight the pinch centroid math with rubber-band resistance.
-                    state.offset.width += t.x
-                    state.offset.height += t.y
-                    // Keep rawPanOffset synced so rubber-banding starts correctly if pinch ends.
-                    rawOffset = state.offset
+                    state.applyTranslation(rawRelative: t)
+                    // TODO: This used to update rawOffset to state.offset in the case the pinch
+                    // ended but we kept panning, but that doesn't seem to be necessary.
                 } else {
-                    state.offset = state.rubberBandedPanOffset(raw: rawOffset)
+                    state.applyTranslation(rubberBandedFromAbsolute: rawOffset)
                 }
             case .ended:
                 // swiftlint:disable:next identifier_name
@@ -112,7 +94,7 @@ struct ZoomOverlayFloatingGestureView: UIViewRepresentable {
                 if speed > ZoomOverlayConstants.flingVelocityThreshold {
                     state.dismiss(withFling: CGVector(dx: v.x, dy: v.y))
                 } else {
-                    state.snapToPanBounds()
+                    state.finishedPanning()
                 }
             case .possible, .cancelled, .failed:
                 break

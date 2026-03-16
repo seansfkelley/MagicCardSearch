@@ -74,22 +74,9 @@ struct ZoomOverlayInitiatingGestureView: UIViewRepresentable {
                     clippingTo: clipShape,
                 )
             case .changed:
-                let rubberBandedScale = rubberBand(
-                    // recognizer.scale is cumulative since .began.
-                    recognizer.scale,
-                    min: ZoomOverlayConstants.minRetainedZoomScale,
-                    max: ZoomOverlayConstants.maxNonRubberBandingZoomScale,
-                    coefficient: ZoomOverlayConstants.scaleRubberBandCoefficient,
-                )
-                let effectiveScale = rubberBandedScale / state.scale
-                let centroid = recognizer.location(in: nil)
-                let imageCenterX = state.sourceFrame.midX + state.offset.width
-                let imageCenterY = state.sourceFrame.midY + state.offset.height
-                state.offset.width += (centroid.x - imageCenterX) * (1 - effectiveScale)
-                state.offset.height += (centroid.y - imageCenterY) * (1 - effectiveScale)
-                state.scale = rubberBandedScale
+                state.applyScale(recognizer.scale, aroundCentroid: recognizer.location(in: nil))
             case .ended:
-                state.maybeCommitInitiatingGesture()
+                state.initiatingGestureFinished()
             case .cancelled, .failed:
                 state.dismiss()
             case .possible:
@@ -104,30 +91,25 @@ struct ZoomOverlayInitiatingGestureView: UIViewRepresentable {
 
             let frame = screenSpaceFrame(for: view)
             let size = screenSize(for: view)
+            let targetOffset = CGSize(width: size.width / 2 - frame.midX, height: size.height / 2 - frame.midY)
+
             state.show(
                 image: uiImage,
                 in: frame,
                 screenSize: size,
                 withGesture: false,
                 clippingTo: clipShape,
+                andZoomTo: targetOffset,
             )
-
-            let targetOffset = CGSize(width: size.width / 2 - frame.midX, height: size.height / 2 - frame.midY)
-            withAnimation(ZoomOverlayConstants.presentCenteredAnimation) {
-                state.scale = ZoomOverlayConstants.maxOpacityReachedAtScaleFactor
-                state.offset = targetOffset
-            }
         }
 
         @objc func handlePan(_ recognizer: UIPanGestureRecognizer) {
             switch recognizer.state {
             case .changed:
-                // swiftlint:disable:next identifier_name
-                let t = recognizer.translation(in: recognizer.view)
-                state.offset.width += t.x
-                state.offset.height += t.y
+                state.applyTranslation(rawRelative: recognizer.translation(in: recognizer.view))
                 recognizer.setTranslation(.zero, in: recognizer.view)
             case .possible, .began, .ended, .cancelled, .failed:
+                // This gesture cannot initiate, so allow the pinch gesture to update the state.
                 break
             @unknown default:
                 logger.warning("received unknown pan gesture recognizer state=\(recognizer.state.rawValue)")
