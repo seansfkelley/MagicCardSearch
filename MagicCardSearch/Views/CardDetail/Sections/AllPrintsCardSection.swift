@@ -398,6 +398,7 @@ private struct PagingCardImageView: View {
                             quality: .large,
                             isFlipped: $isFlipped,
                             cornerRadius: 16,
+                            enableZoomGestures: true,
                         )
                         .padding(.horizontal)
 

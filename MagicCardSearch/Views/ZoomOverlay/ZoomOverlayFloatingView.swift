@@ -12,7 +12,6 @@ struct ZoomOverlayFloatingView: View {
 
                 Image(uiImage: image)
                     .resizable()
-                    .aspectRatio(contentMode: .fit)
                     .frame(width: state.sourceFrame.width, height: state.sourceFrame.height)
                     .if(state.clipShape != nil) { $0.clipShape(state.clipShape!) }
                     .scaleEffect(state.scale)
