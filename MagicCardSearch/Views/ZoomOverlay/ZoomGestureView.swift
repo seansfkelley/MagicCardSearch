@@ -83,9 +83,13 @@ struct ZoomGestureView: UIViewRepresentable {
             view.convert(view.bounds, to: nil)
         }
 
+        private func screenSize(for view: UIView) -> CGSize {
+            view.window?.screen.bounds.size ?? UIScreen.main.bounds.size
+        }
+
         private func presentIfNeeded(view: UIView) {
             if !manager.isVisible {
-                manager.initiate(with: uiImage, from: screenSpaceFrame(for: view), clippingTo: clipShape)
+                manager.initiate(with: uiImage, from: screenSpaceFrame(for: view), screenSize: screenSize(for: view), clippingTo: clipShape)
             }
         }
 
@@ -108,8 +112,7 @@ struct ZoomGestureView: UIViewRepresentable {
                 manager.offset.height += (centroid.y - imageCenterY) * (1 - effectiveDScale)
                 manager.scale = clampedScale
             case .ended:
-                let screenSize = view.window?.screen.bounds.size ?? UIScreen.main.bounds.size
-                manager.maybeCommitInitiatingGesture(screenSize: screenSize)
+                manager.maybeCommitInitiatingGesture()
             case .cancelled, .failed:
                 manager.dismiss()
             default:
@@ -118,10 +121,8 @@ struct ZoomGestureView: UIViewRepresentable {
         }
 
         @objc func handleTap(_ recognizer: UITapGestureRecognizer) {
-            guard recognizer.state == .ended,
-                  let view = recognizer.view,
-                  let screenSize = view.window?.screen.bounds.size else { return }
-            manager.initiate(with: uiImage, from: screenSpaceFrame(for: view), clippingTo: clipShape, centeredIn: screenSize)
+            guard recognizer.state == .ended, let view = recognizer.view else { return }
+            manager.initiate(with: uiImage, from: screenSpaceFrame(for: view), screenSize: screenSize(for: view), clippingTo: clipShape, centered: true)
         }
 
         @objc func handlePan(_ recognizer: UIPanGestureRecognizer) {

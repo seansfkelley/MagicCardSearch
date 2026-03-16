@@ -101,7 +101,6 @@ private struct OverlayGestureView: UIViewRepresentable {
         }
 
         @objc func handlePan(_ recognizer: UIPanGestureRecognizer) {
-            let screenSize = recognizer.view?.window?.screen.bounds.size ?? UIScreen.main.bounds.size
             switch recognizer.state {
             case .began:
                 rawPanOffset = manager.offset
@@ -118,7 +117,7 @@ private struct OverlayGestureView: UIViewRepresentable {
                     // Keep rawPanOffset synced so rubber-banding starts correctly if pinch ends.
                     rawPanOffset = manager.offset
                 } else {
-                    manager.offset = manager.rubberBandedPanOffset(raw: rawPanOffset, screenSize: screenSize)
+                    manager.offset = manager.rubberBandedPanOffset(raw: rawPanOffset)
                 }
             case .ended:
                 let v = recognizer.velocity(in: nil)
@@ -127,7 +126,7 @@ private struct OverlayGestureView: UIViewRepresentable {
                 if speed > ZoomOverlayConstants.flingVelocityThreshold {
                     manager.dismiss(withFling: CGVector(dx: v.x, dy: v.y))
                 } else {
-                    manager.snapToPanBounds(screenSize: screenSize)
+                    manager.snapToPanBounds()
                 }
             default:
                 break
