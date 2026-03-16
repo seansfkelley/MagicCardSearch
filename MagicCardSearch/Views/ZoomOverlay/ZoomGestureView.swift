@@ -170,7 +170,16 @@ struct ZoomGestureView: UIViewRepresentable {
         func gestureRecognizer(
             _ gestureRecognizer: UIGestureRecognizer,
             shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer
-        ) -> Bool { true }
+        ) -> Bool {
+            // While pinching, block any pan gestures not on our own view
+            // (scroll views, sheet dismiss, etc.).
+            if gestureRecognizer is UIPinchGestureRecognizer,
+               other is UIPanGestureRecognizer,
+               other.view !== gestureRecognizer.view {
+                return false
+            }
+            return true
+        }
 
     }
 }
