@@ -15,10 +15,10 @@ final class ZoomOverlayManager: ObservableObject {
 
     private init() {}
 
-    // MARK: - Presentation
+    // MARK: - Gesture Lifecycle
 
-    /// Presents and animates the image to fill the screen, centered.
-    func present(image: UIImage, from frame: CGRect, clipShape: AnyShape? = nil, centeredIn screenSize: CGSize? = nil) {
+    /// Presents the overlay and optionally animates the image to fill the screen, centered.
+    func initiate(with image: UIImage, from frame: CGRect, clippingTo clipShape: AnyShape? = nil, centeredIn screenSize: CGSize? = nil) {
         self.image = image
         self.sourceFrame = frame
         self.scale = 1
@@ -38,21 +38,19 @@ final class ZoomOverlayManager: ObservableObject {
         }
     }
 
-    // MARK: - Gesture Lifecycle
-
     /// Called when the originating pinch gesture ends. Hands off to the overlay's
     /// own gestures, or dismisses if scale is at or below minScale.
-    func commitPinchGesture(screenSize: CGSize) {
+    func maybeCommitInitiatingGesture(screenSize: CGSize) {
         isInitiatingGesture = false
         if scale <= ZoomOverlayConstants.minRetainedZoomScale {
             dismiss()
         } else {
-            if scale > ZoomOverlayConstants.maxNonRubberbandingZoomScale {
+            if scale > ZoomOverlayConstants.maxNonRubberBandingZoomScale {
                 withAnimation(ZoomOverlayConstants.snapBackAnimation) {
-                    scale = ZoomOverlayConstants.maxNonRubberbandingZoomScale
+                    scale = ZoomOverlayConstants.maxNonRubberBandingZoomScale
                 }
             }
-            snapPanOffsetIfNeeded(screenSize: screenSize)
+            snapToPanBounds(screenSize: screenSize)
         }
     }
 
@@ -66,9 +64,7 @@ final class ZoomOverlayManager: ObservableObject {
         }
     }
 
-    /// Flings the card a short distance in the direction of `velocity`,
-    /// then springs back to source position and dismisses.
-    func fling(velocity: CGVector) {
+    func dismiss(withFling velocity: CGVector) {
         let speed = sqrt(velocity.dx * velocity.dx + velocity.dy * velocity.dy)
         guard speed > 0 else { dismiss(); return }
 
@@ -93,23 +89,23 @@ final class ZoomOverlayManager: ObservableObject {
         }
     }
 
-    // MARK: - Snap
+    // MARK: - Bounds Enforcement
 
     /// Snaps scale to [minScale, maxScale] if outside bounds.
-    func snapScaleToBoundsIfNeeded() {
+    func snapToScaleBounds() {
         if scale < ZoomOverlayConstants.minRetainedZoomScale {
             withAnimation(ZoomOverlayConstants.snapBackAnimation) {
                 scale = ZoomOverlayConstants.minRetainedZoomScale
             }
-        } else if scale > ZoomOverlayConstants.maxNonRubberbandingZoomScale {
+        } else if scale > ZoomOverlayConstants.maxNonRubberBandingZoomScale {
             withAnimation(ZoomOverlayConstants.snapBackAnimation) {
-                scale = ZoomOverlayConstants.maxNonRubberbandingZoomScale
+                scale = ZoomOverlayConstants.maxNonRubberBandingZoomScale
             }
         }
     }
 
     /// Snaps pan offset to the allowed bounds if it's currently outside them.
-    func snapPanOffsetIfNeeded(screenSize: CGSize) {
+    func snapToPanBounds(screenSize: CGSize) {
         let (boundsX, boundsY) = panBounds(screenSize: screenSize)
 
         var newOffset = offset
@@ -136,24 +132,29 @@ final class ZoomOverlayManager: ObservableObject {
 
     /// Returns the allowed (min, max) offset range for both axes.
     private func panBounds(screenSize: CGSize) -> (x: (min: CGFloat, max: CGFloat), y: (min: CGFloat, max: CGFloat)) {
-        let minDim = min(screenSize.width, screenSize.height)
-        let boundsX = panBoundsForAxis(scaledImageSize: sourceFrame.width * scale, sourceCenter: sourceFrame.midX, screenSize: screenSize.width, minScreenDimension: minDim)
-        let boundsY = panBoundsForAxis(scaledImageSize: sourceFrame.height * scale, sourceCenter: sourceFrame.midY, screenSize: screenSize.height, minScreenDimension: minDim)
-        return (boundsX, boundsY)
-    }
+        let buffer = min(screenSize.width, screenSize.height) * ZoomOverlayConstants.panEdgeBufferFraction
 
-    private func panBoundsForAxis(
-        scaledImageSize: CGFloat,
-        sourceCenter: CGFloat,
-        screenSize: CGFloat,
-        minScreenDimension: CGFloat
-    ) -> (min: CGFloat, max: CGFloat) {
-        let buffer = minScreenDimension * ZoomOverlayConstants.panEdgeBufferFraction
-        let centeringOffset = screenSize / 2 - sourceCenter
-        let overflow = (scaledImageSize - screenSize) / 2
-        if overflow <= 0 {
-            return (min: centeringOffset, max: centeringOffset)
+        func boundsForAxis(scaledImageSize: CGFloat, sourceCenter: CGFloat, axisLength: CGFloat) -> (min: CGFloat, max: CGFloat) {
+            let centeringOffset = axisLength / 2 - sourceCenter
+            let overflow = (scaledImageSize - axisLength) / 2
+            return if overflow > 0 {
+                (min: centeringOffset - overflow - buffer, max: centeringOffset + overflow + buffer)
+            } else {
+                (min: centeringOffset, max: centeringOffset)
+            }
         }
-        return (min: centeringOffset - overflow - buffer, max: centeringOffset + overflow + buffer)
+
+        return (
+            x: boundsForAxis(
+                scaledImageSize: sourceFrame.width * scale,
+                sourceCenter: sourceFrame.midX,
+                axisLength: screenSize.width,
+            ),
+            y: boundsForAxis(
+                scaledImageSize: sourceFrame.height * scale,
+                sourceCenter: sourceFrame.midY,
+                axisLength: screenSize.height,
+            )
+        )
     }
 }

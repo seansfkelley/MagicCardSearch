@@ -3,7 +3,7 @@ import SwiftUI
 enum ZoomOverlayConstants {
     // MARK: - Scale
     static let minRetainedZoomScale: CGFloat = 1.2
-    static let maxNonRubberbandingZoomScale: CGFloat = 1.7
+    static let maxNonRubberBandingZoomScale: CGFloat = 1.7
     static let minLightboxOpacity: CGFloat = 0.2
     static let maxLightboxOpacity: CGFloat = 0.8
     /// The scale at which the background reaches full opacity.

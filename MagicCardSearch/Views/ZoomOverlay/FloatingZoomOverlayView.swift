@@ -80,7 +80,7 @@ private struct OverlayGestureView: UIViewRepresentable {
                 scaleAtGestureBegan = manager.scale
             case .changed:
                 let rawScale = scaleAtGestureBegan * recognizer.scale
-                let clampedScale = rubberBand(rawScale, min: ZoomOverlayConstants.minRetainedZoomScale, max: ZoomOverlayConstants.maxNonRubberbandingZoomScale, coefficient: ZoomOverlayConstants.scaleRubberBandCoefficient)
+                let clampedScale = rubberBand(rawScale, min: ZoomOverlayConstants.minRetainedZoomScale, max: ZoomOverlayConstants.maxNonRubberBandingZoomScale, coefficient: ZoomOverlayConstants.scaleRubberBandCoefficient)
                 let effectiveDScale = clampedScale / manager.scale
                 let centroid = recognizer.location(in: nil)
                 let imageCenterX = manager.sourceFrame.midX + manager.offset.width
@@ -89,8 +89,10 @@ private struct OverlayGestureView: UIViewRepresentable {
                 manager.offset.height += (centroid.y - imageCenterY) * (1 - effectiveDScale)
                 manager.scale = clampedScale
             case .ended:
-                manager.snapScaleToBoundsIfNeeded()
-                if manager.scale <= ZoomOverlayConstants.minRetainedZoomScale { manager.dismiss() }
+                manager.snapToScaleBounds()
+                if manager.scale <= ZoomOverlayConstants.minRetainedZoomScale {
+                    manager.dismiss()
+                }
             case .cancelled, .failed:
                 manager.dismiss()
             default:
@@ -123,9 +125,9 @@ private struct OverlayGestureView: UIViewRepresentable {
                 let speed = sqrt(v.x * v.x + v.y * v.y)
                 guard manager.scale > ZoomOverlayConstants.minRetainedZoomScale else { break }
                 if speed > ZoomOverlayConstants.flingVelocityThreshold {
-                    manager.fling(velocity: CGVector(dx: v.x, dy: v.y))
+                    manager.dismiss(withFling: CGVector(dx: v.x, dy: v.y))
                 } else {
-                    manager.snapPanOffsetIfNeeded(screenSize: screenSize)
+                    manager.snapToPanBounds(screenSize: screenSize)
                 }
             default:
                 break

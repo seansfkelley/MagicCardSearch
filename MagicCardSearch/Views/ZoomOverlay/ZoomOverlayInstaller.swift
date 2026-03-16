@@ -6,14 +6,11 @@ import Combine
 @MainActor
 enum ZoomOverlayInstaller {
     private static var isInstalled = false
-    private static var overlayWindow: UIWindow?
-    // Retained for the lifetime of the app.
+    // Retained for the lifetime of the app so that the sink continues to function.
     private static var cancellable: AnyCancellable?
 
     static func installIfNeeded(in window: UIWindow) {
-        guard !isInstalled,
-              let windowScene = window.windowScene
-        else { return }
+        guard !isInstalled, let windowScene = window.windowScene else { return }
 
         let manager = ZoomOverlayManager.shared
 
@@ -32,18 +29,14 @@ enum ZoomOverlayInstaller {
         // Don't keep this as key window — yield key status back to the main window.
         window.makeKey()
 
-        Self.overlayWindow = overlayWindow
-
         // Enable interaction only after the originating gesture has ended and
         // handed off to the overlay's own gestures.
         cancellable = manager.$isInitiatingGesture
             .combineLatest(manager.$isVisible)
-            .sink { isGestureActive, isVisible in
-                overlayWindow.isUserInteractionEnabled = isVisible && !isGestureActive
+            .sink { isInitiatingGesture, isVisible in
+                overlayWindow.isUserInteractionEnabled = isVisible && !isInitiatingGesture
             }
 
         isInstalled = true
     }
 }
-
-
