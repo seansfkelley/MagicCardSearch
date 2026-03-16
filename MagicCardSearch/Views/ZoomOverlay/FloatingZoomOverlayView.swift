@@ -52,6 +52,8 @@ private struct OverlayGestureView: UIViewRepresentable {
         pan.delegate = context.coordinator
         tap.delegate = context.coordinator
 
+        context.coordinator.pinchRecognizer = pinch
+
         view.addGestureRecognizer(pinch)
         view.addGestureRecognizer(pan)
         view.addGestureRecognizer(tap)
@@ -66,6 +68,11 @@ private struct OverlayGestureView: UIViewRepresentable {
         private var manager: ZoomOverlayManager { .shared }
         private var scaleAtGestureBegan: CGFloat = 1
         private var rawPanOffset: CGSize = .zero
+        weak var pinchRecognizer: UIPinchGestureRecognizer?
+
+        private var isPinchActive: Bool {
+            pinchRecognizer?.state == .began || pinchRecognizer?.state == .changed
+        }
 
         @objc func handlePinch(_ recognizer: UIPinchGestureRecognizer) {
             switch recognizer.state {
@@ -101,7 +108,16 @@ private struct OverlayGestureView: UIViewRepresentable {
                 rawPanOffset.width += t.x
                 rawPanOffset.height += t.y
                 recognizer.setTranslation(.zero, in: nil)
-                manager.offset = manager.rubberBandedPanOffset(raw: rawPanOffset, screenSize: screenSize)
+                if isPinchActive {
+                    // During a simultaneous pinch+pan, apply translation directly so it
+                    // doesn't fight the pinch centroid math with rubber-band resistance.
+                    manager.offset.width += t.x
+                    manager.offset.height += t.y
+                    // Keep rawPanOffset synced so rubber-banding starts correctly if pinch ends.
+                    rawPanOffset = manager.offset
+                } else {
+                    manager.offset = manager.rubberBandedPanOffset(raw: rawPanOffset, screenSize: screenSize)
+                }
             case .ended:
                 let v = recognizer.velocity(in: nil)
                 let speed = sqrt(v.x * v.x + v.y * v.y)
