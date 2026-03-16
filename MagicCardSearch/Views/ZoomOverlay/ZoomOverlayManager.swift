@@ -132,11 +132,10 @@ final class ZoomOverlayManager: ObservableObject {
     }
 
     func dismiss() {
-        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.8), completionCriteria: .logicallyComplete) {
             scale = 1
             offset = .zero
-        }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+        } completion: {
             self.isVisible = false
             self.image = nil
         }
@@ -155,17 +154,14 @@ final class ZoomOverlayManager: ObservableObject {
             height: offset.height + normalY * ZoomOverlayConstants.flingDistance
         )
 
-        let flingDuration: Double = 0.12
-        withAnimation(.easeOut(duration: flingDuration)) {
+        withAnimation(.easeOut(duration: 0.12), completionCriteria: .logicallyComplete) {
             offset = flingOffset
             scale = max(1, scale - 0.15)
-        }
-        DispatchQueue.main.asyncAfter(deadline: .now() + flingDuration) {
-            withAnimation(.spring(response: 0.22, dampingFraction: 0.8)) {
+        } completion: {
+            withAnimation(.spring(response: 0.22, dampingFraction: 0.8), completionCriteria: .logicallyComplete) {
                 self.scale = 1
                 self.offset = .zero
-            }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.22) {
+            } completion: {
                 self.isVisible = false
                 self.image = nil
             }
