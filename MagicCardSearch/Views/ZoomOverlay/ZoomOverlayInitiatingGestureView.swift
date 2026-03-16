@@ -58,7 +58,7 @@ struct ZoomOverlayInitiatingGestureView: UIViewRepresentable {
         }
 
         private func screenSize(for view: UIView) -> CGSize {
-            view.window?.screen.bounds.size ?? UIScreen.main.bounds.size
+            view.window?.windowScene?.screen.bounds.size ?? .zero
         }
 
         private func presentIfNeeded(view: UIView) {
@@ -101,7 +101,7 @@ struct ZoomOverlayInitiatingGestureView: UIViewRepresentable {
             manager.initiate(with: uiImage, from: frame, screenSize: size, clippingTo: clipShape)
             let targetOffset = CGSize(width: size.width / 2 - frame.midX, height: size.height / 2 - frame.midY)
             withAnimation(ZoomOverlayConstants.presentCenteredAnimation) {
-                manager.scale = ZoomOverlayConstants.fullOpacityReachedAtScaleFactor
+                manager.scale = ZoomOverlayConstants.maxOpacityReachedAtScaleFactor
                 manager.offset = targetOffset
             }
         }
@@ -109,6 +109,7 @@ struct ZoomOverlayInitiatingGestureView: UIViewRepresentable {
         @objc func handlePan(_ recognizer: UIPanGestureRecognizer) {
             switch recognizer.state {
             case .changed:
+                // swiftlint:disable:next identifier_name
                 let t = recognizer.translation(in: recognizer.view)
                 manager.offset.width += t.x
                 manager.offset.height += t.y

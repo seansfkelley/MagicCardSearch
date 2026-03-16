@@ -6,12 +6,10 @@ enum ZoomOverlayConstants {
     static let minRetainedZoomScale: CGFloat = 1.2
     /// Above this scale the overlay rubber-bands rather than zooming further.
     static let maxNonRubberBandingZoomScale: CGFloat = 1.7
-    /// Opacity of the lightbox background at the moment the overlay becomes visible.
-    static let minLightboxOpacity: CGFloat = 0.2
-    /// Opacity the lightbox background reaches at `fullOpacityReachedAtScaleFactor`.
+    /// Opacity the lightbox background reaches at `maxOpacityReachedAtScaleFactor`.
     static let maxLightboxOpacity: CGFloat = 0.8
     /// The scale at which the background reaches full opacity.
-    static let fullOpacityReachedAtScaleFactor: CGFloat = 1.4
+    static let maxOpacityReachedAtScaleFactor: CGFloat = 1.4
 
     // MARK: - Pan
     /// Rubber-band resistance for panning past the edge. Smaller = more stretch.

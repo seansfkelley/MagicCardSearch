@@ -72,6 +72,7 @@ struct ZoomOverlayFloatingGestureView: UIViewRepresentable {
             case .began:
                 rawPanOffset = state.offset
             case .changed:
+                // swiftlint:disable:next identifier_name
                 let t = recognizer.translation(in: nil)
                 rawPanOffset.width += t.x
                 rawPanOffset.height += t.y
@@ -87,6 +88,7 @@ struct ZoomOverlayFloatingGestureView: UIViewRepresentable {
                     state.offset = state.rubberBandedPanOffset(raw: rawPanOffset)
                 }
             case .ended:
+                // swiftlint:disable:next identifier_name
                 let v = recognizer.velocity(in: nil)
                 let speed = sqrt(v.x * v.x + v.y * v.y)
                 guard state.scale > ZoomOverlayConstants.minRetainedZoomScale else { break }

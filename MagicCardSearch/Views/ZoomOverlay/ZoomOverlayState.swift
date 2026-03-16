@@ -5,7 +5,6 @@ final class ZoomOverlayState: ObservableObject {
     static let shared = ZoomOverlayState()
 
     @Published var isVisible: Bool = false
-    /// True while the originating gesture in ZoomGestureView still owns the transform.
     @Published var isInitiatingGesture: Bool = false
     @Published var image: UIImage?
     @Published var sourceFrame: CGRect = .zero

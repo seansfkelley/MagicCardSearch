@@ -13,12 +13,7 @@ enum ZoomOverlayInstaller {
     static func installIfNeeded(in window: UIWindow) {
         guard !isInstalled, let windowScene = window.windowScene else { return }
 
-        let manager = ZoomOverlayState.shared
-
-        let host = UIHostingController(
-            rootView: ZoomOverlayFloatingView()
-                .environmentObject(manager)
-        )
+        let host = UIHostingController(rootView: ZoomOverlayFloatingView())
         host.view.backgroundColor = .clear
 
         let overlayWindow = UIWindow(windowScene: windowScene)
@@ -32,8 +27,8 @@ enum ZoomOverlayInstaller {
 
         // Enable interaction only after the originating gesture has ended and
         // handed off to the overlay's own gestures.
-        cancellable = manager.$isInitiatingGesture
-            .combineLatest(manager.$isVisible)
+        cancellable = ZoomOverlayState.shared.$isInitiatingGesture
+            .combineLatest(ZoomOverlayState.shared.$isVisible)
             .sink { isInitiatingGesture, isVisible in
                 overlayWindow.isUserInteractionEnabled = isVisible && !isInitiatingGesture
             }

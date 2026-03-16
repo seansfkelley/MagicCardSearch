@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct ZoomOverlayFloatingView: View {
-    @EnvironmentObject private var state: ZoomOverlayState
+    @ObservedObject private var state = ZoomOverlayState.shared
 
     var body: some View {
         ZStack {
@@ -30,9 +30,8 @@ struct ZoomOverlayFloatingView: View {
     }
 
     private var backgroundOpacity: Double {
-        let t = (Double(state.scale) - 1.0) / (ZoomOverlayConstants.fullOpacityReachedAtScaleFactor - 1.0)
+        // swiftlint:disable:next identifier_name
+        let t = (Double(state.scale) - 1.0) / (ZoomOverlayConstants.maxOpacityReachedAtScaleFactor - 1.0)
         return UnitCurve.easeOut.value(at: max(0, min(1, t))) * ZoomOverlayConstants.maxLightboxOpacity
     }
 }
-
-
