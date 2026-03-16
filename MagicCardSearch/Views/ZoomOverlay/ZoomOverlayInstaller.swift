@@ -27,9 +27,9 @@ enum ZoomOverlayInstaller {
 
         // Enable interaction only after the originating gesture has ended and
         // handed off to the overlay's own gestures.
-        cancellable = ZoomOverlayState.shared.$isInitiatingGesture
-            .combineLatest(ZoomOverlayState.shared.$isVisible)
-            .sink { isInitiatingGesture, isVisible in
+        cancellable = ZoomOverlayState.shared.$isVisible
+            .combineLatest(ZoomOverlayState.shared.$isInitiatingGesture)
+            .sink { isVisible, isInitiatingGesture in
                 overlayWindow.isUserInteractionEnabled = isVisible && !isInitiatingGesture
             }
 

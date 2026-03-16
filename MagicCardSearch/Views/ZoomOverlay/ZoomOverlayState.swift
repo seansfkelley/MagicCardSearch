@@ -4,29 +4,36 @@ import SwiftUI
 final class ZoomOverlayState: ObservableObject {
     static let shared = ZoomOverlayState()
 
-    @Published var isVisible: Bool = false
-    @Published var isInitiatingGesture: Bool = false
-    @Published var image: UIImage?
-    @Published var sourceFrame: CGRect = .zero
-    @Published var scale: CGFloat = 1
-    @Published var offset: CGSize = .zero
-    @Published var clipShape: AnyShape?
-    private(set) var screenSize: CGSize = .zero
+    @Published public private(set) var isVisible: Bool = false
+    @Published public private(set) var isInitiatingGesture: Bool = false
+    @Published public private(set) var image: UIImage?
+    @Published public private(set) var sourceFrame: CGRect = .zero
+    @Published public private(set) var clipShape: AnyShape?
+    @Published public private(set) var screenSize: CGSize = .zero
+
+    @Published public var scale: CGFloat = 1
+    @Published public var offset: CGSize = .zero
 
     private init() {}
 
     // MARK: - Gesture Lifecycle
 
-    /// Presents the overlay and optionally animates the image to fill the screen, centered.
-    func initiate(with image: UIImage, from frame: CGRect, screenSize: CGSize, clippingTo clipShape: AnyShape? = nil) {
+    /// Shows the overlay with the given location/size and resets transforms.
+    func show(
+        image: UIImage,
+        in frame: CGRect,
+        screenSize: CGSize,
+        withGesture: Bool,
+        clippingTo clipShape: AnyShape? = nil,
+    ) {
         self.image = image
         self.sourceFrame = frame
         self.screenSize = screenSize
         self.scale = 1
         self.offset = .zero
         self.clipShape = clipShape
-        self.isInitiatingGesture = false
         self.isVisible = true
+        self.isInitiatingGesture = withGesture
     }
 
     /// Called when the originating pinch gesture ends. Hands off to the overlay's

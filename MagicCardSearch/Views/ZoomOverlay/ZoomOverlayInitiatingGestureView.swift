@@ -1,4 +1,7 @@
 import SwiftUI
+import OSLog
+
+private let logger = Logger(subsystem: "MagicCardSearch", category: "ZoomOverlayInitiatingGestureView")
 
 /// Transparent UIView overlay that drives ZoomOverlayState
 /// during the originating gesture phase (before the overlay takes over).
@@ -28,10 +31,7 @@ struct ZoomOverlayInitiatingGestureView: UIViewRepresentable {
     final class Coordinator: NSObject, UIGestureRecognizerDelegate {
         private let uiImage: UIImage
         private let clipShape: AnyShape?
-        private var manager: ZoomOverlayState { .shared }
-
-        // Cumulative scale at pinch start, so rubber-banding sees total overshoot.
-        private var scaleAtPinchBegan: CGFloat = 1
+        private var state: ZoomOverlayState { .shared }
 
         lazy var pinchRecognizer = UIPinchGestureRecognizer(target: self, action: #selector(handlePinch))
         lazy var tapRecognizer = UITapGestureRecognizer(target: self, action: #selector(handleTap))
@@ -47,8 +47,8 @@ struct ZoomOverlayInitiatingGestureView: UIViewRepresentable {
             self.clipShape = clipShape
             super.init()
             pinchRecognizer.delegate = self
-            panRecognizer.delegate = self
             tapRecognizer.delegate = self
+            panRecognizer.delegate = self
             // Tap only fires if pinch hasn't recognized.
             tapRecognizer.require(toFail: pinchRecognizer)
         }
@@ -61,48 +61,61 @@ struct ZoomOverlayInitiatingGestureView: UIViewRepresentable {
             view.window?.windowScene?.screen.bounds.size ?? .zero
         }
 
-        private func presentIfNeeded(view: UIView) {
-            if !manager.isVisible {
-                manager.initiate(with: uiImage, from: screenSpaceFrame(for: view), screenSize: screenSize(for: view), clippingTo: clipShape)
-            }
-        }
-
         @objc func handlePinch(_ recognizer: UIPinchGestureRecognizer) {
             guard let view = recognizer.view else { return }
+
             switch recognizer.state {
             case .began:
-                presentIfNeeded(view: view)
-                scaleAtPinchBegan = manager.scale
+                state.show(
+                    image: uiImage,
+                    in: screenSpaceFrame(for: view),
+                    screenSize: screenSize(for: view),
+                    withGesture: true,
+                    clippingTo: clipShape,
+                )
             case .changed:
-                presentIfNeeded(view: view)
-                // recognizer.scale is cumulative since .began.
-                let rawScale = scaleAtPinchBegan * recognizer.scale
-                let clampedScale = rubberBand(rawScale, min: ZoomOverlayConstants.minRetainedZoomScale, max: ZoomOverlayConstants.maxNonRubberBandingZoomScale, coefficient: ZoomOverlayConstants.scaleRubberBandCoefficient)
-                let effectiveDScale = clampedScale / manager.scale
+                let rubberBandedScale = rubberBand(
+                    // recognizer.scale is cumulative since .began.
+                    recognizer.scale,
+                    min: ZoomOverlayConstants.minRetainedZoomScale,
+                    max: ZoomOverlayConstants.maxNonRubberBandingZoomScale,
+                    coefficient: ZoomOverlayConstants.scaleRubberBandCoefficient,
+                )
+                let effectiveScale = rubberBandedScale / state.scale
                 let centroid = recognizer.location(in: nil)
-                let imageCenterX = manager.sourceFrame.midX + manager.offset.width
-                let imageCenterY = manager.sourceFrame.midY + manager.offset.height
-                manager.offset.width += (centroid.x - imageCenterX) * (1 - effectiveDScale)
-                manager.offset.height += (centroid.y - imageCenterY) * (1 - effectiveDScale)
-                manager.scale = clampedScale
+                let imageCenterX = state.sourceFrame.midX + state.offset.width
+                let imageCenterY = state.sourceFrame.midY + state.offset.height
+                state.offset.width += (centroid.x - imageCenterX) * (1 - effectiveScale)
+                state.offset.height += (centroid.y - imageCenterY) * (1 - effectiveScale)
+                state.scale = rubberBandedScale
             case .ended:
-                manager.maybeCommitInitiatingGesture()
+                state.maybeCommitInitiatingGesture()
             case .cancelled, .failed:
-                manager.dismiss()
-            default:
+                state.dismiss()
+            case .possible:
                 break
+            @unknown default:
+                logger.warning("received unknown pinch gesture recognizer state=\(recognizer.state.rawValue)")
             }
         }
 
         @objc func handleTap(_ recognizer: UITapGestureRecognizer) {
             guard recognizer.state == .ended, let view = recognizer.view else { return }
+
             let frame = screenSpaceFrame(for: view)
             let size = screenSize(for: view)
-            manager.initiate(with: uiImage, from: frame, screenSize: size, clippingTo: clipShape)
+            state.show(
+                image: uiImage,
+                in: frame,
+                screenSize: size,
+                withGesture: false,
+                clippingTo: clipShape,
+            )
+
             let targetOffset = CGSize(width: size.width / 2 - frame.midX, height: size.height / 2 - frame.midY)
             withAnimation(ZoomOverlayConstants.presentCenteredAnimation) {
-                manager.scale = ZoomOverlayConstants.maxOpacityReachedAtScaleFactor
-                manager.offset = targetOffset
+                state.scale = ZoomOverlayConstants.maxOpacityReachedAtScaleFactor
+                state.offset = targetOffset
             }
         }
 
@@ -111,11 +124,13 @@ struct ZoomOverlayInitiatingGestureView: UIViewRepresentable {
             case .changed:
                 // swiftlint:disable:next identifier_name
                 let t = recognizer.translation(in: recognizer.view)
-                manager.offset.width += t.x
-                manager.offset.height += t.y
+                state.offset.width += t.x
+                state.offset.height += t.y
                 recognizer.setTranslation(.zero, in: recognizer.view)
-            default:
+            case .possible, .began, .ended, .cancelled, .failed:
                 break
+            @unknown default:
+                logger.warning("received unknown pan gesture recognizer state=\(recognizer.state.rawValue)")
             }
         }
 
@@ -127,8 +142,10 @@ struct ZoomOverlayInitiatingGestureView: UIViewRepresentable {
             }
 
             // Don't open the preview via tap if the user is touching down to arrest a
-            // scrolling scroll view. Check whether any scroll view in the hierarchy is
-            // currently decelerating.
+            // scrolling or bouncing-back scroll view.
+            //
+            // This is a bit of a hack, partly because of the amount of introspection and partly
+            // because it only works with scroll views, and only the nearest at that.
             if gestureRecognizer === tapRecognizer {
                 if let scrollView = gestureRecognizer.view?.firstScrollViewAncestor {
                     return !scrollView.isDecelerating && !scrollView.isOutOfBounds
@@ -141,14 +158,16 @@ struct ZoomOverlayInitiatingGestureView: UIViewRepresentable {
             _ gestureRecognizer: UIGestureRecognizer,
             shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer
         ) -> Bool {
-            // While pinching, block any pan gestures not on our own view
-            // (scroll views, sheet dismiss, etc.).
+            // While pinching, block any pan gestures not on our own view. This prevents scrolls,
+            // sheet dismisses, and things like that.
             if gestureRecognizer === pinchRecognizer,
                other is UIPanGestureRecognizer,
                other !== panRecognizer {
-                return false
+                false
+            } else {
+                // Required to allow zoom/pan at the same time.
+                true
             }
-            return true
         }
     }
 }

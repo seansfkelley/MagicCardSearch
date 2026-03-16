@@ -1,4 +1,7 @@
 import SwiftUI
+import OSLog
+
+private let logger = Logger(subsystem: "MagicCardSearch", category: "ZoomOverlayFloatingGestureView")
 
 /// Full-screen UIKit gesture view for the post-commit overlay phase.
 /// Covers the entire window so gestures on the background also register.
@@ -8,21 +11,10 @@ struct ZoomOverlayFloatingGestureView: UIViewRepresentable {
     func makeUIView(context: Context) -> UIView {
         let view = UIView()
         view.backgroundColor = .clear
-
-        let pinch = UIPinchGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handlePinch))
-        let pan = UIPanGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handlePan))
-        let tap = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleTap))
-
-        pinch.delegate = context.coordinator
-        pan.delegate = context.coordinator
-        tap.delegate = context.coordinator
-
-        context.coordinator.pinchRecognizer = pinch
-
-        view.addGestureRecognizer(pinch)
-        view.addGestureRecognizer(pan)
-        view.addGestureRecognizer(tap)
-
+        let coordinator = context.coordinator
+        view.addGestureRecognizer(coordinator.pinchRecognizer)
+        view.addGestureRecognizer(coordinator.panRecognizer)
+        view.addGestureRecognizer(coordinator.tapRecognizer)
         return view
     }
 
@@ -33,28 +25,39 @@ struct ZoomOverlayFloatingGestureView: UIViewRepresentable {
     @MainActor
     final class Coordinator: NSObject, UIGestureRecognizerDelegate {
         private var state: ZoomOverlayState { .shared }
-        private var scaleAtGestureBegan: CGFloat = 1
-        private var rawPanOffset: CGSize = .zero
-        weak var pinchRecognizer: UIPinchGestureRecognizer?
+        private var rawOffset: CGSize = .zero
 
-        private var isPinchActive: Bool {
-            pinchRecognizer?.state == .began || pinchRecognizer?.state == .changed
+        lazy var pinchRecognizer = UIPinchGestureRecognizer(target: self, action: #selector(handlePinch))
+        lazy var tapRecognizer = UITapGestureRecognizer(target: self, action: #selector(handleTap))
+        lazy var panRecognizer = UIPanGestureRecognizer(target: self, action: #selector(handlePan))
+
+        override init() {
+            super.init()
+            pinchRecognizer.delegate = self
+            tapRecognizer.delegate = self
+            panRecognizer.delegate = self
+            // Tap only fires if pan hasn't recognized first.
+            tapRecognizer.require(toFail: panRecognizer)
         }
 
         @objc func handlePinch(_ recognizer: UIPinchGestureRecognizer) {
             switch recognizer.state {
             case .began:
-                scaleAtGestureBegan = state.scale
+                recognizer.scale = state.scale
             case .changed:
-                let rawScale = scaleAtGestureBegan * recognizer.scale
-                let clampedScale = rubberBand(rawScale, min: ZoomOverlayConstants.minRetainedZoomScale, max: ZoomOverlayConstants.maxNonRubberBandingZoomScale, coefficient: ZoomOverlayConstants.scaleRubberBandCoefficient)
-                let effectiveDScale = clampedScale / state.scale
+                let rubberBandedScale = rubberBand(
+                    recognizer.scale,
+                    min: ZoomOverlayConstants.minRetainedZoomScale,
+                    max: ZoomOverlayConstants.maxNonRubberBandingZoomScale,
+                    coefficient: ZoomOverlayConstants.scaleRubberBandCoefficient,
+                )
+                let effectiveScale = rubberBandedScale / state.scale
                 let centroid = recognizer.location(in: nil)
                 let imageCenterX = state.sourceFrame.midX + state.offset.width
                 let imageCenterY = state.sourceFrame.midY + state.offset.height
-                state.offset.width += (centroid.x - imageCenterX) * (1 - effectiveDScale)
-                state.offset.height += (centroid.y - imageCenterY) * (1 - effectiveDScale)
-                state.scale = clampedScale
+                state.offset.width += (centroid.x - imageCenterX) * (1 - effectiveScale)
+                state.offset.height += (centroid.y - imageCenterY) * (1 - effectiveScale)
+                state.scale = rubberBandedScale
             case .ended:
                 state.snapToScaleBounds()
                 if state.scale <= ZoomOverlayConstants.minRetainedZoomScale {
@@ -62,43 +65,10 @@ struct ZoomOverlayFloatingGestureView: UIViewRepresentable {
                 }
             case .cancelled, .failed:
                 state.dismiss()
-            default:
+            case .possible:
                 break
-            }
-        }
-
-        @objc func handlePan(_ recognizer: UIPanGestureRecognizer) {
-            switch recognizer.state {
-            case .began:
-                rawPanOffset = state.offset
-            case .changed:
-                // swiftlint:disable:next identifier_name
-                let t = recognizer.translation(in: nil)
-                rawPanOffset.width += t.x
-                rawPanOffset.height += t.y
-                recognizer.setTranslation(.zero, in: nil)
-                if isPinchActive {
-                    // During a simultaneous pinch+pan, apply translation directly so it
-                    // doesn't fight the pinch centroid math with rubber-band resistance.
-                    state.offset.width += t.x
-                    state.offset.height += t.y
-                    // Keep rawPanOffset synced so rubber-banding starts correctly if pinch ends.
-                    rawPanOffset = state.offset
-                } else {
-                    state.offset = state.rubberBandedPanOffset(raw: rawPanOffset)
-                }
-            case .ended:
-                // swiftlint:disable:next identifier_name
-                let v = recognizer.velocity(in: nil)
-                let speed = sqrt(v.x * v.x + v.y * v.y)
-                guard state.scale > ZoomOverlayConstants.minRetainedZoomScale else { break }
-                if speed > ZoomOverlayConstants.flingVelocityThreshold {
-                    state.dismiss(withFling: CGVector(dx: v.x, dy: v.y))
-                } else {
-                    state.snapToPanBounds()
-                }
-            default:
-                break
+            @unknown default:
+                logger.warning("received unknown pinch gesture recognizer state=\(recognizer.state.rawValue)")
             }
         }
 
@@ -106,17 +76,57 @@ struct ZoomOverlayFloatingGestureView: UIViewRepresentable {
             state.dismiss()
         }
 
-        func gestureRecognizer(
-            _ gestureRecognizer: UIGestureRecognizer,
-            shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer
-        ) -> Bool { true }
+        @objc func handlePan(_ recognizer: UIPanGestureRecognizer) {
+            switch recognizer.state {
+            case .began:
+                rawOffset = state.offset
+            case .changed:
+                // swiftlint:disable:next identifier_name
+                let t = recognizer.translation(in: nil)
+                // I would prefer to not accumulate the offset like this, but it's necessary to be
+                // able to incrementally apply the offset during a simultaneous pinch, below.
+                // Applying the offset as an absolute would still require keeping track of what the
+                // offset was when the pan began to back out the delta, again to avoid fighting the
+                // pinch gesture.
+                rawOffset.width += t.x
+                rawOffset.height += t.y
+                recognizer.setTranslation(.zero, in: nil)
+                if pinchRecognizer.state == .began || pinchRecognizer.state == .changed {
+                    // During a simultaneous pinch+pan, apply translation directly so it
+                    // doesn't fight the pinch centroid math with rubber-band resistance.
+                    state.offset.width += t.x
+                    state.offset.height += t.y
+                    // Keep rawPanOffset synced so rubber-banding starts correctly if pinch ends.
+                    rawOffset = state.offset
+                } else {
+                    state.offset = state.rubberBandedPanOffset(raw: rawOffset)
+                }
+            case .ended:
+                // swiftlint:disable:next identifier_name
+                let v = recognizer.velocity(in: nil)
+                let speed = sqrt(v.x * v.x + v.y * v.y)
+
+                // The pinch gesture will handle dismissing instead.
+                guard state.scale > ZoomOverlayConstants.minRetainedZoomScale else { break }
+
+                if speed > ZoomOverlayConstants.flingVelocityThreshold {
+                    state.dismiss(withFling: CGVector(dx: v.x, dy: v.y))
+                } else {
+                    state.snapToPanBounds()
+                }
+            case .possible, .cancelled, .failed:
+                break
+            @unknown default:
+                logger.warning("received unknown pan gesture recognizer state=\(recognizer.state.rawValue)")
+            }
+        }
 
         func gestureRecognizer(
             _ gestureRecognizer: UIGestureRecognizer,
-            shouldRequireFailureOf other: UIGestureRecognizer
+            shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer
         ) -> Bool {
-            // Tap only fires if the pan hasn't recognized first.
-            gestureRecognizer is UITapGestureRecognizer && other is UIPanGestureRecognizer
+            // Required to allow zoom/pan at the same time.
+            true
         }
     }
 }

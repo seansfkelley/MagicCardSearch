@@ -30,7 +30,7 @@ The single source of truth. A `@MainActor` singleton (`ObservableObject`) that h
 
 Key methods:
 
-- `initiate` sets up state for the given originating view and seamlessly transitions to the overlay view.
+- `show` sets up state for the given originating view and seamlessly transitions to the overlay view.
 - `maybeCommitInitiatingGesture` is called when the initiating gesture ends and decides whether to revert (auto-dismiss) or to continue (and enable the overlay's interactions). 
 - `dismiss` (and overloads) animates seamlessly back to the originating view's position, then shows it.
 - `snapTo*Bounds` animates the overlay back to the configured bounds. 
@@ -61,7 +61,7 @@ Renders the overlay view, lightbox background, and hosts the floating gesture re
 
 ## Assumptions and Known Issues
 
-**Screen size is fixed for the duration of a transition.** `screenSize` is captured at `initiate` call time and used throughout for pan bounds and centering math. A rotation or multitasking resize while the overlay is visible will produce incorrect bounds until the next initiation.
+**Screen size is fixed for the duration of a transition.** `screenSize` is captured at `show` call time and used throughout for pan bounds and centering math. A rotation or multitasking resize while the overlay is visible will produce incorrect bounds until the next initiation.
 
 **The source frame is fixed for the duration of a transition.** `sourceFrame` is the screen-space rect of the card at the moment the gesture began. If the source view scrolls or moves while the overlay is up (e.g. the scroll view bounces), the overlay image will not track it.
 
