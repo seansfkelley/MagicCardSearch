@@ -265,3 +265,23 @@ struct CardDetailView: View {
         }
     }
 }
+
+#Preview {
+    @Previewable @State var card: Card?
+    @Previewable @State var isFlipped = false
+    let id = UUID(uuidString: "f29ba16f-c8fb-42fe-aabf-87089cb214a7")!
+
+    if let card {
+        NavigationStack {
+            CardDetailView(card: card, isFlipped: $isFlipped)
+                .navigationTitle(card.name)
+                .navigationBarTitleDisplayMode(.inline)
+        }
+        .environment(ScryfallCatalogs(database: try! appDatabase()))
+    } else {
+        ProgressView()
+            .task {
+                card = try? await CardSearchService().fetchCard(byScryfallId: id)
+            }
+    }
+}

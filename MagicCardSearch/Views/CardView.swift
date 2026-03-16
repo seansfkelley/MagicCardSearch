@@ -260,15 +260,6 @@ private struct FlippableCardFaceView: View {
     }
 }
 
-// lightning bolt
-// https://api.scryfall.com/cards/77c6fa74-5543-42ac-9ead-0e890b188e99
-// life // death
-// https://api.scryfall.com/cards/e16d52ca-f8de-4852-9bff-9d208e5f678f
-// consign // oblivion
-// https://api.scryfall.com/cards/1c1ead90-10d8-4217-80e4-6f40320c5569
-// invasion of zendikar
-// https://api.scryfall.com/cards/8fed056f-a8f5-41ec-a7d2-a80a238872d1
-
 // MARK: - Previews
 
 private struct PreviewCardFace: CardFaceDisplayable, Sendable {
