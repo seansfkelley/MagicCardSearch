@@ -41,25 +41,10 @@ struct ZoomGestureView: UIViewRepresentable {
     func makeUIView(context: Context) -> UIView {
         let view = UIView()
         view.backgroundColor = .clear
-
-        let pinch = UIPinchGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handlePinch))
-        let pan = UIPanGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handlePan))
-        let tap = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleTap))
-        context.coordinator.pinchRecognizer = pinch
-        pan.minimumNumberOfTouches = 2
-        pan.maximumNumberOfTouches = 2
-
-        pinch.delegate = context.coordinator
-        pan.delegate = context.coordinator
-        tap.delegate = context.coordinator
-
-        // Tap only fires if pinch hasn't recognized.
-        tap.require(toFail: pinch)
-
-        view.addGestureRecognizer(pinch)
-        view.addGestureRecognizer(pan)
-        view.addGestureRecognizer(tap)
-
+        let coordinator = context.coordinator
+        view.addGestureRecognizer(coordinator.pinchRecognizer)
+        view.addGestureRecognizer(coordinator.panRecognizer)
+        view.addGestureRecognizer(coordinator.tapRecognizer)
         return view
     }
 
@@ -73,11 +58,25 @@ struct ZoomGestureView: UIViewRepresentable {
 
         // Cumulative scale at pinch start, so rubber-banding sees total overshoot.
         private var scaleAtPinchBegan: CGFloat = 1
-        weak var pinchRecognizer: UIPinchGestureRecognizer?
+
+        lazy var pinchRecognizer = UIPinchGestureRecognizer(target: self, action: #selector(handlePinch))
+        lazy var tapRecognizer = UITapGestureRecognizer(target: self, action: #selector(handleTap))
+        lazy var panRecognizer: UIPanGestureRecognizer = {
+            let pan = UIPanGestureRecognizer(target: self, action: #selector(handlePan))
+            pan.minimumNumberOfTouches = 2
+            pan.maximumNumberOfTouches = 2
+            return pan
+        }()
 
         init(uiImage: UIImage, clipShape: AnyShape?) {
             self.uiImage = uiImage
             self.clipShape = clipShape
+            super.init()
+            pinchRecognizer.delegate = self
+            panRecognizer.delegate = self
+            tapRecognizer.delegate = self
+            // Tap only fires if pinch hasn't recognized.
+            tapRecognizer.require(toFail: pinchRecognizer)
         }
 
         private func screenSpaceFrame(for view: UIView) -> CGRect {
@@ -140,8 +139,8 @@ struct ZoomGestureView: UIViewRepresentable {
         func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
             // The pan recognizer only exists to track finger drift during a pinch.
             // Don't let it recognize on its own.
-            if gestureRecognizer is UIPanGestureRecognizer {
-                return pinchRecognizer.map { $0.state == .began || $0.state == .changed } ?? false
+            if gestureRecognizer === panRecognizer {
+                return pinchRecognizer.state == .began || pinchRecognizer.state == .changed
             }
             return true
         }
@@ -152,9 +151,9 @@ struct ZoomGestureView: UIViewRepresentable {
         ) -> Bool {
             // While pinching, block any pan gestures not on our own view
             // (scroll views, sheet dismiss, etc.).
-            if gestureRecognizer is UIPinchGestureRecognizer,
+            if gestureRecognizer === pinchRecognizer,
                other is UIPanGestureRecognizer,
-               other.view !== gestureRecognizer.view {
+               other !== panRecognizer {
                 return false
             }
             return true
