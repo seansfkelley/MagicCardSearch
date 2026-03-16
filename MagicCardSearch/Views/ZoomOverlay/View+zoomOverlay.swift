@@ -1,6 +1,7 @@
 import SwiftUI
 
 extension View {
+    /// Makes this view's image zoomable. Apply to any image view; the source image is hidden while the overlay is active.
     func zoomOverlay(for uiImage: UIImage?, clippingTo clipShape: AnyShape? = nil) -> some View {
         modifier(ZoomOverlayModifier(uiImage: uiImage, clipShape: clipShape))
     }

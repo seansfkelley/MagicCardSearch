@@ -46,6 +46,7 @@ final class ZoomOverlayState: ObservableObject {
         }
     }
 
+    /// Animates scale and offset back to identity, then hides the overlay.
     func dismiss() {
         withAnimation(ZoomOverlayConstants.snapBackAnimation, completionCriteria: .logicallyComplete) {
             scale = 1
@@ -56,6 +57,7 @@ final class ZoomOverlayState: ObservableObject {
         }
     }
 
+    /// Throws the image in the fling direction, then springs back and dismisses.
     func dismiss(withFling velocity: CGVector) {
         let speed = sqrt(velocity.dx * velocity.dx + velocity.dy * velocity.dy)
         guard speed > 0 else { dismiss(); return }
@@ -117,20 +119,34 @@ final class ZoomOverlayState: ObservableObject {
     func rubberBandedPanOffset(raw: CGSize) -> CGSize {
         let (boundsX, boundsY) = panBounds()
         return CGSize(
-            width: rubberBand(raw.width, min: boundsX.min, max: boundsX.max, coefficient: ZoomOverlayConstants.panRubberBandCoefficient),
-            height: rubberBand(raw.height, min: boundsY.min, max: boundsY.max, coefficient: ZoomOverlayConstants.panRubberBandCoefficient)
+            width: rubberBand(
+                raw.width,
+                min: boundsX.min,
+                max: boundsX.max,
+                coefficient: ZoomOverlayConstants.panRubberBandCoefficient,
+            ),
+            height: rubberBand(
+                raw.height,
+                min: boundsY.min,
+                max: boundsY.max,
+                coefficient: ZoomOverlayConstants.panRubberBandCoefficient,
+            )
         )
     }
 
     /// Returns the allowed (min, max) offset range for both axes.
     private func panBounds() -> (x: (min: CGFloat, max: CGFloat), y: (min: CGFloat, max: CGFloat)) {
-        let buffer = min(screenSize.width, screenSize.height) * ZoomOverlayConstants.panEdgeBufferFraction
+        let padding = min(screenSize.width, screenSize.height) * ZoomOverlayConstants.panEdgeBufferFraction
 
-        func boundsForAxis(scaledImageSize: CGFloat, sourceCenter: CGFloat, axisLength: CGFloat) -> (min: CGFloat, max: CGFloat) {
+        func boundsForAxis(
+            sourceContentLength: CGFloat,
+            sourceCenter: CGFloat,
+            axisLength: CGFloat,
+        ) -> (min: CGFloat, max: CGFloat) {
             let centeringOffset = axisLength / 2 - sourceCenter
-            let overflow = (scaledImageSize - axisLength) / 2
+            let overflow = (sourceContentLength * scale - axisLength) / 2
             return if overflow > 0 {
-                (min: centeringOffset - overflow - buffer, max: centeringOffset + overflow + buffer)
+                (min: centeringOffset - overflow - padding, max: centeringOffset + overflow + padding)
             } else {
                 (min: centeringOffset, max: centeringOffset)
             }
@@ -138,12 +154,12 @@ final class ZoomOverlayState: ObservableObject {
 
         return (
             x: boundsForAxis(
-                scaledImageSize: sourceFrame.width * scale,
+                sourceContentLength: sourceFrame.width,
                 sourceCenter: sourceFrame.midX,
                 axisLength: screenSize.width
             ),
             y: boundsForAxis(
-                scaledImageSize: sourceFrame.height * scale,
+                sourceContentLength: sourceFrame.height,
                 sourceCenter: sourceFrame.midY,
                 axisLength: screenSize.height
             )

@@ -9,6 +9,7 @@ enum ZoomOverlayInstaller {
     // Retained for the lifetime of the app so that the sink continues to function.
     private static var cancellable: AnyCancellable?
 
+    /// Creates the overlay window and installs `ZoomOverlayFloatingView` into it. No-ops after the first call.
     static func installIfNeeded(in window: UIWindow) {
         guard !isInstalled, let windowScene = window.windowScene else { return }
 

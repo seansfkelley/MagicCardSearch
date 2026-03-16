@@ -10,6 +10,7 @@ func rubberBand(_ raw: CGFloat, min: CGFloat, max: CGFloat, coefficient: CGFloat
     } else if raw > max {
         let excess = raw - max
         return max + excess / (1 + excess * coefficient)
+    } else {
+        return raw
     }
-    return raw
 }
