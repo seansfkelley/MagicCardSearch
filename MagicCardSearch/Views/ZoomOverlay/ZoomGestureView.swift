@@ -45,6 +45,7 @@ struct ZoomGestureView: UIViewRepresentable {
         let pinch = UIPinchGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handlePinch))
         let pan = UIPanGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handlePan))
         let tap = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleTap))
+        context.coordinator.pinchRecognizer = pinch
         pan.minimumNumberOfTouches = 2
         pan.maximumNumberOfTouches = 2
 
@@ -72,6 +73,7 @@ struct ZoomGestureView: UIViewRepresentable {
 
         // Cumulative scale at pinch start, so rubber-banding sees total overshoot.
         private var scaleAtPinchBegan: CGFloat = 1
+        weak var pinchRecognizer: UIPinchGestureRecognizer?
 
         init(uiImage: UIImage, clipShape: AnyShape?) {
             self.uiImage = uiImage
@@ -124,12 +126,8 @@ struct ZoomGestureView: UIViewRepresentable {
         }
 
         @objc func handlePan(_ recognizer: UIPanGestureRecognizer) {
-            let screenSize = recognizer.view?.window?.screen.bounds.size ?? UIScreen.main.bounds.size
             switch recognizer.state {
-            case .began:
-                if let view = recognizer.view { presentIfNeeded(view: view) }
             case .changed:
-                if let view = recognizer.view { presentIfNeeded(view: view) }
                 let t = recognizer.translation(in: recognizer.view)
                 manager.offset.width += t.x
                 manager.offset.height += t.y
@@ -137,6 +135,15 @@ struct ZoomGestureView: UIViewRepresentable {
             default:
                 break
             }
+        }
+
+        func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+            // The pan recognizer only exists to track finger drift during a pinch.
+            // Don't let it recognize on its own.
+            if gestureRecognizer is UIPanGestureRecognizer {
+                return pinchRecognizer.map { $0.state == .began || $0.state == .changed } ?? false
+            }
+            return true
         }
 
         func gestureRecognizer(

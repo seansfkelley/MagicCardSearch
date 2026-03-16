@@ -20,7 +20,7 @@ struct FloatingZoomOverlayView: View {
                     .position(x: manager.sourceFrame.midX, y: manager.sourceFrame.midY)
                     .allowsHitTesting(false)
 
-                if !manager.isGestureActive {
+                if !manager.isInitiatingGesture {
                     OverlayGestureView()
                         .ignoresSafeArea()
                 }

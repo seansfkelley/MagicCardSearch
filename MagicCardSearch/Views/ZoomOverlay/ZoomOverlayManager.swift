@@ -7,7 +7,7 @@ final class ZoomOverlayManager: ObservableObject {
 
     @Published var isVisible: Bool = false
     /// True while the originating gesture in ZoomGestureView still owns the transform.
-    @Published var isGestureActive: Bool = false
+    @Published var isInitiatingGesture: Bool = false
     @Published var image: UIImage?
     @Published var sourceFrame: CGRect = .zero
     @Published var scale: CGFloat = 1
@@ -24,7 +24,7 @@ final class ZoomOverlayManager: ObservableObject {
         self.scale = 1
         self.offset = .zero
         self.clipShape = clipShape
-        self.isGestureActive = true
+        self.isInitiatingGesture = true
         self.isVisible = true
     }
 
@@ -35,7 +35,7 @@ final class ZoomOverlayManager: ObservableObject {
         self.scale = 1
         self.offset = .zero
         self.clipShape = clipShape
-        self.isGestureActive = false
+        self.isInitiatingGesture = false
         self.isVisible = true
         let targetOffset = CGSize(
             width: screenSize.width / 2 - frame.midX,
@@ -52,7 +52,7 @@ final class ZoomOverlayManager: ObservableObject {
     /// Called when the originating pinch gesture ends. Hands off to the overlay's
     /// own gestures, or dismisses if scale is at or below minScale.
     func commitPinchGesture(screenSize: CGSize) {
-        isGestureActive = false
+        isInitiatingGesture = false
         if scale <= ZoomOverlayConstants.minScale {
             dismiss()
         } else {
