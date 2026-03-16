@@ -142,6 +142,19 @@ struct ZoomGestureView: UIViewRepresentable {
             if gestureRecognizer === panRecognizer {
                 return pinchRecognizer.state == .began || pinchRecognizer.state == .changed
             }
+            // Don't open the preview via tap if the user is touching down to arrest a
+            // scrolling scroll view. Check whether any scroll view in the hierarchy is
+            // currently decelerating.
+            if gestureRecognizer === tapRecognizer {
+                var view: UIView? = gestureRecognizer.view?.superview
+                while let v = view {
+                    if let scrollView = v as? UIScrollView,
+                       scrollView.isDecelerating || scrollView.isOutOfBounds {
+                        return false
+                    }
+                    view = v.superview
+                }
+            }
             return true
         }
 
@@ -160,3 +173,15 @@ struct ZoomGestureView: UIViewRepresentable {
         }
     }
 }
+private extension UIScrollView {
+    var isOutOfBounds: Bool {
+        let inset = adjustedContentInset
+        let offset = contentOffset
+        let minX = -inset.left
+        let minY = -inset.top
+        let maxX = max(minX, contentSize.width - bounds.width + inset.right)
+        let maxY = max(minY, contentSize.height - bounds.height + inset.bottom)
+        return offset.x < minX || offset.x > maxX || offset.y < minY || offset.y > maxY
+    }
+}
+
