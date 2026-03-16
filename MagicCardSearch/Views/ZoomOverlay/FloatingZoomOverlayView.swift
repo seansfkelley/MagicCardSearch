@@ -77,6 +77,8 @@ private struct OverlayGestureView: UIViewRepresentable {
     final class Coordinator: NSObject, UIGestureRecognizerDelegate {
         private var manager: ZoomOverlayManager { .shared }
         private var scaleAtGestureBegan: CGFloat = 1
+        /// Raw (unrubber-banded) offset accumulated during a pan gesture.
+        private var rawOffset: CGSize = .zero
 
         @objc func handlePinch(_ recognizer: UIPinchGestureRecognizer) {
             switch recognizer.state {
@@ -105,19 +107,30 @@ private struct OverlayGestureView: UIViewRepresentable {
         }
 
         @objc func handlePan(_ recognizer: UIPanGestureRecognizer) {
+            let screenSize = recognizer.view?.window?.screen.bounds.size ?? UIScreen.main.bounds.size
             switch recognizer.state {
-            case .began, .changed:
+            case .began:
+                rawOffset = manager.offset
+            case .changed:
                 let t = recognizer.translation(in: nil)
-                manager.offset.width += t.x
-                manager.offset.height += t.y
+                rawOffset.width += t.x
+                rawOffset.height += t.y
                 recognizer.setTranslation(.zero, in: nil)
+                let scaledW = manager.sourceFrame.width * manager.scale
+                let scaledH = manager.sourceFrame.height * manager.scale
+                let minDim = min(screenSize.width, screenSize.height)
+                let boundsX = manager.panBoundsForAxis(scaledImageSize: scaledW, sourceCenter: manager.sourceFrame.midX, screenSize: screenSize.width, minScreenDimension: minDim)
+                let boundsY = manager.panBoundsForAxis(scaledImageSize: scaledH, sourceCenter: manager.sourceFrame.midY, screenSize: screenSize.height, minScreenDimension: minDim)
+                manager.offset.width = manager.rubberBandOffset(rawOffset.width, min: boundsX.min, max: boundsX.max)
+                manager.offset.height = manager.rubberBandOffset(rawOffset.height, min: boundsY.min, max: boundsY.max)
             case .ended:
                 let v = recognizer.velocity(in: nil)
                 let speed = sqrt(v.x * v.x + v.y * v.y)
                 if speed > ZoomOverlayConstants.flingVelocityThreshold {
                     manager.fling(velocity: CGVector(dx: v.x, dy: v.y))
+                } else {
+                    manager.snapOffsetToPanBoundsIfNeeded(screenSize: screenSize)
                 }
-                // If not a flick, just leave it where it is (the overlay stays up).
             default:
                 break
             }

@@ -9,4 +9,6 @@ enum ZoomOverlayConstants {
     static let flingVelocityThreshold: CGFloat = 1700
     /// How far the card travels in the fling direction before snapping back.
     static let flingDistance: CGFloat = 250
+    /// Pan edge buffer as a fraction of the screen's smaller dimension.
+    static let panEdgeBufferFraction: CGFloat = 0.1
 }
