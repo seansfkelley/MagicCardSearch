@@ -20,6 +20,7 @@ enum ZoomOverlayConstants {
     static let maxScale: CGFloat = 1.7
     /// The scale at which the background reaches full opacity.
     static let fullOpacityScale: CGFloat = 1.4
+    static let minOpacity: CGFloat = 0.2
     static let fullOpacity: CGFloat = 0.8
 
     // MARK: - Pan

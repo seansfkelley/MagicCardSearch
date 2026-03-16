@@ -30,7 +30,7 @@ struct FloatingZoomOverlayView: View {
     }
 
     private var backgroundOpacity: Double {
-        let t = (Double(manager.scale) - ZoomOverlayConstants.minScale) / (ZoomOverlayConstants.fullOpacityScale - ZoomOverlayConstants.minScale)
+        let t = (Double(manager.scale) - 1.0) / (ZoomOverlayConstants.fullOpacityScale - 1.0)
         return UnitCurve.easeOut.value(at: max(0, min(1, t))) * ZoomOverlayConstants.fullOpacity
     }
 }
