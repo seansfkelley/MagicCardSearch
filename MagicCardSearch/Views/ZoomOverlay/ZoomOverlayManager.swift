@@ -51,14 +51,17 @@ final class ZoomOverlayManager: ObservableObject {
 
     /// Called when the originating pinch gesture ends. Hands off to the overlay's
     /// own gestures, or dismisses if scale is at or below minScale.
-    func commitPinchGesture() {
+    func commitPinchGesture(screenSize: CGSize) {
         isGestureActive = false
         if scale <= ZoomOverlayConstants.minScale {
             dismiss()
-        } else if scale > ZoomOverlayConstants.maxScale {
-            withAnimation(ZoomOverlayConstants.snapSpring) {
-                scale = ZoomOverlayConstants.maxScale
+        } else {
+            if scale > ZoomOverlayConstants.maxScale {
+                withAnimation(ZoomOverlayConstants.snapSpring) {
+                    scale = ZoomOverlayConstants.maxScale
+                }
             }
+            snapPanOffsetIfNeeded(screenSize: screenSize)
         }
     }
 

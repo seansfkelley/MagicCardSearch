@@ -72,8 +72,6 @@ struct ZoomGestureView: UIViewRepresentable {
 
         // Cumulative scale at pinch start, so rubber-banding sees total overshoot.
         private var scaleAtPinchBegan: CGFloat = 1
-        // Raw (unrubber-banded) offset accumulated during a pan gesture.
-        private var rawPanOffset: CGSize = .zero
 
         init(uiImage: UIImage, clipShape: AnyShape?) {
             self.uiImage = uiImage
@@ -109,7 +107,8 @@ struct ZoomGestureView: UIViewRepresentable {
                 manager.offset.height += (centroid.y - imageCenterY) * (1 - effectiveDScale)
                 manager.scale = clampedScale
             case .ended:
-                manager.commitPinchGesture()
+                let screenSize = view.window?.screen.bounds.size ?? UIScreen.main.bounds.size
+                manager.commitPinchGesture(screenSize: screenSize)
             case .cancelled, .failed:
                 manager.dismiss()
             default:
@@ -129,14 +128,12 @@ struct ZoomGestureView: UIViewRepresentable {
             switch recognizer.state {
             case .began:
                 if let view = recognizer.view { presentIfNeeded(view: view) }
-                rawPanOffset = manager.offset
             case .changed:
                 if let view = recognizer.view { presentIfNeeded(view: view) }
                 let t = recognizer.translation(in: recognizer.view)
-                rawPanOffset.width += t.x
-                rawPanOffset.height += t.y
+                manager.offset.width += t.x
+                manager.offset.height += t.y
                 recognizer.setTranslation(.zero, in: recognizer.view)
-                manager.offset = manager.rubberBandedPanOffset(raw: rawPanOffset, screenSize: screenSize)
             default:
                 break
             }
