@@ -33,6 +33,21 @@ struct FilterPopoverView: View {
                 .pickerStyle(.segmented)
             }
 
+            Section {
+                Picker("Sort", selection: $filterSettings.sort) {
+                    ForEach(AllPrintsFilterSettings.SortMode.allCases, id: \.self) { mode in
+                        Text(mode.rawValue).tag(mode)
+                    }
+                }
+                .pickerStyle(.segmented)
+            } header: {
+                Text("Sort")
+            } footer: {
+                Text("Sorting by price uses USD only.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
             Button {
                 filterSettings.reset()
             } label: {

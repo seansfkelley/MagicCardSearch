@@ -9,15 +9,15 @@ private let logger = Logger(subsystem: "MagicCardSearch", category: "AllPrintsVi
 struct AllPrintsView: View {
     struct CacheKey: Hashable, CustomStringConvertible {
         let oracleId: String
-        let filterSettings: AllPrintsFilterSettings
+        let fetchKey: AllPrintsFilterSettings.FetchKey
 
         var description: String {
-            "CacheKey(oracleId: \(oracleId), filterSettings: \(filterSettings))"
+            "CacheKey(oracleId: \(oracleId), fetchKey: \(fetchKey))"
         }
 
-        init(_ oracleId: String, _ filterSettings: AllPrintsFilterSettings) {
+        init(_ oracleId: String, _ settings: AllPrintsFilterSettings) {
             self.oracleId = oracleId
-            self.filterSettings = filterSettings
+            self.fetchKey = settings.fetchKey
         }
     }
 
@@ -40,6 +40,7 @@ struct AllPrintsView: View {
     let initialCardId: UUID
 
     @State private var objectList: ScryfallObjectList<Card> = .empty()
+    @State private var sortedPrints: [Card] = []
     // This is scene storage for the reasons outlined above -- we want to restore our position when
     // we re-foreground the app.
     @SceneStorage("allPrintsIndex") private var currentIndex: Int = 0
@@ -63,15 +64,11 @@ struct AllPrintsView: View {
         return components?.url
     }
 
-    private var currentPrints: [Card] {
-        objectList.value.latestValue?.data ?? []
-    }
-
     private var currentCard: Card? {
-        guard currentIndex >= 0 && currentIndex < currentPrints.count else {
+        guard currentIndex >= 0 && currentIndex < sortedPrints.count else {
             return nil
         }
-        return currentPrints[currentIndex]
+        return sortedPrints[currentIndex]
     }
 
     var body: some View {
@@ -79,8 +76,8 @@ struct AllPrintsView: View {
             ZStack {
                 if case .unloaded = objectList.value {
                     EmptyView()
-                } else if let objectListData = objectList.value.latestValue {
-                    let cards = objectListData.data
+                } else if objectList.value.latestValue != nil {
+                    let cards = sortedPrints
                     if cards.isEmpty {
                         if printFilterSettings.isDefault {
                             ContentUnavailableView(
@@ -207,9 +204,13 @@ struct AllPrintsView: View {
                 await reloadAllPrints()
             }
         }
-        .onChange(of: printFilterSettings) {
-            Task {
-                await reloadAllPrints()
+        .onChange(of: printFilterSettings) { oldSettings, newSettings in
+            if oldSettings.fetchKey == newSettings.fetchKey {
+                sortedPrints = newSettings.sort(objectList.value.latestValue?.data ?? [])
+            } else {
+                Task {
+                    await reloadAllPrints()
+                }
             }
         }
     }
@@ -220,6 +221,7 @@ struct AllPrintsView: View {
         if let cachedList = try? Self.objectListCache.entry(forKey: cacheKey) {
             logger.trace("hit cache for object list key=\(cacheKey)")
             objectList = cachedList.object
+            sortedPrints = printFilterSettings.sort(objectList.value.latestValue?.data ?? [])
         } else {
             let searchQuery = printFilterSettings.toQueryFor(oracleId: oracleId)
             let client = ScryfallClient(logger: logger)
@@ -235,15 +237,17 @@ struct AllPrintsView: View {
             let targetCardId = if case .unloaded = objectList.value {
                 initialCardId
             } else {
-                currentPrints[safe: currentIndex]?.id
+                sortedPrints[safe: currentIndex]?.id
             }
 
             await objectList.loadAllRemainingPages().value
 
+            sortedPrints = printFilterSettings.sort(objectList.value.latestValue?.data ?? [])
+
             if let targetCardId,
-               let index = currentPrints.firstIndex(where: { $0.id == targetCardId }) {
+               let index = sortedPrints.firstIndex(where: { $0.id == targetCardId }) {
                 currentIndex = index
-            } else if !currentPrints.isEmpty {
+            } else if !sortedPrints.isEmpty {
                 currentIndex = 0
             }
         }
