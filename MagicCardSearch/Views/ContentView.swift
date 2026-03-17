@@ -12,7 +12,7 @@ struct ContentView: View {
     @State private var advanceRandomCard = false
 
     // UITabBarController.delegate is weak, so we retain it here.
-    private let tabDelegate: SearchTabDelegate
+    private let tabDelegate: TabBarDelegate
 
     private var historyAndPinnedStore: HistoryAndPinnedStore
     private var scryfallCatalogs: ScryfallCatalogs
@@ -27,17 +27,17 @@ struct ContentView: View {
                 scryfallCatalogs: scryfallCatalogs,
             )
         )
-        tabDelegate = SearchTabDelegate()
+        tabDelegate = TabBarDelegate()
     }
 
     var body: some View {
         TabView(selection: $selectedTab) {
             SwiftUI.Tab("Spoilers", systemImage: "sparkles", value: Tab.spoilers) {
-                SpoilersView(selectedTab: $selectedTab)
+                SpoilersView()
             }
 
             SwiftUI.Tab("Bookmarks", systemImage: "bookmark", value: Tab.bookmarks) {
-                BookmarksTabView(selectedTab: $selectedTab)
+                BookmarkedCardListView()
             }
 
             SwiftUI.Tab("Random", systemImage: "shuffle", value: Tab.random) {
@@ -60,7 +60,7 @@ struct ContentView: View {
 
 // MARK: - Search Tab Delegate
 
-private final class SearchTabDelegate: NSObject, UITabBarControllerDelegate {
+private final class TabBarDelegate: NSObject, UITabBarControllerDelegate {
     var onRandomTabTapped: (() -> Void)?
     var onSearchTabTapped: (() -> Void)?
 
@@ -69,6 +69,9 @@ private final class SearchTabDelegate: NSObject, UITabBarControllerDelegate {
         shouldSelect viewController: UIViewController
     ) -> Bool {
         if tabBarController.selectedViewController === viewController {
+            // AFAICT there is no foolproof way to enforce the render order and underlying tab value
+            // agree or are convertible to each other, so don't even suggest we can do it, just do
+            // the jank thing that will break more obviously.
             switch tabBarController.selectedIndex {
             case 2:
                 onRandomTabTapped?()

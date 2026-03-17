@@ -5,8 +5,6 @@ import OSLog
 private let logger = Logger(subsystem: "MagicCardSearch", category: "SpoilersView")
 
 struct SpoilersView: View {
-    @Binding var selectedTab: Tab
-
     @State private var selectedCardIndex: Int?
     @State private var cardFlipStates: [UUID: Bool] = [:]
 
@@ -64,7 +62,7 @@ struct SpoilersView: View {
                 set: { selectedCardIndex = $0?.index }
             )
         ) { identifier in
-            LazyPagingCardDetailNavigator(
+            LazyPagingCardDetailNavigatorView(
                 list: SpoilersObjectList.shared,
                 initialIndex: identifier.index,
                 cardFlipStates: $cardFlipStates,

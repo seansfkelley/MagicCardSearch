@@ -107,13 +107,7 @@ struct RandomCardView: View {
                                 case .success(let card):
                                     CardDetailView(card: card, isFlipped: $cardFlipStates.for(card.id), searchState: nil)
                                 case .failure(let error):
-                                    // VStack mimics the pinned-to-top visuals of the real CardDetailView.
-                                    VStack(spacing: 0) {
-                                        PlaceholderCardView(name: nil, cornerRadius: 16, with: .error(error, nil))
-                                            .padding(.horizontal)
-                                        Spacer()
-                                    }
-                                    .padding(.top)
+                                    CardDetailView.Placeholder(name: nil, cornerRadius: 16, with: .error(error, nil))
                                 }
                             }
                             .frame(width: geometry.size.width, height: geometry.size.height)
@@ -121,16 +115,10 @@ struct RandomCardView: View {
                             .id(ScrollItem.entry(entry.id, index))
                         }
 
-                        // VStack mimics the pinned-to-top visuals of the real CardDetailView.
-                        VStack(spacing: 0) {
-                            PlaceholderCardView(name: nil, cornerRadius: 16, with: .spinner)
-                                .padding(.horizontal)
-                            Spacer()
-                        }
-                        .padding(.top)
-                        .frame(width: geometry.size.width, height: geometry.size.height)
-                        .containerRelativeFrame(.horizontal)
-                        .id(ScrollItem.placeholder)
+                        CardDetailView.Placeholder(name: nil, cornerRadius: 16, with: .spinner)
+                            .frame(width: geometry.size.width, height: geometry.size.height)
+                            .containerRelativeFrame(.horizontal)
+                            .id(ScrollItem.placeholder)
                     }
                     .scrollTargetLayout()
                 }

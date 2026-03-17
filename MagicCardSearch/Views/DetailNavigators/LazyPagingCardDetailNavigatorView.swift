@@ -2,7 +2,7 @@ import SwiftUI
 import SQLiteData
 import ScryfallKit
 
-struct LazyPagingCardDetailNavigator: View {
+struct LazyPagingCardDetailNavigatorView: View {
     @Environment(BookmarkedCardsStore.self) private var bookmarkedCardsStore
     @Environment(RecentlyViewedCardsStore.self) private var recentlyViewedCardsStore
     @Environment(\.dismiss) private var dismiss

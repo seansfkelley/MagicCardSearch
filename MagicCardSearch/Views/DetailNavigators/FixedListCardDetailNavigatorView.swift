@@ -119,11 +119,11 @@ struct FixedListCardDetailNavigatorView<C: CardDisplayable & Identifiable<UUID>>
         case .loaded(let fullCard):
             CardDetailView(card: fullCard, isFlipped: $cardFlipStates.for(card.id), searchState: searchState)
         case .loading:
-            PlaceholderCardDetailView(name: card.frontFace.name, cornerRadius: 16, with: .spinner)
+            CardDetailView.Placeholder(name: card.frontFace.name, cornerRadius: 16, with: .spinner)
         case .failed(let error):
-            PlaceholderCardDetailView(name: card.frontFace.name, cornerRadius: 16, with: .error(error, { load(card: card) }))
+            CardDetailView.Placeholder(name: card.frontFace.name, cornerRadius: 16, with: .error(error, { load(card: card) }))
         case nil:
-            PlaceholderCardDetailView(name: card.frontFace.name, cornerRadius: 16, with: .spinner)
+            CardDetailView.Placeholder(name: card.frontFace.name, cornerRadius: 16, with: .spinner)
                 .onAppear { load(card: card) }
         }
     }

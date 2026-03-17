@@ -5,7 +5,7 @@ import SwiftUI
 struct RandomCardOnboardingView: View {
     var body: some View {
         ZStack {
-            PlaceholderCardView(name: nil, cornerRadius: 16, with: .image("shuffle"))
+            CardView.Placeholder(name: nil, cornerRadius: 16, with: .image("shuffle"))
                 .frame(height: 260)
                 .overlay(alignment: .bottomTrailing) {
                     Image(systemName: "hand.point.up.fill")

@@ -37,28 +37,28 @@ extension Card: CardDetailDisplayable {
     }
 }
 
-struct PlaceholderCardDetailView: View {
-    let name: String?
-    let cornerRadius: CGFloat
-    let decoration: PlaceholderCardView.Decoration
-
-    init(name: String?, cornerRadius: CGFloat, with decoration: PlaceholderCardView.Decoration = .none) {
-        self.name = name
-        self.cornerRadius = cornerRadius
-        self.decoration = decoration
-    }
-
-    var body: some View {
-        VStack(spacing: 0) {
-            PlaceholderCardView(name: name, cornerRadius: cornerRadius, with: decoration)
-                .padding(.horizontal)
-            Spacer()
-        }
-        .padding(.top)
-    }
-}
-
 struct CardDetailView: View {
+    struct Placeholder: View {
+        let name: String?
+        let cornerRadius: CGFloat
+        let decoration: CardView.Placeholder.Decoration
+
+        init(name: String?, cornerRadius: CGFloat, with decoration: CardView.Placeholder.Decoration = .none) {
+            self.name = name
+            self.cornerRadius = cornerRadius
+            self.decoration = decoration
+        }
+
+        var body: some View {
+            VStack(spacing: 0) {
+                CardView.Placeholder(name: name, cornerRadius: cornerRadius, with: decoration)
+                    .padding(.horizontal)
+                Spacer()
+            }
+            .padding(.top)
+        }
+    }
+
     let card: Card
     @Binding var isFlipped: Bool
     var searchState: Binding<SearchState>?
@@ -308,5 +308,5 @@ struct CardDetailView: View {
 }
 
 #Preview("Placeholder") {
-    PlaceholderCardDetailView(name: "Lightning Bolt", cornerRadius: 16, with: .spinner)
+    CardDetailView.Placeholder(name: "Lightning Bolt", cornerRadius: 16, with: .spinner)
 }

@@ -1,14 +1,11 @@
 import SwiftUI
 import ScryfallKit
 import SQLiteData
-import NukeUI
-import GRDB
 import OSLog
 
-private let logger = Logger(subsystem: "MagicCardSearch", category: "BookmarksTabView")
+private let logger = Logger(subsystem: "MagicCardSearch", category: "BookmarkedCardListView")
 
-struct BookmarksTabView: View {
-    @Binding var selectedTab: Tab
+struct BookmarkedCardListView: View {
     @State private var editMode: EditMode = .inactive
     @State private var selectedCards: Set<UUID> = []
     @State private var detailSheetState: SheetState?
@@ -240,61 +237,5 @@ struct BookmarksTabView: View {
 
     private var shareableText: String {
         bookmarks.map { "1 \($0.name) (\($0.setCode.uppercased()))" }.joined(separator: "\n")
-    }
-}
-
-// MARK: - Card List Row
-
-private struct BookmarkedCardRowView: View {
-    let card: BookmarkedCard
-
-    var body: some View {
-        HStack(spacing: 10) {
-            CardView(
-                card: card,
-                quality: .small,
-                isFlipped: .constant(false),
-                cornerRadius: 6,
-                showFlipButton: false
-            )
-            .frame(width: 60)
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text(card.name)
-                    .font(.body)
-                    .fontWeight(.medium)
-                    .lineLimit(2)
-
-                if let typeLine = card.typeLine {
-                    Text(typeLine)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                }
-
-                HStack(spacing: 4) {
-                    SetIconView(setCode: SetCode(card.setCode), size: 12)
-                    Text(card.setCode.uppercased())
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                    Text("•")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    Text("#\(card.collectorNumber)")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                    Text("•")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    Text(card.setName)
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                }
-            }
-
-            Spacer(minLength: 0)
-        }
-        .padding(.vertical, 2)
     }
 }
