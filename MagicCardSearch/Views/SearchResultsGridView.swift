@@ -73,7 +73,6 @@ struct SearchResultsGridView: View {
                     .padding(.horizontal, spacing / 2)
                     .padding(.bottom)
                 }
-                .scrollIndicators(.never)
             }
 
             if list.value.isInitiallyLoading {
