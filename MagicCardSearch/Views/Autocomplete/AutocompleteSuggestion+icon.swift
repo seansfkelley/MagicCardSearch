@@ -8,6 +8,7 @@ extension AutocompleteSuggestion {
         case .reverseEnumeration: "list.bullet"
         case .name: "rectangle.portrait"
         case .fullText: "text.rectangle"
+        case .regex: "chevron.left.forwardslash.chevron.right"
         }
     }
 }

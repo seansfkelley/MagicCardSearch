@@ -5,7 +5,7 @@ import ScryfallKit
 
 struct AutocompleteSuggestion {
     enum Source: Equatable {
-        case pinnedFilter, historyFilter, filterType, enumeration, reverseEnumeration, name, fullText
+        case pinnedFilter, historyFilter, filterType, enumeration, reverseEnumeration, name, fullText, regex
     }
 
     struct Match<T: Sendable>: Sendable {
@@ -132,8 +132,16 @@ class AutocompleteSuggestionProvider {
 
                 try Task.checkCancellation()
                 suggestions.append(
+                    contentsOf: timed("regex filter autocomplete suggestions") {
+                        regexSuggestion(for: partial)
+                            .filter { !isRedundantSuggestion($0, existingFilters: existingFilters) }
+                    }
+                )
+
+                try Task.checkCancellation()
+                suggestions.append(
                     contentsOf: timed("full text autocomplete suggestions") {
-                        fullTextSuggestion(for: partial, searchTerm: searchTerm)
+                        fullTextSuggestion(for: partial)
                             .filter { !isRedundantSuggestion($0, existingFilters: existingFilters) }
                     }
                 )
@@ -383,9 +391,7 @@ func filterTypeSuggestions(for partial: PartialFilterTerm, searchTerm: String) -
     )
 }
 
-func fullTextSuggestion(for partial: PartialFilterTerm, searchTerm: String) -> some Sequence<
-    AutocompleteSuggestion
-> {
+func fullTextSuggestion(for partial: PartialFilterTerm) -> some Sequence<AutocompleteSuggestion> {
     guard case .name(let isExact, let partialValue) = partial.content,
         !isExact
     else {
@@ -398,35 +404,77 @@ func fullTextSuggestion(for partial: PartialFilterTerm, searchTerm: String) -> s
         return AnySequence([])
     }
 
-    let oracleFilter = FilterTerm.basic(partial.polarity, "oracle", .including, bareTerm)
-    let flavorFilter = FilterTerm.basic(partial.polarity, "flavor", .including, bareTerm)
+    return AnySequence([("oracle", 0.95), ("flavor", 0.85)].map {
+        let filter = FilterTerm.basic(partial.polarity, $0, .including, bareTerm)
+        return AutocompleteSuggestion(
+            source: .fullText,
+            content: .filter(
+                .init(
+                    value: .term(filter),
+                    string: filter.description,
+                    highlights: [filter.suggestedEditingRange],  // this is a wee hack
+                ),
+            ),
+            rawScore: $1, // ???
+            biasedScore: $1,
+        )
+    })
+}
 
-    return AnySequence([
-        AutocompleteSuggestion(
-            source: .fullText,
+func regexSuggestion(for partial: PartialFilterTerm) -> some Sequence<AutocompleteSuggestion> {
+    let filterType: String?
+    let comparison: Comparison
+    let regexString: String
+    if case .filter(let f, let partialComparison, let partialTerm) = partial.content,
+        let c = partialComparison.toComplete(),
+        partialTerm.quotingType == .forwardSlash
+    {
+        filterType = f
+        comparison = c
+        regexString = partialTerm.incompleteContent
+    } else if case .name(let isExact, let partialTerm) = partial.content,
+        !isExact && partialTerm.incompleteContent.count > 1 && partialTerm.incompleteContent.hasPrefix("/")
+    {
+        filterType = nil
+        comparison = .including
+        // Bare regexes are not syntactically allowed, so if we're trying to upgrade a bare "name"
+        // filter up to a regex, we have to examine the string content of the supposed "name".
+        let rawTerm = partialTerm.incompleteContent
+        regexString = String(rawTerm[
+            rawTerm.range.inset(with: rawTerm, left: 1, right: rawTerm.hasSuffix("/") ? 1 : 0)
+        ])
+    } else {
+        return AnySequence([])
+    }
+
+    guard regexString.count >= 1, comparison == .including || comparison == .equal else { return AnySequence([]) }
+
+    // A bit sloppy, but should work unless people are doing crazy stuff. I have no idea how the
+    // Scryfall and Swift regex syntaxes overlap, but all common regex languages agree on the basic
+    // stuff, so this should be good enough.
+    guard (try? Regex(regexString)) != nil else { return AnySequence([]) }
+
+    let candidates = if let filterType {
+        [(filterType, 1.0)]
+    } else {
+        [("oracle", 1.0), ("name", 0.95), ("type", 0.95), ("flavor", 0.85)]
+    }
+
+    return AnySequence(candidates.map {
+        let filter = FilterTerm.regex(partial.polarity, $0, comparison, regexString)
+        return AutocompleteSuggestion(
+            source: .regex,
             content: .filter(
                 .init(
-                    value: .term(oracleFilter),
-                    string: oracleFilter.description,
-                    highlights: [oracleFilter.suggestedEditingRange],  // this is a wee hack
+                    value: .term(filter),
+                    string: filter.description,
+                    highlights: [filter.suggestedEditingRange],  // this is a wee hack
                 ),
             ),
-            rawScore: 0.95,  // ???
-            biasedScore: 0.95,
-        ),
-        AutocompleteSuggestion(
-            source: .fullText,
-            content: .filter(
-                .init(
-                    value: .term(flavorFilter),
-                    string: flavorFilter.description,
-                    highlights: [flavorFilter.suggestedEditingRange],  // this is a wee hack
-                ),
-            ),
-            rawScore: 0.9,  // ???
-            biasedScore: 0.9,
-        ),
-    ])
+            rawScore: $1, // ???
+            biasedScore: $1,
+        )
+    })
 }
 
 func enumerationSuggestions(

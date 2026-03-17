@@ -11,17 +11,20 @@ struct ScryfallFilterType: Sendable, Equatable, Hashable {
     let allNames: Set<String>
     let enumerationValues: [String]?
     let comparisonKinds: ComparisonKinds
-    
+    let supportsRegex: Bool
+
     init(
         _ name: String,
         _ aliases: Set<String> = [],
         enumerationValues: [String]? = nil,
-        comparisonKinds: ComparisonKinds = .equality
+        comparisonKinds: ComparisonKinds = .equality,
+        supportsRegex: Bool = false,
     ) {
         self.canonicalName = name
         self.allNames = Set([canonicalName]).union(aliases)
         self.enumerationValues = enumerationValues?.sorted()
         self.comparisonKinds = comparisonKinds
+        self.supportsRegex = supportsRegex
     }
 }
 
@@ -83,7 +86,7 @@ private let scryfallIsEnumerationValues = [
 // translated from https://scryfall.com/docs/syntax and kept in the same order/categories
 let scryfallFilterTypes: [ScryfallFilterType] = [
     // MARK: - Name and ID
-    .init("name"),
+    .init("name", supportsRegex: true),
 //    .init("oracleid"),
 //    .init("illustrationid"),
 //    .init("printingid"),
@@ -94,10 +97,10 @@ let scryfallFilterTypes: [ScryfallFilterType] = [
     // see also `has`
     
     // MARK: - Card Types
-    .init("type", ["t"]), // Enumeration values loaded from Scryfall.
-    
+    .init("type", ["t"], supportsRegex: true), // Enumeration values loaded from Scryfall.
+
     // MARK: - Card Text
-    .init("oracle", ["o"]),
+    .init("oracle", ["o"], supportsRegex: true),
     .init("fulloracle", ["fo"]),
     .init("keyword", ["kw"]), // Enumeration values loaded from Scryfall.
     
@@ -169,7 +172,7 @@ let scryfallFilterTypes: [ScryfallFilterType] = [
     
     // MARK: - Artist, Flavor Text and Watermark
     .init("artist", ["a"], comparisonKinds: .all),
-    .init("flavor", ["ft"]),
+    .init("flavor", ["ft"], supportsRegex: true),
     .init("watermark", ["wm"]), // Enumeration values loaded from Scryfall.
     .init("illustrations", comparisonKinds: .all),
     // see also `has` and `new`

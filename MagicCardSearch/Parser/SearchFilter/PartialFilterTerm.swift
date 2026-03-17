@@ -181,7 +181,7 @@ public struct PartialFilterTerm: Sendable, Equatable, CustomStringConvertible {
     }
 }
 
-internal func matchPartialTerm(_ input: String, treatingRegexesAsLiterals: Bool = false) -> PartialFilterTerm.PartialTerm {
+func matchPartialTerm(_ input: String, treatingRegexesAsLiterals: Bool = false) -> PartialFilterTerm.PartialTerm {
     if let match = input.wholeMatch(of: /^'([^']*)('?)$/) {
         let (_, content, close) = match.output
         return close.isEmpty

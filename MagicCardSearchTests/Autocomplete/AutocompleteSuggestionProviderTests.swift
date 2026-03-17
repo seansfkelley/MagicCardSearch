@@ -203,31 +203,31 @@ struct FullTextSuggestionTests {
     @Test("term without a space returns no suggestions")
     func noSpace() {
         let partial = PartialFilterTerm(polarity: .positive, content: .name(false, .bare("flying")))
-        #expect(Array(fullTextSuggestion(for: partial, searchTerm: "flying")).isEmpty)
+        #expect(Array(fullTextSuggestion(for: partial)).isEmpty)
     }
 
     @Test("term with 3 or fewer characters returns no suggestions")
     func tooShort() {
         let partial = PartialFilterTerm(polarity: .positive, content: .name(false, .bare("a b")))
-        #expect(Array(fullTextSuggestion(for: partial, searchTerm: "a b")).isEmpty)
+        #expect(Array(fullTextSuggestion(for: partial)).isEmpty)
     }
 
     @Test("exact-match content returns no suggestions")
     func exactMatch() {
         let partial = PartialFilterTerm(polarity: .positive, content: .name(true, .bare("flies high")))
-        #expect(Array(fullTextSuggestion(for: partial, searchTerm: "flies high")).isEmpty)
+        #expect(Array(fullTextSuggestion(for: partial)).isEmpty)
     }
 
     @Test("filter content returns no suggestions")
     func filterContent() {
         let partial = PartialFilterTerm(polarity: .positive, content: .filter("oracle", .including, .bare("flies high")))
-        #expect(Array(fullTextSuggestion(for: partial, searchTerm: "flies high")).isEmpty)
+        #expect(Array(fullTextSuggestion(for: partial)).isEmpty)
     }
 
     @Test("valid term yields oracle suggestion before flavor suggestion")
     func validTerm() throws {
         let partial = PartialFilterTerm(polarity: .positive, content: .name(false, .bare("flies high")))
-        let suggestions = try unwrapFilter(fullTextSuggestion(for: partial, searchTerm: "flies high"))
+        let suggestions = try unwrapFilter(fullTextSuggestion(for: partial))
         #expect(suggestions == [
             .term(.basic(.positive, "oracle", .including, "flies high")),
             .term(.basic(.positive, "flavor", .including, "flies high")),
@@ -237,7 +237,7 @@ struct FullTextSuggestionTests {
     @Test("negative polarity is preserved")
     func negativePolarity() throws {
         let partial = PartialFilterTerm(polarity: .negative, content: .name(false, .bare("flies high")))
-        let suggestions = try unwrapFilter(fullTextSuggestion(for: partial, searchTerm: "flies high"))
+        let suggestions = try unwrapFilter(fullTextSuggestion(for: partial))
         #expect(suggestions == [
             .term(.basic(.negative, "oracle", .including, "flies high")),
             .term(.basic(.negative, "flavor", .including, "flies high")),
@@ -247,7 +247,7 @@ struct FullTextSuggestionTests {
     @Test("results have fullText source")
     func source() throws {
         let partial = PartialFilterTerm(polarity: .positive, content: .name(false, .bare("flies high")))
-        let suggestions = Array(fullTextSuggestion(for: partial, searchTerm: "flies high"))
+        let suggestions = Array(fullTextSuggestion(for: partial))
         try #require(!suggestions.isEmpty)
         #expect(suggestions.allSatisfy { $0.source == .fullText })
     }
@@ -520,6 +520,128 @@ struct NameSuggestionsTests {
         let partial = PartialFilterTerm(polarity: .negative, content: .name(false, .bare("bolt")))
         let suggestions = try unwrapFilter(nameSuggestions(for: partial, in: ["Firebolt"], searchTerm: ""))
         #expect(suggestions == [.term(.name(.negative, true, "Firebolt"))])
+    }
+}
+
+// MARK: - regexSuggestion
+
+@Suite
+struct RegexSuggestionTests {
+    @Test("non-regex name content returns no suggestions")
+    func nonRegexNameContent() throws {
+        let partial = PartialFilterTerm(polarity: .positive, content: .name(false, .bare("flying")))
+        #expect(try unwrapFilter(regexSuggestion(for: partial)).isEmpty)
+    }
+
+    @Test("non-regex filter content returns no suggestions")
+    func nonRegexFilterContent() throws {
+        let partial = PartialFilterTerm(polarity: .positive, content: .filter("oracle", .including, .bare("flying")))
+        #expect(try unwrapFilter(regexSuggestion(for: partial)).isEmpty)
+    }
+
+    @Test("exact-match name content returns no suggestions")
+    func exactMatch() throws {
+        let partial = PartialFilterTerm(polarity: .positive, content: .name(true, .bare("/fly")))
+        #expect(try unwrapFilter(regexSuggestion(for: partial)).isEmpty)
+    }
+
+    @Test("filter with incomplete operator returns no suggestions")
+    func incompleteOperator() throws {
+        let partial = PartialFilterTerm(polarity: .positive, content: .filter("oracle", .incompleteNotEqual, .unterminated(.forwardSlash, "fly")))
+        #expect(try unwrapFilter(regexSuggestion(for: partial)).isEmpty)
+    }
+
+    @Test("filter with non-including, non-equals operator returns no suggestions")
+    func incorrectOperator() throws {
+        let partial = PartialFilterTerm(polarity: .positive, content: .filter("oracle", .lessThan, .unterminated(.forwardSlash, "x{1,}")))
+        #expect(try unwrapFilter(regexSuggestion(for: partial)).isEmpty)
+    }
+
+    @Test("empty regex string returns no suggestions")
+    func emptyRegex() throws {
+        let partial = PartialFilterTerm(polarity: .positive, content: .name(false, .bare("/")))
+        #expect(try unwrapFilter(regexSuggestion(for: partial)).isEmpty)
+    }
+
+    @Test("invalid regex returns no suggestions")
+    func invalidRegex() throws {
+        let partial = PartialFilterTerm(polarity: .positive, content: .name(false, .bare("/[")))
+        #expect(try unwrapFilter(regexSuggestion(for: partial)).isEmpty)
+    }
+
+    @Test("filter with empty partial regex returns no suggestions")
+    func emptyPartialRegex() throws {
+        let partial = PartialFilterTerm(polarity: .positive, content: .filter("oracle", .including, .unterminated(.forwardSlash, "")))
+        #expect(try unwrapFilter(regexSuggestion(for: partial)).isEmpty)
+    }
+
+    @Test("bare incomplete regex content yields oracle, name, type, and flavor suggestions")
+    func bareIncompleteYieldsDefaultCandidates() throws {
+        let partial = PartialFilterTerm(polarity: .positive, content: .name(false, .bare("/x{1,}")))
+        let suggestions = try unwrapFilter(regexSuggestion(for: partial))
+        #expect(suggestions == [
+            .term(.regex(.positive, "oracle", .including, "x{1,}")),
+            .term(.regex(.positive, "name", .including, "x{1,}")),
+            .term(.regex(.positive, "type", .including, "x{1,}")),
+            .term(.regex(.positive, "flavor", .including, "x{1,}")),
+        ])
+    }
+
+    @Test("bare complete regex content yields oracle, name, type, and flavor suggestions")
+    func bareCompleteYieldsDefaultCandidates() throws {
+        let partial = PartialFilterTerm(polarity: .positive, content: .name(false, .bare("/x{1,}/")))
+        let suggestions = try unwrapFilter(regexSuggestion(for: partial))
+        #expect(suggestions == [
+            .term(.regex(.positive, "oracle", .including, "x{1,}")),
+            .term(.regex(.positive, "name", .including, "x{1,}")),
+            .term(.regex(.positive, "type", .including, "x{1,}")),
+            .term(.regex(.positive, "flavor", .including, "x{1,}")),
+        ])
+    }
+
+    @Test("filter regex content yields only that filter type")
+    func filterContentYieldsSingleCandidate() throws {
+        let partial = PartialFilterTerm(polarity: .positive, content: .filter("oracle", .including, .unterminated(.forwardSlash, "x{1,}")))
+        let suggestions = try unwrapFilter(regexSuggestion(for: partial))
+        #expect(suggestions == [.term(.regex(.positive, "oracle", .including, "x{1,}"))])
+    }
+
+    @Test("filter regex preserves the equals operator")
+    func filterPreservesOperator() throws {
+        let partial = PartialFilterTerm(polarity: .positive, content: .filter("name", .equal, .unterminated(.forwardSlash, "x{1,}")))
+        let suggestions = try unwrapFilter(regexSuggestion(for: partial))
+        #expect(suggestions == [.term(.regex(.positive, "name", .equal, "x{1,}"))])
+    }
+
+    @Test("negative polarity is preserved")
+    func negativePolarity() throws {
+        let partial = PartialFilterTerm(polarity: .negative, content: .name(false, .bare("/x{1,}")))
+        let suggestions = try unwrapFilter(regexSuggestion(for: partial))
+        try #require(!suggestions.isEmpty)
+        #expect(suggestions.allSatisfy {
+            if case .term(let term) = $0, case .regex(.negative, _, _, _) = term { true } else { false }
+        })
+    }
+
+    @Test("a terminated regex with no content is empty")
+    func emptyBalancedRegex() throws {
+        let partial = PartialFilterTerm(polarity: .positive, content: .filter("oracle", .including, .balanced(.forwardSlash, "")))
+        #expect(try unwrapFilter(regexSuggestion(for: partial)).isEmpty)
+    }
+
+    @Test("a terminated regex with content returns a suggestion")
+    func nonemptyBalancedRegex() throws {
+        let partial = PartialFilterTerm(polarity: .positive, content: .filter("oracle", .including, .balanced(.forwardSlash, "x{1,}")))
+        let suggestions = try unwrapFilter(regexSuggestion(for: partial))
+        #expect(suggestions == [.term(.regex(.positive, "oracle", .including, "x{1,}"))])
+    }
+
+    @Test("results have regex source")
+    func source() throws {
+        let partial = PartialFilterTerm(polarity: .positive, content: .name(false, .bare("/x{1,}")))
+        let suggestions = Array(regexSuggestion(for: partial))
+        try #require(!suggestions.isEmpty)
+        #expect(suggestions.allSatisfy { $0.source == .regex })
     }
 }
 
