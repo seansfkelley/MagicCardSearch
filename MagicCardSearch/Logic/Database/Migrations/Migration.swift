@@ -9,4 +9,5 @@ let orderedMigrations: [(String, @Sendable (Database) throws -> Void)] = [
     ("add pinned searches", migrate_006_AddPinnedSearches),
     ("truncate filter-related tables", migrate_007_TruncateFilterRelatedTables),
     ("add recently viewed cards", migrate_008_AddRecentlyViewedCards),
+    ("drop blob entries", migrate_009_DropBlobEntries),
 ]
