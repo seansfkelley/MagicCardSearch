@@ -1,6 +1,6 @@
 protocol EditableFilter {
     var suggestedEditingRange: Range<String.Index> { get }
-    var isKnownFilterType: Bool { get }
+    var isProbablyWellFormedFilter: Bool { get }
 }
 
 public enum FilterTerm: FilterQueryLeaf, EditableFilter {
@@ -60,11 +60,18 @@ public enum FilterTerm: FilterQueryLeaf, EditableFilter {
         }
     }
 
-    var isKnownFilterType: Bool {
+    var isProbablyWellFormedFilter: Bool {
         switch self {
-        case .name: true
-        case .basic(_, let filter, _, _): isScryfallFilter(filter)
-        case .regex(_, let filter, _, _): isScryfallFilter(filter)
+        case .name:
+            true
+        case .basic(_, let filter, _, _):
+            scryfallFilterByType[filter.lowercased()] != nil
+        case .regex(_, let filter, _, _):
+            if let filter = scryfallFilterByType[filter.lowercased()] {
+                filter.supportsRegex
+            } else {
+                false
+            }
         }
     }
 
@@ -103,10 +110,6 @@ public enum Comparison: String, Codable, Hashable, Equatable, CustomStringConver
     public var description: String { rawValue }
 }
 
-private func isScryfallFilter(_ filter: String) -> Bool {
-    scryfallFilterByType[filter.lowercased()] != nil
-}
-
 extension FilterQuery: EditableFilter where Term == FilterTerm {
     var suggestedEditingRange: Range<String.Index> {
         switch self {
@@ -125,10 +128,10 @@ extension FilterQuery: EditableFilter where Term == FilterTerm {
         }
     }
     
-    var isKnownFilterType: Bool {
+    var isProbablyWellFormedFilter: Bool {
         switch self {
-        case .term(let filter): filter.isKnownFilterType
-        case .and(_, let filters), .or(_, let filters): filters.allSatisfy(\.isKnownFilterType)
+        case .term(let filter): filter.isProbablyWellFormedFilter
+        case .and(_, let filters), .or(_, let filters): filters.allSatisfy(\.isProbablyWellFormedFilter)
         }
     }
 }

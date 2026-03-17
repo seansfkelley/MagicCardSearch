@@ -15,7 +15,7 @@ struct FilterPillView: View {
         HStack(spacing: 0) {
             Button(action: onTap ?? {}) {
                 HStack(spacing: 6) {
-                    if !filter.isKnownFilterType {
+                    if !filter.isProbablyWellFormedFilter {
                         Image(systemName: "exclamationmark.triangle")
                             .font(.callout)
                             .foregroundStyle(.orange)
@@ -25,7 +25,7 @@ struct FilterPillView: View {
                         .font(.subheadline)
                         .fontWeight(.medium)
                 }
-                .padding(.leading, filter.isKnownFilterType ? 16 : 8)
+                .padding(.leading, filter.isProbablyWellFormedFilter ? 16 : 8)
                 .padding(.trailing, onDelete == nil ? 16 : 8)
                 .padding(.vertical, 8)
             }
