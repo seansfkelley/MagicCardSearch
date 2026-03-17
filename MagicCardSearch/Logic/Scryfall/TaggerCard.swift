@@ -199,7 +199,11 @@ struct TaggerCard: Codable {
     }
 
     private static func getHeaders(setCode: String, collectorNumber: String) async throws -> (cookie: String, csrfToken: String) {
-        let url = URL(string: "https://tagger.scryfall.com/card/\(setCode.lowercased())/\(collectorNumber.lowercased())")!
+        // Note that Scryfall is case-sensitive w/r/t collector number! Two examples in both directions:
+        //   https://tagger.scryfall.com/card/pf26/1F
+        //   https://tagger.scryfall.com/card/pecl/110p
+        // (These URLs work. If you change the collector number's casing at the end of the URL, it doesn't work.)
+        let url = URL(string: "https://tagger.scryfall.com/card/\(setCode.lowercased())/\(collectorNumber)")!
 
         logger.info("fetching cookie and CSRF token for set=\(setCode) collectorNumber=\(collectorNumber) from url=\(url)")
 
