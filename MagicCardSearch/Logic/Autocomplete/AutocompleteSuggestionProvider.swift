@@ -220,11 +220,12 @@ func sortCombinedSuggestions(_ suggestions: [AutocompleteSuggestion]) -> [Autoco
     var seen = Set<FilterQuery<FilterTerm>>()
     return
         suggestions
+        // Sort first to ensure we keep the higher-scored duplicate.
+        .sorted { $0.biasedScore > $1.biasedScore }
         .filter {
             guard case .filter(let match) = $0.content else { return true }
             return seen.insert(match.value).inserted
         }
-        .sorted { $0.biasedScore > $1.biasedScore }
 }
 
 func pinnedFilterSuggestions(
