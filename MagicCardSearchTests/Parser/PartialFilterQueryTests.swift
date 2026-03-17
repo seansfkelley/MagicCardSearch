@@ -87,7 +87,7 @@ struct PartialFilterQueryTests {
             "lightning bolt",
             ["lightning", "bolt"],
             and(term("lightning"), term("bolt")),
-            "lightning bolt"
+            "(lightning bolt)"
         ),
         
         // Extra whitespace gets trimmed by lexer
@@ -95,7 +95,7 @@ struct PartialFilterQueryTests {
             "  lightning   bolt    ",
             [" ", "lightning", "bolt", "   "],
             and(term("lightning"), term("bolt")),
-            "lightning bolt"
+            "(lightning bolt)"
         ),
         
         // MARK: OR Queries
@@ -105,7 +105,7 @@ struct PartialFilterQueryTests {
             "lightning or bolt",
             ["lightning", "or", "bolt"],
             or(term("lightning"), term("bolt")),
-            "lightning or bolt"
+            "(lightning or bolt)"
         ),
 
         // AND with OR - precedence test
@@ -113,7 +113,7 @@ struct PartialFilterQueryTests {
             "red creature or blue instant",
             ["red", "creature", "or", "blue", "instant"],
             or(and(term("red"), term("creature")), and(term("blue"), term("instant"))),
-            "red creature or blue instant"
+            "(red creature or blue instant)"
         ),
         
         // MARK: Parenthesized Queries
@@ -131,7 +131,7 @@ struct PartialFilterQueryTests {
             "(red or blue)",
             ["red", "or", "blue"],
             or(term("red"), term("blue")),
-            "red or blue"
+            "(red or blue)"
         ),
         
         // Parentheses changing precedence
@@ -139,7 +139,7 @@ struct PartialFilterQueryTests {
             "(red or blue) instant",
             ["red", "or", "blue", "instant"],
             and(or(term("red"), term("blue")), term("instant")),
-            "(red or blue) instant"
+            "((red or blue) instant)"
         ),
         
         // Multiple parenthesized groups - flattens to single OR
@@ -147,7 +147,7 @@ struct PartialFilterQueryTests {
             "(red or blue) or (black or white)",
             ["red", "or", "blue", "or", "black", "or", "white"],
             or(term("red"), term("blue"), term("black"), term("white")),
-            "red or blue or black or white"
+            "(red or blue or black or white)"
         ),
         
         // Complex mixed query
@@ -155,7 +155,7 @@ struct PartialFilterQueryTests {
             "(red or blue) creature (flying or haste)",
             ["red", "or", "blue", "creature", "flying", "or", "haste"],
             and(or(term("red"), term("blue")), term("creature"), or(term("flying"), term("haste"))),
-            "(red or blue) creature (flying or haste)"
+            "((red or blue) creature (flying or haste))"
         ),
         
         // Quoted strings in parentheses
@@ -163,7 +163,7 @@ struct PartialFilterQueryTests {
             "(\"lightning bolt\" or \"chain lightning\")",
             ["\"lightning bolt\"", "or", "\"chain lightning\""],
             or(term("\"lightning bolt\""), term("\"chain lightning\"")),
-            "\"lightning bolt\" or \"chain lightning\""
+            "(\"lightning bolt\" or \"chain lightning\")"
         ),
         
         // MARK: Edge Cases
@@ -207,7 +207,7 @@ struct PartialFilterQueryTests {
             "-red or blue",
             ["-red", "or", "blue"],
             or(term(.negative, "red"), term("blue")),
-            "-red or blue"
+            "(-red or blue)"
         ),
         
         // Negation in parentheses
@@ -221,7 +221,7 @@ struct PartialFilterQueryTests {
             "(-red or -blue)",
             ["-red", "or", "-blue"],
             or(term(.negative, "red"), term(.negative, "blue")),
-            "-red or -blue"
+            "(-red or -blue)"
         ),
         TestCase(
             "-(red or blue)",
@@ -253,13 +253,13 @@ struct PartialFilterQueryTests {
             "name:lightning or name:bolt",
             ["name:lightning", "or", "name:bolt"],
             or(term("name:lightning"), term("name:bolt")),
-            "name:lightning or name:bolt"
+            "(name:lightning or name:bolt)"
         ),
         TestCase(
             "(power>=2 or toughness>=3)",
             ["power>=2", "or", "toughness>=3"],
             or(term("power>=2"), term("toughness>=3")),
-            "power>=2 or toughness>=3"
+            "(power>=2 or toughness>=3)"
         ),
         
         // Mixed with regular terms
@@ -268,7 +268,7 @@ struct PartialFilterQueryTests {
             "((name:lightning) or (name:bolt))",
             ["name:lightning", "or", "name:bolt"],
             or(term("name:lightning"), term("name:bolt")),
-            "name:lightning or name:bolt"
+            "(name:lightning or name:bolt)"
         ),
         
         // MARK: Quoted Values
@@ -295,7 +295,7 @@ struct PartialFilterQueryTests {
             "(name:\"Serra Angel\" or name:\"Akroma\")",
             ["name:\"Serra Angel\"", "or", "name:\"Akroma\""],
             or(term("name:\"Serra Angel\""), term("name:\"Akroma\"")),
-            "name:\"Serra Angel\" or name:\"Akroma\""
+            "(name:\"Serra Angel\" or name:\"Akroma\")"
         ),
         
         // MARK: Incomplete Terms and Quoted Strings
@@ -318,7 +318,7 @@ struct PartialFilterQueryTests {
             "(power>) or (name:)",
             ["power>", "or", "name:"],
             or(term("power>"), term("name:")),
-            "power> or name:"
+            "(power> or name:)"
         ),
         
         // Unclosed double quotes - these consume everything after including whitespace
@@ -434,7 +434,7 @@ struct PartialFilterQueryTests {
             "((name:lightning or -name:bolt) power>3)",
             ["name:lightning", "or", "-name:bolt", "power>3"],
             and(or(term("name:lightning"), term(.negative, "name:bolt")), term("power>3")),
-            "(name:lightning or -name:bolt) power>3"
+            "((name:lightning or -name:bolt) power>3)"
         ),
         
         // Incomplete nested with mixed quotes and operators
