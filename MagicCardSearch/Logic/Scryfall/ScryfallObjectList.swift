@@ -11,7 +11,7 @@ class ScryfallObjectList<T: Codable & Sendable> {
     public private(set) var value: LoadableResult<ObjectList<T>, SearchErrorState> = .unloaded
 
     private let searchUuid = UUID()
-    private var fetcher: @Sendable (Int) async throws -> ObjectList<T>
+    private let fetcher: @Sendable (Int) async throws -> ObjectList<T>
     private var nextPage = 1
     // Ignore the compiler warning here: if I don't have nonisolated(unsafe), it doesn't compile.
     nonisolated(unsafe) private var task: Task<Void, Never>?
@@ -60,7 +60,7 @@ class ScryfallObjectList<T: Codable & Sendable> {
 
                 logger.debug("successfully fetched page=\(self.nextPage) uuid=\(self.searchUuid)")
                 self.nextPage += 1
-                self.value = .loaded(self.append(self.value.latestValue, result), nil)
+                self.value = .loaded(append(self.value.latestValue, result), nil)
             } catch let error as ScryfallKitError {
                 // When searching for cards, a 404 means "no results found", not an actual error.
                 // Note that this condition assumes that we will never get legit 404s. This should

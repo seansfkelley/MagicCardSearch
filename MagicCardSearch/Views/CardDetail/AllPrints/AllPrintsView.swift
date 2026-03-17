@@ -40,7 +40,7 @@ struct AllPrintsView: View {
     let initialCardId: UUID
 
     @State private var objectList: ScryfallObjectList<Card> = .empty()
-    @State private var sortedPrints: [Card] = []
+    @State private var sortedCards: LoadableResult<[Card], SearchErrorState> = .unloaded
     // This is scene storage for the reasons outlined above -- we want to restore our position when
     // we re-foreground the app.
     @SceneStorage("allPrintsIndex") private var currentIndex: Int = 0
@@ -65,16 +65,16 @@ struct AllPrintsView: View {
     }
 
     private var currentCard: Card? {
-        guard currentIndex >= 0 && currentIndex < sortedPrints.count else {
+        guard currentIndex >= 0 && currentIndex < (objectList.value.latestValue?.data.count ?? -1) else {
             return nil
         }
-        return sortedPrints[currentIndex]
+        return objectList.value.latestValue?.data[currentIndex]
     }
 
     var body: some View {
         NavigationStack {
             Group {
-                switch objectList.value {
+                switch sortedCards {
                 case .unloaded, .loading:
                     VStack {
                         Spacer()
@@ -202,7 +202,7 @@ struct AllPrintsView: View {
         }
         .onChange(of: printFilterSettings) { oldSettings, newSettings in
             if oldSettings.fetchKey == newSettings.fetchKey {
-                sortedPrints = newSettings.sort(objectList.value.latestValue?.data ?? [])
+                sortedCards = sortedCards.mapValue { newSettings.sort($0) }
             } else {
                 Task {
                     await reloadAllPrints()
@@ -217,33 +217,34 @@ struct AllPrintsView: View {
         if let cachedList = try? Self.objectListCache.entry(forKey: cacheKey) {
             logger.trace("hit cache for object list key=\(cacheKey)")
             objectList = cachedList.object
-            sortedPrints = printFilterSettings.sort(objectList.value.latestValue?.data ?? [])
         } else {
             let searchQuery = printFilterSettings.toQueryFor(oracleId: oracleId)
             let client = ScryfallClient(logger: logger)
-            objectList = ScryfallObjectList { page in
+            let currentObjectList = ScryfallObjectList { page in
                 try await client.searchCards(
                     query: searchQuery,
                     page: page,
                 )
             }
-            Self.objectListCache.setObject(objectList, forKey: cacheKey)
+            Self.objectListCache.setObject(currentObjectList, forKey: cacheKey)
             logger.trace("set cache for object list key=\(cacheKey)")
 
             let targetCardId = if case .unloaded = objectList.value {
                 initialCardId
             } else {
-                sortedPrints[safe: currentIndex]?.id
+                sortedCards.latestValue?[safe: currentIndex]?.id
             }
 
-            await objectList.loadAllRemainingPages().value
+            objectList = currentObjectList
+            await currentObjectList.loadAllRemainingPages().value
 
-            sortedPrints = printFilterSettings.sort(objectList.value.latestValue?.data ?? [])
+            // Kinda jank. Never hit this branch either, to my knowledge.
+            guard objectList === currentObjectList else { return }
 
             if let targetCardId,
-               let index = sortedPrints.firstIndex(where: { $0.id == targetCardId }) {
+               let index = sortedCards.latestValue?.firstIndex(where: { $0.id == targetCardId }) {
                 currentIndex = index
-            } else if !sortedPrints.isEmpty {
+            } else if !(sortedCards.latestValue ?? []).isEmpty {
                 currentIndex = 0
             }
         }
