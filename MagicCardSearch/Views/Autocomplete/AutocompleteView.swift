@@ -28,6 +28,10 @@ struct AutocompleteView: View {
         let nonce: Int
     }
 
+    private enum AddedFilterResult {
+        case text, filter
+    }
+
     private let orderedEqualityComparison: [Comparison] = [
         .including,
         .equal,
@@ -47,7 +51,7 @@ struct AutocompleteView: View {
         List {
             if let filter = searchState.searchText.toFilter().value {
                 Button {
-                    addTopLevelFilter(filter)
+                    addFilter(filter)
                 } label: {
                     HStack(spacing: 12) {
                         Image(systemName: "magnifyingglass")
@@ -88,31 +92,27 @@ struct AutocompleteView: View {
                 suggestion: suggestion,
                 orderedAllComparisons: orderedAllComparisons,
                 orderedEqualityComparison: orderedEqualityComparison,
-                onSelect: setScopedString
-            )
+            ) { setFilterString($0) }
         case .filterParts(let polarity, let filterType, let value):
-            FilterPartsRowView(suggestion: suggestion) {
-                addScopedFilter(.term($0))
-            }
-            .swipeActions(edge: .leading, allowsFullSwipe: true) {
-                pinSwipeAction(for: .term(.basic(polarity, filterType.canonicalName, .including, value.value)))
-            }
+            FilterPartsRowView(suggestion: suggestion) { addFilter(.term($0)) }
+                .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                    pinSwipeAction(for: .term(.basic(polarity, filterType.canonicalName, .including, value.value)))
+                }
         }
     }
 
     @ViewBuilder
     private func filterRow(_ suggestion: AutocompleteSuggestion) -> some View {
-        let scopedRange = searchState.selectedFilter.scopedRange
+        let shouldSearchImmediately = suggestion.source == .name && searchState.selectedFilter.scopedRange == nil
 
         let row = FilterRowView(
             suggestion: suggestion,
-            showImmediateSearchIcon: suggestion.source == .name && scopedRange == nil,
+            showImmediateSearchIcon: shouldSearchImmediately,
         ) { filter in
-            if suggestion.source == .name && scopedRange == nil {
-                addTopLevelFilter(filter)
+            // Belt-and-suspenders to make sure we don't search immediately if we somehow only ended
+            // up modifying the search text.
+            if addFilter(filter) == .filter && shouldSearchImmediately {
                 searchState.performSearch()
-            } else {
-                addScopedFilter(filter)
             }
         }
 
@@ -171,13 +171,8 @@ struct AutocompleteView: View {
 
     // MARK: - Actions
 
-    private func addTopLevelFilter(_ filter: FilterQuery<FilterTerm>) {
-        searchState.filters.append(filter)
-        searchState.searchText = ""
-        searchState.desiredSearchSelection = nil
-    }
-
-    private func addScopedFilter(_ filter: FilterQuery<FilterTerm>) {
+    @discardableResult
+    private func addFilter(_ filter: FilterQuery<FilterTerm>) -> AddedFilterResult {
         if let range = searchState.selectedFilter.scopedRange {
             let filterString = filter.description
             if range.upperBound == searchState.searchText.endIndex {
@@ -188,14 +183,17 @@ struct AutocompleteView: View {
                 let index = searchState.searchText.index(range.lowerBound, offsetBy: filterString.count)
                 searchState.desiredSearchSelection = .init(insertionPoint: index)
             }
+            return .text
         } else {
             searchState.filters.append(filter)
             searchState.searchText = ""
             searchState.desiredSearchSelection = nil
+            return .filter
         }
     }
 
-    private func setScopedString(_ string: String) {
+    @discardableResult
+    private func setFilterString(_ string: String) -> AddedFilterResult {
         if let range = searchState.selectedFilter.range {
             searchState.searchText.replaceSubrange(range, with: string)
             let index = searchState.searchText.index(range.lowerBound, offsetBy: string.count)
@@ -204,6 +202,7 @@ struct AutocompleteView: View {
             searchState.searchText = string
             searchState.desiredSearchSelection = nil
         }
+        return .text
     }
 
     @ViewBuilder
