@@ -27,22 +27,23 @@ private func makeSet(
 }
 
 @Suite
-struct EnumerationCatalogDataTests {
+struct AutocompleteCatalogsTests {
     // MARK: - artist
 
     @Test("artist returns nil when artistNames catalog is absent")
     func artistNil() {
-        let data = EnumerationCatalogData(catalogs: [:], sets: nil, artTags: nil, oracleTags: nil)
+        let data = AutocompleteCatalogs(catalogs: [:], sets: nil, artTags: nil, oracleTags: nil, cardNames: nil)
         #expect(data.artist == nil)
     }
 
     @Test("artist returns artistNames catalog values")
     func artistValues() {
-        let data = EnumerationCatalogData(
+        let data = AutocompleteCatalogs(
             catalogs: [.artistNames: ["John Avon", "Rebecca Guay"]],
             sets: nil,
             artTags: nil,
-            oracleTags: nil
+            oracleTags: nil,
+            cardNames: nil
         )
         #expect(data.artist == ["John Avon", "Rebecca Guay"])
     }
@@ -51,17 +52,18 @@ struct EnumerationCatalogDataTests {
 
     @Test("watermark returns nil when watermarks catalog is absent")
     func watermarkNil() {
-        let data = EnumerationCatalogData(catalogs: [:], sets: nil, artTags: nil, oracleTags: nil)
+        let data = AutocompleteCatalogs(catalogs: [:], sets: nil, artTags: nil, oracleTags: nil, cardNames: nil)
         #expect(data.watermark == nil)
     }
 
     @Test("watermark returns watermarks catalog values")
     func watermarkValues() {
-        let data = EnumerationCatalogData(
+        let data = AutocompleteCatalogs(
             catalogs: [.watermarks: ["urza", "phyrexian"]],
             sets: nil,
             artTags: nil,
-            oracleTags: nil
+            oracleTags: nil,
+            cardNames: nil
         )
         #expect(data.watermark == ["urza", "phyrexian"])
     }
@@ -70,13 +72,13 @@ struct EnumerationCatalogDataTests {
 
     @Test("art returns the artTags parameter")
     func artValues() {
-        let data = EnumerationCatalogData(catalogs: [:], sets: nil, artTags: ["fog", "dragon"], oracleTags: nil)
+        let data = AutocompleteCatalogs(catalogs: [:], sets: nil, artTags: ["fog", "dragon"], oracleTags: nil, cardNames: nil)
         #expect(data.art == ["fog", "dragon"])
     }
 
     @Test("art returns nil when artTags is nil")
     func artNil() {
-        let data = EnumerationCatalogData(catalogs: [:], sets: nil, artTags: nil, oracleTags: nil)
+        let data = AutocompleteCatalogs(catalogs: [:], sets: nil, artTags: nil, oracleTags: nil, cardNames: nil)
         #expect(data.art == nil)
     }
 
@@ -84,13 +86,13 @@ struct EnumerationCatalogDataTests {
 
     @Test("function returns the oracleTags parameter")
     func functionValues() {
-        let data = EnumerationCatalogData(catalogs: [:], sets: nil, artTags: nil, oracleTags: ["draw", "ramp"])
+        let data = AutocompleteCatalogs(catalogs: [:], sets: nil, artTags: nil, oracleTags: ["draw", "ramp"], cardNames: nil)
         #expect(data.function == ["draw", "ramp"])
     }
 
     @Test("function returns nil when oracleTags is nil")
     func functionNil() {
-        let data = EnumerationCatalogData(catalogs: [:], sets: nil, artTags: nil, oracleTags: nil)
+        let data = AutocompleteCatalogs(catalogs: [:], sets: nil, artTags: nil, oracleTags: nil, cardNames: nil)
         #expect(data.function == nil)
     }
 
@@ -98,33 +100,36 @@ struct EnumerationCatalogDataTests {
 
     @Test("keyword returns nil when either keywordAbilities or abilityWords catalog is absent")
     func keywordNilWhenMissing() {
-        let onlyAbilities = EnumerationCatalogData(
+        let onlyAbilities = AutocompleteCatalogs(
             catalogs: [.keywordAbilities: ["Flying"]],
             sets: nil,
             artTags: nil,
-            oracleTags: nil
+            oracleTags: nil,
+            cardNames: nil
         )
         #expect(onlyAbilities.keyword == nil)
 
-        let onlyWords = EnumerationCatalogData(
+        let onlyWords = AutocompleteCatalogs(
             catalogs: [.abilityWords: ["Landfall"]],
             sets: nil,
             artTags: nil,
-            oracleTags: nil
+            oracleTags: nil,
+            cardNames: nil
         )
         #expect(onlyWords.keyword == nil)
     }
 
     @Test("keyword combines keywordAbilities and abilityWords, lowercased")
     func keywordCombined() {
-        let data = EnumerationCatalogData(
+        let data = AutocompleteCatalogs(
             catalogs: [
                 .keywordAbilities: ["Flying", "Trample"],
                 .abilityWords: ["Landfall"],
             ],
             sets: nil,
             artTags: nil,
-            oracleTags: nil
+            oracleTags: nil,
+            cardNames: nil
         )
         #expect(data.keyword == ["flying", "trample", "landfall"])
     }
@@ -145,7 +150,7 @@ struct EnumerationCatalogDataTests {
             .planeswalkerTypes: ["Jace"],
             // spellTypes intentionally omitted
         ]
-        let data = EnumerationCatalogData(catalogs: catalogs, sets: nil, artTags: nil, oracleTags: nil)
+        let data = AutocompleteCatalogs(catalogs: catalogs, sets: nil, artTags: nil, oracleTags: nil, cardNames: nil)
         #expect(data.type == nil)
     }
 
@@ -162,7 +167,7 @@ struct EnumerationCatalogDataTests {
             .planeswalkerTypes: ["Jace"],
             .spellTypes: ["Arcane"],
         ]
-        let data = EnumerationCatalogData(catalogs: catalogs, sets: nil, artTags: nil, oracleTags: nil)
+        let data = AutocompleteCatalogs(catalogs: catalogs, sets: nil, artTags: nil, oracleTags: nil, cardNames: nil)
         let result = try #require(data.type)
         #expect(result.contains("Legendary"))
         #expect(result.contains("Creature"))
@@ -174,18 +179,19 @@ struct EnumerationCatalogDataTests {
 
     @Test("set returns nil when sets is nil")
     func setNil() {
-        let data = EnumerationCatalogData(catalogs: [:], sets: nil, artTags: nil, oracleTags: nil)
+        let data = AutocompleteCatalogs(catalogs: [:], sets: nil, artTags: nil, oracleTags: nil, cardNames: nil)
         #expect(data.set == nil)
     }
 
     @Test("set includes both uppercased code and name for each set")
     func setIncludesCodeAndName() throws {
         let ktk = makeSet(code: "ktk", name: "Khans of Tarkir")
-        let data = EnumerationCatalogData(
+        let data = AutocompleteCatalogs(
             catalogs: [:],
             sets: [SetCode("ktk"): ktk],
             artTags: nil,
-            oracleTags: nil
+            oracleTags: nil,
+            cardNames: nil
         )
         let result = try #require(data.set)
         #expect(result.contains("KTK"))
@@ -195,11 +201,12 @@ struct EnumerationCatalogDataTests {
     @Test("set strips non-alphanumeric characters from names")
     func setStripsSpecialChars() throws {
         let set = makeSet(code: "afr", name: "Adventures in the Forgotten Realms: D&D")
-        let data = EnumerationCatalogData(
+        let data = AutocompleteCatalogs(
             catalogs: [:],
             sets: [SetCode("afr"): set],
             artTags: nil,
-            oracleTags: nil
+            oracleTags: nil,
+            cardNames: nil
         )
         let result = try #require(data.set)
         #expect(result.contains("Adventures in the Forgotten Realms DD"))
@@ -208,11 +215,12 @@ struct EnumerationCatalogDataTests {
     @Test("set excludes token sets")
     func setExcludesTokens() {
         let tokenSet = makeSet(code: "tktk", name: "Khans of Tarkir Tokens", setType: .token)
-        let data = EnumerationCatalogData(
+        let data = AutocompleteCatalogs(
             catalogs: [:],
             sets: [SetCode("tktk"): tokenSet],
             artTags: nil,
-            oracleTags: nil
+            oracleTags: nil,
+            cardNames: nil
         )
         #expect(data.set!.isEmpty)
     }
@@ -220,11 +228,12 @@ struct EnumerationCatalogDataTests {
     @Test("set excludes promo sets")
     func setExcludesPromos() {
         let promoSet = makeSet(code: "pktk", name: "Khans of Tarkir Promos", setType: .promo)
-        let data = EnumerationCatalogData(
+        let data = AutocompleteCatalogs(
             catalogs: [:],
             sets: [SetCode("pktk"): promoSet],
             artTags: nil,
-            oracleTags: nil
+            oracleTags: nil,
+            cardNames: nil
         )
         #expect(data.set!.isEmpty)
     }
@@ -232,11 +241,12 @@ struct EnumerationCatalogDataTests {
     @Test("set excludes memorabilia sets")
     func setExcludesMemorabillia() {
         let memorabiliaSet = makeSet(code: "med", name: "Media Inserts", setType: .memorabilia)
-        let data = EnumerationCatalogData(
+        let data = AutocompleteCatalogs(
             catalogs: [:],
             sets: [SetCode("med"): memorabiliaSet],
             artTags: nil,
-            oracleTags: nil
+            oracleTags: nil,
+            cardNames: nil
         )
         #expect(data.set!.isEmpty)
     }
@@ -245,7 +255,7 @@ struct EnumerationCatalogDataTests {
 
     @Test("block returns nil when sets is nil")
     func blockNil() {
-        let data = EnumerationCatalogData(catalogs: [:], sets: nil, artTags: nil, oracleTags: nil)
+        let data = AutocompleteCatalogs(catalogs: [:], sets: nil, artTags: nil, oracleTags: nil, cardNames: nil)
         #expect(data.block == nil)
     }
 
@@ -253,11 +263,12 @@ struct EnumerationCatalogDataTests {
     func blockValues() throws {
         let ktk = makeSet(code: "ktk", name: "Khans of Tarkir", block: "Khans of Tarkir")
         let frf = makeSet(code: "frf", name: "Fate Reforged", block: "Khans of Tarkir")
-        let data = EnumerationCatalogData(
+        let data = AutocompleteCatalogs(
             catalogs: [:],
             sets: [SetCode("ktk"): ktk, SetCode("frf"): frf],
             artTags: nil,
-            oracleTags: nil
+            oracleTags: nil,
+            cardNames: nil
         )
         let result = try #require(data.block)
         #expect(result == ["Khans of Tarkir"])
@@ -266,11 +277,12 @@ struct EnumerationCatalogDataTests {
     @Test("block omits sets without a block")
     func blockOmitsNilBlock() {
         let set = makeSet(code: "lea", name: "Limited Edition Alpha")
-        let data = EnumerationCatalogData(
+        let data = AutocompleteCatalogs(
             catalogs: [:],
             sets: [SetCode("lea"): set],
             artTags: nil,
-            oracleTags: nil
+            oracleTags: nil,
+            cardNames: nil
         )
         #expect(data.block!.isEmpty)
     }
@@ -279,14 +291,15 @@ struct EnumerationCatalogDataTests {
 
     @Test("subscript routes to the correct computed property by filter type name")
     func subscriptRouting() {
-        let data = EnumerationCatalogData(
+        let data = AutocompleteCatalogs(
             catalogs: [
                 .artistNames: ["Terese Nielsen"],
                 .watermarks: ["urza"],
             ],
             sets: nil,
             artTags: ["fog"],
-            oracleTags: ["ramp"]
+            oracleTags: ["ramp"],
+            cardNames: nil
         )
         #expect(data[ScryfallFilterType("artist")]?.first == "Terese Nielsen")
         #expect(data[ScryfallFilterType("watermark")]?.first == "urza")

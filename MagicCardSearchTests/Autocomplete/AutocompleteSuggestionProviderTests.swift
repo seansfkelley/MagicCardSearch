@@ -255,11 +255,12 @@ struct FullTextSuggestionTests {
 
 // MARK: - enumerationSuggestions
 
-private let emptyCatalogData = EnumerationCatalogData(
+private let emptyCatalogData = AutocompleteCatalogs(
     catalogs: [:],
     sets: nil,
     artTags: nil,
-    oracleTags: nil
+    oracleTags: nil,
+    cardNames: nil
 )
 
 @Suite
@@ -336,11 +337,12 @@ struct EnumerationSuggestionsTests {
 
     @Test("catalog watermark values are suggested")
     func catalogWatermark() throws {
-        let catalogData = EnumerationCatalogData(
+        let catalogData = AutocompleteCatalogs(
             catalogs: [.watermarks: ["mirran", "phyrexian", "dimir"]],
             sets: nil,
             artTags: nil,
-            oracleTags: nil
+            oracleTags: nil,
+            cardNames: nil
         )
         let partial = PartialFilterTerm(polarity: .positive, content: .filter("watermark", .equal, .bare("mir")))
         let suggestions = try unwrapFilter(enumerationSuggestions(for: partial, catalogData: catalogData, searchTerm: ""))
@@ -352,11 +354,12 @@ struct EnumerationSuggestionsTests {
 
     @Test("catalog keyword values are suggested and lowercased")
     func catalogKeyword() throws {
-        let catalogData = EnumerationCatalogData(
+        let catalogData = AutocompleteCatalogs(
             catalogs: [.keywordAbilities: ["Flying", "Trample"], .abilityWords: ["Landfall"]],
             sets: nil,
             artTags: nil,
-            oracleTags: nil
+            oracleTags: nil,
+            cardNames: nil
         )
         let partial = PartialFilterTerm(polarity: .positive, content: .filter("keyword", .equal, .bare("fly")))
         let suggestions = try unwrapFilter(enumerationSuggestions(for: partial, catalogData: catalogData, searchTerm: ""))
@@ -365,11 +368,12 @@ struct EnumerationSuggestionsTests {
 
     @Test("art tag values from catalog are suggested")
     func catalogArtTags() throws {
-        let catalogData = EnumerationCatalogData(
+        let catalogData = AutocompleteCatalogs(
             catalogs: [:],
             sets: nil,
             artTags: ["angel", "dragon", "warrior"],
-            oracleTags: nil
+            oracleTags: nil,
+            cardNames: nil
         )
         let partial = PartialFilterTerm(polarity: .positive, content: .filter("art", .equal, .bare("drag")))
         let suggestions = try unwrapFilter(enumerationSuggestions(for: partial, catalogData: catalogData, searchTerm: ""))
@@ -440,11 +444,12 @@ struct ReverseEnumerationSuggestionsTests {
 
     @Test("catalog watermark values are matched as bare terms")
     func catalogWatermark() throws {
-        let catalogData = EnumerationCatalogData(
+        let catalogData = AutocompleteCatalogs(
             catalogs: [.watermarks: ["mirran", "phyrexian", "dimir"]],
             sets: nil,
             artTags: nil,
-            oracleTags: nil
+            oracleTags: nil,
+            cardNames: nil
         )
         let partial = PartialFilterTerm(polarity: .positive, content: .name(false, .bare("mirran")))
         let suggestions = try unwrapFilterParts(reverseEnumerationSuggestions(for: partial, catalogData: catalogData, searchTerm: ""))

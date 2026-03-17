@@ -2,7 +2,7 @@ import Foundation
 import FuzzyMatch
 import ScryfallKit
 
-struct EnumerationCatalogData: Sendable {
+struct AutocompleteCatalogs: Sendable {
     // These are really noisy in the search results and I can't imagine anyone ever wants them.
     //
     // Maybe in the future we could suggest these if you have narrowed the results far enough that
@@ -17,6 +17,7 @@ struct EnumerationCatalogData: Sendable {
     // n.b. these are named after the corresponding Scryfall filter's canonical name.
     let art: [String]?
     let function: [String]?
+    let name: [String]?
 
     var artist: [String]? {
         catalogs[.artistNames]
@@ -59,11 +60,13 @@ struct EnumerationCatalogData: Sendable {
         sets: [SetCode: MTGSet]?,
         artTags: [String]?,
         oracleTags: [String]?,
+        cardNames: [String]?,
     ) {
         self.catalogs = catalogs
         self.sets = sets?.values.filter { !Self.ignoredSetTypes.contains($0.setType) }
         self.art = artTags
         self.function = oracleTags
+        self.name = cardNames
     }
 
     @MainActor
@@ -81,6 +84,7 @@ struct EnumerationCatalogData: Sendable {
             sets: scryfallCatalogs.sets,
             artTags: scryfallCatalogs.artTags,
             oracleTags: scryfallCatalogs.oracleTags,
+            cardNames: scryfallCatalogs.cardNames,
         )
     }
 

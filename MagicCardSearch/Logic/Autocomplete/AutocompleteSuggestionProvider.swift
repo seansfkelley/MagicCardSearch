@@ -52,25 +52,47 @@ func recencyBias(for: Date) -> Double {
 @MainActor
 class AutocompleteSuggestionProvider {
     private let scryfallCatalogs: ScryfallCatalogs
+    private var catalogData: AutocompleteCatalogs
 
-    @ObservationIgnored @FetchAll
+    @FetchAll
     private var pinnedFilters: [PinnedFilterEntry]
 
-    @ObservationIgnored @FetchAll(FilterHistoryEntry.order { $0.lastUsedAt.desc() })
+    @FetchAll(FilterHistoryEntry.order { $0.lastUsedAt.desc() })
     private var filterHistoryEntries
 
     init(scryfallCatalogs: ScryfallCatalogs) {
         self.scryfallCatalogs = scryfallCatalogs
+        self.catalogData = AutocompleteCatalogs(scryfallCatalogs: scryfallCatalogs)
+
+        Task {
+            // In the common case we are loading from disk, so delay a bit to avoid triggering on
+            // every single cache load right as the app starts and doing a ton of useless work.
+            try? await Task.sleep(for: .milliseconds(500))
+            catalogData = AutocompleteCatalogs(scryfallCatalogs: scryfallCatalogs)
+            observeCatalogChanges()
+        }
+    }
+
+    private func observeCatalogChanges() {
+        withObservationTracking {
+            _ = scryfallCatalogs.catalogChangeNonce
+        } onChange: { [weak self] in
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                self.catalogData = AutocompleteCatalogs(scryfallCatalogs: self.scryfallCatalogs)
+                self.observeCatalogChanges()
+            }
+        }
     }
 
     // swiftlint:disable:next function_body_length
-    func getSuggestions(for searchTerm: String, existingFilters: Set<FilterQuery<FilterTerm>>)
-        async throws -> [AutocompleteSuggestion]
-    {
+    func getSuggestions(
+        for searchTerm: String,
+        existingFilters: Set<FilterQuery<FilterTerm>>,
+    ) async throws -> [AutocompleteSuggestion] {
         let filters = pinnedFilters
         let history = filterHistoryEntries
-        let catalogData = EnumerationCatalogData(scryfallCatalogs: scryfallCatalogs)
-        let cardNames = scryfallCatalogs.cardNames
+        let catalogData = catalogData
 
         return try await Task.detached(priority: .userInitiated) {
             try timed("aggregated autocomplete suggestions", warnThreshold: .milliseconds(50)) {
@@ -142,7 +164,7 @@ class AutocompleteSuggestionProvider {
                     }
                 )
 
-                if let cardNames {
+                if let cardNames = catalogData.name {
                     try Task.checkCancellation()
                     suggestions.append(
                         contentsOf: timed("name autocomplete suggestions") {
@@ -408,7 +430,7 @@ func fullTextSuggestion(for partial: PartialFilterTerm, searchTerm: String) -> s
 
 func enumerationSuggestions(
     for partial: PartialFilterTerm,
-    catalogData: EnumerationCatalogData,
+    catalogData: AutocompleteCatalogs,
     searchTerm: String
 ) -> some Sequence<AutocompleteSuggestion> {
     guard
@@ -472,7 +494,7 @@ func enumerationSuggestions(
 
 func reverseEnumerationSuggestions(
     for partial: PartialFilterTerm,
-    catalogData: EnumerationCatalogData,
+    catalogData: AutocompleteCatalogs,
     searchTerm: String
 ) -> some Sequence<AutocompleteSuggestion> {
     guard case .name(let isExact, let partialTerm) = partial.content,
