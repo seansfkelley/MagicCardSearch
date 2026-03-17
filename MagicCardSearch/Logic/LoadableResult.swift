@@ -27,12 +27,20 @@ enum LoadableResult<T, E: Error> {
         }
     }
 
-    func mapValue<U>(_ transform: (T) -> U) -> LoadableResult<U, E> {
-        return switch self {
+    func map<U>(value: (T) -> U) -> LoadableResult<U, E> {
+        map(value: value, error: { x in x })
+    }
+
+    func map<F>(error: (E) -> F) -> LoadableResult<T, F> {
+        map(value: { x in x }, error: error)
+    }
+
+    func map<U, F>(value mapValue: (T) -> U, error mapError: (E) -> F) -> LoadableResult<U, F> {
+        switch self {
         case .unloaded: .unloaded
-        case .loading(let value, let error): .loading(value.map(transform), error)
-        case .loaded(let value, let error): .loaded(transform(value), error)
-        case .errored(let value, let error): .errored(value.map(transform), error)
+        case .loading(let value, let error): .loading(value.map(mapValue), error.map(mapError))
+        case .loaded(let value, let error): .loaded(mapValue(value), error.map(mapError))
+        case .errored(let value, let error): .errored(value.map(mapValue), mapError(error))
         }
     }
 

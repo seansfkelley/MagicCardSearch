@@ -25,15 +25,15 @@ class ScryfallObjectList<T: Codable & Sendable> {
     }
 
     func clearWarnings() {
-        value = value.mapValue { list in
+        value = value.map(value: {
             ObjectList(
-                data: list.data,
-                hasMore: list.hasMore,
-                nextPage: list.nextPage,
-                totalCards: list.totalCards,
+                data: $0.data,
+                hasMore: $0.hasMore,
+                nextPage: $0.nextPage,
+                totalCards: $0.totalCards,
                 warnings: [],
             )
-        }
+        })
     }
 
     @discardableResult

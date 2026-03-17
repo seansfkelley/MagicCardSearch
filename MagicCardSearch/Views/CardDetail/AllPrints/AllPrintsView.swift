@@ -202,12 +202,30 @@ struct AllPrintsView: View {
         }
         .onChange(of: printFilterSettings) { oldSettings, newSettings in
             if oldSettings.fetchKey == newSettings.fetchKey {
-                sortedCards = sortedCards.mapValue { newSettings.sort($0) }
+                resortResults(andScrollTo: currentCard?.id)
             } else {
                 Task {
                     await reloadAllPrints()
                 }
             }
+        }
+        .onChange(of: objectList.value.latestValue?.data) {
+            resortResults(andScrollTo: currentCard?.id)
+        }
+        .onChange(of: objectList.value.latestError) {
+            resortResults(andScrollTo: currentCard?.id)
+        }
+    }
+
+    // This is basically just a committed computed property. We commit it because it's expensive to
+    // calculate. Relatively. And maybe to prevent jitters.
+    private func resortResults(andScrollTo targetCardId: UUID?) {
+        sortedCards = objectList.value.map(value: { printFilterSettings.sort($0.data) })
+        if let targetCardId,
+           let index = sortedCards.latestValue?.firstIndex(where: { $0.id == targetCardId }) {
+            currentIndex = index
+        } else if !(sortedCards.latestValue ?? []).isEmpty {
+            currentIndex = 0
         }
     }
 
@@ -229,7 +247,7 @@ struct AllPrintsView: View {
             Self.objectListCache.setObject(currentObjectList, forKey: cacheKey)
             logger.trace("set cache for object list key=\(cacheKey)")
 
-            let targetCardId = if case .unloaded = objectList.value {
+            let targetCardId = if case .unloaded = currentObjectList.value {
                 initialCardId
             } else {
                 sortedCards.latestValue?[safe: currentIndex]?.id
@@ -241,12 +259,7 @@ struct AllPrintsView: View {
             // Kinda jank. Never hit this branch either, to my knowledge.
             guard objectList === currentObjectList else { return }
 
-            if let targetCardId,
-               let index = sortedCards.latestValue?.firstIndex(where: { $0.id == targetCardId }) {
-                currentIndex = index
-            } else if !(sortedCards.latestValue ?? []).isEmpty {
-                currentIndex = 0
-            }
+            resortResults(andScrollTo: targetCardId)
         }
     }
 }
