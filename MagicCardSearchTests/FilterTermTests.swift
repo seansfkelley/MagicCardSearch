@@ -3,6 +3,60 @@ import Testing
 
 @Suite
 struct FilterTermTests {
+    @Test<[FilterQuery<FilterTerm>]>(
+        "isProbablyWellFormedFilter returns true",
+        arguments: [
+            // name is always well-formed
+            .term(.name(.positive, false, "lightning")),
+            .term(.name(.negative, true, "lightning bolt")),
+            // basic with known filter key
+            .term(.basic(.positive, "color", .equal, "red")),
+            // basic is case-insensitive on the key
+            .term(.basic(.positive, "COLOR", .equal, "red")),
+            // regex on a field that supports it, with : or =
+            .term(.regex(.positive, "oracle", .including, "flying")),
+            .term(.regex(.positive, "name", .equal, "^lightning")),
+            // compound queries delegate to their children
+            .and(.positive, [
+                .term(.basic(.positive, "color", .equal, "red")),
+                .term(.name(.positive, false, "bolt")),
+            ]),
+            .or(.positive, [
+                .term(.basic(.positive, "color", .equal, "red")),
+                .term(.name(.positive, false, "bolt")),
+            ]),
+        ]
+    )
+    func isProbablyWellFormedFilterTrue(filter: FilterQuery<FilterTerm>) {
+        #expect(filter.isProbablyWellFormedFilter)
+    }
+
+    @Test<[FilterQuery<FilterTerm>]>(
+        "isProbablyWellFormedFilter returns false",
+        arguments: [
+            // basic with unknown filter key
+            .term(.basic(.positive, "notafilter", .equal, "value")),
+            // regex on a field that doesn't support regex
+            .term(.regex(.positive, "color", .including, "red")),
+            // regex on an unknown field
+            .term(.regex(.positive, "notafilter", .including, "value")),
+            // regex with an unsupported comparison operator
+            .term(.regex(.positive, "oracle", .greaterThan, "flying")),
+            // compound queries fail if any child is ill-formed
+            .and(.positive, [
+                .term(.basic(.positive, "color", .equal, "red")),
+                .term(.basic(.positive, "notafilter", .equal, "value")),
+            ]),
+            .or(.positive, [
+                .term(.basic(.positive, "color", .equal, "red")),
+                .term(.basic(.positive, "notafilter", .equal, "value")),
+            ]),
+        ]
+    )
+    func isProbablyWellFormedFilterFalse(filter: FilterQuery<FilterTerm>) {
+        #expect(!filter.isProbablyWellFormedFilter)
+    }
+
     @Test<[(FilterTerm, String, String)]>(
         "description and suggestedEditingRange",
         arguments: [

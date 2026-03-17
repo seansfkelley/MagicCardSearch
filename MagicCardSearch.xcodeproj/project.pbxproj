@@ -73,7 +73,6 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				.gitignore,
-				citron,
 				citron.c,
 			);
 			target = 2137B5AC2EE139C60066BF7E /* MagicCardSearch */;

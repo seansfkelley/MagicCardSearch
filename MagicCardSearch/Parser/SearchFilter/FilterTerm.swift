@@ -66,9 +66,9 @@ public enum FilterTerm: FilterQueryLeaf, EditableFilter {
             true
         case .basic(_, let filter, _, _):
             scryfallFilterByType[filter.lowercased()] != nil
-        case .regex(_, let filter, _, _):
+        case .regex(_, let filter, let comparison, _):
             if let filter = scryfallFilterByType[filter.lowercased()] {
-                filter.supportsRegex
+                filter.supportsRegex && (comparison == .including || comparison == .equal)
             } else {
                 false
             }
