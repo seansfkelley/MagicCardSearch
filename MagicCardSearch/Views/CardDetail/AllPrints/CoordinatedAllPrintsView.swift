@@ -102,6 +102,7 @@ private struct PagingCardImageView: View {
                             isFlipped: $isFlipped,
                             cornerRadius: 16,
                             enableZoomGestures: true,
+                            enableCopyActions: true,
                         )
                         .padding(.horizontal)
 
@@ -200,7 +201,7 @@ private struct ThumbnailPreviewStrip: View {
                         quality: .small,
                         isFlipped: .constant(isFlipped),
                         cornerRadius: 4,
-                        showFlipButton: false
+                        showFlipButton: false,
                     )
                     .scaleEffect(card.id == scrollPosition.viewID(type: UUID.self) ? 1.1 : 1.0)
                     // TODO: Enable this but only for the scale effect -- as written, it seems to animate the

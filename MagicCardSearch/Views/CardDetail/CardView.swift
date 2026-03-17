@@ -212,6 +212,7 @@ struct CardView: View {
     let cornerRadius: CGFloat
     let showFlipButton: Bool
     let enableZoomGestures: Bool
+    let enableCopyActions: Bool
 
     init(
         card: CardDisplayable,
@@ -219,7 +220,8 @@ struct CardView: View {
         isFlipped: Binding<Bool>,
         cornerRadius: CGFloat,
         showFlipButton: Bool = true,
-        enableZoomGestures: Bool = false
+        enableZoomGestures: Bool = false,
+        enableCopyActions: Bool = false,
     ) {
         self.card = card
         self.quality = quality
@@ -227,6 +229,7 @@ struct CardView: View {
         self.cornerRadius = cornerRadius
         self.showFlipButton = showFlipButton
         self.enableZoomGestures = enableZoomGestures
+        self.enableCopyActions = enableCopyActions
     }
 
     var body: some View {
@@ -241,7 +244,8 @@ struct CardView: View {
                     isShowingBackFace: $isFlipped,
                     cornerRadius: cornerRadius,
                     showFlipButton: showFlipButton,
-                    enableZoomGestures: enableZoomGestures
+                    enableZoomGestures: enableZoomGestures,
+                    enableCopyActions: enableCopyActions,
                 )
             } else {
                 CardFaceView(
@@ -249,7 +253,8 @@ struct CardView: View {
                     orientation: card.frontFaceOrientation,
                     quality: quality,
                     cornerRadius: cornerRadius,
-                    enableZoomGestures: enableZoomGestures
+                    enableZoomGestures: enableZoomGestures,
+                    enableCopyActions: enableCopyActions,
                 )
             }
         }
@@ -263,7 +268,8 @@ private struct CardFaceView: View {
     let orientation: Card.Orientation
     let quality: CardImageQuality
     let cornerRadius: CGFloat
-    var enableZoomGestures: Bool = false
+    let enableZoomGestures: Bool
+    let enableCopyActions: Bool
 
     var body: some View {
         if let imageUrlString = quality.uri(from: face.imageUris),
@@ -280,18 +286,20 @@ private struct CardFaceView: View {
                                 clippingTo: AnyShape(RoundedRectangle(cornerRadius: cornerRadius)),
                             )
                         }
-                        .contextMenu {
-                            if let shareUrlString = CardImageQuality.bestQualityUri(from: face.imageUris),
-                               let url = URL(string: shareUrlString) {
-                                ShareLink(item: url, preview: SharePreview(face.name, image: image))
-                            }
-
-                            Button {
-                                if let container = state.imageContainer {
-                                    UIPasteboard.general.image = container.image
+                        .if(enableCopyActions) { view in
+                            view.contextMenu {
+                                if let shareUrlString = CardImageQuality.bestQualityUri(from: face.imageUris),
+                                   let url = URL(string: shareUrlString) {
+                                    ShareLink(item: url, preview: SharePreview(face.name, image: image))
                                 }
-                            } label: {
-                                Label("Copy", systemImage: "doc.on.doc")
+
+                                Button {
+                                    if let container = state.imageContainer {
+                                        UIPasteboard.general.image = container.image
+                                    }
+                                } label: {
+                                    Label("Copy", systemImage: "doc.on.doc")
+                                }
                             }
                         }
                 } else if state.error != nil {
@@ -325,7 +333,8 @@ private struct FlippableCardFaceView: View {
     @Binding var isShowingBackFace: Bool
     let cornerRadius: CGFloat
     let showFlipButton: Bool
-    var enableZoomGestures: Bool = false
+    let enableZoomGestures: Bool
+    let enableCopyActions: Bool
 
     private var rotationAxis: (x: CGFloat, y: CGFloat, z: CGFloat) {
         (x: 0, y: 1, z: 0)
@@ -339,7 +348,8 @@ private struct FlippableCardFaceView: View {
                     orientation: frontFaceOrientation,
                     quality: quality,
                     cornerRadius: cornerRadius,
-                    enableZoomGestures: enableZoomGestures
+                    enableZoomGestures: enableZoomGestures,
+                    enableCopyActions: enableCopyActions,
                 )
                 .opacity(isShowingBackFace ? 0 : 1)
                 .rotation3DEffect(
@@ -352,7 +362,8 @@ private struct FlippableCardFaceView: View {
                     orientation: backFaceOrientation,
                     quality: quality,
                     cornerRadius: cornerRadius,
-                    enableZoomGestures: enableZoomGestures
+                    enableZoomGestures: enableZoomGestures,
+                    enableCopyActions: enableCopyActions,
                 )
                 .opacity(isShowingBackFace ? 1 : 0)
                 .rotation3DEffect(

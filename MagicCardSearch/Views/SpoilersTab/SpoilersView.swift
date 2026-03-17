@@ -92,6 +92,7 @@ struct SpoilersView: View {
                                     quality: .normal,
                                     isFlipped: $cardFlipStates.for(card.id),
                                     cornerRadius: 10,
+                                    enableCopyActions: true,
                                 )
                                 .onTapGesture {
                                     selectedCardIndex = globalIndex
