@@ -55,11 +55,28 @@ func maybeAutoUpdateSearchText(
         }
     }
 
-    if didAppend(characterFrom: [" ", "'", "\"", ")", "/"], to: previous, toCreate: current, withSelection: selection) {
-        if case .valid(let filter) = current.toFilter() {
-            return (filter, "", nil)
+    if didAppend(characterFrom: [")", "/"], to: previous, toCreate: current, withSelection: selection) {
+        return if case .valid(let filter) = current.toFilter() {
+            // Bare name filters are a very forgiving parse, so don't consider them valid parses for
+            // these very specific syntax characters.
+            if case .term(let term) = filter, case .name = term {
+                nil
+            } else {
+                (filter, "", nil)
+            }
+        } else {
+            nil
         }
-        return nil
+    }
+
+    if didAppend(characterFrom: [" ", "'", "\""], to: previous, toCreate: current, withSelection: selection) {
+        // These characters unambiguously represent a sane, intentional filter if they complete the
+        // parse to a complete filter (and haven't been handled by earlier cases).
+        return if case .valid(let filter) = current.toFilter() {
+            (filter, "", nil)
+        } else {
+            nil
+        }
     }
 
     if let (newText, newSelection) = removeAutoinsertedWhitespace(current, selection),

@@ -83,6 +83,16 @@ struct MaybeAutoUpdateSearchTextTests {
             "\"urza's saga\"",
             12..<12,
         ),
+        (
+            "",
+            ")",
+            nil,
+        ),
+        (
+            "",
+            "/",
+            nil,
+        ),
     ])
     func maybeAutoUpdateSearchTextCasesNil(
         previous: String,
@@ -144,6 +154,22 @@ struct MaybeAutoUpdateSearchTextTests {
                 "color: red",
                 9..<9,
                 (nil, "color:red", 8..<8)
+            ),
+            (
+                "(color:red or color:blue",
+                "(color:red or color:blue)",
+                nil,
+                (
+                    .or(
+                        .positive,
+                        [
+                            .term(.basic(.positive, "color", .including, "red")),
+                            .term(.basic(.positive, "color", .including, "blue")),
+                        ],
+                    ),
+                    "",
+                    nil,
+                ),
             ),
         ],
     )
