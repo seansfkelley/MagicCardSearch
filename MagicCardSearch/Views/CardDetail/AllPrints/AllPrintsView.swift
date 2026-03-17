@@ -209,23 +209,39 @@ struct AllPrintsView: View {
                 }
             }
         }
-        .onChange(of: objectList.value.latestValue?.data) {
-            resortResults(andScrollTo: currentCard?.id)
-        }
-        .onChange(of: objectList.value.latestError) {
-            resortResults(andScrollTo: currentCard?.id)
-        }
     }
 
     // This is basically just a committed computed property. We commit it because it's expensive to
     // calculate. Relatively. And maybe to prevent jitters.
     private func resortResults(andScrollTo targetCardId: UUID?) {
+        switch sortedCards {
+        case .unloaded:
+            print("before: unloaded")
+        case .loading(let t, let e):
+            print("before: loading")
+        case .loaded(let t, let e):
+            print("before: loaded")
+        case .errored(let t, let e):
+            print("before: errored")
+        }
+
         sortedCards = objectList.value.map(value: { printFilterSettings.sort($0.data) })
         if let targetCardId,
            let index = sortedCards.latestValue?.firstIndex(where: { $0.id == targetCardId }) {
             currentIndex = index
         } else if !(sortedCards.latestValue ?? []).isEmpty {
             currentIndex = 0
+        }
+
+        switch sortedCards {
+        case .unloaded:
+            print("after: unloaded")
+        case .loading(let t, let e):
+            print("after: loading")
+        case .loaded(let t, let e):
+            print("after: loaded")
+        case .errored(let t, let e):
+            print("after: errored")
         }
     }
 
@@ -235,6 +251,7 @@ struct AllPrintsView: View {
         if let cachedList = try? Self.objectListCache.entry(forKey: cacheKey) {
             logger.trace("hit cache for object list key=\(cacheKey)")
             objectList = cachedList.object
+            resortResults(andScrollTo: currentCard?.id)
         } else {
             let searchQuery = printFilterSettings.toQueryFor(oracleId: oracleId)
             let client = ScryfallClient(logger: logger)
@@ -254,8 +271,9 @@ struct AllPrintsView: View {
             }
 
             objectList = currentObjectList
-            await currentObjectList.loadAllRemainingPages().value
+            sortedCards = .unloaded
 
+            await currentObjectList.loadAllRemainingPages().value
             // Kinda jank. Never hit this branch either, to my knowledge.
             guard objectList === currentObjectList else { return }
 

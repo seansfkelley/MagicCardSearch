@@ -73,5 +73,5 @@ enum LoadableResult<T, E: Error> {
     }
 }
 
-extension LoadableResult: Equatable where T: Equatable, E: Equatable {}
-extension LoadableResult: Hashable where T: Hashable, E: Hashable {}
+//extension LoadableResult: Equatable where T: Equatable, E: Equatable {}
+//extension LoadableResult: Hashable where T: Hashable, E: Hashable {}

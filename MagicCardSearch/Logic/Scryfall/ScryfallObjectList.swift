@@ -60,7 +60,7 @@ class ScryfallObjectList<T: Codable & Sendable> {
 
                 logger.debug("successfully fetched page=\(self.nextPage) uuid=\(self.searchUuid)")
                 self.nextPage += 1
-                self.value = .loaded(append(self.value.latestValue, result), nil)
+                self.value = .loaded(Self.append(self.value.latestValue, result), nil)
             } catch let error as ScryfallKitError {
                 // When searching for cards, a 404 means "no results found", not an actual error.
                 // Note that this condition assumes that we will never get legit 404s. This should
@@ -69,7 +69,7 @@ class ScryfallObjectList<T: Codable & Sendable> {
                 if case .scryfallError(let error) = error, error.status == 404 {
                     logger.debug("intercepted Scryfall 404 and set to empty instead uuid=\(self.searchUuid)")
                     // Appending empty is another way of saying to mark is as having no more pages, etc.
-                    self.value = .loaded(append(self.value.latestValue, .empty()), nil)
+                    self.value = .loaded(Self.append(self.value.latestValue, .empty()), nil)
                 } else {
                     logger.error("error fetching page=\(self.nextPage) uuid=\(self.searchUuid) error=\(error)")
                     self.value = .errored(self.value.latestValue, SearchErrorState(from: error))
@@ -99,38 +99,41 @@ class ScryfallObjectList<T: Codable & Sendable> {
 
         task?.cancel()
         value = .loading(value.latestValue, nil)
+        var page = self.nextPage
 
         task = Task {
-            var currentData = self.value.latestValue ?? .empty()
+            var data = self.value.latestValue ?? .empty()
             var shouldContinue = true
 
             while shouldContinue && !Task.isCancelled {
                 do {
-                    let result = try await self.fetcher(self.nextPage)
+                    let result = try await self.fetcher(page)
                     guard !Task.isCancelled else { return }
 
-                    logger.debug("successfully fetched page=\(self.nextPage) uuid=\(self.searchUuid)")
+                    logger.debug("successfully fetched page=\(page) uuid=\(self.searchUuid)")
 
-                    currentData = self.append(currentData, result)
-                    self.nextPage += 1
+                    data = Self.append(data, result)
+                    page += 1
                     shouldContinue = result.hasMore ?? false
                 } catch {
-                    logger.error("error fetching page=\(self.nextPage), stopping uuid=\(self.searchUuid) error=\(error)")
-                    self.value = .errored(currentData, SearchErrorState(from: error))
+                    logger.error("error fetching page=\(page), stopping uuid=\(self.searchUuid) error=\(error)")
+                    self.nextPage = page
+                    self.value = .errored(data, SearchErrorState(from: error))
                     return
                 }
             }
 
             if !Task.isCancelled {
                 logger.info("successfully loaded all remaining pages uuid=\(self.searchUuid)")
-                self.value = .loaded(currentData, nil)
+                self.nextPage = page
+                self.value = .loaded(data, nil)
             }
         }
 
         return task!
     }
 
-    private func append(_ first: ObjectList<T>?, _ second: ObjectList<T>) -> ObjectList<T> {
+    private static func append(_ first: ObjectList<T>?, _ second: ObjectList<T>) -> ObjectList<T> {
         guard let first else { return second }
 
         return ObjectList(
