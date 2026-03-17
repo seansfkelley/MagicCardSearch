@@ -467,7 +467,7 @@ private struct ThumbnailPreviewStrip: View {
                     .scaleEffect(card.id == scrollPosition.viewID(type: UUID.self) ? 1.1 : 1.0)
                     // TODO: Enable this but only for the scale effect -- as written, it seems to animate the
                     // padding or otherwise cause whacko UI jitters.
-                    // .animation(.easeInOut(duration: 0.2), value: isSelected)
+                    // .animation(.easeOut(duration: 0.075), value: card.id == scrollPosition.viewID(type: UUID.self))
                     //
                     // Setting width here is crucial for the initial positioning; before the
                     // images have loaded, the LazyHStack doesn't know where to scroll to in
