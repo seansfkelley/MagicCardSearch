@@ -114,6 +114,43 @@ private struct PagingCardImageView: View {
                             releasedAtAsDate: card.releasedAtAsDate,
                         )
                         .padding(.horizontal)
+
+                        Group {
+                            if let uris = card.purchaseUris {
+                                ScrollView(.horizontal, showsIndicators: false) {
+                                    HStack(spacing: 8) {
+                                        ForEach(Vendor.allCases, id: \.rawValue) { vendor in
+                                            if let url = uris[vendor.rawValue] {
+                                                VendorButtonView(
+                                                    vendor: vendor,
+                                                    prices: card.prices,
+                                                    url: url,
+                                                    showVendorName: .ifNoPrices,
+                                                )
+                                            }
+                                        }
+                                    }
+                                    .padding(.horizontal)
+                                }
+                                .mask {
+                                    HStack(spacing: 0) {
+                                        LinearGradient(
+                                            colors: [.clear, .black],
+                                            startPoint: .leading,
+                                            endPoint: .trailing,
+                                        )
+                                        .frame(width: 20)
+                                        Rectangle()
+                                        LinearGradient(
+                                            colors: [.black, .clear],
+                                            startPoint: .leading,
+                                            endPoint: .trailing,
+                                        )
+                                        .frame(width: 20)
+                                    }
+                                }
+                            }
+                        }
                         .padding(.vertical)
                     }
                     .frame(width: screenWidth)
@@ -139,7 +176,6 @@ private struct PagingCardImageView: View {
             })
     }
 }
-
 
 private struct ThumbnailPreviewStrip: View {
     let cards: [Card]
