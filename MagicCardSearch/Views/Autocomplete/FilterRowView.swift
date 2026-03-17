@@ -14,6 +14,7 @@ struct FilterRowView: View {
                 HStack(spacing: 12) {
                     Image(systemName: suggestion.icon)
                         .foregroundStyle(.secondary)
+                        .font(.system(size: suggestion.iconFontSize))
 
                     DebuggableScorableView(scorable: suggestion) {
                         BoldedRangeText(
