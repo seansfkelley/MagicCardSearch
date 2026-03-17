@@ -53,7 +53,7 @@ enum LoadableResult<T, E: Error> {
         _ setter: (LoadableResult<T, any Error>) -> Void,
         _ initial: LoadableResult<T, any Error>? = nil,
         fetcher: @escaping () async throws -> T,
-    ) async -> Void {
+    ) async {
         setter(.loading(initial?.latestValue, initial?.latestError))
         do {
             let result = try await fetcher()
