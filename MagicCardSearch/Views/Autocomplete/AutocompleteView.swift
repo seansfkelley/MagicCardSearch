@@ -90,9 +90,12 @@ struct AutocompleteView: View {
                 orderedEqualityComparison: orderedEqualityComparison,
                 onSelect: setScopedString
             )
-        case .filterParts:
+        case .filterParts(let polarity, let filterType, let value):
             FilterPartsRowView(suggestion: suggestion) {
                 addScopedFilter(.term($0))
+            }
+            .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                pinSwipeAction(for: .term(.basic(polarity, filterType.canonicalName, .including, value.value)))
             }
         }
     }
