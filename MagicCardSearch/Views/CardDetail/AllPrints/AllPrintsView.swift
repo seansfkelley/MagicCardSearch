@@ -73,11 +73,25 @@ struct AllPrintsView: View {
 
     var body: some View {
         NavigationStack {
-            ZStack {
-                if case .unloaded = objectList.value {
-                    EmptyView()
-                } else if objectList.value.latestValue != nil {
-                    let cards = sortedPrints
+            Group {
+                switch objectList.value {
+                case .unloaded, .loading:
+                    VStack {
+                        Spacer()
+                        HStack {
+                            Spacer()
+                            ProgressView()
+                                .tint(.white)
+                            Text("Loading prints...")
+                                .foregroundStyle(.white)
+                                .font(.subheadline)
+                            Spacer()
+                        }
+                        Spacer()
+                    }
+                    .background(Color(white: 0, opacity: 0.4))
+                    .allowsHitTesting(false)
+                case .loaded(let cards, _):
                     if cards.isEmpty {
                         if printFilterSettings.isDefault {
                             ContentUnavailableView(
@@ -109,7 +123,7 @@ struct AllPrintsView: View {
                             currentIndex: $currentIndex
                         )
                     }
-                } else if let error = objectList.value.latestError {
+                case .errored(_, let error):
                     ContentUnavailableView {
                         Label("Failed to load prints", systemImage: "exclamationmark.triangle")
                     } description: {
@@ -122,24 +136,6 @@ struct AllPrintsView: View {
                         }
                         .buttonStyle(.borderedProminent)
                     }
-                }
-
-                if case .loading = objectList.value {
-                    VStack {
-                        Spacer()
-                        HStack {
-                            Spacer()
-                            ProgressView()
-                                .tint(.white)
-                            Text("Loading prints...")
-                                .foregroundStyle(.white)
-                                .font(.subheadline)
-                            Spacer()
-                        }
-                        Spacer()
-                    }
-                    .background(Color(white: 0, opacity: 0.4))
-                    .allowsHitTesting(false)
                 }
             }
             // TODO: Should there be a title? It looks naked up there but a title is pretty useless.
