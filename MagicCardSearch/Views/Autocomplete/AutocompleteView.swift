@@ -10,15 +10,22 @@ struct AutocompleteView: View {
     @State private var nonce: Int = 0
 
     private var searchSuggestionKey: SearchSuggestionKey {
-        SearchSuggestionKey(inputText: searchState.searchText, filterCount: searchState.filters.count, nonce: nonce)
+        SearchSuggestionKey(
+            inputText: searchState.searchText,
+            filterCount: searchState.filters.count,
+            selectionRange: searchState.selectedFilter.range,
+            nonce: nonce,
+        )
     }
 
     private struct SearchSuggestionKey: Equatable {
         // Obvious.
         let inputText: String
-        // This allows the history autocomplete to hide ones you pick. In the future, it might be
-        // used for other autocompletes that read your existing filters.
+        // After you add/remove a filter, we may hide or show certain other suggestions.
         let filterCount: Int
+        // Dragging the selection around may change the suggestions, if you are editing a string
+        // with multiple subfilters.
+        let selectionRange: Range<String.Index>?
         // This is a proxy for the value we actually care about: did you perform a search?
         // Performing a search commits all the filters to history, meaning that the history provider
         // now has more options. Instead of watching did-search directly, we just watch for times
