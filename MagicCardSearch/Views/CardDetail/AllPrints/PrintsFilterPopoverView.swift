@@ -53,7 +53,7 @@ struct FilterPopoverView: View {
             } label: {
                 HStack {
                     Image(systemName: "arrow.counterclockwise")
-                    Text("Show All Prints")
+                    Text("Reset to Default")
                 }
                 .frame(maxWidth: .infinity)
                 .foregroundStyle(filterSettings.isDefault ? .gray : .red)
