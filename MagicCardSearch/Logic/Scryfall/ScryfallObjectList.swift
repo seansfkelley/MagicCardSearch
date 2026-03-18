@@ -12,12 +12,17 @@ class ScryfallObjectList<T: Codable & Sendable> {
 
     private let searchUuid = UUID()
     private let fetcher: @Sendable (Int) async throws -> ObjectList<T>
+    private var postProcess: ([T]) -> [T]
     private var nextPage = 1
     // Ignore the compiler warning here: if I don't have nonisolated(unsafe), it doesn't compile.
     nonisolated(unsafe) private var task: Task<Void, Never>?
 
-    init(_ fetcher: @escaping @Sendable (Int) async throws -> ObjectList<T>) {
+    init(
+        _ fetcher: @escaping @Sendable (Int) async throws -> ObjectList<T>,
+        postProcess: @escaping ([T]) -> [T] = (\.self)
+    ) {
         self.fetcher = fetcher
+        self.postProcess = postProcess
     }
 
     public static func empty() -> ScryfallObjectList<T> {
@@ -34,6 +39,22 @@ class ScryfallObjectList<T: Codable & Sendable> {
                 warnings: [],
             )
         })
+    }
+
+    // This horrible shit is because any attempt to map .value onto another Loadable with some
+    // post-processing in the view -- in order to avoid recalculating that value on every single
+    // frame, should that be desirable -- gets into some kind of insane state where SwiftUI appears
+    // to be dropping updates on the floor, perhaps due to complex @Observable interactions. I would
+    // like to delete this but I don't know immediately how to do it more sanely. Check commit
+    // 873c401e356f58890fb661e678baf2037c50f202 for more on the update dropping.
+    //
+    // The reason this method doesn't just call the closure is because of Swift's capturing
+    // semantics, to wit, the default with View structs is that it captures the value, so if your
+    // processing depends on a changing value, it would be stale. Forcing you to redefine it means
+    // at least it won't be stale when you imperatively trigger this.
+    func reprocess(_ postProcess: @escaping ([T]) -> [T]) {
+        self.postProcess = postProcess
+        value = value.map(value: { Self.append(nil, $0, postProcess) })
     }
 
     @discardableResult
@@ -60,7 +81,7 @@ class ScryfallObjectList<T: Codable & Sendable> {
 
                 logger.debug("successfully fetched page=\(self.nextPage) uuid=\(self.searchUuid)")
                 self.nextPage += 1
-                self.value = .loaded(Self.append(self.value.latestValue, result), nil)
+                self.value = .loaded(Self.append(self.value.latestValue, result, postProcess), nil)
             } catch let error as ScryfallKitError {
                 // When searching for cards, a 404 means "no results found", not an actual error.
                 // Note that this condition assumes that we will never get legit 404s. This should
@@ -69,7 +90,7 @@ class ScryfallObjectList<T: Codable & Sendable> {
                 if case .scryfallError(let error) = error, error.status == 404 {
                     logger.debug("intercepted Scryfall 404 and set to empty instead uuid=\(self.searchUuid)")
                     // Appending empty is another way of saying to mark is as having no more pages, etc.
-                    self.value = .loaded(Self.append(self.value.latestValue, .empty()), nil)
+                    self.value = .loaded(Self.append(self.value.latestValue, .empty(), postProcess), nil)
                 } else {
                     logger.error("error fetching page=\(self.nextPage) uuid=\(self.searchUuid) error=\(error)")
                     self.value = .errored(self.value.latestValue, SearchErrorState(from: error))
@@ -112,7 +133,7 @@ class ScryfallObjectList<T: Codable & Sendable> {
 
                     logger.debug("successfully fetched page=\(page) uuid=\(self.searchUuid)")
 
-                    data = Self.append(data, result)
+                    data = Self.append(data, result, postProcess)
                     page += 1
                     shouldContinue = result.hasMore ?? false
                 } catch {
@@ -133,15 +154,13 @@ class ScryfallObjectList<T: Codable & Sendable> {
         return task!
     }
 
-    private static func append(_ first: ObjectList<T>?, _ second: ObjectList<T>) -> ObjectList<T> {
-        guard let first else { return second }
-
-        return ObjectList(
-            data: first.data + second.data,
+    private static func append(_ first: ObjectList<T>?, _ second: ObjectList<T>, _ postProcess: ([T]) -> [T]) -> ObjectList<T> {
+        ObjectList(
+            data: postProcess((first?.data ?? []) + second.data),
             hasMore: second.hasMore,
             nextPage: second.nextPage,
-            totalCards: first.totalCards,
-            warnings: first.warnings,
+            totalCards: first?.totalCards ?? second.totalCards,
+            warnings: first?.warnings ?? second.warnings,
         )
     }
 

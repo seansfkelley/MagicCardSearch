@@ -40,7 +40,6 @@ struct AllPrintsView: View {
     let initialCardId: UUID
 
     @State private var objectList: ScryfallObjectList<Card> = .empty()
-    @State private var sortedCards: LoadableResult<[Card], SearchErrorState> = .unloaded
     // This is scene storage for the reasons outlined above -- we want to restore our position when
     // we re-foreground the app.
     @SceneStorage("allPrintsIndex") private var currentIndex: Int = 0
@@ -73,8 +72,12 @@ struct AllPrintsView: View {
 
     var body: some View {
         NavigationStack {
-            Group {
-                switch sortedCards {
+            // This is a ZStack for identity stability. If it were a Group, the toolbars would be
+            // detached and reattached to whichever underlying view was rendered by the switch,
+            // which is visible to the user as repeated collapsing and expanding of the filter
+            // popover, if it's open.
+            ZStack {
+                switch objectList.value {
                 case .unloaded, .loading:
                     VStack {
                         Spacer()
@@ -91,8 +94,8 @@ struct AllPrintsView: View {
                     }
                     .background(Color(white: 0, opacity: 0.4))
                     .allowsHitTesting(false)
-                case .loaded(let cards, _):
-                    if cards.isEmpty {
+                case .loaded(let list, _):
+                    if list.data.isEmpty {
                         if printFilterSettings.isDefault {
                             ContentUnavailableView(
                                 "No Prints Found",
@@ -119,7 +122,7 @@ struct AllPrintsView: View {
                         }
                     } else {
                         CoordinatedAllPrintsView(
-                            cards: cards,
+                            cards: list.data,
                             currentIndex: $currentIndex
                         )
                     }
@@ -202,7 +205,9 @@ struct AllPrintsView: View {
         }
         .onChange(of: printFilterSettings) { oldSettings, newSettings in
             if oldSettings.fetchKey == newSettings.fetchKey {
-                resortResults(andScrollTo: currentCard?.id)
+                let id = currentCard?.id
+                objectList.reprocess { self.printFilterSettings.sort($0) }
+                scrollTo(id)
             } else {
                 Task {
                     await reloadAllPrints()
@@ -211,37 +216,12 @@ struct AllPrintsView: View {
         }
     }
 
-    // This is basically just a committed computed property. We commit it because it's expensive to
-    // calculate. Relatively. And maybe to prevent jitters.
-    private func resortResults(andScrollTo targetCardId: UUID?) {
-        switch sortedCards {
-        case .unloaded:
-            print("before: unloaded")
-        case .loading(let t, let e):
-            print("before: loading")
-        case .loaded(let t, let e):
-            print("before: loaded")
-        case .errored(let t, let e):
-            print("before: errored")
-        }
-
-        sortedCards = objectList.value.map(value: { printFilterSettings.sort($0.data) })
+    private func scrollTo(_ targetCardId: UUID?) {
         if let targetCardId,
-           let index = sortedCards.latestValue?.firstIndex(where: { $0.id == targetCardId }) {
+           let index = objectList.value.latestValue?.data.firstIndex(where: { $0.id == targetCardId }) {
             currentIndex = index
-        } else if !(sortedCards.latestValue ?? []).isEmpty {
+        } else if !(objectList.value.latestValue?.data ?? []).isEmpty {
             currentIndex = 0
-        }
-
-        switch sortedCards {
-        case .unloaded:
-            print("after: unloaded")
-        case .loading(let t, let e):
-            print("after: loading")
-        case .loaded(let t, let e):
-            print("after: loaded")
-        case .errored(let t, let e):
-            print("after: errored")
         }
     }
 
@@ -250,8 +230,10 @@ struct AllPrintsView: View {
 
         if let cachedList = try? Self.objectListCache.entry(forKey: cacheKey) {
             logger.trace("hit cache for object list key=\(cacheKey)")
+            let id = currentCard?.id ?? initialCardId
             objectList = cachedList.object
-            resortResults(andScrollTo: currentCard?.id)
+            objectList.reprocess { self.printFilterSettings.sort($0) }
+            scrollTo(id)
         } else {
             let searchQuery = printFilterSettings.toQueryFor(oracleId: oracleId)
             let client = ScryfallClient(logger: logger)
@@ -260,24 +242,20 @@ struct AllPrintsView: View {
                     query: searchQuery,
                     page: page,
                 )
-            }
+            } postProcess: { self.printFilterSettings.sort($0) }
+
             Self.objectListCache.setObject(currentObjectList, forKey: cacheKey)
             logger.trace("set cache for object list key=\(cacheKey)")
 
-            let targetCardId = if case .unloaded = currentObjectList.value {
-                initialCardId
-            } else {
-                sortedCards.latestValue?[safe: currentIndex]?.id
-            }
-
+            let id = currentCard?.id ?? initialCardId
             objectList = currentObjectList
-            sortedCards = .unloaded
 
-            await currentObjectList.loadAllRemainingPages().value
+            await objectList.loadAllRemainingPages().value
             // Kinda jank. Never hit this branch either, to my knowledge.
             guard objectList === currentObjectList else { return }
 
-            resortResults(andScrollTo: targetCardId)
+            objectList.reprocess { self.printFilterSettings.sort($0) }
+            scrollTo(id)
         }
     }
 }
