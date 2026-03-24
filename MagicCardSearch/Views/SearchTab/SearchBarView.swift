@@ -133,23 +133,37 @@ private class SearchTextFieldDelegate: NSObject, UITextFieldDelegate {
     func textField(_ textField: UITextField, shouldChangeCharactersInRanges ranges: [NSValue], replacementString string: String) -> Bool {
         // We shouldn't get multiple ranges ever, but in case we do, this whole block is a
         // best-effort anyway so we can just ignore it and hope for the best for the user.
-        guard ranges.count == 1, let range = ranges.first as? NSRange else { return true }
+        guard ranges.count == 1, let range = ranges.first as? NSRange else {
+            logger.warning("got update with count=\(ranges.count) ranges, expected 1")
+            return true
+        }
 
         // This is how deletion is represented. Always allowed; cannot trigger any special action.
         guard !string.isEmpty else { return true }
 
-        guard let swiftRange = Range(range, in: textField.text ?? "") else { return true }
+        guard let swiftRange = Range(range, in: textField.text ?? "") else {
+            logger.warning("failed to convert NSRange range=\(range) to Swift Range")
+            return true
+        }
 
         guard let (filter, newText, newSelection) = processSearchTextChange(textField.text ?? "", inserting: string, inRange: swiftRange) else { return true }
 
-        guard let textRange = textField.textRange(from: textField.beginningOfDocument, to: textField.endOfDocument) else { return true }
+        guard let textRange = textField.textRange(from: textField.beginningOfDocument, to: textField.endOfDocument) else {
+            logger.warning("unexpectedly failed to get text range spanning entire UITextField")
+            return true
+        }
 
+        logger.debug("replacing current=\"\(textField.text ?? "")\" with new=\"\(newText)\" and returning false")
+        textField.replace(textRange, withText: newText)
+        if let newSelection {
+            if let uiTextRange = UITextRange.from(newSelection, in: textField) {
+                textField.selectedTextRange = uiTextRange
+            } else {
+                logger.warning("failed to synthesize a UITextRange from range=\(newSelection)")
+            }
+        }
         if let filter {
             onAddFilter(filter)
-        }
-        textField.replace(textRange, withText: newText)
-        if let newSelection, let uiTextRange = UITextRange.from(newSelection, in: textField) {
-            textField.selectedTextRange = uiTextRange
         }
 
         return false
