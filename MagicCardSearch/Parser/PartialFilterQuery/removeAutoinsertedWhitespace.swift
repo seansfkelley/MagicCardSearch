@@ -48,5 +48,42 @@ func quoteAdjacentBareWords(in string: String, withLastEditAt range: Range<Strin
         return nil
     }
 
-    
+    var bareWords: [String] = []
+    var highestEditedWordIndex: Int?
+    var span: Range<String.Index>?
+
+    for (token, code) in tokens {
+        if code == .Verbatim,
+           case .name(_, let term) = PartialFilterTerm.from(token.content).content,
+           case .bare(let word) = term {
+            if token.range.overlaps(range) || token.range.lowerBound == range.upperBound {
+                highestEditedWordIndex = bareWords.count
+            }
+            bareWords.append(word)
+            span = (span?.lowerBound ?? token.range.lowerBound)..<token.range.upperBound
+        } else if code == .And, !bareWords.isEmpty {
+            continue
+        } else {
+            if highestEditedWordIndex != nil {
+                break
+            }
+            bareWords = []
+            span = nil
+        }
+    }
+
+    guard let highestEditedWordIndex,
+          let span,
+          bareWords.count >= 2 else {
+        return nil
+    }
+
+    let quoted = "\"" + bareWords.joined(separator: " ") + "\""
+    var result = string
+    result.replaceSubrange(span, with: quoted)
+
+    // Place cursor after the edited word inside the quotes.
+    let cursorOffset = 1 + bareWords[0..<highestEditedWordIndex].joined(separator: " ").count + (highestEditedWordIndex > 0 ? 1 : 0) + bareWords[highestEditedWordIndex].count
+    let newCursor = result.index(span.lowerBound, offsetBy: cursorOffset)
+    return (result, newCursor..<newCursor)
 }
