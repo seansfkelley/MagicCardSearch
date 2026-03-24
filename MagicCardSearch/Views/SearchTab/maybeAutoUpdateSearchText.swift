@@ -21,12 +21,70 @@ func didAppend(
     return current.hasPrefix(previous)
 }
 
+// swiftlint:disable:next cyclomatic_complexity
 func processSearchTextChange(
     _ current: String,
     inserting string: String,
     inRange range: Range<String.Index>,
 ) -> (FilterQuery<FilterTerm>?, String, Range<String.Index>?)? {
-    
+    let candidate = current.replacingCharacters(in: range, with: string)
+
+    if candidate.allSatisfy({ $0.isWhitespace }) || candidate.isEmpty {
+        return (nil, "", nil)
+    }
+
+    if range.isEmpty && range.lowerBound == current.endIndex {
+        if candidate.hasSuffix(")") || candidate.hasSuffix("/") {
+            return if case .valid(let filter) = candidate.toFilter() {
+                if case .term(let term) = filter, case .name = term {
+                    nil
+                } else {
+                    (filter, "", nil)
+                }
+            } else {
+                nil
+            }
+        }
+
+        if candidate.hasSuffix(" ") {
+            if (try? /^-?\(/.prefixMatch(in: current)) == nil {
+                let partial = PartialFilterTerm.from(current)
+                if case .name(let isExact, let term) = partial.content {
+                    let parsed: (PartialFilterTerm.PartialTerm.QuotingType?, String)? = switch term {
+                    case .bare(let content): (.doubleQuote, content)
+                    case .uninitiated(let quote, let content): (quote.opposite, content + quote.rawValue)
+                    default: nil
+                    }
+                    if let parsed, let quote = parsed.0 {
+                        let newText = PartialFilterTerm(
+                            polarity: partial.polarity,
+                            content: .name(isExact, .unterminated(quote, parsed.1 + " ")),
+                        ).description
+                        return (nil, newText, nil)
+                    }
+                }
+            }
+        }
+
+        if candidate.hasSuffix(" ") || candidate.hasSuffix("'") || candidate.hasSuffix("\"") {
+            return if case .valid(let filter) = candidate.toFilter() {
+                (filter, "", nil)
+            } else {
+                nil
+            }
+        }
+    }
+
+    // TODO: Replace the below. Basic strategy: if the inserted string starts with a space and ends
+    // with a non-space, do a partial parse and see if it should be truncated. Handle also: if the
+    // previous is NOT a filter, do the auto-quote.
+
+//    if let (newText, newSelection) = removeAutoinsertedWhitespace(current, selection),
+//       newText != current {
+//        return (nil, newText, newSelection)
+//    }
+
+    return nil
 }
 
 // swiftlint:disable:next cyclomatic_complexity
