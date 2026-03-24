@@ -32,11 +32,16 @@ func lexPartialFilterQuery(_ input: String, allowingUnterminatedLiterals: Bool =
     guard !input.isEmpty else {
         return []
     }
-    
+
     var rules: [CitronLexer<(String, PartialFilterQueryParser.CitronTokenCode)>.LexingRule] = [
         .regexPattern(#"-?\(\s*"#) { ($0, .OpenParen) },
         .regexPattern(#"\s*\)"#) { ($0, .CloseParen) },
         .regexPattern(#"(\b|\s+)or(\s+|\b)"#) { ($0, .Or) },
+        // Distinguish between apostrophes and quotes as a special case. We rely on the Verbatim
+        // coalescing later to combine this with its adjacent tokens. This occures before the
+        // primary Verbatim regex, below, because Swift does not support regex lookbehind. Thus we
+        // need to greedily grab any apostrophes first.
+        .regexPattern(#"[a-zA-Z0-9]+'+"#) { ($0, .Verbatim) },
         // In principle we could have a single regex matching Verbatim things, but it would be
         // horrible and wildly unreadable. Instead, we separate the balanced-characters parts into
         // their own and define a non-whitespace-permitting rule for everything else, then

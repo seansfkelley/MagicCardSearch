@@ -1,22 +1,22 @@
 import SwiftUI
 
-func removeAutoinsertedWhitespace(_ current: String, _ selection: Range<String.Index>) -> (String, Range<String.Index>)? {
-    guard let tokens = try? lexPartialFilterQuery(current, allowingUnterminatedLiterals: true) else {
+func elideExtraneousWhitespace(in string: String, withLastEditAt range: Range<String.Index>) -> (String, Range<String.Index>)? {
+    guard let tokens = try? lexPartialFilterQuery(string, allowingUnterminatedLiterals: true) else {
         return nil
     }
 
-    var result = current
-    var lower = selection.lowerBound
-    var upper = selection.upperBound
+    var result = string
+    var lower = range.lowerBound
+    var upper = range.upperBound
 
     for i in stride(from: tokens.count - 1, through: 2, by: -1) {
-        let (nameToken, nameCode) = tokens[i]
-        let (andToken, andCode) = tokens[i - 1]
         let (filterToken, filterCode) = tokens[i - 2]
+        let (andToken, andCode) = tokens[i - 1]
+        let (nameToken, nameCode) = tokens[i]
 
-        guard nameCode == .Verbatim,
+        guard filterCode == .Verbatim,
               andCode == .And,
-              filterCode == .Verbatim,
+              nameCode == .Verbatim,
               case .filter(_, _, let term) = PartialFilterTerm.from(filterToken.content).content,
               term.incompleteContent.isEmpty,
               case .name(_, let nameTerm) = PartialFilterTerm.from(nameToken.content).content,
@@ -41,4 +41,12 @@ func removeAutoinsertedWhitespace(_ current: String, _ selection: Range<String.I
     }
 
     return (result, lower..<upper)
+}
+
+func quoteAdjacentBareWords(in string: String, withLastEditAt range: Range<String.Index>) -> (String, Range<String.Index>)? {
+    guard let tokens = try? lexPartialFilterQuery(string, allowingUnterminatedLiterals: true) else {
+        return nil
+    }
+
+    
 }
