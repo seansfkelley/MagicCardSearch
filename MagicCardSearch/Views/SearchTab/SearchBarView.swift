@@ -29,7 +29,8 @@ struct SearchBarView: View {
                     return true
                 }
             },
-            actualSelection: searchState.actualSearchSelection
+            onAddFilter: { searchState.wrappedValue.filters.append($0) },
+            actualSelection: searchState.actualSearchSelection,
         )
     }
 
@@ -90,19 +91,6 @@ struct SearchBarView: View {
                     .presentationCompactAdaptation(.popover)
             }
         }
-        .onChange(of: searchState.searchText) { previous, current in
-            if !previous.isEmpty && current.isEmpty {
-                showSymbolPicker = false
-            }
-
-            if let (filter, newText, newSelection) = maybeAutoUpdateSearchText(previous: previous, current: current, selection: searchState.actualSearchSelection) {
-                if let filter {
-                    searchState.filters.append(filter)
-                }
-                searchState.searchText = newText
-                searchState.desiredSearchSelection = newSelection.map { TextSelection(range: $0) }
-            }
-        }
         .onChange(of: searchState.filters) {
             showSymbolPicker = false
         }
@@ -125,18 +113,46 @@ struct SearchBarView: View {
 
 private class SearchTextFieldDelegate: NSObject, UITextFieldDelegate {
     let onReturn: () -> Bool
+    let onAddFilter: (FilterQuery<FilterTerm>) -> Void
     let actualSelection: Binding<Range<String.Index>>
 
     init(
         onReturn: @escaping () -> Bool,
+        onAddFilter: @escaping (FilterQuery<FilterTerm>) -> Void,
         actualSelection: Binding<Range<String.Index>>
     ) {
         self.onReturn = onReturn
+        self.onAddFilter = onAddFilter
         self.actualSelection = actualSelection
     }
 
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {
         onReturn()
+    }
+
+    func textField(_ textField: UITextField, shouldChangeCharactersInRanges ranges: [NSValue], replacementString string: String) -> Bool {
+        // We shouldn't get multiple ranges ever, but in case we do, this whole block is a
+        // best-effort anyway so we can just ignore it and hope for the best for the user.
+        guard ranges.count == 1, let range = ranges.first as? NSRange else { return true }
+
+        // This is how deletion is represented. Always allowed; cannot trigger any special action.
+        guard !string.isEmpty else { return true }
+
+        guard let swiftRange = Range(range, in: textField.text ?? "") else { return true }
+
+        guard let (filter, newText, newSelection) = processSearchTextChange(textField.text ?? "", inserting: string, inRange: swiftRange) else { return true }
+
+        guard let textRange = textField.textRange(from: textField.beginningOfDocument, to: textField.endOfDocument) else { return true }
+
+        if let filter {
+            onAddFilter(filter)
+        }
+        textField.replace(textRange, withText: newText)
+        if let newSelection, let uiTextRange = UITextRange.from(newSelection, in: textField) {
+            textField.selectedTextRange = uiTextRange
+        }
+
+        return false
     }
 
     func textFieldDidChangeSelection(_ textField: UITextField) {
@@ -163,6 +179,23 @@ extension Range where Bound == String.Index {
         let endIndex = text.index(text.startIndex, offsetBy: Swift.max(startOffset, Swift.min(endOffset, text.count)))
 
         return startIndex..<endIndex
+    }
+}
+
+private extension UITextRange {
+    static func from(_ range: Range<String.Index>, in textField: UITextField) -> UITextRange? {
+        guard let text = textField.text else { return nil }
+
+        let utf16 = text.utf16
+        let startOffset = utf16.distance(from: utf16.startIndex, to: range.lowerBound.samePosition(in: utf16)!)
+        let endOffset = utf16.distance(from: utf16.startIndex, to: range.upperBound.samePosition(in: utf16)!)
+
+        guard let start = textField.position(from: textField.beginningOfDocument, offset: startOffset),
+              let end = textField.position(from: textField.beginningOfDocument, offset: endOffset) else {
+            return nil
+        }
+
+        return textField.textRange(from: start, to: end)
     }
 }
 

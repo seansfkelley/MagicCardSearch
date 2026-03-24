@@ -21,6 +21,14 @@ func didAppend(
     return current.hasPrefix(previous)
 }
 
+func processSearchTextChange(
+    _ current: String,
+    inserting string: String,
+    inRange range: Range<String.Index>,
+) -> (FilterQuery<FilterTerm>?, String, Range<String.Index>?)? {
+    
+}
+
 // swiftlint:disable:next cyclomatic_complexity
 func maybeAutoUpdateSearchText(
     previous: String,
