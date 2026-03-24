@@ -146,23 +146,23 @@ private class SearchTextFieldDelegate: NSObject, UITextFieldDelegate {
             return true
         }
 
-        guard let (filter, newText, newSelection) = processSearchTextChange(textField.text ?? "", inserting: string, inRange: swiftRange) else { return true }
-
         guard let textRange = textField.textRange(from: textField.beginningOfDocument, to: textField.endOfDocument) else {
             logger.warning("unexpectedly failed to get text range spanning entire UITextField")
             return true
         }
 
-        logger.debug("replacing current=\"\(textField.text ?? "")\" with new=\"\(newText)\" and returning false")
-        textField.replace(textRange, withText: newText)
-        if let newSelection {
-            if let uiTextRange = UITextRange.from(newSelection, in: textField) {
+        guard let textChange = processSearchTextEdit(textField.text ?? "", inserting: string, inRange: swiftRange) else { return true }
+
+        logger.debug("replacing current=\"\(textField.text ?? "")\" with new=\"\(textChange.newText)\" and returning false")
+        textField.replace(textRange, withText: textChange.newText)
+        if let selection = textChange.newSelection {
+            if let uiTextRange = UITextRange.from(selection, in: textField) {
                 textField.selectedTextRange = uiTextRange
             } else {
-                logger.warning("failed to synthesize a UITextRange from range=\(newSelection)")
+                logger.warning("failed to synthesize a UITextRange from range=\(selection)")
             }
         }
-        if let filter {
+        if let filter = textChange.filter {
             onAddFilter(filter)
         }
 
