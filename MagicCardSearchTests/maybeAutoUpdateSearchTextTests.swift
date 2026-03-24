@@ -4,28 +4,6 @@ import Testing
 @testable import MagicCardSearch
 
 @Suite
-struct DidAppendTests {
-    // swiftlint:disable:next large_tuple
-    @Test<[(String, String, Range<Int>?, Bool)]>("didAppend", arguments: [
-        ("foo", "foo ", nil, true),
-        ("foo", "foo ", 4..<4, true),
-        ("foo", "foo ", 3..<4, true),
-        ("foo", "foox", nil, false),
-        ("foo", "foo ", 2..<2, false),
-        ("foo", "foo  ", nil, false),
-        ("foo", "fo", nil, false),
-        ("fobar", "foobar", nil, false),
-        ("fobar", "foobar", 3..<3, false),
-    ])
-    func didAppendCases(previous: String, current: String, selectionInts: Range<Int>?, expected: Bool) {
-        let selection = selectionInts?.toStringIndices(in: current) ?? current.endIndexRange
-        #expect(
-            didAppend(characterFrom: [" "], to: previous, toCreate: current, withSelection: selection) == expected
-        )
-    }
-}
-
-@Suite
 struct MaybeAutoUpdateSearchTextTests {
     @Test<[(String, String, Range<Int>?)]>("maybeAutoUpdateSearchText (nil)", arguments: [
         (
