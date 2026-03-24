@@ -44,46 +44,33 @@ func elideExtraneousWhitespace(in string: String, withLastEditAt range: Range<St
 }
 
 func quoteAdjacentBareWords(in string: String, withLastEditAt range: Range<String.Index>) -> (String, Range<String.Index>)? {
-    guard let tokens = try? lexPartialFilterQuery(string, allowingUnterminatedLiterals: true) else {
+    guard range.upperBound == string.endIndex,
+          let tokens = try? lexPartialFilterQuery(string) else {
         return nil
     }
 
     var bareWords: [String] = []
-    var highestEditedWordIndex: Int?
-    var span: Range<String.Index>?
+    var adjacentWordsStartIndex: String.Index?
 
-    for (token, code) in tokens {
+    for (token, code) in tokens.reversed() {
         if code == .Verbatim,
            case .name(_, let term) = PartialFilterTerm.from(token.content).content,
            case .bare(let word) = term {
-            if token.range.overlaps(range) || token.range.lowerBound == range.upperBound {
-                highestEditedWordIndex = bareWords.count
-            }
-            bareWords.append(word)
-            span = (span?.lowerBound ?? token.range.lowerBound)..<token.range.upperBound
-        } else if code == .And, !bareWords.isEmpty {
-            continue
-        } else {
-            if highestEditedWordIndex != nil {
-                break
-            }
-            bareWords = []
-            span = nil
+            bareWords.insert(word, at: 0)
+            adjacentWordsStartIndex = token.range.lowerBound
+        } else if code != .And || bareWords.isEmpty {
+            break
         }
     }
 
-    guard let highestEditedWordIndex,
-          let span,
-          bareWords.count >= 2 else {
+    guard let adjacentWordsStartIndex, bareWords.count >= 2 else {
         return nil
     }
 
     let quoted = "\"" + bareWords.joined(separator: " ") + "\""
     var result = string
-    result.replaceSubrange(span, with: quoted)
+    result.replaceSubrange(adjacentWordsStartIndex..<string.endIndex, with: quoted)
 
-    // Place cursor after the edited word inside the quotes.
-    let cursorOffset = 1 + bareWords[0..<highestEditedWordIndex].joined(separator: " ").count + (highestEditedWordIndex > 0 ? 1 : 0) + bareWords[highestEditedWordIndex].count
-    let newCursor = result.index(span.lowerBound, offsetBy: cursorOffset)
+    let newCursor = result.index(adjacentWordsStartIndex, offsetBy: quoted.count - 1)
     return (result, newCursor..<newCursor)
 }
