@@ -4,31 +4,13 @@ import Testing
 
 @Suite("processSearchTextEdit")
 struct ProcessSearchTextEditTests {
-    // Each case is (textBefore, inserted, insertionRange) where insertionRange is in textBefore.
     @Test<[(String, String, Range<Int>)]>("returns nil", arguments: [
-        // Appending a second space to whitespace-only string
-        ("\"lightning ", " ", 11..<11),
-        // Appending space after incomplete parenthesized expression
-        ("(color:red", " ", 10..<10),
-        // Appending space after bare filter keyword with no value
-        ("color:", " ", 6..<6),
-        // Multi-char paste that doesn't match a single-keystroke path
+        // Multi-char paste that doesn't match any helper's criteria
         ("colorred", "color:red", 0..<8),
-        // Deletion (empty insertion)
+        // Deletion
         ("color:red", "", 8..<9),
         // Multi-char insertion that isn't a recognized completion
         ("color", ":red", 5..<5),
-        // Appending apostrophe to a bare word
-        ("lightning", "'", 9..<9),
-        // Appending space inside an unterminated single-quote
-        ("'lightning", " ", 10..<10),
-        // Appending space inside an unterminated double-quote
-        ("\"lightning", " ", 10..<10),
-        // Appending a char in the middle of a balanced quoted string
-        ("\"urza's sag\"", "a", 11..<11),
-        // Appending ) or / to an empty string doesn't complete a filter
-        ("", ")", 0..<0),
-        ("", "/", 0..<0),
     ])
     func returnsNil(textBefore: String, inserted: String, insertionRange: Range<Int>) {
         let range = insertionRange.toStringIndices(in: textBefore)!
@@ -39,15 +21,69 @@ struct ProcessSearchTextEditTests {
     @Test<[(String, String, Range<Int>, (FilterQuery<FilterTerm>?, String, Range<Int>?))]>(
         "returns non-nil",
         arguments: [
-            // Inserting into an empty string produces an empty result
+            // Early return: empty candidate
             ("", "", 0..<0, (nil, "", nil)),
-            // Appending space to whitespace-only text clears the field
+            // Early return: all-whitespace candidate
             (" ", " ", 1..<1, (nil, "", nil)),
-            // Appending space to a bare word starts a quoted name
+            // Single-char path via inferIntentFromAppendingOneCharacter
+            ("lightning", " ", 9..<9, (nil, "\"lightning ", nil)),
+            // Multi-char path via elideExtraneousWhitespace
+            ("color:", " red", 6..<6, (nil, "color:red", 6..<9)),
+        ],
+    )
+    func returnsNonNil(
+        textBefore: String,
+        inserted: String,
+        insertionRange: Range<Int>,
+        expected: (FilterQuery<FilterTerm>?, String, Range<Int>?)
+    ) throws {
+        let range = insertionRange.toStringIndices(in: textBefore)!
+        let result = try #require(processSearchTextEdit(textBefore, inserting: inserted, inRange: range))
+        #expect(result == (
+            expected.0,
+            expected.1,
+            expected.2.map { $0.toStringIndices(in: result.1)! },
+        ))
+    }
+}
+
+@Suite("inferIntentFromAppendingOneCharacter")
+struct InferIntentFromAppendingOneCharacterTests {
+    @Test<[(String, String, Range<Int>)]>("returns nil", arguments: [
+        // Not a single char at end
+        ("\"lightning ", " ", 11..<11),
+        // Space after incomplete parenthesized expression
+        ("(color:red", " ", 10..<10),
+        // Space after bare filter keyword with no value
+        ("color:", " ", 6..<6),
+        // Apostrophe appended to a bare word (uninitiated quote, not a valid filter)
+        ("lightning", "'", 9..<9),
+        // Space inside an unterminated single-quote
+        ("'lightning", " ", 10..<10),
+        // Space inside an unterminated double-quote
+        ("\"lightning", " ", 10..<10),
+        // ) or / appended to an empty string
+        ("", ")", 0..<0),
+        ("", "/", 0..<0),
+    ])
+    func returnsNil(textBefore: String, inserted: String, insertionRange: Range<Int>) {
+        let candidate = textBefore.replacingCharacters(
+            in: insertionRange.toStringIndices(in: textBefore)!,
+            with: inserted,
+        )
+        let editedRange = candidate.index(candidate.endIndex, offsetBy: -1)..<candidate.endIndex
+        #expect(inferIntentFromAppendingOneCharacter(in: candidate, withLastEditAt: editedRange) == nil)
+    }
+
+    // swiftlint:disable:next large_tuple
+    @Test<[(String, String, Range<Int>, (FilterQuery<FilterTerm>?, String, Range<Int>?))]>(
+        "returns non-nil",
+        arguments: [
+            // Space appended to a bare word starts a quoted name
             ("lightning", " ", 9..<9, (nil, "\"lightning ", nil)),
             // Same with a negated bare word
             ("-lightning", " ", 10..<10, (nil, "-\"lightning ", nil)),
-            // Bare word with apostrophe gets double-quote wrapping
+            // Bare word with uninitiated apostrophe gets double-quote wrapping
             ("urza's", " ", 6..<6, (nil, "\"urza's ", nil)),
             // Closing double-quote completes a name filter
             (
@@ -63,8 +99,6 @@ struct ProcessSearchTextEditTests {
                 12..<12,
                 (.term(.regex(.positive, "oracle", .including, "bolt")), "", nil),
             ),
-            // Pasting " red" after "color:" elides the space; selection tracks the pasted range
-            ("color:", " red", 6..<6, (nil, "color:red", 6..<9)),
             // Closing paren completes an or-expression
             (
                 "(color:red or color:blue",
@@ -90,8 +124,12 @@ struct ProcessSearchTextEditTests {
         insertionRange: Range<Int>,
         expected: (FilterQuery<FilterTerm>?, String, Range<Int>?)
     ) throws {
-        let range = insertionRange.toStringIndices(in: textBefore)!
-        let result = try #require(processSearchTextEdit(textBefore, inserting: inserted, inRange: range))
+        let candidate = textBefore.replacingCharacters(
+            in: insertionRange.toStringIndices(in: textBefore)!,
+            with: inserted,
+        )
+        let editedRange = candidate.index(candidate.endIndex, offsetBy: -1)..<candidate.endIndex
+        let result = try #require(inferIntentFromAppendingOneCharacter(in: candidate, withLastEditAt: editedRange))
         #expect(result == (
             expected.0,
             expected.1,
@@ -102,10 +140,34 @@ struct ProcessSearchTextEditTests {
 
 @Suite("elideExtraneousWhitespace")
 struct ElideExtraneousWhitespaceTests {
-    // Each case is (prefix, edit, expectedText) where prefix is existing text, edit is what's
-    // inserted (must start with whitespace and end with non-whitespace), and expectedText is the
-    // result after eliding the extraneous leading space.
-    @Test("removes extraneous whitespace between filter and value", arguments: [
+    // Each case is (prefix, edit) where the full input is prefix+edit and the edit range covers
+    // the edit portion. The edit must start with whitespace and end with non-whitespace.
+    @Test("returns nil", arguments: [
+        // Quoted strings (spaces are inside quotes, not between filter and value)
+        ("name:", "\"Serra Angel\""),
+        ("name:", "'Lightning Bolt'"),
+        ("oracle:", "/foo bar/"),
+
+        // Already no extraneous whitespace
+        ("color:red ", "rarity:rare"),
+        ("color:", "red"),
+
+        // Unterminated quoted string (edit has no leading whitespace)
+        ("name:", "\"Serra"),
+
+        // Comparison spacing is on the wrong side (name, not filter value)
+        ("color ", "<= izzet"),
+        ("color ", "<=izzet"),
+    ])
+    func returnsNil(prefix: String, edit: String) {
+        let input = prefix + edit
+        let editStart = input.index(input.startIndex, offsetBy: prefix.count)
+        let result = elideExtraneousWhitespace(in: input, withLastEditAt: editStart..<input.endIndex)
+        #expect(result == nil || result?.newText == input)
+    }
+
+    // Each case is (prefix, edit, expectedText).
+    @Test("returns non-nil", arguments: [
         // Basic operator cases
         ("color:", " red", "color:red"),
         ("power=", " 5", "power=5"),
@@ -127,72 +189,44 @@ struct ElideExtraneousWhitespaceTests {
         // Parenthesized expression: both filter-adjacent spaces are elided
         ("(color:", " red or color: blue)", "(color:red or color:blue)"),
     ])
-    func removesWhitespace(prefix: String, edit: String, expected: String) {
+    func returnsNonNil(prefix: String, edit: String, expected: String) {
         let input = prefix + edit
         let editStart = input.index(input.startIndex, offsetBy: prefix.count)
         let result = elideExtraneousWhitespace(in: input, withLastEditAt: editStart..<input.endIndex)
         #expect(result?.newText == expected)
     }
 
-    @Test("returns nil when no extraneous whitespace to remove", arguments: [
-        // Quoted strings (spaces are inside quotes, not between filter and value)
-        "name:\"Serra Angel\"",
-        "name:'Lightning Bolt'",
-        "oracle:/foo bar/",
-
-        // Already no extraneous whitespace
-        "color:red rarity:rare",
-        "color:red",
-
-        // Unterminated quoted string
-        "name:\"Serra",
-
-        // Comparison spacing is on the wrong side (name, not filter value)
-        "color <= izzet",
-        "color <=izzet",
-    ])
-    func returnsNil(input: String) {
-        let result = elideExtraneousWhitespace(in: input, withLastEditAt: input.startIndex..<input.endIndex)
-        #expect(result == nil || result?.newText == input)
-    }
-
-    // Each case: (prefix, edit, editSelStart, editSelEnd, expectedText, expectedSelStart, expectedSelEnd)
-    // editSel is a range within the edit substring (0-based from start of edit).
-    // expectedSel is a range within expectedText (0-based).
-    // editSelStart/editSelEnd are offsets from the start of `edit` within the full input string.
-    // expectedSelStart/expectedSelEnd are absolute offsets from the start of `expectedText`.
-    @Test("tracks selection range through elision", arguments: [
+    // editSel is a range of offsets from the start of `edit` (i.e. from prefix.count in the full input).
+    // expectedSel is a range of absolute offsets in `expectedText`.
+    @Test("tracks selection through elision", arguments: [
         // Full " red" edit: lower at and-token start stays put, upper shifts back 1 for the removed space
-        ("color:", " red", 0, 4, "color:red", 6, 9),
+        ("color:", " red", 0..<4, "color:red", 6..<9),
 
         // Selection covers only " r": upper shifts back 1
-        ("color:", " red", 0, 2, "color:red", 6, 7),
+        ("color:", " red", 0..<2, "color:red", 6..<7),
 
         // Selection covers only " re": upper shifts back 1
-        ("color:", " red", 0, 3, "color:red", 6, 8),
+        ("color:", " red", 0..<3, "color:red", 6..<8),
 
         // Multi-filter: full " rare" edit after "color:red rarity:"
-        ("color:red rarity:", " rare", 0, 5, "color:red rarity:rare", 17, 21),
+        ("color:red rarity:", " rare", 0..<5, "color:red rarity:rare", 17..<21),
 
         // Multi-filter: selection covers only " ra"
-        ("color:red rarity:", " rare", 0, 3, "color:red rarity:rare", 17, 19),
+        ("color:red rarity:", " rare", 0..<3, "color:red rarity:rare", 17..<19),
     ])
     func tracksSelection(
         prefix: String,
         edit: String,
-        editSelStart: Int,
-        editSelEnd: Int,
+        editSel: Range<Int>,
         expectedText: String,
-        expectedSelStart: Int,
-        expectedSelEnd: Int,
+        expectedSel: Range<Int>,
     ) throws {
         let input = prefix + edit
         let editStart = input.index(input.startIndex, offsetBy: prefix.count)
-        let lower = input.index(editStart, offsetBy: editSelStart)
-        let upper = input.index(editStart, offsetBy: editSelEnd)
+        let lower = input.index(editStart, offsetBy: editSel.lowerBound)
+        let upper = input.index(editStart, offsetBy: editSel.upperBound)
         let result = try #require(elideExtraneousWhitespace(in: input, withLastEditAt: lower..<upper))
         #expect(result.newText == expectedText)
-        let expectedRange = (expectedSelStart..<expectedSelEnd).toStringIndices(in: result.newText)
-        #expect(result.newSelection == expectedRange)
+        #expect(result.newSelection == expectedSel.toStringIndices(in: result.newText))
     }
 }
