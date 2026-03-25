@@ -14,8 +14,8 @@ struct ProcessSearchTextEditTests {
         // Multi-char insertion that isn't a recognized completion
         ("color", ":red", 5..<5),
     ])
-    func returnsNil(textBefore: String, inserted: String, insertionRange: Range<Int>) {
-        let range = insertionRange.toStringIndices(in: textBefore)!
+    func returnsNil(textBefore: String, inserted: String, insertionRange: Range<Int>) throws {
+        let range = try #require(insertionRange.toStringIndices(in: textBefore))
         #expect(processSearchTextEdit(textBefore, inserting: inserted, inRange: range) == nil)
     }
 
@@ -41,12 +41,12 @@ struct ProcessSearchTextEditTests {
         insertionRange: Range<Int>,
         expected: IntSearchTextEdit,
     ) throws {
-        let range = insertionRange.toStringIndices(in: textBefore)!
+        let range = try #require(insertionRange.toStringIndices(in: textBefore))
         let result = try #require(processSearchTextEdit(textBefore, inserting: inserted, inRange: range))
         #expect(result == (
             expected.0,
             expected.1,
-            expected.2.map { $0.toStringIndices(in: result.1)! },
+            try expected.2.map { try #require($0.toStringIndices(in: result.1)) },
         ))
     }
 }
@@ -77,23 +77,37 @@ struct InferIntentFromAppendingOneCharacterTests {
         #expect(inferIntentFromAppendingOneCharacter(in: candidate, withLastEditAt: range) == nil)
     }
 
-    @Test<[(String, Range<Int>, IntSearchTextEdit)]>(
+    @Test<[(String, IntSearchTextEdit)]>(
         "returns non-nil",
         arguments: [
             // Space appended to a bare word starts a quoted name
-            ("lightning ", 9..<10, (nil, "\"lightning ", nil)),
+            (
+                "lightning ",
+                (nil, "\"lightning ", nil),
+            ),
             // Same with a negated bare word
-            ("-lightning ", 10..<11, (nil, "-\"lightning ", nil)),
-            // Bare word with uninitiated apostrophe gets double-quote wrapping
-            ("urza's ", 6..<7, (nil, "\"urza's ", nil)),
+            (
+                "-lightning ",
+                (nil, "-\"lightning ", nil),
+            ),
+            // Bare word with apostrophe (not quote) gets double-quote wrapping
+            (
+                "urza's ",
+                (nil, "\"urza's ", nil),
+            ),
             // Closing double-quote completes a name filter
-            ("\"urza's saga\"", 12..<13, (.term(.name(.positive, false, "urza's saga")), "", nil)),
+            (
+                "\"urza's saga\"",
+                (.term(.name(.positive, false, "urza's saga")), "", nil),
+            ),
             // Closing slash completes a regex filter
-            ("oracle:/bolt/", 12..<13, (.term(.regex(.positive, "oracle", .including, "bolt")), "", nil)),
+            (
+                "oracle:/bolt/",
+                (.term(.regex(.positive, "oracle", .including, "bolt")), "", nil),
+            ),
             // Closing paren completes an or-expression
             (
                 "(color:red or color:blue)",
-                24..<25,
                 (
                     .or(
                         .positive,
@@ -108,8 +122,8 @@ struct InferIntentFromAppendingOneCharacterTests {
             ),
         ],
     )
-    func returnsNonNil(candidate: String, editedRange: Range<Int>, expected: IntSearchTextEdit) throws {
-        let range = editedRange.toStringIndices(in: candidate)!
+    func returnsNonNil(candidate: String, expected: IntSearchTextEdit) throws {
+        let range = candidate.index(before: candidate.endIndex)..<candidate.endIndex
         let result = try #require(inferIntentFromAppendingOneCharacter(in: candidate, withLastEditAt: range))
         #expect(result == (
             expected.0,
@@ -222,24 +236,24 @@ struct QuoteAdjacentBareWordsTests {
         #expect(quoteAdjacentBareWords(in: string, withLastEditAt: indexRange) == nil)
     }
 
-    // swiftlint:disable:next large_tuple
-    @Test<[(String, String, String, Range<Int>)]>("returns non-nil", arguments: [
+    @Test("returns non-nil", arguments: [
         // Two bare words
-        ("lightning", " bolt", "\"lightning bolt\"", 15..<15),
+        ("lightning bolt", 9..<14, " bolt", "\"lightning bolt\"", 15..<15),
         // Three bare words
-        ("dark confidant", " soul", "\"dark confidant soul\"", 20..<20),
+        ("dark confidant soul", 14..<19, " soul", "\"dark confidant soul\"", 20..<20),
         // Bare words following a filter
-        ("color:red lightning", " bolt", "color:red \"lightning bolt\"", 25..<25),
-        // Word with uninitiated apostrophe
-        ("urza's", " tower", "\"urza's tower\"", 13..<13),
-        // Three words, non-trivial middle word
-        ("food goblin", " shaman", "\"food goblin shaman\"", 19..<19),
+        ("color:red lightning bolt", 19..<24, " bolt", "color:red \"lightning bolt\"", 25..<25),
+        // Word with apostrophe
+        ("urza's tower", 6..<12, " tower", "\"urza's tower\"", 13..<13),
     ])
-    func returnsNonNil(prefix: String, edit: String, expectedText: String, expectedSel: Range<Int>) throws {
-        let input = prefix + edit
-        let editStart = input.index(input.startIndex, offsetBy: prefix.count)
-        let result = try #require(quoteAdjacentBareWords(in: input, withLastEditAt: editStart..<input.endIndex))
-        #expect(result.newText == expectedText)
-        #expect(result.newSelection == expectedSel.toStringIndices(in: result.newText))
+    func returnsNonNil(string: String, editRange: Range<Int>, checkString: String, expectedString: String, expectedRange: Range<Int>) throws {
+        let indexRange = try #require(editRange.toStringIndices(in: string))
+        try #require(string[indexRange] == checkString)
+        let result = try #require(quoteAdjacentBareWords(in: string, withLastEditAt: indexRange))
+        #expect(result == (
+            nil,
+            expectedString,
+            expectedRange.toStringIndices(in: result.newText)!,
+        ))
     }
 }

@@ -19,11 +19,11 @@ func processSearchTextEdit(
         return result
     }
 
-    if let result = elideExtraneousWhitespace(in: candidate, withLastEditAt: editedRange) {
+    if let result = quoteAdjacentBareWords(in: candidate, withLastEditAt: editedRange) {
         return result
     }
 
-    if let result = quoteAdjacentBareWords(in: candidate, withLastEditAt: editedRange) {
+    if let result = elideExtraneousWhitespace(in: candidate, withLastEditAt: editedRange) {
         return result
     }
 
@@ -124,7 +124,11 @@ func elideExtraneousWhitespace(in string: String, withLastEditAt range: Range<St
         result.removeSubrange(andToken.range)
     }
 
-    return (nil, result, lower..<upper)
+    return if result == string {
+        nil
+    } else {
+        (nil, result, lower..<upper)
+    }
 }
 
 func quoteAdjacentBareWords(in string: String, withLastEditAt range: Range<String.Index>) -> SearchTextEdit? {
