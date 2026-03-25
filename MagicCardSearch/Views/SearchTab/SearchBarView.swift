@@ -163,6 +163,7 @@ private class SearchTextFieldDelegate: NSObject, UITextFieldDelegate {
             }
         }
         if let filter = textChange.filter {
+            logger.debug("auto-inserting filter=\(filter)")
             onAddFilter(filter)
         }
 

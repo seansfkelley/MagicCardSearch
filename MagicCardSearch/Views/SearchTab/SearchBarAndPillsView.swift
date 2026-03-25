@@ -3,9 +3,7 @@ import SwiftUI
 struct SearchBarAndPillsView: View {
     @Binding var searchState: SearchState
 
-    @State var showWarningsPopover: Bool = false
-    @Namespace private var animation
-    
+    @State var showWarningsPopover: Bool = false    
     private let maxPillRows: Int = 4
 
     var body: some View {
