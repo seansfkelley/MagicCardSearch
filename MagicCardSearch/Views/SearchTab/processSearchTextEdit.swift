@@ -101,8 +101,9 @@ func elideExtraneousWhitespace(in string: String, withLastEditAt range: Range<St
         guard filterCode == .Verbatim,
               andCode == .And,
               nameCode == .Verbatim,
-              case .filter(_, _, let term) = PartialFilterTerm.from(filterToken.content).content,
+              case .filter(_, let comparison, let term) = PartialFilterTerm.from(filterToken.content).content,
               term.incompleteContent.isEmpty,
+              comparison.toComplete() != nil,
               case .name(_, let nameTerm) = PartialFilterTerm.from(nameToken.content).content,
               !nameTerm.incompleteContent.isEmpty else {
             continue

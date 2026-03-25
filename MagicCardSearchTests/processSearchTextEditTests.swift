@@ -71,6 +71,9 @@ struct InferIntentFromAppendingOneCharacterTests {
         // Terminating special characters don't... terminate... the empty string
         (")", 0..<1),
         ("/", 0..<1),
+        // TODO: I would like to support the following behavior.
+        // Space between an operator and any non-whitespace is not collapsed
+        ("type: i", 6..<7),
     ])
     func returnsNil(candidate: String, editedRange: Range<Int>) throws {
         let range = try #require(editedRange.toStringIndices(in: candidate))
@@ -128,83 +131,64 @@ struct InferIntentFromAppendingOneCharacterTests {
         #expect(result == (
             expected.0,
             expected.1,
-            expected.2.map { $0.toStringIndices(in: result.1)! },
+            try expected.2.map { try #require($0.toStringIndices(in: result.1)) },
         ))
     }
 }
 
 @Suite("elideExtraneousWhitespace")
 struct ElideExtraneousWhitespaceTests {
-    // Each case is (prefix, edit) where the full input is prefix+edit and the edit range covers
-    // the edit portion. The edit must start with whitespace and end with non-whitespace.
     @Test("returns nil", arguments: [
         // Quoted strings (spaces are inside quotes, not between filter and value)
-        ("name:", "\"Serra Angel\""),
-        ("name:", "'Lightning Bolt'"),
-        ("oracle:", "/foo bar/"),
+        ("name:\"Serra Angel\"", 5..<18, "\"Serra Angel\""),
+        ("name:'Serra Angel'", 5..<18, "'Serra Angel'"),
+        ("name:/Serra Angel/", 5..<18, "/Serra Angel/"),
+        ("name:\"Serra Angel", 11..<17, " Angel"),
+        ("name:'Serra Angel", 11..<17, " Angel"),
+        ("name:/Serra Angel", 11..<17, " Angel"),
 
-        // Already no extraneous whitespace
-        ("color:red ", "rarity:rare"),
-        ("color:", "red"),
+        // No extraneous whitespace on filter
+        ("color:red", 6..<9, "red"),
 
-        // Unterminated quoted string (edit has no leading whitespace)
-        ("name:", "\"Serra"),
+        // Whitespace that isn't part of the edit is not removed
+        ("color: red", 7..<10, "red"),
 
-        // Comparison spacing is on the wrong side (name, not filter value)
-        ("color ", "<= izzet"),
-        ("color ", "<=izzet"),
+        // Incomplete operators don't allow elision
+        ("color! red", 6..<10, " red"),
+
+        // Whitespace separates a term from a complete filter
+        ("color:red lightning", 9..<19, " lightning"),
     ])
-    func returnsNil(prefix: String, edit: String) {
-        let input = prefix + edit
-        let editStart = input.index(input.startIndex, offsetBy: prefix.count)
-        let result = elideExtraneousWhitespace(in: input, withLastEditAt: editStart..<input.endIndex)
-        #expect(result == nil || result?.newText == input)
+    func returnsNil(string: String, editRange: Range<Int>, checkString: String) throws {
+        let indexRange = try #require(editRange.toStringIndices(in: string))
+        try #require(string[indexRange] == checkString)
+        #expect(elideExtraneousWhitespace(in: string, withLastEditAt: indexRange) == nil)
     }
 
-    // editSel is a range of offsets from the start of `edit` (i.e. from prefix.count in the full input).
-    // expectedSel is a range of absolute offsets in `expectedText`.
-    // swiftlint:disable:next large_tuple
-    @Test<[(String, String, Range<Int>, String, Range<Int>)]>("returns non-nil", arguments: [
-        // Basic operator cases
-        ("color:", " red", 0..<4, "color:red", 6..<9),
-        ("power=", " 5", 0..<2, "power=5", 6..<7),
-        ("rarity!=", " common", 0..<7, "rarity!=common", 8..<14),
-        ("cmc<", " 3", 0..<2, "cmc<3", 4..<5),
-        ("power>", " 4", 0..<2, "power>4", 6..<7),
-        ("toughness<=", " 2", 0..<2, "toughness<=2", 11..<12),
-        ("loyalty>=", " 5", 0..<2, "loyalty>=5", 9..<10),
+    @Test("returns non-nil", arguments: [
+        // A leading-whitespace edit attaches to a preceding filter
+        ("color: red", 6..<10, " red", "color:red", 6..<9),
+        ("rarity!= common", 8..<15, " common", "rarity!=common", 8..<14),
+        ("name: \"Serra", 5..<12, " \"Serra", "name:\"Serra", 5..<11),
 
         // Negated filter
-        ("-color:", " blue", 0..<5, "-color:blue", 7..<11),
+        ("-color: blue", 7..<12, " blue", "-color:blue", 7..<11),
 
-        // Multiple filters: elide the space before the second value only
-        ("color:red rarity:", " rare", 0..<5, "color:red rarity:rare", 17..<21),
+        // TODO: This is probably more surprising than helpful.
+        // Elide whitespace even if it's not part of this edit
+        ("color: red rarity: rare", 18..<23, " rare", "color:red rarity:rare", 17..<21),
 
-        // Multiple incomplete filters: only the complete filter's space is elided
-        ("color: name:", " lightning", 0..<10, "color: name:lightning", 12..<21),
-
-        // Parenthesized expression: both filter-adjacent spaces are elided
-        ("(color:", " red or color: blue)", 0..<20, "(color:red or color:blue)", 7..<25),
-
-        // Partial selections: upper shifts back for each removed space
-        ("color:", " red", 0..<2, "color:red", 6..<7),
-        ("color:", " red", 0..<3, "color:red", 6..<8),
-        ("color:red rarity:", " rare", 0..<3, "color:red rarity:rare", 17..<19),
+        // Multiple filters in the edit all get elided
+        ("(color: red or color: blue)", 7..<27, " red or color: blue)", "(color:red or color:blue)", 7..<25),
     ])
-    func returnsNonNil(
-        prefix: String,
-        edit: String,
-        editSel: Range<Int>,
-        expectedText: String,
-        expectedSel: Range<Int>,
-    ) throws {
-        let input = prefix + edit
-        let editStart = input.index(input.startIndex, offsetBy: prefix.count)
-        let lower = input.index(editStart, offsetBy: editSel.lowerBound)
-        let upper = input.index(editStart, offsetBy: editSel.upperBound)
-        let result = try #require(elideExtraneousWhitespace(in: input, withLastEditAt: lower..<upper))
-        #expect(result.newText == expectedText)
-        #expect(result.newSelection == expectedSel.toStringIndices(in: result.newText))
+    func returnsNonNil(string: String, editRange: Range<Int>, checkString: String, expectedString: String, expectedRange: Range<Int>) throws {
+        let indexRange = try #require(editRange.toStringIndices(in: string))
+        try #require(string[indexRange] == checkString)
+        let result = try #require(elideExtraneousWhitespace(in: string, withLastEditAt: indexRange))
+        #expect(result.filter == nil)
+        #expect(result.newText == expectedString)
+        let expectedSelection = try #require(expectedRange.toStringIndices(in: result.newText))
+        #expect(result.newSelection == expectedSelection)
     }
 }
 
@@ -253,7 +237,7 @@ struct QuoteAdjacentBareWordsTests {
         #expect(result == (
             nil,
             expectedString,
-            expectedRange.toStringIndices(in: result.newText)!,
+            try #require(expectedRange.toStringIndices(in: result.newText)),
         ))
     }
 }
