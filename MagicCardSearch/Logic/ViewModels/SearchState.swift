@@ -38,6 +38,9 @@ class SearchState {
     public var configuration = SearchConfiguration.load()
     public var results: ScryfallObjectList<Card>?
     public private(set) var searchNonce = 0
+
+    // This is a function partly because async but also partly to remind the caller that it is a
+    // whole operation, not just a property read.
     public func getSuggestions() async throws -> [AutocompleteSuggestion] {
         try await suggestionProvider.getSuggestions(for: selectedFilter.text, existingFilters: Set(filters))
     }

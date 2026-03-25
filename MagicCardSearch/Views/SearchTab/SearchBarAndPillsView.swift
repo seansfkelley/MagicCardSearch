@@ -3,7 +3,8 @@ import SwiftUI
 struct SearchBarAndPillsView: View {
     @Binding var searchState: SearchState
 
-    @State var showWarningsPopover: Bool = false    
+    @State var showWarningsPopover: Bool = false
+    @FocusState private var searchBarFocused: Bool
     private let maxPillRows: Int = 4
 
     var body: some View {
@@ -31,9 +32,10 @@ struct SearchBarAndPillsView: View {
             VStack(spacing: 0) {
                 if !searchState.filters.isEmpty {
                     ReflowingFilterPillsView(
-                        filters: $searchState.filters,
+                        filters: searchState.filters,
                         maxRows: maxPillRows,
-                        onEdit: onFilterEdit
+                        onEdit: onFilterEdit,
+                        onRemove: onFilterRemove
                     )
                     .mask {
                         VStack(spacing: 0) {
@@ -51,7 +53,7 @@ struct SearchBarAndPillsView: View {
                         .padding(.horizontal)
                 }
 
-                SearchBarView(searchState: $searchState)
+                SearchBarView(searchState: $searchState, isFocused: $searchBarFocused)
             }
             .contentShape(Rectangle())
             .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 20))
@@ -61,7 +63,18 @@ struct SearchBarAndPillsView: View {
     }
 
     private func onFilterEdit(_ filter: FilterQuery<FilterTerm>) {
+        if let index = searchState.filters.firstIndex(of: filter) {
+            searchState.filters.remove(at: index)
+        }
         searchState.searchText = filter.description
         searchState.desiredSearchSelection = .init(range: filter.suggestedEditingRange)
+        searchBarFocused = true
+    }
+
+    private func onFilterRemove(_ filter: FilterQuery<FilterTerm>) {
+        if let index = searchState.filters.firstIndex(of: filter) {
+            searchState.filters.remove(at: index)
+        }
+        searchBarFocused = true
     }
 }

@@ -1,9 +1,10 @@
 import SwiftUI
 
 struct ReflowingFilterPillsView: View {
-    @Binding var filters: [FilterQuery<FilterTerm>]
+    let filters: [FilterQuery<FilterTerm>]
     let maxRows: Int
     let onEdit: (FilterQuery<FilterTerm>) -> Void
+    let onRemove: (FilterQuery<FilterTerm>) -> Void
 
     @State private var pillSizes: [FilterQuery<FilterTerm>: CGSize] = [:]
     
@@ -35,13 +36,8 @@ struct ReflowingFilterPillsView: View {
                         ForEach(row.items, id: \.filter) { item in
                             FilterPillView(
                                 filter: item.filter,
-                                onTap: {
-                                    filters.remove(at: item.index)
-                                    onEdit(item.filter)
-                                },
-                                onDelete: {
-                                    filters.remove(at: item.index)
-                                }
+                                onTap: { onEdit(item.filter) },
+                                onDelete: { onRemove(item.filter) }
                             )
                             .background(
                                 GeometryReader { pillGeometry in

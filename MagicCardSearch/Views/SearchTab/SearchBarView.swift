@@ -7,13 +7,14 @@ private let logger = Logger(subsystem: "MagicCardSearch", category: "SearchBarVi
 
 struct SearchBarView: View {
     @Binding var searchState: SearchState
+    var isFocused: FocusState<Bool>.Binding
 
-    @FocusState private var fieldFocused: Bool
     @State private var showSymbolPicker = false
     private let textFieldDelegate: SearchTextFieldDelegate
 
-    init(searchState: Binding<SearchState>) {
+    init(searchState: Binding<SearchState>, isFocused: FocusState<Bool>.Binding) {
         self._searchState = searchState
+        self.isFocused = isFocused
 
         // The only reason this is here is because UITextField.delegate is weak, so we need to
         // retain it as long as this view is alive.
@@ -51,7 +52,7 @@ struct SearchBarView: View {
             // preceding options (textContentType? autocorrectionDisabled?) it does successfully get
             // rid of the predictive text bar that is not very useful.
             // .keyboardType(.asciiCapable)
-            .focused($fieldFocused)
+            .focused(isFocused)
             .introspect(.textField, on: .iOS(.v26)) { textField in
                 textField.smartDashesType = .no
                 textField.smartQuotesType = .no
@@ -69,7 +70,7 @@ struct SearchBarView: View {
                 Button(action: {
                     searchState.searchText = ""
                     searchState.desiredSearchSelection = nil
-                    fieldFocused = true
+                    isFocused.wrappedValue = true
                 }) {
                     Image(systemName: "xmark.circle.fill")
                         .foregroundStyle(.secondary)
@@ -95,10 +96,18 @@ struct SearchBarView: View {
             showSymbolPicker = false
         }
         .onChange(of: searchState.desiredSearchSelection) {
-            // Once it's passed in one time, nil it out so next time it'll take effect again. I
-            // didn't 100% test that this was necessary, but it does work as written and I spent way
-            // too long fucking about with selection so I left it as-is.
-            searchState.desiredSearchSelection = nil
+            // Once it's passed in one time, nil it out:
+            //
+            // - this makes it "imperative" which is the current desired behavior
+            // - this allows the field to change selection on its own in the (few?) cases where
+            //   it does actually stay locked to the binding
+            //
+            // The async is to give it a chance to take effect in the cases where focus and
+            // selection are set simultaneously -- without this, it would focus but not select. This
+            // used to happen when tapping a pill to edit it on an unfocused search bar.
+            DispatchQueue.main.async {
+                searchState.desiredSearchSelection = nil
+            }
         }
     }
 
@@ -217,8 +226,15 @@ private extension UITextRange {
 // MARK: - Preview
 
 #Preview {
-    PreviewContainer { searchState in
-        SearchBarView(searchState: searchState)
-            .padding()
+    struct Wrapper: View {
+        @FocusState var focused: Bool
+        @Binding var searchState: SearchState
+        var body: some View {
+            SearchBarView(searchState: $searchState, isFocused: $focused)
+                .padding()
+        }
+    }
+    return PreviewContainer { searchState in
+        Wrapper(searchState: searchState)
     }
 }
