@@ -2,6 +2,8 @@ import SwiftUI
 import Testing
 @testable import MagicCardSearch
 
+typealias IntSearchTextEdit = (filter: FilterQuery<FilterTerm>?, newText: String, newSelection: Range<Int>?)
+
 @Suite("processSearchTextEdit")
 struct ProcessSearchTextEditTests {
     @Test<[(String, String, Range<Int>)]>("returns nil", arguments: [
@@ -18,7 +20,7 @@ struct ProcessSearchTextEditTests {
     }
 
     // swiftlint:disable:next large_tuple
-    @Test<[(String, String, Range<Int>, (FilterQuery<FilterTerm>?, String, Range<Int>?))]>(
+    @Test<[(String, String, Range<Int>, IntSearchTextEdit)]>(
         "returns non-nil",
         arguments: [
             // Early return: empty candidate
@@ -29,13 +31,15 @@ struct ProcessSearchTextEditTests {
             ("lightning", " ", 9..<9, (nil, "\"lightning ", nil)),
             // Multi-char path via elideExtraneousWhitespace
             ("color:", " red", 6..<6, (nil, "color:red", 6..<9)),
+            // Multi-char path via quoteAdjacentBareWords
+            ("lightning", " bolt", 9..<9, (nil, "\"lightning bolt\"", 15..<15)),
         ],
     )
     func returnsNonNil(
         textBefore: String,
         inserted: String,
         insertionRange: Range<Int>,
-        expected: (FilterQuery<FilterTerm>?, String, Range<Int>?)
+        expected: IntSearchTextEdit,
     ) throws {
         let range = insertionRange.toStringIndices(in: textBefore)!
         let result = try #require(processSearchTextEdit(textBefore, inserting: inserted, inRange: range))
@@ -76,7 +80,7 @@ struct InferIntentFromAppendingOneCharacterTests {
     }
 
     // swiftlint:disable:next large_tuple
-    @Test<[(String, String, Range<Int>, (FilterQuery<FilterTerm>?, String, Range<Int>?))]>(
+    @Test<[(String, String, Range<Int>, IntSearchTextEdit)]>(
         "returns non-nil",
         arguments: [
             // Space appended to a bare word starts a quoted name
@@ -122,7 +126,7 @@ struct InferIntentFromAppendingOneCharacterTests {
         textBefore: String,
         inserted: String,
         insertionRange: Range<Int>,
-        expected: (FilterQuery<FilterTerm>?, String, Range<Int>?)
+        expected: IntSearchTextEdit,
     ) throws {
         let candidate = textBefore.replacingCharacters(
             in: insertionRange.toStringIndices(in: textBefore)!,
@@ -166,55 +170,37 @@ struct ElideExtraneousWhitespaceTests {
         #expect(result == nil || result?.newText == input)
     }
 
-    // Each case is (prefix, edit, expectedText).
-    @Test("returns non-nil", arguments: [
-        // Basic operator cases
-        ("color:", " red", "color:red"),
-        ("power=", " 5", "power=5"),
-        ("rarity!=", " common", "rarity!=common"),
-        ("cmc<", " 3", "cmc<3"),
-        ("power>", " 4", "power>4"),
-        ("toughness<=", " 2", "toughness<=2"),
-        ("loyalty>=", " 5", "loyalty>=5"),
-
-        // Negated filter
-        ("-color:", " blue", "-color:blue"),
-
-        // Multiple filters: elide the space before the second value only
-        ("color:red rarity:", " rare", "color:red rarity:rare"),
-
-        // Multiple incomplete filters: only the complete filter's space is elided
-        ("color: name:", " lightning", "color: name:lightning"),
-
-        // Parenthesized expression: both filter-adjacent spaces are elided
-        ("(color:", " red or color: blue)", "(color:red or color:blue)"),
-    ])
-    func returnsNonNil(prefix: String, edit: String, expected: String) {
-        let input = prefix + edit
-        let editStart = input.index(input.startIndex, offsetBy: prefix.count)
-        let result = elideExtraneousWhitespace(in: input, withLastEditAt: editStart..<input.endIndex)
-        #expect(result?.newText == expected)
-    }
-
     // editSel is a range of offsets from the start of `edit` (i.e. from prefix.count in the full input).
     // expectedSel is a range of absolute offsets in `expectedText`.
-    @Test("tracks selection through elision", arguments: [
-        // Full " red" edit: lower at and-token start stays put, upper shifts back 1 for the removed space
+    // swiftlint:disable:next large_tuple
+    @Test<[(String, String, Range<Int>, String, Range<Int>)]>("returns non-nil", arguments: [
+        // Basic operator cases
         ("color:", " red", 0..<4, "color:red", 6..<9),
+        ("power=", " 5", 0..<2, "power=5", 6..<7),
+        ("rarity!=", " common", 0..<7, "rarity!=common", 8..<14),
+        ("cmc<", " 3", 0..<2, "cmc<3", 4..<5),
+        ("power>", " 4", 0..<2, "power>4", 6..<7),
+        ("toughness<=", " 2", 0..<2, "toughness<=2", 11..<12),
+        ("loyalty>=", " 5", 0..<2, "loyalty>=5", 9..<10),
 
-        // Selection covers only " r": upper shifts back 1
-        ("color:", " red", 0..<2, "color:red", 6..<7),
+        // Negated filter
+        ("-color:", " blue", 0..<5, "-color:blue", 7..<11),
 
-        // Selection covers only " re": upper shifts back 1
-        ("color:", " red", 0..<3, "color:red", 6..<8),
-
-        // Multi-filter: full " rare" edit after "color:red rarity:"
+        // Multiple filters: elide the space before the second value only
         ("color:red rarity:", " rare", 0..<5, "color:red rarity:rare", 17..<21),
 
-        // Multi-filter: selection covers only " ra"
+        // Multiple incomplete filters: only the complete filter's space is elided
+        ("color: name:", " lightning", 0..<10, "color: name:lightning", 12..<21),
+
+        // Parenthesized expression: both filter-adjacent spaces are elided
+        ("(color:", " red or color: blue)", 0..<20, "(color:red or color:blue)", 7..<25),
+
+        // Partial selections: upper shifts back for each removed space
+        ("color:", " red", 0..<2, "color:red", 6..<7),
+        ("color:", " red", 0..<3, "color:red", 6..<8),
         ("color:red rarity:", " rare", 0..<3, "color:red rarity:rare", 17..<19),
     ])
-    func tracksSelection(
+    func returnsNonNil(
         prefix: String,
         edit: String,
         editSel: Range<Int>,
@@ -226,6 +212,48 @@ struct ElideExtraneousWhitespaceTests {
         let lower = input.index(editStart, offsetBy: editSel.lowerBound)
         let upper = input.index(editStart, offsetBy: editSel.upperBound)
         let result = try #require(elideExtraneousWhitespace(in: input, withLastEditAt: lower..<upper))
+        #expect(result.newText == expectedText)
+        #expect(result.newSelection == expectedSel.toStringIndices(in: result.newText))
+    }
+}
+
+@Suite("quoteAdjacentBareWords")
+struct QuoteAdjacentBareWordsTests {
+    @Test("returns nil", arguments: [
+        // Only one adjacent bare word — not enough to quote
+        ("color:red", " lightning"),
+        // Bare word after a completed regex filter — still only one
+        ("oracle:/bolt/", " spell"),
+        // Single bare word with no predecessor
+        ("", " lightning"),
+        // Edit doesn't start with whitespace
+        ("lightning", "bolt"),
+        // Edit ends with whitespace
+        ("lightning", " bolt "),
+    ])
+    func returnsNil(prefix: String, edit: String) {
+        let input = prefix + edit
+        let editStart = input.index(input.startIndex, offsetBy: prefix.count)
+        #expect(quoteAdjacentBareWords(in: input, withLastEditAt: editStart..<input.endIndex) == nil)
+    }
+
+    // swiftlint:disable:next large_tuple
+    @Test<[(String, String, String, Range<Int>)]>("returns non-nil", arguments: [
+        // Two bare words
+        ("lightning", " bolt", "\"lightning bolt\"", 15..<15),
+        // Three bare words
+        ("dark confidant", " soul", "\"dark confidant soul\"", 20..<20),
+        // Bare words following a filter
+        ("color:red lightning", " bolt", "color:red \"lightning bolt\"", 25..<25),
+        // Word with uninitiated apostrophe
+        ("urza's", " tower", "\"urza's tower\"", 13..<13),
+        // Three words, non-trivial middle word
+        ("food goblin", " shaman", "\"food goblin shaman\"", 19..<19),
+    ])
+    func returnsNonNil(prefix: String, edit: String, expectedText: String, expectedSel: Range<Int>) throws {
+        let input = prefix + edit
+        let editStart = input.index(input.startIndex, offsetBy: prefix.count)
+        let result = try #require(quoteAdjacentBareWords(in: input, withLastEditAt: editStart..<input.endIndex))
         #expect(result.newText == expectedText)
         #expect(result.newSelection == expectedSel.toStringIndices(in: result.newText))
     }
