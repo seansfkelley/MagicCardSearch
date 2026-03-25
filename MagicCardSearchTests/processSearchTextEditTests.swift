@@ -197,21 +197,29 @@ struct ElideExtraneousWhitespaceTests {
 @Suite("quoteAdjacentBareWords")
 struct QuoteAdjacentBareWordsTests {
     @Test("returns nil", arguments: [
-        // Only one adjacent bare word — not enough to quote
-        ("color:red", " lightning"),
-        // Bare word after a completed regex filter — still only one
-        ("oracle:/bolt/", " spell"),
-        // Single bare word with no predecessor
-        ("", " lightning"),
-        // Edit doesn't start with whitespace
-        ("lightning", "bolt"),
-        // Edit ends with whitespace
-        ("lightning", " bolt "),
+        // After a basic filter: no consecutive bare words
+        ("color!=red lightning", 10..<20, " lightning"),
+        // After a regex filter: no consecutive bare words
+        ("oracle:/lightning/ bolt", 18..<23, " bolt"),
+        // After a non-bare term
+        ("\"lightning\" bolt", 11..<16, " bolt"),
+        // As the only term
+        (" lightning", 0..<10, " lightning"),
+        // Not a separate word
+        ("lightningbolt", 9..<13, "bolt"),
+        // Ends with whitespace (unclear if desired, but current behavior)
+        ("lightning bolt ", 9..<15, " bolt "),
+        // Does not retroactively repair adjacent bare words if append isn't a bare word
+        ("lightning bolt color:red", 14..<24, " color:red"),
+        // Does not quote if the edit was prefix
+        ("lightning bolt foo", 0..<10, "lightning "),
+        // Does not quote if the edit was in the middle
+        ("lightning bolt foo", 9..<14, " bolt"),
     ])
-    func returnsNil(prefix: String, edit: String) {
-        let input = prefix + edit
-        let editStart = input.index(input.startIndex, offsetBy: prefix.count)
-        #expect(quoteAdjacentBareWords(in: input, withLastEditAt: editStart..<input.endIndex) == nil)
+    func returnsNil(string: String, editRange: Range<Int>, checkString: String) throws {
+        let indexRange = try #require(editRange.toStringIndices(in: string))
+        try #require(string[indexRange] == checkString)
+        #expect(quoteAdjacentBareWords(in: string, withLastEditAt: indexRange) == nil)
     }
 
     // swiftlint:disable:next large_tuple
