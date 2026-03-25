@@ -67,7 +67,8 @@ struct SearchLandingView: View {
             FixedListCardDetailNavigatorView(
                 cards: state.cards,
                 initialIndex: state.index,
-                searchState: $searchState
+                searchState: $searchState,
+                showCount: false,
             )
         }
     }

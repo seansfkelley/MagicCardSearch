@@ -15,7 +15,8 @@ struct FixedListCardDetailNavigatorView<C: CardDisplayable & Identifiable<UUID>>
     }
 
     let cards: [C]
-    var searchState: Binding<SearchState>?
+    let searchState: Binding<SearchState>?
+    let showCount: Bool
 
     @State private var cardFlipStates: [UUID: Bool] = [:]
     @State private var scrollIndex: Int?
@@ -27,10 +28,11 @@ struct FixedListCardDetailNavigatorView<C: CardDisplayable & Identifiable<UUID>>
 
     private let cardSearchService = CardSearchService()
 
-    init(cards: [C], initialIndex: Int, searchState: Binding<SearchState>?) {
+    init(cards: [C], initialIndex: Int, searchState: Binding<SearchState>?, showCount: Bool = true) {
         self.cards = cards
         self.searchState = searchState
         self._scrollIndex = State(initialValue: initialIndex)
+        self.showCount = showCount
     }
 
     var body: some View {
@@ -90,13 +92,15 @@ struct FixedListCardDetailNavigatorView<C: CardDisplayable & Identifiable<UUID>>
                 }
             }
             .safeAreaInset(edge: .bottom) {
-                Text("\((scrollIndex ?? 0) + 1) of \(cards.count)")
-                    .font(.caption)
-                    .foregroundStyle(.primary)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
-                    .glassEffect(.regular, in: .capsule)
-                    .padding(.bottom, 20)
+                if showCount {
+                    Text("\((scrollIndex ?? 0) + 1) of \(cards.count)")
+                        .font(.caption)
+                        .foregroundStyle(.primary)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                        .glassEffect(.regular, in: .capsule)
+                        .padding(.bottom, 20)
+                }
             }
         }
         .onAppear {
