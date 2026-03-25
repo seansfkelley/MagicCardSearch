@@ -853,7 +853,7 @@
 			repositoryURL = "https://github.com/pointfreeco/swift-dependencies";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 1.10.0;
+				minimumVersion = 1.11.0;
 			};
 		};
 		21332B972EF5D04100C80208 /* XCRemoteSwiftPackageReference "swift-algorithms" */ = {
@@ -877,8 +877,10 @@
 			repositoryURL = "https://github.com/pointfreeco/sqlite-data";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 1.4.2;
+				minimumVersion = 1.6.1;
 			};
+			traits = (
+			);
 		};
 		218E3DEA2F5A0C7D00AA066E /* XCRemoteSwiftPackageReference "Cache" */ = {
 			isa = XCRemoteSwiftPackageReference;
