@@ -58,21 +58,10 @@ enum PriceType {
 }
 
 struct VendorButtonView: View {
-    enum VendorNameShowType {
-        case always, never, ifNoPrices
-    }
+    @AppStorage("preferredVendor") private var vendor: Vendor = .tcgplayer
 
-    let vendor: Vendor
     let prices: Card.Prices
-    let url: String
-    let showVendorName: VendorNameShowType
-
-    init(vendor: Vendor, prices: Card.Prices, url: String, showVendorName: VendorNameShowType = .always) {
-        self.vendor = vendor
-        self.prices = prices
-        self.url = url
-        self.showVendorName = showVendorName
-    }
+    let purchaseUris: [String: String]?
 
     private var orderedPrices: [(PriceType, String)] {
         [PriceType.regular, .foil, .etched].compactMap { type in
@@ -80,52 +69,46 @@ struct VendorButtonView: View {
         }
     }
 
-    private var shouldShowName: Bool {
-        switch showVendorName {
-        case .always: true
-        case .never: false
-        case .ifNoPrices: orderedPrices.isEmpty
-        }
-    }
-
     var body: some View {
-        Link(destination: URL(string: url)!) {
-            HStack {
-                Image(vendor.rawValue)
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
+        if let url = purchaseUris?[vendor.rawValue] {
+            Link(destination: URL(string: url)!) {
+                HStack {
+                    Image(vendor.rawValue)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
 
-                if shouldShowName {
-                    Text(vendor.displayName)
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                        .foregroundStyle(.blue)
-                }
-
-                if !orderedPrices.isEmpty {
-                    HStack(spacing: 6) {
-                        ForEach(orderedPrices, id: \.0) { entry in
-                            let (type, price) = entry
-                            HStack(spacing: 2) {
-                                if let icon = type.icon {
-                                    Image(systemName: icon)
-                                        .font(.caption)
-                                }
-                                Text(vendor.symbol + price)
-                                    .font(.subheadline)
-                            }
+                    if orderedPrices.isEmpty {
+                        Text(vendor.displayName)
+                            .font(.subheadline)
+                            .fontWeight(.medium)
                             .foregroundStyle(.blue)
+                    }
+
+                    if !orderedPrices.isEmpty {
+                        HStack(spacing: 6) {
+                            ForEach(orderedPrices, id: \.0) { entry in
+                                let (type, price) = entry
+                                HStack(spacing: 2) {
+                                    if let icon = type.icon {
+                                        Image(systemName: icon)
+                                            .font(.caption)
+                                    }
+                                    Text(vendor.symbol + price)
+                                        .font(.subheadline)
+                                }
+                                .foregroundStyle(.blue)
+                            }
                         }
                     }
                 }
+                .fixedSize()
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(Color.blue.opacity(0.1))
+                )
             }
-            .fixedSize()
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
-            .background(
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(Color.blue.opacity(0.1))
-            )
         }
     }
 }

@@ -153,9 +153,8 @@ struct CardDetailView: View {
                     }
                 }
 
-                if PricesCardSection.hasPrices(card: card) {
+                PricesCardSection(prices: card.prices, purchaseUris: card.purchaseUris) {
                     Divider().padding(.horizontal)
-                    PricesCardSection(prices: card.prices, purchaseUris: card.purchaseUris)
                 }
 
                 RulingsCardSection(scryfallId: card.id) {
