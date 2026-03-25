@@ -192,7 +192,7 @@ struct CardDetailView: View {
     @ViewBuilder
     private func cardFaceDetailsView(face: CardDetailDisplayable, showArtist: Bool = true) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .top) {
+            HStack(alignment: .center) {
                 Text(face.name)
                     .font(.title2)
                     .fontWeight(.bold)
