@@ -1,24 +1,24 @@
 import Testing
 @testable import MagicCardSearch
 
-func term(_ content: String) -> FilterQuery<PolarityString> {
+private func term(_ content: String) -> FilterQuery<PolarityString> {
     .term(.init(.positive, content))
 }
-func term(_ polarity: Polarity, _ content: String) -> FilterQuery<PolarityString> {
+private func term(_ polarity: Polarity, _ content: String) -> FilterQuery<PolarityString> {
     .term(.init(polarity, content))
 }
 
-func and(_ children: FilterQuery<PolarityString>...) -> FilterQuery<PolarityString> {
+private func and(_ children: FilterQuery<PolarityString>...) -> FilterQuery<PolarityString> {
     .and(.positive, children)
 }
-func and(_ polarity: Polarity, _ children: FilterQuery<PolarityString>...) -> FilterQuery<PolarityString> {
+private func and(_ polarity: Polarity, _ children: FilterQuery<PolarityString>...) -> FilterQuery<PolarityString> {
     .and(polarity, children)
 }
 
-func or(_ children: FilterQuery<PolarityString>...) -> FilterQuery<PolarityString> {
+private func or(_ children: FilterQuery<PolarityString>...) -> FilterQuery<PolarityString> {
     .or(.positive, children)
 }
-func or(_ polarity: Polarity, _ children: FilterQuery<PolarityString>...) -> FilterQuery<PolarityString> {
+private func or(_ polarity: Polarity, _ children: FilterQuery<PolarityString>...) -> FilterQuery<PolarityString> {
     .or(polarity, children)
 }
 

@@ -53,61 +53,47 @@ struct ProcessSearchTextEditTests {
 
 @Suite("inferIntentFromAppendingOneCharacter")
 struct InferIntentFromAppendingOneCharacterTests {
-    @Test<[(String, String, Range<Int>)]>("returns nil", arguments: [
-        // Not a single char at end
-        ("\"lightning ", " ", 11..<11),
-        // Space after incomplete parenthesized expression
-        ("(color:red", " ", 10..<10),
-        // Space after bare filter keyword with no value
-        ("color:", " ", 6..<6),
-        // Apostrophe appended to a bare word (uninitiated quote, not a valid filter)
-        ("lightning", "'", 9..<9),
-        // Space inside an unterminated single-quote
-        ("'lightning", " ", 10..<10),
-        // Space inside an unterminated double-quote
-        ("\"lightning", " ", 10..<10),
-        // ) or / appended to an empty string
-        ("", ")", 0..<0),
-        ("", "/", 0..<0),
+    @Test<[(String, Range<Int>)]>("returns nil", arguments: [
+        // Character inserted in the middle
+        ("color:red", 5..<6),
+        // Multi-char paste
+        ("\"lightning bolt", 11..<15),
+        // Space between first and second terms of a parenthetical
+        ("(color:red ", 10..<11),
+        // Space after filter -- will wait to start typing filter content
+        ("color: ", 6..<7),
+        // Apostrophes are not single quotes
+        ("lightning'", 9..<10),
+        // Unterminated single quote doesn't commit filter
+        ("'lightning ", 10..<11),
+        // Unterminated double quote doesn't commit filter
+        ("\"lightning ", 10..<11),
+        // Terminating special characters don't... terminate... the empty string
+        (")", 0..<1),
+        ("/", 0..<1),
     ])
-    func returnsNil(textBefore: String, inserted: String, insertionRange: Range<Int>) {
-        let candidate = textBefore.replacingCharacters(
-            in: insertionRange.toStringIndices(in: textBefore)!,
-            with: inserted,
-        )
-        let editedRange = candidate.index(candidate.endIndex, offsetBy: -1)..<candidate.endIndex
-        #expect(inferIntentFromAppendingOneCharacter(in: candidate, withLastEditAt: editedRange) == nil)
+    func returnsNil(candidate: String, editedRange: Range<Int>) throws {
+        let range = try #require(editedRange.toStringIndices(in: candidate))
+        #expect(inferIntentFromAppendingOneCharacter(in: candidate, withLastEditAt: range) == nil)
     }
 
-    // swiftlint:disable:next large_tuple
-    @Test<[(String, String, Range<Int>, IntSearchTextEdit)]>(
+    @Test<[(String, Range<Int>, IntSearchTextEdit)]>(
         "returns non-nil",
         arguments: [
             // Space appended to a bare word starts a quoted name
-            ("lightning", " ", 9..<9, (nil, "\"lightning ", nil)),
+            ("lightning ", 9..<10, (nil, "\"lightning ", nil)),
             // Same with a negated bare word
-            ("-lightning", " ", 10..<10, (nil, "-\"lightning ", nil)),
+            ("-lightning ", 10..<11, (nil, "-\"lightning ", nil)),
             // Bare word with uninitiated apostrophe gets double-quote wrapping
-            ("urza's", " ", 6..<6, (nil, "\"urza's ", nil)),
+            ("urza's ", 6..<7, (nil, "\"urza's ", nil)),
             // Closing double-quote completes a name filter
-            (
-                "\"urza's saga",
-                "\"",
-                12..<12,
-                (.term(.name(.positive, false, "urza's saga")), "", nil),
-            ),
+            ("\"urza's saga\"", 12..<13, (.term(.name(.positive, false, "urza's saga")), "", nil)),
             // Closing slash completes a regex filter
-            (
-                "oracle:/bolt",
-                "/",
-                12..<12,
-                (.term(.regex(.positive, "oracle", .including, "bolt")), "", nil),
-            ),
+            ("oracle:/bolt/", 12..<13, (.term(.regex(.positive, "oracle", .including, "bolt")), "", nil)),
             // Closing paren completes an or-expression
             (
-                "(color:red or color:blue",
-                ")",
-                24..<24,
+                "(color:red or color:blue)",
+                24..<25,
                 (
                     .or(
                         .positive,
@@ -122,18 +108,9 @@ struct InferIntentFromAppendingOneCharacterTests {
             ),
         ],
     )
-    func returnsNonNil(
-        textBefore: String,
-        inserted: String,
-        insertionRange: Range<Int>,
-        expected: IntSearchTextEdit,
-    ) throws {
-        let candidate = textBefore.replacingCharacters(
-            in: insertionRange.toStringIndices(in: textBefore)!,
-            with: inserted,
-        )
-        let editedRange = candidate.index(candidate.endIndex, offsetBy: -1)..<candidate.endIndex
-        let result = try #require(inferIntentFromAppendingOneCharacter(in: candidate, withLastEditAt: editedRange))
+    func returnsNonNil(candidate: String, editedRange: Range<Int>, expected: IntSearchTextEdit) throws {
+        let range = editedRange.toStringIndices(in: candidate)!
+        let result = try #require(inferIntentFromAppendingOneCharacter(in: candidate, withLastEditAt: range))
         #expect(result == (
             expected.0,
             expected.1,
