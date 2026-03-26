@@ -97,20 +97,41 @@ struct AllPrintsFilterSettings: Equatable, Hashable, CustomStringConvertible {
 
     func sort(_ cards: [Card]) -> [Card] {
         switch sort {
-        case .releaseDate:
-            cards.sorted {
-                ($0.releasedAtAsDate ?? .distantPast) > ($1.releasedAtAsDate ?? .distantPast)
-            }
-        case .regularPrice:
-            cards.sorted {
-                ($0.prices.usd.flatMap(Double.init) ?? -.infinity, $0.releasedAtAsDate ?? .distantPast)
-                    > ($1.prices.usd.flatMap(Double.init) ?? -.infinity, $1.releasedAtAsDate ?? .distantPast)
-            }
-        case .foilPrice:
-            cards.sorted {
-                ($0.prices.usdFoil.flatMap(Double.init) ?? -.infinity, $0.releasedAtAsDate ?? .distantPast)
-                    > ($1.prices.usdFoil.flatMap(Double.init) ?? -.infinity, $1.releasedAtAsDate ?? .distantPast)
-            }
+        case .releaseDate: cards.sorted { $0.releaseDateSortKey > $1.releaseDateSortKey }
+        case .regularPrice: cards.sorted { $0.regularPriceSortKey > $1.regularPriceSortKey }
+        case .foilPrice: cards.sorted { $0.foilPriceSortKey > $1.foilPriceSortKey }
         }
+    }
+}
+
+private extension Card {
+    var releaseDateSortKey: (Date, String, String) {
+        (
+            releasedAtAsDate ?? .distantPast,
+            setName,
+            collectorNumber,
+        )
+    }
+
+    // swiftlint:disable:next large_tuple
+    var regularPriceSortKey: (Double, Double, Date, String, String) {
+        (
+            prices.usd.flatMap(Double.init) ?? -.infinity,
+            prices.usdFoil.flatMap(Double.init) ?? -.infinity,
+            releasedAtAsDate ?? .distantPast,
+            setName,
+            collectorNumber,
+        )
+    }
+
+    // swiftlint:disable:next large_tuple
+    var foilPriceSortKey: (Double, Double, Date, String, String) {
+        (
+            prices.usdFoil.flatMap(Double.init) ?? -.infinity,
+            prices.usd.flatMap(Double.init) ?? -.infinity,
+            releasedAtAsDate ?? .distantPast,
+            setName,
+            collectorNumber,
+        )
     }
 }
