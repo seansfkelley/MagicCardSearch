@@ -116,11 +116,9 @@ private struct PagingCardImageView: View {
                         )
                         .padding(.horizontal)
 
-                        Group {
-                            VendorButtonView(prices: card.prices, purchaseUris: card.purchaseUris)
-                                .padding(.horizontal)
-                        }
-                        .padding(.vertical)
+                        VendorButtonView(prices: card.prices, purchaseUris: card.purchaseUris)
+                            .padding(.horizontal)
+                            .padding(.bottom, 6)
                     }
                     .frame(width: screenWidth)
                     .id(card.id)
