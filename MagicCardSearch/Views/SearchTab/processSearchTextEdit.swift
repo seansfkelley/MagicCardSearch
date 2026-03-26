@@ -43,6 +43,7 @@ func inferIntentFromAppendingOneCharacter(in string: String, withLastEditAt rang
         return if case .valid(let filter) = BestParse.from(string) {
             filter.transformLeaves(using: FilterTerm.from).flatMap {
                 switch $0 {
+                // Bare name filters are very permissive, so don't consider them valid completions.
                 case .term(.name): nil
                 default: ($0, "", nil)
                 }

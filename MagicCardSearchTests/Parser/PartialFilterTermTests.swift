@@ -759,3 +759,52 @@ struct PartialFilterTermTests {
         )
     }
 }
+@Suite
+struct MatchPartialTermTests {
+    @Test<[(String, Bool, PartialFilterTerm.PartialTerm)]>("matchPartialTerm", arguments: [
+        // MARK: - Bare strings
+        ("foo",      false, .bare("foo")),
+        ("",         false, .bare("")),
+        (" ",        false, .bare(" ")),
+        ("123",      false, .bare("123")),
+        ("{p/r}{g}", false, .bare("{p/r}{g}")),
+        // Single quote after a word is treated as an apostrophe, not a quote delimiter.
+        ("foo'",     false, .bare("foo'")),
+        ("foo's",    false, .bare("foo's")),
+
+        // MARK: - Single-quoted strings
+        ("'foo'",         false, .balanced(.singleQuote, "foo")),
+        ("''",            false, .balanced(.singleQuote, "")),
+        ("'hello world'", false, .balanced(.singleQuote, "hello world")),
+        ("'foo",          false, .unterminated(.singleQuote, "foo")),
+        ("'",             false, .unterminated(.singleQuote, "")),
+        ("'hello world",  false, .unterminated(.singleQuote, "hello world")),
+
+        // MARK: - Double-quoted strings
+        ("\"foo\"",         false, .balanced(.doubleQuote, "foo")),
+        ("\"\"",            false, .balanced(.doubleQuote, "")),
+        ("\"hello world\"", false, .balanced(.doubleQuote, "hello world")),
+        ("\"foo",           false, .unterminated(.doubleQuote, "foo")),
+        ("\"",              false, .unterminated(.doubleQuote, "")),
+        ("foo\"",           false, .uninitiated(.doubleQuote, "foo")),
+        ("hello world\"",   false, .uninitiated(.doubleQuote, "hello world")),
+
+        // MARK: - Forward slash (regex)
+        ("/foo/",             false, .balanced(.forwardSlash, "foo")),
+        ("//",                false, .balanced(.forwardSlash, "")),
+        ("/^lightning/",      false, .balanced(.forwardSlash, "^lightning")),
+        ("/foo",              false, .unterminated(.forwardSlash, "foo")),
+        ("/",                 false, .unterminated(.forwardSlash, "")),
+        ("/incomplete regex", false, .unterminated(.forwardSlash, "incomplete regex")),
+
+        // MARK: - Forward slash treated as literal (treatingRegexesAsLiterals: true)
+        ("/foo/",    true, .bare("/foo/")),
+        ("/foo",     true, .bare("/foo")),
+        ("/^test$/", true, .bare("/^test$/")),
+    ])
+    func matchPartialTerm(input: String, treatingRegexesAsLiterals: Bool, expected: PartialFilterTerm.PartialTerm) async throws {
+        let actual = MagicCardSearch.matchPartialTerm(input, treatingRegexesAsLiterals: treatingRegexesAsLiterals)
+        #expect(actual == expected)
+    }
+}
+
