@@ -3,7 +3,7 @@ import OSLog
 private let logger = Logger(subsystem: "MagicCardSearch", category: "BestParse")
 
 public extension PartialFilterQuery {
-    enum BestParse: Equatable {
+    enum BestParse: Equatable, Sendable {
         case empty
         case valid(FilterQuery<PolarityString>)
         case autoterminated(FilterQuery<PolarityString>)
