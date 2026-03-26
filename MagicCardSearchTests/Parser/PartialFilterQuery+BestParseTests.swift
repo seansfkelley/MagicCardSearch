@@ -44,7 +44,7 @@ struct TestCase: Sendable, CustomStringConvertible {
 
 // Serialized: Citron is not thread-safe.
 @Suite(.serialized)
-struct PartialFilterQueryTests {
+struct PartialFilterQueryBestParseTests {
     // MARK: - Comprehensive Query Parsing Tests
     
     @Test<[TestCase]>("Parse all query types", arguments: [
@@ -464,7 +464,7 @@ struct PartialFilterQueryTests {
         let materializedRanges = PlausibleFilterRanges.from(testCase.input).ranges.map { String(testCase.input[$0]) }
         #expect(materializedRanges == testCase.expectedFilters)
         
-        let parsed: FilterQuery<PolarityString>? = switch BestParse.from(testCase.input) {
+        let parsed: PartialFilterQuery? = switch PartialFilterQuery.from(testCase.input) {
         case .valid(let parsed): parsed
         default: nil
         }

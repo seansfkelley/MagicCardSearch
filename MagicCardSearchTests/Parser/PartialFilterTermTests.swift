@@ -761,6 +761,7 @@ struct PartialFilterTermTests {
 }
 @Suite
 struct MatchPartialTermTests {
+    // swiftlint:disable comma
     @Test<[(String, Bool, PartialFilterTerm.PartialTerm)]>("matchPartialTerm", arguments: [
         // MARK: - Bare strings
         ("foo",      false, .bare("foo")),
@@ -806,5 +807,6 @@ struct MatchPartialTermTests {
         let actual = MagicCardSearch.matchPartialTerm(input, treatingRegexesAsLiterals: treatingRegexesAsLiterals)
         #expect(actual == expected)
     }
+    // swiftlint:enable comma
 }
 

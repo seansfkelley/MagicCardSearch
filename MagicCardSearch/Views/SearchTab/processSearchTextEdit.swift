@@ -40,7 +40,7 @@ func inferIntentFromAppendingOneCharacter(in string: String, withLastEditAt rang
     // Single-quotes are generally used as apostrophes, so group it here instead of with the
     // generally-always-used-for-quoting double quote.
     if string.hasSuffix(")") || string.hasSuffix("/") || string.hasSuffix("'") {
-        return if case .valid(let filter) = BestParse.from(string) {
+        return if case .valid(let filter) = PartialFilterQuery.from(string) {
             filter.transformLeaves(using: FilterTerm.from).flatMap {
                 switch $0 {
                 // Bare name filters are very permissive, so don't consider them valid completions.
@@ -75,7 +75,7 @@ func inferIntentFromAppendingOneCharacter(in string: String, withLastEditAt rang
     }
 
     if string.hasSuffix(" ") || string.hasSuffix("\"") {
-        return if case .valid(let filter) = BestParse.from(string) {
+        return if case .valid(let filter) = PartialFilterQuery.from(string) {
             filter.transformLeaves(using: FilterTerm.from).map { ($0, "", nil) }
         } else {
             nil
