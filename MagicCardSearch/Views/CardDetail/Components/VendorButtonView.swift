@@ -195,12 +195,53 @@ private struct VendorPopoverRow: View {
 }
 
 #Preview {
-    let prices = Card.Prices(tix: "0.05", usd: "1.23", usdFoil: "4.56", eur: "1.10", eurEtched: "2.20")
-    let purchaseUris: [String: String] = [
+    @Previewable @AppStorage("preferredVendor") var preferredVendor: Vendor = .tcgplayer
+    let allVendorUris: [String: String] = [
         "tcgplayer": "https://www.tcgplayer.com",
         "cardmarket": "https://www.cardmarket.com",
         "cardhoarder": "https://www.cardhoarder.com",
     ]
-    VendorButtonView(prices: prices, purchaseUris: purchaseUris)
-        .padding()
+    VStack(alignment: .leading, spacing: 16) {
+        Picker("Preferred Vendor", selection: $preferredVendor) {
+            ForEach(Vendor.allCases, id: \.self) { Text($0.displayName).tag($0) }
+        }
+        .pickerStyle(.segmented)
+
+        Text("All vendors")
+        VendorButtonView(
+            prices: Card.Prices(tix: "0.05", usd: "1.23", usdFoil: "4.56", eur: "1.10", eurEtched: "2.20"),
+            purchaseUris: allVendorUris
+        )
+
+        Text("TCGplayer only")
+        VendorButtonView(
+            prices: Card.Prices(usd: "1.23"),
+            purchaseUris: ["tcgplayer": "https://www.tcgplayer.com"]
+        )
+
+        Text("Cardmarket only")
+        VendorButtonView(
+            prices: Card.Prices(eur: "1.10"),
+            purchaseUris: ["cardmarket": "https://www.cardmarket.com"]
+        )
+
+        Text("Cardhoarder only")
+        VendorButtonView(
+            prices: Card.Prices(tix: "0.05"),
+            purchaseUris: ["cardhoarder": "https://www.cardhoarder.com"]
+        )
+
+        Text("No prices, yes URIs")
+        VendorButtonView(prices: Card.Prices(), purchaseUris: allVendorUris)
+
+        Text("No prices, no URIs")
+        VendorButtonView(prices: Card.Prices(), purchaseUris: nil)
+
+        Text("Foil only")
+        VendorButtonView(
+            prices: Card.Prices(usdFoil: "4.56", eurFoil: "3.80"),
+            purchaseUris: ["tcgplayer": "https://www.tcgplayer.com", "cardmarket": "https://www.cardmarket.com"]
+        )
+    }
+    .padding()
 }
