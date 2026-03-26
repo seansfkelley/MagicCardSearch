@@ -20,6 +20,10 @@ enum Vendor: String, CaseIterable {
         }
     }
 
+    var image: Image { Image(rawValue) }
+
+    var blueImage: Image { Image("\(rawValue)-blue") }
+
     // swiftlint:disable:next cyclomatic_complexity
     func price(from prices: Card.Prices, for type: PriceType) -> String? {
         switch self {
@@ -83,7 +87,7 @@ struct VendorButtonView: View {
         Button { showingPopover = true } label: {
             let vendorPrices = orderedPrices(for: preferredVendor)
             HStack {
-                Image(preferredVendor.rawValue)
+                preferredVendor.blueImage
                     .resizable()
                     .aspectRatio(contentMode: .fit)
 
@@ -153,7 +157,7 @@ private struct VendorPopoverRow: View {
         Button { onTap(url) } label: {
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
-                    Image(vendor.rawValue)
+                    vendor.image
                         .resizable()
                         .aspectRatio(contentMode: .fit)
                         .frame(height: 20)
