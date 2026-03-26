@@ -58,7 +58,7 @@ struct SetIconView: View {
                     .aspectRatio(contentMode: .fit)
                     .frame(width: size, height: size)
             } else {
-                Image(systemName: "square.stack.3d.up")
+                Image(systemName: "questionmark.app.dashed")
                     .resizable()
                     .aspectRatio(contentMode: .fit)
                     .frame(width: size, height: size)

@@ -106,19 +106,26 @@ private struct PagingCardImageView: View {
                         )
                         .padding(.horizontal)
 
-                        SetMetadataCardSection(
-                            setCode: card.set,
-                            setName: card.setName,
-                            collectorNumber: card.collectorNumber,
-                            rarity: card.rarity,
-                            lang: card.lang,
-                            releasedAtAsDate: card.releasedAtAsDate,
-                        )
-                        .padding(.horizontal)
-
-                        VendorButtonView(prices: card.prices, purchaseUris: card.purchaseUris)
-                            .padding(.horizontal)
-                            .padding(.bottom, 6)
+                        HStack(alignment: .center, spacing: 10) {
+                            SetIconView(setCode: SetCode(card.set), size: 48)
+                            VStack(alignment: .leading) {
+                                HStack(alignment: .center) {
+                                    Text("\(card.set.uppercased()) #\(card.collectorNumber)")
+                                    VendorButtonView(prices: card.prices, purchaseUris: card.purchaseUris)
+                                    Spacer()
+                                }
+                                Text(
+                                    [
+                                        card.releasedAtAsDate.map { $0.formatted(.dateTime.year().month().day()) },
+                                        card.setName,
+                                    ].compactMap(\.self).joined(separator: " • ")
+                                )
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            }
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.vertical)
                     }
                     .frame(width: screenWidth)
                     .id(card.id)

@@ -19,18 +19,13 @@ struct SetMetadataCardSection: View {
                         .font(.body)
                         .fontWeight(.medium)
 
-                    let suffix: String? = if let releaseDate = releasedAtAsDate {
-                        releaseDate.formatted(.dateTime.year().month().day())
-                    } else {
-                        nil
-                    }
-
-                    Text([
-                        "\(setCode.uppercased()) #\(collectorNumber)",
-                        rarity.rawValue.capitalized,
-                        languageDisplay(for: lang),
-                        suffix,
-                    ].compactMap(\.self).joined(separator: " • ")
+                    Text(
+                        [
+                            "\(setCode.uppercased()) #\(collectorNumber)",
+                            rarity.rawValue.capitalized,
+                            Language.name(forCode: lang),
+                            releasedAtAsDate.map { $0.formatted(.dateTime.year().month().day()) },
+                        ].compactMap(\.self).joined(separator: " • ")
                     )
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -40,28 +35,5 @@ struct SetMetadataCardSection: View {
         .padding(.horizontal)
         .padding(.vertical, 12)
         .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    private func languageDisplay(for lang: String) -> String {
-        let languages: [String: String] = [
-            "en": "English",
-            "es": "Spanish",
-            "fr": "French",
-            "de": "German",
-            "it": "Italian",
-            "pt": "Portuguese",
-            "ja": "Japanese",
-            "ko": "Korean",
-            "ru": "Russian",
-            "zhs": "Simplified Chinese",
-            "zht": "Traditional Chinese",
-            "he": "Hebrew",
-            "la": "Latin",
-            "grc": "Ancient Greek",
-            "ar": "Arabic",
-            "sa": "Sanskrit",
-            "px": "Phyrexian",
-        ]
-        return languages[lang.lowercased()] ?? lang.capitalized
     }
 }
