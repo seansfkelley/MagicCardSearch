@@ -20,7 +20,7 @@ struct SearchBarView: View {
         // retain it as long as this view is alive.
         self.textFieldDelegate = SearchTextFieldDelegate(
             onReturn: {
-                if let filter = searchState.wrappedValue.searchText.toFilter().value {
+                if let filter = BestParse.from(searchState.wrappedValue.searchText, autoclosePairedDelimiters: true).value?.transformLeaves(using: FilterTerm.from) {
                     searchState.wrappedValue.filters.append(filter)
                     searchState.wrappedValue.searchText = ""
                     searchState.wrappedValue.desiredSearchSelection = nil

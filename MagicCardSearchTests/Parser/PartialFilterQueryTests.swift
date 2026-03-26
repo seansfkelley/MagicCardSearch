@@ -464,8 +464,11 @@ struct PartialFilterQueryTests {
         let materializedRanges = PlausibleFilterRanges.from(testCase.input).ranges.map { String(testCase.input[$0]) }
         #expect(materializedRanges == testCase.expectedFilters)
         
-        let parsed = PartialFilterQuery.from(testCase.input)
-        
+        let parsed: FilterQuery<PolarityString>? = switch BestParse.from(testCase.input) {
+        case .valid(let parsed): parsed
+        default: nil
+        }
+
         if let (expectedParseTree, expectedDescription) = testCase.expectedParseResult {
             try #require(parsed != nil)
             #expect(parsed == expectedParseTree)

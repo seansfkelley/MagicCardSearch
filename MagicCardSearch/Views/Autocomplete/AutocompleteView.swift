@@ -56,7 +56,7 @@ struct AutocompleteView: View {
 
     var body: some View {
         List {
-            if let filter = searchState.searchText.toFilter().value {
+            if let filter = BestParse.from(searchState.searchText, autoclosePairedDelimiters: true).value?.transformLeaves(using: FilterTerm.from) {
                 Button {
                     addFilter(filter)
                 } label: {

@@ -37,12 +37,15 @@ func processSearchTextEdit(
 func inferIntentFromAppendingOneCharacter(in string: String, withLastEditAt range: Range<String.Index>) -> SearchTextEdit? {
     guard range.upperBound == string.endIndex, range.lowerBound == string.index(before: range.upperBound) else { return nil }
 
-    if string.hasSuffix(")") || string.hasSuffix("/") {
-        return if case .valid(let filter) = string.toFilter() {
-            if case .term(let term) = filter, case .name = term {
-                nil
-            } else {
-                (filter, "", nil)
+    // Single-quotes are generally used as apostrophes, so group it here instead of with the
+    // generally-always-used-for-quoting double quote.
+    if string.hasSuffix(")") || string.hasSuffix("/") || string.hasSuffix("'") {
+        return if case .valid(let filter) = BestParse.from(string) {
+            filter.transformLeaves(using: FilterTerm.from).flatMap {
+                switch $0 {
+                case .term(.name): nil
+                default: ($0, "", nil)
+                }
             }
         } else {
             nil
@@ -70,9 +73,9 @@ func inferIntentFromAppendingOneCharacter(in string: String, withLastEditAt rang
         }
     }
 
-    if string.hasSuffix(" ") || string.hasSuffix("'") || string.hasSuffix("\"") {
-        return if case .valid(let filter) = string.toFilter() {
-            (filter, "", nil)
+    if string.hasSuffix(" ") || string.hasSuffix("\"") {
+        return if case .valid(let filter) = BestParse.from(string) {
+            filter.transformLeaves(using: FilterTerm.from).map { ($0, "", nil) }
         } else {
             nil
         }

@@ -445,9 +445,19 @@ struct PartialFilterTermTests {
             "foo'",
             PartialFilterTerm(
                 polarity: .positive,
-                content: .name(false, .uninitiated(.singleQuote, "foo"))
+                // If it's after an alphanumeric, it's considered an apostrophe.
+                content: .name(false, .bare("foo'"))
             ),
-            nil
+            .name(.positive, false, "foo'"),
+        ),
+
+        TestCase(
+            "foo's",
+            PartialFilterTerm(
+                polarity: .positive,
+                content: .name(false, .bare("foo's"))
+            ),
+            .name(.positive, false, "foo's"),
         ),
 
         // MARK: - Empty strings

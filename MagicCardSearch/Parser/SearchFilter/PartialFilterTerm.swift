@@ -102,6 +102,13 @@ public struct PartialFilterTerm: Sendable, Equatable, CustomStringConvertible {
             case .filter(let field, let comparison, let term): "\(field)\(comparison)\(term)"
             }
         }
+
+        var term: PartialTerm {
+            switch self {
+            case .name(_, let term): term
+            case .filter(_, _, let term): term
+            }
+        }
     }
     
     let polarity: Polarity
@@ -192,11 +199,10 @@ func matchPartialTerm(_ input: String, treatingRegexesAsLiterals: Bool = false) 
         return close.isEmpty
         ? .unterminated(.doubleQuote, String(content))
         : .balanced(.doubleQuote, String(content))
-    } else if let match = input.wholeMatch(of: /^([^']+)'$/) {
-        let (_, content) = match.output
-        return .uninitiated(.singleQuote, String(content))
     } else if let match = input.wholeMatch(of: /^([^"]+)"$/) {
         let (_, content) = match.output
+        // There is no case for unintiated single-quote; such a case is actually considered a usage
+        // of an apostrophe and therefore would fall into the .bare case.
         return .uninitiated(.doubleQuote, String(content))
     } else if !treatingRegexesAsLiterals, let match = input.wholeMatch(of: /^\/([^\/]*)(\/?)$/) {
         let (_, content, close) = match.output
