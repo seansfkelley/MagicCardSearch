@@ -62,7 +62,7 @@ enum PriceType {
 
     var label: String {
         switch self {
-        case .regular: "Regular"
+        case .regular: "Reg."
         case .foil: "Foil"
         case .etched: "Etched"
         }
@@ -158,33 +158,37 @@ private struct VendorPopoverRow: View {
 
     var body: some View {
         Button { onTap() } label: {
-            VStack(alignment: .leading, spacing: 4) {
-                HStack {
-                    vendor.image
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(height: 20)
-                    Text(vendor.displayName)
-                        .fontWeight(.medium)
-                    if showUrlIcon {
-                        Spacer()
-                        Image(systemName: "arrow.up.forward")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+            HStack(spacing: 16) {
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 8) {
+                        vendor.image
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(height: 16)
+
+                        Text(vendor.displayName)
+                            .fontWeight(.medium)
+                    }
+
+                    if !orderedPrices.isEmpty {
+                        HStack(spacing: 10) {
+                            ForEach(orderedPrices, id: \.0) { type, price in
+                                HStack(spacing: 3) {
+                                    Text(type.label)
+                                        .foregroundStyle(.secondary)
+                                    Text(vendor.symbol + price)
+                                }
+                                .font(.subheadline)
+                            }
+                        }
                     }
                 }
 
-                if !orderedPrices.isEmpty {
-                    HStack(spacing: 10) {
-                        ForEach(orderedPrices, id: \.0) { type, price in
-                            HStack(spacing: 3) {
-                                Text(type.label)
-                                    .foregroundStyle(.secondary)
-                                Text(vendor.symbol + price)
-                            }
-                            .font(.caption)
-                        }
-                    }
+                if showUrlIcon {
+                    Spacer()
+                    Image(systemName: "arrow.up.forward")
+                        .foregroundStyle(.secondary)
+                        .frame(height: 32)
                 }
             }
             .padding()
