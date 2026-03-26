@@ -34,13 +34,13 @@ extension String {
             }
         } else {
             let partial = PartialFilterTerm.from(trimmed)
-            if let filter = partial.toComplete() {
-                return .valid(.term(filter))
+            return if let filter = partial.toComplete() {
+                .valid(.term(filter))
             } else if let filter = partial.toComplete(autoterminateQuotes: true) {
-                return .autoterminated(.term(filter))
+                .autoterminated(.term(filter))
             } else {
                 // TODO: Should assign the negation correctly I think.
-                return .fallback(.term(.name(.positive, false, trimmed)))
+                .fallback(.term(.name(.positive, false, trimmed)))
             }
         }
     }
