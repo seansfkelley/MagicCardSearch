@@ -14,16 +14,8 @@ struct PricesCardSection<DividerContent: View>: View {
         self.divider = divider
     }
 
-    private var hasPrices: Bool {
-        let usdAvailable = prices.usd != nil && !prices.usd!.isEmpty
-        let eurAvailable = prices.eur != nil && !prices.eur!.isEmpty
-        let tixAvailable = prices.tix != nil && !prices.tix!.isEmpty
-        
-        return usdAvailable || eurAvailable || tixAvailable
-    }
-
     var body: some View {
-        if hasPrices {
+        if !prices.isEmpty {
             divider()
             HStack {
                 Label("Buy It", systemImage: "dollarsign")

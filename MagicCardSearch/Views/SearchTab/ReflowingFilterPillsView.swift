@@ -7,7 +7,8 @@ struct ReflowingFilterPillsView: View {
     let onRemove: (FilterQuery<FilterTerm>) -> Void
 
     @State private var pillSizes: [FilterQuery<FilterTerm>: CGSize] = [:]
-    
+    @State private var availableWidth: CGFloat = 0
+
     private let horizontalSpacing: CGFloat = 8
     private let verticalSpacing: CGFloat = 8
     private let horizontalPadding: CGFloat = 12
@@ -101,8 +102,6 @@ struct ReflowingFilterPillsView: View {
         let totalVerticalPadding = verticalPadding * 2
         return (totalLineHeight * CGFloat(rowCount)) - verticalSpacing + totalVerticalPadding
     }
-    
-    @State private var availableWidth: CGFloat = 0
     
     private struct FilterItem: Hashable {
         let filter: FilterQuery<FilterTerm>

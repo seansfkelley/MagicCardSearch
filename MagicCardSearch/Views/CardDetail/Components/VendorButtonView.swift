@@ -20,6 +20,14 @@ enum Vendor: String, CaseIterable {
         }
     }
 
+    var currency: String {
+        switch self {
+        case .tcgplayer: "USD"
+        case .cardmarket: "EUR"
+        case .cardhoarder: "TIX"
+        }
+    }
+
     var image: Image { Image(rawValue) }
 
     var blueImage: Image { Image("\(rawValue)-blue") }
@@ -87,17 +95,13 @@ struct VendorButtonView: View {
         Button { showingPopover = true } label: {
             let vendorPrices = orderedPrices(for: preferredVendor)
             HStack {
-                preferredVendor.blueImage
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-
                 if vendorPrices.isEmpty {
-                    Text(preferredVendor.displayName)
+                    Text("No \(preferredVendor.currency) Price")
                         .font(.subheadline)
                         .fontWeight(.medium)
                         .foregroundStyle(.blue)
                 } else {
-                    HStack(spacing: 6) {
+                    HStack(spacing: 12) {
                         ForEach(vendorPrices, id: \.0) { type, price in
                             HStack(spacing: 2) {
                                 if let icon = type.icon {
@@ -120,18 +124,23 @@ struct VendorButtonView: View {
         .popover(isPresented: $showingPopover) {
             VStack(alignment: .leading, spacing: 0) {
                 ForEach(Array(Vendor.allCases.enumerated()), id: \.offset) { index, vendor in
-                    VendorPopoverRow(
-                        vendor: vendor,
-                        prices: prices,
-                        url: purchaseUris?[vendor.rawValue].flatMap { URL(string: $0) }
-                    ) { url in
-                        preferredVendor = vendor
-                        if let url { openURL(url) }
-                        showingPopover = false
-                    }
+                    let url = purchaseUris?[vendor.rawValue].flatMap { URL(string: $0) }
+                    let prices = orderedPrices(for: vendor)
 
-                    if index < Vendor.allCases.count - 1 {
-                        Divider()
+                    if url != nil || !prices.isEmpty {
+                        VendorPopoverRow(
+                            vendor: vendor,
+                            orderedPrices: prices,
+                            showUrlIcon: url != nil,
+                        ) {
+                            preferredVendor = vendor
+                            if let url { openURL(url) }
+                            showingPopover = false
+                        }
+
+                        if index < Vendor.allCases.count - 1 {
+                            Divider()
+                        }
                     }
                 }
             }
@@ -143,18 +152,12 @@ struct VendorButtonView: View {
 
 private struct VendorPopoverRow: View {
     let vendor: Vendor
-    let prices: Card.Prices
-    let url: URL?
-    let onTap: (URL?) -> Void
-
-    private var orderedPrices: [(PriceType, String)] {
-        [PriceType.regular, .foil, .etched].compactMap { type in
-            vendor.price(from: prices, for: type).map { (type, $0) }
-        }
-    }
+    let orderedPrices: [(PriceType, String)]
+    let showUrlIcon: Bool
+    let onTap: () -> Void
 
     var body: some View {
-        Button { onTap(url) } label: {
+        Button { onTap() } label: {
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
                     vendor.image
@@ -163,7 +166,7 @@ private struct VendorPopoverRow: View {
                         .frame(height: 20)
                     Text(vendor.displayName)
                         .fontWeight(.medium)
-                    if url != nil {
+                    if showUrlIcon {
                         Spacer()
                         Image(systemName: "arrow.up.forward")
                             .font(.caption)

@@ -90,20 +90,36 @@ private struct PagingCardImageView: View {
     @Binding var isFlipped: Bool
 
     @State private var scrollPhase: ScrollPhase = .idle
+    @State private var cardWidth: CGFloat = 0
 
     var body: some View {
         ScrollView(.horizontal) {
             LazyHStack(spacing: 0) {
                 ForEach(cards, id: \.id) { card in
-                    VStack(spacing: 0) {
-                        CardView(
-                            card: card,
-                            quality: .large,
-                            isFlipped: $isFlipped,
-                            cornerRadius: 16,
-                            enableZoomGestures: true,
-                            enableCopyActions: true,
-                        )
+                    VStack(alignment: .center, spacing: 0) {
+                        // ZStack exists just to separate the padding from the GeometryReader so it
+                        // can accurately see how large the card itself is.
+                        ZStack {
+                            CardView(
+                                card: card,
+                                quality: .large,
+                                isFlipped: $isFlipped,
+                                cornerRadius: 16,
+                                enableZoomGestures: true,
+                                enableCopyActions: true,
+                            )
+                            .background(
+                                GeometryReader { geometry in
+                                    Color.clear
+                                        .onAppear {
+                                            cardWidth = geometry.size.width
+                                        }
+                                        .onChange(of: geometry.size.width) {
+                                            cardWidth = geometry.size.width
+                                        }
+                                }
+                            )
+                        }
                         .padding(.horizontal)
 
                         HStack(alignment: .center, spacing: 10) {
@@ -111,21 +127,25 @@ private struct PagingCardImageView: View {
                             VStack(alignment: .leading) {
                                 HStack(alignment: .center) {
                                     Text("\(card.set.uppercased()) #\(card.collectorNumber)")
-                                    VendorButtonView(prices: card.prices, purchaseUris: card.purchaseUris)
+                                    if !card.prices.isEmpty {
+                                        VendorButtonView(prices: card.prices, purchaseUris: card.purchaseUris)
+                                    }
                                     Spacer()
                                 }
-                                Text(
-                                    [
-                                        card.releasedAtAsDate.map { $0.formatted(.dateTime.year().month().day()) },
-                                        card.setName,
-                                    ].compactMap(\.self).joined(separator: " • ")
-                                )
+                                HStack(spacing: 4) {
+                                    if let date = card.releasedAtAsDate {
+                                        Text("\(date.formatted(.dateTime.year().month().day()))")
+                                        Text("•")
+                                    }
+                                    Text(card.setName).lineLimit(1).truncationMode(.middle)
+                                }
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                             }
                         }
-                        .padding(.horizontal, 20)
                         .padding(.vertical)
+                        .padding(.horizontal, 4)
+                        .frame(width: cardWidth)
                     }
                     .frame(width: screenWidth)
                     .id(card.id)
