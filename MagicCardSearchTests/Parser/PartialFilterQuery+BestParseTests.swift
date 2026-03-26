@@ -309,6 +309,12 @@ struct PartialFilterQueryBestParseTests {
             .fallback(term("name:'bolt type:creature")),
             .autoterminated(term("name:'bolt type:creature'"))
         ),
+        // Unclosed regex
+        (
+            "name:/lightning",
+            .fallback(term("name:/lightning")),
+            .autoterminated(term("name:/lightning/"))
+        ),
 
         // MARK: Misc
 
