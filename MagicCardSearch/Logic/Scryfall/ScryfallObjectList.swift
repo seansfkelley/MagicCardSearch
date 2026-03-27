@@ -79,7 +79,7 @@ class ScryfallObjectList<T: Codable & Sendable> {
                 let result = try await self.fetcher(self.nextPage)
                 guard !Task.isCancelled else { return }
 
-                logger.debug("successfully fetched page=\(self.nextPage) uuid=\(self.searchUuid)")
+                logger.debug("successfully fetched page=\(self.nextPage) with count=\(result.data.count) items uuid=\(self.searchUuid)")
                 self.nextPage += 1
                 self.value = .loaded(Self.append(self.value.latestValue, result, postProcess), nil)
             } catch let error as ScryfallKitError {
@@ -131,7 +131,7 @@ class ScryfallObjectList<T: Codable & Sendable> {
                     let result = try await self.fetcher(page)
                     guard !Task.isCancelled else { return }
 
-                    logger.debug("successfully fetched page=\(page) uuid=\(self.searchUuid)")
+                    logger.debug("successfully fetched page=\(page) with count=\(result.data.count) items uuid=\(self.searchUuid)")
 
                     data = Self.append(data, result, postProcess)
                     page += 1

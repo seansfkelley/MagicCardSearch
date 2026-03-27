@@ -47,6 +47,10 @@ public struct PlainDate {
         self.calendar = calendar
     }
 
+    public func formatted(_ style: Date.FormatStyle.DateStyle = .abbreviated) -> String {
+        date.formatted(date: style, time: .omitted)
+    }
+
     // MARK: - Properties
 
     private let formatter: ISO8601DateFormatter
@@ -67,6 +71,19 @@ extension PlainDate: ExpressibleByStringLiteral {
     }
 }
 
+extension PlainDate: CustomStringConvertible {
+    public var description: String {
+        formatter.string(from: date)
+    }
+}
+
+extension PlainDate: Hashable {
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(date)
+        hasher.combine(calendar)
+    }
+}
+
 extension PlainDate: Strideable {
     public func distance(to other: PlainDate) -> Int {
         let timeInterval = date.distance(to: other.date)
@@ -75,6 +92,6 @@ extension PlainDate: Strideable {
 
     public func advanced(by value: Int) -> PlainDate {
         let newDate = calendar.date(byAdding: .day, value: value, to: date)!
-        return PlainDate(date: newDate, calendar: calendar, formatter: formatter)
+        return PlainDate(date: newDate, calendar: calendar)
     }
 }

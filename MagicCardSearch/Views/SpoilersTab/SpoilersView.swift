@@ -76,35 +76,36 @@ struct SpoilersView: View {
         let grouped = groupByDate(results.data)
 
         ScrollView {
-            LazyVStack(alignment: .leading, spacing: 16) {
+            LazyVGrid(columns: columns, spacing: spacing, pinnedViews: .sectionHeaders) {
                 ForEach(grouped, id: \.date) { section in
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text(section.label)
+                    Section {
+                        ForEach(Array(section.cards.enumerated()), id: \.element.id) { _, card in
+                            let globalIndex = results.data.firstIndex { $0.id == card.id } ?? 0
+                            CardView(
+                                card: card,
+                                quality: .normal,
+                                isFlipped: $cardFlipStates.for(card.id),
+                                cornerRadius: 10,
+                                enableCopyActions: true,
+                            )
+                            .onTapGesture {
+                                selectedCardIndex = globalIndex
+                            }
+                            .onAppear {
+                                if globalIndex == results.data.count - 4 {
+                                    spoilersList.loadNextPage()
+                                }
+                            }
+                            .padding(.horizontal, spacing / 2)
+                        }
+                    } header: {
+                        Text(section.date?.formatted() ?? "Unknown")
                             .font(.headline)
                             .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(.horizontal)
-
-                        LazyVGrid(columns: columns, spacing: spacing) {
-                            ForEach(Array(section.cards.enumerated()), id: \.element.id) { _, card in
-                                let globalIndex = results.data.firstIndex { $0.id == card.id } ?? 0
-                                CardView(
-                                    card: card,
-                                    quality: .normal,
-                                    isFlipped: $cardFlipStates.for(card.id),
-                                    cornerRadius: 10,
-                                    enableCopyActions: true,
-                                )
-                                .onTapGesture {
-                                    selectedCardIndex = globalIndex
-                                }
-                                .onAppear {
-                                    if globalIndex == results.data.count - 4 {
-                                        spoilersList.loadNextPage()
-                                    }
-                                }
-                                .padding(.horizontal, spacing / 2)
-                            }
-                        }
+                            .padding(.vertical, 8)
+                            .background(.background)
                     }
                 }
 
@@ -112,6 +113,7 @@ struct SpoilersView: View {
                     ProgressView()
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 20)
+                        .gridCellColumns(2)
                 }
             }
             .padding(.horizontal, spacing / 2)
@@ -120,51 +122,34 @@ struct SpoilersView: View {
     }
 
     private struct DateSection: Identifiable {
-        let date: String
-        let label: String
+        let date: PlainDate?
         let cards: [Card]
-        var id: String { date }
+        var id: PlainDate? { date }
     }
 
     private func groupByDate(_ cards: [Card]) -> [DateSection] {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        formatter.timeStyle = .none
-
-        var sections: [DateSection] = []
-        var currentDateKey: String?
-        var currentCards: [Card] = []
+        var unknownCards: [Card] = []
+        var orderedDates: [PlainDate] = []
+        var cardsByDate: [PlainDate: [Card]] = [:]
 
         for card in cards {
-            let dateKey = card.releasedAt
-
-            if dateKey != currentDateKey {
-                if !currentCards.isEmpty, let key = currentDateKey {
-                    let label = formatDateLabel(key, formatter: formatter)
-                    sections.append(DateSection(date: key, label: label, cards: currentCards))
+            if let rawDate = card.preview?.previewedAtAsDate {
+                let date = PlainDate(date: rawDate)
+                if cardsByDate[date] == nil {
+                    orderedDates.append(date)
                 }
-                currentDateKey = dateKey
-                currentCards = [card]
+                cardsByDate[date, default: []].append(card)
             } else {
-                currentCards.append(card)
+                unknownCards.append(card)
             }
         }
 
-        if !currentCards.isEmpty, let key = currentDateKey {
-            let label = formatDateLabel(key, formatter: formatter)
-            sections.append(DateSection(date: key, label: label, cards: currentCards))
+        var sections: [DateSection] = []
+        if !unknownCards.isEmpty {
+            sections.append(DateSection(date: nil, cards: unknownCards))
         }
-
+        sections += orderedDates.map { DateSection(date: $0, cards: cardsByDate[$0]!) }
         return sections
-    }
-
-    private func formatDateLabel(_ dateString: String, formatter: DateFormatter) -> String {
-        let isoFormatter = ISO8601DateFormatter()
-        isoFormatter.formatOptions = [.withFullDate]
-        if let date = isoFormatter.date(from: dateString) {
-            return formatter.string(from: date)
-        }
-        return dateString
     }
 }
 
