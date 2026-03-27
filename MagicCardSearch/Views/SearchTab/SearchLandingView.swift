@@ -55,8 +55,8 @@ struct SearchLandingView: View {
     var body: some View {
         List {
             pinnedSearchesSection
-            recentSearchesSection
             recentlyViewedCardsSection
+            recentSearchesSection
             examplesSection
         }
         .contentMargins(.top, 20)
