@@ -141,26 +141,23 @@ private struct PagingCardImageView: View {
                                     Text("\(card.set.uppercased()) #\(card.collectorNumber)")
                                         .lineLimit(1)
                                     if !card.prices.isEmpty {
-                                        ViewThatFits(in: .horizontal) {
-                                            VendorButtonView(
-                                                prices: card.prices,
-                                                purchaseUris: card.purchaseUris,
-                                                maxCount: 3,
-                                                ordered: filterSettings.sort.priceOrdering,
-                                            )
-                                            VendorButtonView(
-                                                prices: card.prices,
-                                                purchaseUris: card.purchaseUris,
-                                                maxCount: 2,
-                                                ordered: filterSettings.sort.priceOrdering,
-                                            )
-                                            VendorButtonView(
-                                                prices: card.prices,
-                                                purchaseUris: card.purchaseUris,
-                                                maxCount: 1,
-                                                ordered: filterSettings.sort.priceOrdering,
-                                            )
-                                        }
+                                        // I originally had this as a ViewThatFits with 3>2>1
+                                        // options but that absolutely fucking TANKED framerate, I
+                                        // guess because of layout thrash. I pinned this to max=1
+                                        // which is buttery smooth. Fixes I tried:
+                                        //
+                                        // - messing with .frame or .fixedSize in various places
+                                        // - pushing ViewThatFits into VendorButtonView
+                                        // - removing the GeometryReader above and just using
+                                        //   constant padding
+                                        //
+                                        // Framerate still suffered in release builds.
+                                        VendorButtonView(
+                                            prices: card.prices,
+                                            purchaseUris: card.purchaseUris,
+                                            maxCount: 1,
+                                            ordered: filterSettings.sort.priceOrdering,
+                                        )
                                     }
                                 }
                                 HStack(spacing: 4) {
