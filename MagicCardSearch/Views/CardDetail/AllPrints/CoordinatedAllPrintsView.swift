@@ -64,21 +64,12 @@ struct CoordinatedAllPrintsView: View {
         .onChange(of: mainScrollPosition.viewID(type: UUID.self)) { _, newCardId in
             if let newCardId, let newIndex = cards.firstIndex(where: { $0.id == newCardId }), newIndex != currentIndex {
                 currentIndex = newIndex
-                // n.b. not animated because the calculated partial scroll offset thing makes sure
-                // that the thumbnails are moving proportionally to the main view.
-                if thumbnailScrollPosition.viewID(type: UUID.self) != newCardId {
-                    thumbnailScrollPosition.scrollTo(id: newCardId)
-                }
             }
         }
         .onChange(of: thumbnailScrollPosition.viewID(type: UUID.self)) { _, newCardId in
             if let newCardId, let newIndex = cards.firstIndex(where: { $0.id == newCardId }), newIndex != currentIndex {
                 currentIndex = newIndex
-                // n.b. not animated to prevent excessive motion and potential image loads.
-                if mainScrollPosition.viewID(type: UUID.self) != newCardId {
-                    mainScrollPosition.scrollTo(id: newCardId)
-                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                }
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
             }
         }
     }
@@ -185,6 +176,12 @@ private struct PagingCardImageView: View {
         .scrollTargetBehavior(.paging)
         .scrollPosition($scrollPosition, anchor: .center)
         .scrollIndicators(.hidden)
+        .onScrollPhaseChange { _, newPhase in
+            scrollPhase = newPhase
+            if newPhase != .interacting, newPhase != .decelerating {
+                partialScrollOffsetFraction = 0
+            }
+        }
         .onScrollGeometryChange(
             for: CGFloat.self,
             of: { geometry in
@@ -195,7 +192,9 @@ private struct PagingCardImageView: View {
                 return (CGFloat(currentIdx) * geometry.containerSize.width - geometry.contentOffset.x) / geometry.containerSize.width
             },
             action: { _, new in
-                partialScrollOffsetFraction = new
+                if scrollPhase == .interacting || scrollPhase == .decelerating {
+                    partialScrollOffsetFraction = new
+                }
             })
     }
 }
@@ -245,6 +244,7 @@ private struct ThumbnailPreviewStrip: View {
             }
             .scrollTargetLayout()
             .padding(.leading, partialScrollOffsetFraction * (thumbnailWidth + thumbnailSpacing))
+            .padding(.trailing, -partialScrollOffsetFraction * (thumbnailWidth + thumbnailSpacing))
             .padding(.vertical, 12)
         }
         .contentMargins(.horizontal, (screenWidth - thumbnailWidth) / 2, for: .scrollContent)
