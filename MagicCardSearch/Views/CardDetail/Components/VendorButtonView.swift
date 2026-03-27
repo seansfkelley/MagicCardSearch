@@ -68,11 +68,11 @@ enum PriceType {
         }
     }
 
-    var icon: String? {
+    var image: Image? {
         switch self {
         case .regular: nil
-        case .foil: "sparkles.2"
-        case .etched: "sparkles.2"
+        case .foil: Image(systemName: "sparkles")
+        case .etched: Image("custom.sparkle.rectangle")
         }
     }
 }
@@ -86,7 +86,7 @@ struct VendorButtonView: View {
     let purchaseUris: [String: String]?
 
     private func orderedPrices(for vendor: Vendor) -> [(PriceType, String)] {
-        [PriceType.regular, .foil, .etched].compactMap { type in
+        [.regular, .foil, .etched].compactMap { type in
             vendor.price(from: prices, for: type).map { (type, $0) }
         }
     }
@@ -104,8 +104,8 @@ struct VendorButtonView: View {
                     HStack(spacing: 12) {
                         ForEach(vendorPrices, id: \.0) { type, price in
                             HStack(spacing: 2) {
-                                if let icon = type.icon {
-                                    Image(systemName: icon)
+                                if let image = type.image {
+                                    image
                                         .font(.caption)
                                 }
                                 Text(preferredVendor.symbol + price)
