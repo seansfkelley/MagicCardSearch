@@ -6,14 +6,14 @@ public extension PartialFilterQuery {
     enum BestParse: Equatable, Sendable {
         case empty
         case valid(FilterQuery<PolarityString>)
-        case autoterminated(FilterQuery<PolarityString>)
+        case autoclosed(FilterQuery<PolarityString>)
         case fallback(FilterQuery<PolarityString>)
 
         public var value: FilterQuery<PolarityString>? {
             switch self {
             case .empty: nil
             case .valid(let filter): filter
-            case .autoterminated(let filter): filter
+            case .autoclosed(let filter): filter
             case .fallback(let filter): filter
             }
         }
@@ -35,7 +35,7 @@ public extension PartialFilterQuery {
 
         let tokens: [LexedPartialFilterQueryToken]
         do {
-            tokens = try lexPartialFilterQuery(trimmed, allowingUnterminatedLiterals: autoclosePairedDelimiters)
+            tokens = try lexPartialFilterQuery(trimmed, allowingUnclosedLiterals: autoclosePairedDelimiters)
         } catch {
             logger.debug("failed to lex query error=\(error)")
             return fallback
@@ -52,8 +52,8 @@ public extension PartialFilterQuery {
             if last.1 == .Verbatim {
                 closingQuote = switch PartialFilterTerm.from(last.0.content).content.term {
                 case .balanced, .bare: ""
-                case .uninitiated: nil
-                case .unterminated(let quote, _): quote.rawValue
+                case .unopened: nil
+                case .unclosed(let quote, _): quote.rawValue
                 }
             } else {
                 closingQuote = ""
@@ -96,7 +96,7 @@ public extension PartialFilterQuery {
                         )
                     }
 
-                    return .autoterminated(try parser.endParsing().flattened())
+                    return .autoclosed(try parser.endParsing().flattened())
                 } catch {
                     logger.debug("failed to parse query error=\(error)")
                     return fallback

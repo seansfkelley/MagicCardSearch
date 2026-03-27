@@ -13,7 +13,7 @@ typealias LexedPartialFilterQueryToken = (
 )
 
 // swiftlint:disable:next function_body_length
-func lexPartialFilterQuery(_ input: String, allowingUnterminatedLiterals: Bool = false) throws -> [LexedPartialFilterQueryToken] {
+func lexPartialFilterQuery(_ input: String, allowingUnclosedLiterals: Bool = false) throws -> [LexedPartialFilterQueryToken] {
     guard !input.isEmpty else {
         return []
     }
@@ -34,7 +34,7 @@ func lexPartialFilterQuery(_ input: String, allowingUnterminatedLiterals: Bool =
         .regexPattern(#"[^'"/ \n\t\)]+"#) { ($0, .Verbatim) },
     ]
     
-    if allowingUnterminatedLiterals {
+    if allowingUnclosedLiterals {
         rules.append(contentsOf: [
             .regexPattern(#"'[^']*('|$)"#) { ($0, .Verbatim) },
             .regexPattern(#""[^"]*("|$)"#) { ($0, .Verbatim) },

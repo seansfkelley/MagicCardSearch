@@ -61,13 +61,13 @@ func inferIntentFromAppendingOneCharacter(in string: String, withLastEditAt rang
         if case .name(let isExact, let term) = partial.content {
             let parsedUnquoted: (PartialFilterTerm.PartialTerm.QuotingType?, String)? = switch term {
             case .bare(let content): (.doubleQuote, content)
-            case .uninitiated(let quote, let content): (quote.opposite, content + quote.rawValue)
+            case .unopened(let quote, let content): (quote.opposite, content + quote.rawValue)
             default: nil
             }
             if let parsedUnquoted, let quote = parsedUnquoted.0 {
                 let newText = PartialFilterTerm(
                     polarity: partial.polarity,
-                    content: .name(isExact, .unterminated(quote, parsedUnquoted.1 + " ")),
+                    content: .name(isExact, .unclosed(quote, parsedUnquoted.1 + " ")),
                 ).description
                 return (nil, newText, nil)
             }
@@ -89,7 +89,7 @@ func elideExtraneousWhitespace(in string: String, withLastEditAt range: Range<St
     guard range.lowerBound != range.upperBound,
           string[range.lowerBound].isWhitespace,
           !string[string.index(before: range.upperBound)].isWhitespace,
-          let tokens = try? lexPartialFilterQuery(string, allowingUnterminatedLiterals: true) else {
+          let tokens = try? lexPartialFilterQuery(string, allowingUnclosedLiterals: true) else {
         return nil
     }
 

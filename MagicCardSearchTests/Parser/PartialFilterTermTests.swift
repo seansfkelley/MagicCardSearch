@@ -125,12 +125,12 @@ struct PartialFilterTermTests {
             FilterTerm.name(.positive, false, "lightning bolt")
         ),
 
-        // MARK: - Unterminated quotes
+        // MARK: - Unclosed quotes
         TestCase(
             "\"foo",
             PartialFilterTerm(
                 polarity: .positive,
-                content: .name(false, .unterminated(.doubleQuote, "foo"))
+                content: .name(false, .unclosed(.doubleQuote, "foo"))
             ),
             nil
         ),
@@ -139,7 +139,7 @@ struct PartialFilterTermTests {
             "'foo",
             PartialFilterTerm(
                 polarity: .positive,
-                content: .name(false, .unterminated(.singleQuote, "foo"))
+                content: .name(false, .unclosed(.singleQuote, "foo"))
             ),
             nil
         ),
@@ -148,7 +148,7 @@ struct PartialFilterTermTests {
             "!\"lightning",
             PartialFilterTerm(
                 polarity: .positive,
-                content: .name(true, .unterminated(.doubleQuote, "lightning"))
+                content: .name(true, .unclosed(.doubleQuote, "lightning"))
             ),
             nil
         ),
@@ -213,7 +213,7 @@ struct PartialFilterTermTests {
             "foo:\"bar",
             PartialFilterTerm(
                 polarity: .positive,
-                content: .filter("foo", .including, .unterminated(.doubleQuote, "bar"))
+                content: .filter("foo", .including, .unclosed(.doubleQuote, "bar"))
             ),
             nil,
         ),
@@ -384,22 +384,22 @@ struct PartialFilterTermTests {
             FilterTerm.regex(.negative, "name", .including, "^chain")
         ),
 
-        // MARK: - Unterminated regex
+        // MARK: - Unclosed regex
         TestCase(
             "foo:/incomplete regex",
             PartialFilterTerm(
                 polarity: .positive,
-                content: .filter("foo", .including, .unterminated(.forwardSlash, "incomplete regex"))
+                content: .filter("foo", .including, .unclosed(.forwardSlash, "incomplete regex"))
             ),
             nil
         ),
 
-        // MARK: - Unterminated quoted filters
+        // MARK: - Unclosed quoted filters
         TestCase(
             "foo:\"",
             PartialFilterTerm(
                 polarity: .positive,
-                content: .filter("foo", .including, .unterminated(.doubleQuote, ""))
+                content: .filter("foo", .including, .unclosed(.doubleQuote, ""))
             ),
             nil
         ),
@@ -408,7 +408,7 @@ struct PartialFilterTermTests {
             "oracle:'draw",
             PartialFilterTerm(
                 polarity: .positive,
-                content: .filter("oracle", .including, .unterminated(.singleQuote, "draw"))
+                content: .filter("oracle", .including, .unclosed(.singleQuote, "draw"))
             ),
             nil
         ),
@@ -417,7 +417,7 @@ struct PartialFilterTermTests {
             "-oracle:\"draw",
             PartialFilterTerm(
                 polarity: .negative,
-                content: .filter("oracle", .including, .unterminated(.doubleQuote, "draw"))
+                content: .filter("oracle", .including, .unclosed(.doubleQuote, "draw"))
             ),
             nil
         ),
@@ -426,17 +426,17 @@ struct PartialFilterTermTests {
             "-oracle:'draw",
             PartialFilterTerm(
                 polarity: .negative,
-                content: .filter("oracle", .including, .unterminated(.singleQuote, "draw"))
+                content: .filter("oracle", .including, .unclosed(.singleQuote, "draw"))
             ),
             nil
         ),
 
-        // MARK: - Uninitiated quoted filters
+        // MARK: - Unopened quoted filters
         TestCase(
             "foo\"",
             PartialFilterTerm(
                 polarity: .positive,
-                content: .name(false, .uninitiated(.doubleQuote, "foo"))
+                content: .name(false, .unopened(.doubleQuote, "foo"))
             ),
             nil
         ),
@@ -777,26 +777,26 @@ struct MatchPartialTermTests {
         ("'foo'",         false, .balanced(.singleQuote, "foo")),
         ("''",            false, .balanced(.singleQuote, "")),
         ("'hello world'", false, .balanced(.singleQuote, "hello world")),
-        ("'foo",          false, .unterminated(.singleQuote, "foo")),
-        ("'",             false, .unterminated(.singleQuote, "")),
-        ("'hello world",  false, .unterminated(.singleQuote, "hello world")),
+        ("'foo",          false, .unclosed(.singleQuote, "foo")),
+        ("'",             false, .unclosed(.singleQuote, "")),
+        ("'hello world",  false, .unclosed(.singleQuote, "hello world")),
 
         // MARK: - Double-quoted strings
         ("\"foo\"",         false, .balanced(.doubleQuote, "foo")),
         ("\"\"",            false, .balanced(.doubleQuote, "")),
         ("\"hello world\"", false, .balanced(.doubleQuote, "hello world")),
-        ("\"foo",           false, .unterminated(.doubleQuote, "foo")),
-        ("\"",              false, .unterminated(.doubleQuote, "")),
-        ("foo\"",           false, .uninitiated(.doubleQuote, "foo")),
-        ("hello world\"",   false, .uninitiated(.doubleQuote, "hello world")),
+        ("\"foo",           false, .unclosed(.doubleQuote, "foo")),
+        ("\"",              false, .unclosed(.doubleQuote, "")),
+        ("foo\"",           false, .unopened(.doubleQuote, "foo")),
+        ("hello world\"",   false, .unopened(.doubleQuote, "hello world")),
 
         // MARK: - Forward slash (regex)
         ("/foo/",             false, .balanced(.forwardSlash, "foo")),
         ("//",                false, .balanced(.forwardSlash, "")),
         ("/^lightning/",      false, .balanced(.forwardSlash, "^lightning")),
-        ("/foo",              false, .unterminated(.forwardSlash, "foo")),
-        ("/",                 false, .unterminated(.forwardSlash, "")),
-        ("/incomplete regex", false, .unterminated(.forwardSlash, "incomplete regex")),
+        ("/foo",              false, .unclosed(.forwardSlash, "foo")),
+        ("/",                 false, .unclosed(.forwardSlash, "")),
+        ("/incomplete regex", false, .unclosed(.forwardSlash, "incomplete regex")),
 
         // MARK: - Forward slash treated as literal (treatingRegexesAsLiterals: true)
         ("/foo/",    true, .bare("/foo/")),

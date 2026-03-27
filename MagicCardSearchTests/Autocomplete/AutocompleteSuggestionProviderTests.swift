@@ -139,7 +139,7 @@ struct FilterTypeSuggestionsTests {
 
     @Test("quoted content is ineligible")
     func quotedContent() {
-        let partial = PartialFilterTerm(polarity: .positive, content: .name(false, .unterminated(.doubleQuote, "forma")))
+        let partial = PartialFilterTerm(polarity: .positive, content: .name(false, .unclosed(.doubleQuote, "forma")))
         #expect(Array(filterTypeSuggestions(for: partial, searchTerm: "forma")).isEmpty)
     }
 
@@ -547,13 +547,13 @@ struct RegexSuggestionTests {
 
     @Test("filter with incomplete operator returns no suggestions")
     func incompleteOperator() throws {
-        let partial = PartialFilterTerm(polarity: .positive, content: .filter("oracle", .incompleteNotEqual, .unterminated(.forwardSlash, "fly")))
+        let partial = PartialFilterTerm(polarity: .positive, content: .filter("oracle", .incompleteNotEqual, .unclosed(.forwardSlash, "fly")))
         #expect(try unwrapFilter(regexSuggestion(for: partial)).isEmpty)
     }
 
     @Test("filter with non-including, non-equals operator returns no suggestions")
     func incorrectOperator() throws {
-        let partial = PartialFilterTerm(polarity: .positive, content: .filter("oracle", .lessThan, .unterminated(.forwardSlash, "x{1,}")))
+        let partial = PartialFilterTerm(polarity: .positive, content: .filter("oracle", .lessThan, .unclosed(.forwardSlash, "x{1,}")))
         #expect(try unwrapFilter(regexSuggestion(for: partial)).isEmpty)
     }
 
@@ -571,7 +571,7 @@ struct RegexSuggestionTests {
 
     @Test("filter with empty partial regex returns no suggestions")
     func emptyPartialRegex() throws {
-        let partial = PartialFilterTerm(polarity: .positive, content: .filter("oracle", .including, .unterminated(.forwardSlash, "")))
+        let partial = PartialFilterTerm(polarity: .positive, content: .filter("oracle", .including, .unclosed(.forwardSlash, "")))
         #expect(try unwrapFilter(regexSuggestion(for: partial)).isEmpty)
     }
 
@@ -601,14 +601,14 @@ struct RegexSuggestionTests {
 
     @Test("filter regex content yields only that filter type")
     func filterContentYieldsSingleCandidate() throws {
-        let partial = PartialFilterTerm(polarity: .positive, content: .filter("oracle", .including, .unterminated(.forwardSlash, "x{1,}")))
+        let partial = PartialFilterTerm(polarity: .positive, content: .filter("oracle", .including, .unclosed(.forwardSlash, "x{1,}")))
         let suggestions = try unwrapFilter(regexSuggestion(for: partial))
         #expect(suggestions == [.term(.regex(.positive, "oracle", .including, "x{1,}"))])
     }
 
     @Test("filter regex preserves the equals operator")
     func filterPreservesOperator() throws {
-        let partial = PartialFilterTerm(polarity: .positive, content: .filter("name", .equal, .unterminated(.forwardSlash, "x{1,}")))
+        let partial = PartialFilterTerm(polarity: .positive, content: .filter("name", .equal, .unclosed(.forwardSlash, "x{1,}")))
         let suggestions = try unwrapFilter(regexSuggestion(for: partial))
         #expect(suggestions == [.term(.regex(.positive, "name", .equal, "x{1,}"))])
     }
@@ -623,13 +623,13 @@ struct RegexSuggestionTests {
         })
     }
 
-    @Test("a terminated regex with no content is empty")
+    @Test("a closed regex with no content is empty")
     func emptyBalancedRegex() throws {
         let partial = PartialFilterTerm(polarity: .positive, content: .filter("oracle", .including, .balanced(.forwardSlash, "")))
         #expect(try unwrapFilter(regexSuggestion(for: partial)).isEmpty)
     }
 
-    @Test("a terminated regex with content returns a suggestion")
+    @Test("a closed regex with content returns a suggestion")
     func nonemptyBalancedRegex() throws {
         let partial = PartialFilterTerm(polarity: .positive, content: .filter("oracle", .including, .balanced(.forwardSlash, "x{1,}")))
         let suggestions = try unwrapFilter(regexSuggestion(for: partial))

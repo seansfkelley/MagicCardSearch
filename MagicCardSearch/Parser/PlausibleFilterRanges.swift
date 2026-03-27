@@ -8,7 +8,7 @@ struct PlausibleFilterRanges {
     let ranges: [Range<String.Index>]
     
     static func from(_ input: String) -> PlausibleFilterRanges {
-        // Trim only the prefix; trailing whitespace might be part of an unterminated literal and
+        // Trim only the prefix; trailing whitespace might be part of an unclosed literal and
         // it should be assigned as such. Leading whitespace never can be.
         let trimmedInput = String(input.trimmingPrefix(/\s*/))
         let prefixOffset = input.prefixMatch(of: /\s*/)?.count ?? 0
@@ -16,7 +16,7 @@ struct PlausibleFilterRanges {
         do {
             // The grammar is simple enough that we can rely on the lexer directly without having to
             // have the proper parser resolve things for us. Nice.
-            var ranges = (try lexPartialFilterQuery(trimmedInput, allowingUnterminatedLiterals: true))
+            var ranges = (try lexPartialFilterQuery(trimmedInput, allowingUnclosedLiterals: true))
                 .compactMap { token, code in
                     if code == .Verbatim || code == .Or {
                         // `Or` can be the beginning of a well-formed filter, like `oracle`, or a

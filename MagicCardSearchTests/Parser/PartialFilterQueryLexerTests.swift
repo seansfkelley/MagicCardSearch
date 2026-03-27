@@ -4,20 +4,20 @@ import Testing
 // Serialized: Citron is not thread-safe.
 @Suite(.serialized)
 struct PartialFilterQueryLexerTests {
-    @Test<[(String, [(String, PartialFilterQueryParser.CitronTokenCode)]?)]>("with allowingUnterminatedLiterals=false", arguments: [
+    @Test<[(String, [(String, PartialFilterQueryParser.CitronTokenCode)]?)]>("with allowingUnclosedLiterals=false", arguments: [
         // Apostrophes are not misparsed as single-quotes
         (
             "urza's",
             [("urza's", .Verbatim)],
         ),
-        // Unterminated double quote
+        // Unclosed double quote
         (
             "\"lightning ",
             nil,
         ),
     ])
-    func allowingUnterminatedLiteralsFalse(input: String, expected: [(String, PartialFilterQueryParser.CitronTokenCode)]?) throws {
-        let result = try? lexPartialFilterQuery(input, allowingUnterminatedLiterals: false)
+    func allowingUnclosedLiteralsFalse(input: String, expected: [(String, PartialFilterQueryParser.CitronTokenCode)]?) throws {
+        let result = try? lexPartialFilterQuery(input, allowingUnclosedLiterals: false)
         if let expected {
             let unwrapped = (try #require(result)).map { ($0.0.content, $0.1) }
             // Explicitly specify the comparison function since the inferred version requires Equatable conformance.
@@ -27,20 +27,20 @@ struct PartialFilterQueryLexerTests {
         }
     }
 
-    @Test<[(String, [(String, PartialFilterQueryParser.CitronTokenCode)]?)]>("with allowingUnterminatedLiterals=true", arguments: [
+    @Test<[(String, [(String, PartialFilterQueryParser.CitronTokenCode)]?)]>("with allowingUnclosedLiterals=true", arguments: [
         // Apostrophes are not misparsed as single-quotes
         (
             "urza's",
             [("urza's", .Verbatim)],
         ),
-        // Unterminated double quote
+        // Unclosed double quote
         (
             "\"lightning ",
             [("\"lightning ", .Verbatim)],
         ),
     ])
-    func allowingUnterminatedLiteralsTrue(input: String, expected: [(String, PartialFilterQueryParser.CitronTokenCode)]?) throws {
-        let result = try? lexPartialFilterQuery(input, allowingUnterminatedLiterals: true)
+    func allowingUnclosedLiteralsTrue(input: String, expected: [(String, PartialFilterQueryParser.CitronTokenCode)]?) throws {
+        let result = try? lexPartialFilterQuery(input, allowingUnclosedLiterals: true)
         if let expected {
             let unwrapped = (try #require(result)).map { ($0.0.content, $0.1) }
             // Explicitly specify the comparison function since the inferred version requires Equatable conformance.

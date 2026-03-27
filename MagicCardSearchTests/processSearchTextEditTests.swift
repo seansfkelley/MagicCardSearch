@@ -64,11 +64,11 @@ struct InferIntentFromAppendingOneCharacterTests {
         ("color: ", 6..<7),
         // Apostrophes are not single quotes
         ("lightning'", 9..<10),
-        // Unterminated single quote doesn't commit filter
+        // Unclosed single quote doesn't commit filter
         ("'lightning ", 10..<11),
-        // Unterminated double quote doesn't commit filter
+        // Unclosed double quote doesn't commit filter
         ("\"lightning ", 10..<11),
-        // Terminating special characters don't... terminate... the empty string
+        // Closing special characters don't... close... the empty string
         (")", 0..<1),
         ("/", 0..<1),
         // TODO: I would like to support the following behavior.

@@ -51,15 +51,15 @@ public struct PartialFilterTerm: Sendable, Equatable, CustomStringConvertible {
         }
         
         case bare(String)
-        case unterminated(QuotingType, String)
-        case uninitiated(QuotingType, String)
+        case unclosed(QuotingType, String)
+        case unopened(QuotingType, String)
         case balanced(QuotingType, String)
         
         var description: String {
             switch self {
             case .bare(let content): content
-            case .unterminated(let quote, let content): "\(quote)\(content)"
-            case .uninitiated(let quote, let content): "\(content)\(quote)"
+            case .unclosed(let quote, let content): "\(quote)\(content)"
+            case .unopened(let quote, let content): "\(content)\(quote)"
             case .balanced(let quote, let content): "\(quote)\(content)\(quote)"
             }
         }
@@ -67,8 +67,8 @@ public struct PartialFilterTerm: Sendable, Equatable, CustomStringConvertible {
         var quotingType: QuotingType? {
             switch self {
             case .bare: nil
-            case .unterminated(let quote, _): quote
-            case .uninitiated(let quote, _): quote
+            case .unclosed(let quote, _): quote
+            case .unopened(let quote, _): quote
             case .balanced(let quote, _): quote
             }
         }
@@ -76,17 +76,17 @@ public struct PartialFilterTerm: Sendable, Equatable, CustomStringConvertible {
         var incompleteContent: String {
             switch self {
             case .bare(let content): content
-            case .unterminated(_, let content): content
-            case .uninitiated(_, let content): content
+            case .unclosed(_, let content): content
+            case .unopened(_, let content): content
             case .balanced(_, let content): content
             }
         }
     
-        func toComplete(autoterminateQuotes: Bool = false) -> String? {
+        func toComplete(autocloseQuotes: Bool = false) -> String? {
             switch self {
             case .bare(let content): content
-            case .unterminated(_, let content): autoterminateQuotes ? content : nil
-            case .uninitiated: nil // we really can't guess where the quotes should start, so don't
+            case .unclosed(_, let content): autocloseQuotes ? content : nil
+            case .unopened: nil // we really can't guess where the quotes should start, so don't
             case .balanced(_, let content): content
             }
         }
@@ -116,16 +116,16 @@ public struct PartialFilterTerm: Sendable, Equatable, CustomStringConvertible {
     
     public var description: String { "\(polarity)\(content)" }
 
-    func toComplete(autoterminateQuotes: Bool = false) -> FilterTerm? {
+    func toComplete(autocloseQuotes: Bool = false) -> FilterTerm? {
         switch content {
         case .name(let exact, let term):
-            if let completeTerm = term.toComplete(autoterminateQuotes: autoterminateQuotes) {
+            if let completeTerm = term.toComplete(autocloseQuotes: autocloseQuotes) {
                 return .name(polarity, exact, completeTerm)
             } else {
                 return nil
             }
         case .filter(let field, let comparison, let term):
-            if let completeTerm = term.toComplete(autoterminateQuotes: autoterminateQuotes), let completeComparison = comparison.toComplete() {
+            if let completeTerm = term.toComplete(autocloseQuotes: autocloseQuotes), let completeComparison = comparison.toComplete() {
                 return switch term.quotingType {
                 case .singleQuote, .doubleQuote:
                     .basic(polarity, field, completeComparison, completeTerm)
@@ -192,22 +192,22 @@ func matchPartialTerm(_ input: String, treatingRegexesAsLiterals: Bool = false) 
     if let match = input.wholeMatch(of: /^'([^']*)('?)$/) {
         let (_, content, close) = match.output
         return close.isEmpty
-        ? .unterminated(.singleQuote, String(content))
+        ? .unclosed(.singleQuote, String(content))
         : .balanced(.singleQuote, String(content))
     } else if let match = input.wholeMatch(of: /^"([^"]*)("?)$/) {
         let (_, content, close) = match.output
         return close.isEmpty
-        ? .unterminated(.doubleQuote, String(content))
+        ? .unclosed(.doubleQuote, String(content))
         : .balanced(.doubleQuote, String(content))
     } else if let match = input.wholeMatch(of: /^([^"]+)"$/) {
         let (_, content) = match.output
         // There is no case for unintiated single-quote; such a case is actually considered a usage
         // of an apostrophe and therefore would fall into the .bare case.
-        return .uninitiated(.doubleQuote, String(content))
+        return .unopened(.doubleQuote, String(content))
     } else if !treatingRegexesAsLiterals, let match = input.wholeMatch(of: /^\/([^\/]*)(\/?)$/) {
         let (_, content, close) = match.output
         return close.isEmpty
-        ? .unterminated(.forwardSlash, String(content))
+        ? .unclosed(.forwardSlash, String(content))
         : .balanced(.forwardSlash, String(content))
     } else {
         return .bare(input)

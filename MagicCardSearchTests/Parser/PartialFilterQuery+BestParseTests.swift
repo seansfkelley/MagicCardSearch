@@ -117,7 +117,7 @@ struct PartialFilterQueryBestParseTests {
         (
             "(red or blue",
             .fallback(term("(red or blue")),
-            .autoterminated(or(term("red"), term("blue")))
+            .autoclosed(or(term("red"), term("blue")))
         ),
         // Unmatched closing parenthesis - negative unclosed count, always falls back
         (
@@ -205,7 +205,7 @@ struct PartialFilterQueryBestParseTests {
         (
             "\"lightning",
             .fallback(term("\"lightning")),
-            .autoterminated(term("\"lightning\""))
+            .autoclosed(term("\"lightning\""))
         ),
         // Unclosed double quotes consume everything including whitespace;
         // lex fails without autoclosing (falls back to trimmed input, trailing spaces stripped),
@@ -213,27 +213,27 @@ struct PartialFilterQueryBestParseTests {
         (
             "name:\"lightning  ",
             .fallback(term("name:\"lightning")),
-            .autoterminated(term("name:\"lightning\""))
+            .autoclosed(term("name:\"lightning\""))
         ),
         // Unclosed single quotes
         (
             "name:'lightning  ",
             .fallback(term("name:'lightning")),
-            .autoterminated(term("name:'lightning'"))
+            .autoclosed(term("name:'lightning'"))
         ),
         // Unclosed quote in parentheses - closing paren is consumed into the string;
         // with autoclosing the quote is closed and then the paren is closed too
         (
             "(name:\"lightning)",
             .fallback(term("(name:\"lightning)")),
-            .autoterminated(term("name:\"lightning)\""))
+            .autoclosed(term("name:\"lightning)\""))
         ),
 
         // MARK: Incomplete Regex Patterns
 
         // Unclosed regex - lex fails without autoclosing; with autoclosing the lexer matches
-        // end-of-string (the token is treated as bare, not as an unterminated regex), so it
-        // parses successfully as .valid rather than .autoterminated
+        // end-of-string (the token is treated as bare, not as an unclosed regex), so it
+        // parses successfully as .valid rather than .autoclosed
         (
             "/^light",
             .fallback(term("/^light")),
@@ -252,13 +252,13 @@ struct PartialFilterQueryBestParseTests {
         (
             "(red",
             .fallback(term("(red")),
-            .autoterminated(term("red"))
+            .autoclosed(term("red"))
         ),
         // Unclosed nested - autoclosing closes one paren, both collapse to the inner term
         (
             "((red)",
             .fallback(term("((red)")),
-            .autoterminated(term("red"))
+            .autoclosed(term("red"))
         ),
         // Extra closing parentheses - negative unclosed count, always falls back
         (
@@ -301,19 +301,19 @@ struct PartialFilterQueryBestParseTests {
         (
             "((name:\"lightning power>3",
             .fallback(term("((name:\"lightning power>3")),
-            .autoterminated(term("name:\"lightning power>3\""))
+            .autoclosed(term("name:\"lightning power>3\""))
         ),
         // Unclosed single quote spanning a space; autoclosing closes the quote
         (
             "name:'bolt type:creature",
             .fallback(term("name:'bolt type:creature")),
-            .autoterminated(term("name:'bolt type:creature'"))
+            .autoclosed(term("name:'bolt type:creature'"))
         ),
         // Unclosed regex
         (
             "name:/lightning",
             .fallback(term("name:/lightning")),
-            .autoterminated(term("name:/lightning/"))
+            .autoclosed(term("name:/lightning/"))
         ),
 
         // MARK: Misc
