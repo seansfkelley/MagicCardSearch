@@ -21,7 +21,7 @@ struct PartialFilterTermTests {
         }
     }
 
-    @Test("Parse and convert PartialSearchFilter", arguments: [
+    @Test("Parse and convert PartialFilterTerm", arguments: [
         // MARK: - Simple name searches
         TestCase(
             "foo",
@@ -746,17 +746,8 @@ struct PartialFilterTermTests {
     func parseAndConvert(testCase: TestCase) async throws {
         let actualPartial = PartialFilterTerm.from(testCase.input)
         #expect(actualPartial.description == testCase.input)
-
-        #expect(
-            actualPartial == testCase.expectedPartial,
-            "Parsing '\(testCase.input)' failed"
-        )
-
-        let actualComplete = actualPartial.toComplete()
-        #expect(
-            actualComplete == testCase.expectedComplete,
-            "Converting '\(testCase.input)' to SearchFilter failed"
-        )
+        #expect(actualPartial == testCase.expectedPartial)
+        #expect(actualPartial.toComplete() == testCase.expectedComplete)
     }
 }
 @Suite
