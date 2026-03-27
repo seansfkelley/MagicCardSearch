@@ -58,7 +58,9 @@ struct AutocompleteView: View {
         List {
             if let filter = PartialFilterQuery.from(searchState.searchText, autoclosePairedDelimiters: true).value?.transformLeaves(using: FilterTerm.from) {
                 Button {
-                    addFilter(filter)
+                    searchState.filters.append(filter)
+                    searchState.searchText = ""
+                    searchState.desiredSearchSelection = nil
                 } label: {
                     HStack(spacing: 12) {
                         Image(systemName: "magnifyingglass")
