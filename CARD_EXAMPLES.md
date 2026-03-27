@@ -16,6 +16,7 @@ Cards that exemplify the different kinds of things that are possible for each fe
 ## All Prints
 
 - Wrath of God -- has good coverage of different frames, art styles, etc.
+- Scalding Tarn -- good coverage of different configurations and amounts of prices.
 
 ## Tagger Tags
 

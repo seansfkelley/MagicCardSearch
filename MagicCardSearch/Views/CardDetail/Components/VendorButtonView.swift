@@ -77,6 +77,11 @@ enum PriceType {
     }
 }
 
+extension [PriceType] {
+    static let regularFirst: [PriceType] = [.regular, .foil, .etched]
+    static let foilFirst: [PriceType] = [.foil, .etched, .regular]
+}
+
 struct VendorButtonView: View {
     @AppStorage("preferredVendor") private var preferredVendor: Vendor = .tcgplayer
     @Environment(\.openURL) private var openURL
@@ -84,9 +89,23 @@ struct VendorButtonView: View {
 
     let prices: Card.Prices
     let purchaseUris: [String: String]?
+    let maxCount: Int
+    let ordering: [PriceType]
+
+    init(
+        prices: Card.Prices,
+        purchaseUris: [String: String]?,
+        maxCount: Int = 3,
+        ordered ordering: [PriceType] = .regularFirst,
+    ) {
+        self.prices = prices
+        self.purchaseUris = purchaseUris
+        self.maxCount = maxCount
+        self.ordering = ordering
+    }
 
     private func orderedPrices(for vendor: Vendor) -> [(PriceType, String)] {
-        [.regular, .foil, .etched].compactMap { type in
+        ordering.compactMap { type in
             vendor.price(from: prices, for: type).map { (type, $0) }
         }
     }
@@ -102,7 +121,7 @@ struct VendorButtonView: View {
                         .foregroundStyle(.blue)
                 } else {
                     HStack(spacing: 12) {
-                        ForEach(vendorPrices, id: \.0) { type, price in
+                        ForEach(vendorPrices.prefix(maxCount), id: \.0) { type, price in
                             HStack(spacing: 2) {
                                 if let image = type.image {
                                     image
@@ -113,10 +132,13 @@ struct VendorButtonView: View {
                             }
                             .foregroundStyle(.blue)
                         }
+                        if vendorPrices.count > maxCount {
+                            Image(systemName: "ellipsis")
+                                .foregroundStyle(.blue)
+                        }
                     }
                 }
             }
-            .fixedSize()
             .padding(.horizontal, 12)
             .padding(.vertical, 6)
             .background(RoundedRectangle(cornerRadius: 8).fill(Color.blue.opacity(0.1)))
@@ -198,6 +220,20 @@ private struct VendorPopoverRow: View {
     }
 }
 
+private struct PreviewableVendorButtonPair: View {
+    let title: String
+    let prices: Card.Prices
+    let purchaseUris: [String: String]?
+
+    var body: some View {
+        Text(title)
+        HStack(spacing: 16) {
+            VendorButtonView(prices: prices, purchaseUris: purchaseUris, maxCount: 1)
+            VendorButtonView(prices: prices, purchaseUris: purchaseUris)
+        }
+    }
+}
+
 #Preview {
     @Previewable @AppStorage("preferredVendor") var preferredVendor: Vendor = .tcgplayer
     let allVendorUris: [String: String] = [
@@ -205,46 +241,56 @@ private struct VendorPopoverRow: View {
         "cardmarket": "https://www.cardmarket.com",
         "cardhoarder": "https://www.cardhoarder.com",
     ]
+
     VStack(alignment: .leading, spacing: 16) {
         Picker("Preferred Vendor", selection: $preferredVendor) {
             ForEach(Vendor.allCases, id: \.self) { Text($0.displayName).tag($0) }
         }
         .pickerStyle(.segmented)
 
-        Text("All vendors")
-        VendorButtonView(
+        PreviewableVendorButtonPair(
+            title: "All vendors",
             prices: Card.Prices(tix: "0.05", usd: "1.23", usdFoil: "4.56", eur: "1.10", eurEtched: "2.20"),
-            purchaseUris: allVendorUris
+            purchaseUris: allVendorUris,
         )
 
-        Text("TCGplayer only")
-        VendorButtonView(
+        PreviewableVendorButtonPair(
+            title: "TCGplayer only",
             prices: Card.Prices(usd: "1.23"),
-            purchaseUris: ["tcgplayer": "https://www.tcgplayer.com"]
+            purchaseUris: ["tcgplayer": "https://www.tcgplayer.com"],
         )
 
-        Text("Cardmarket only")
-        VendorButtonView(
+        PreviewableVendorButtonPair(
+            title: "Cardmarket only",
             prices: Card.Prices(eur: "1.10"),
-            purchaseUris: ["cardmarket": "https://www.cardmarket.com"]
+            purchaseUris: ["cardmarket": "https://www.cardmarket.com"],
         )
 
-        Text("Cardhoarder only")
-        VendorButtonView(
+        PreviewableVendorButtonPair(
+            title: "Cardhoarder only",
             prices: Card.Prices(tix: "0.05"),
-            purchaseUris: ["cardhoarder": "https://www.cardhoarder.com"]
+            purchaseUris: ["cardhoarder": "https://www.cardhoarder.com"],
         )
 
-        Text("No prices, yes URIs")
-        VendorButtonView(prices: Card.Prices(), purchaseUris: allVendorUris)
+        PreviewableVendorButtonPair(
+            title: "No prices, yes URIs",
+            prices: Card.Prices(),
+            purchaseUris: allVendorUris,
+        )
 
-        Text("No prices, no URIs")
-        VendorButtonView(prices: Card.Prices(), purchaseUris: nil)
+        PreviewableVendorButtonPair(
+            title: "No prices, no URIs",
+            prices: Card.Prices(),
+            purchaseUris: nil,
+        )
 
-        Text("Foil only")
-        VendorButtonView(
+        PreviewableVendorButtonPair(
+            title: "Foil only",
             prices: Card.Prices(usdFoil: "4.56", eurFoil: "3.80"),
-            purchaseUris: ["tcgplayer": "https://www.tcgplayer.com", "cardmarket": "https://www.cardmarket.com"]
+            purchaseUris: [
+                "tcgplayer": "https://www.tcgplayer.com",
+                "cardmarket": "https://www.cardmarket.com",
+            ],
         )
     }
     .padding()

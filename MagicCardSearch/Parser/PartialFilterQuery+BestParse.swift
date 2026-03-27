@@ -59,6 +59,7 @@ public extension PartialFilterQuery {
         }
     }
 
+    // swiftlint:disable:next cyclomatic_complexity
     private static func tryParsingWithAutoclose(
         tokens: [LexedPartialFilterQueryToken],
         withFallback fallback: @autoclosure () -> PartialFilterQuery,

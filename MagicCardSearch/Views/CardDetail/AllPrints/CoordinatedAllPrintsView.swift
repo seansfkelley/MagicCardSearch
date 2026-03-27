@@ -4,6 +4,7 @@ import ScryfallKit
 struct CoordinatedAllPrintsView: View {
     let cards: [Card]
     @Binding var currentIndex: Int
+    let filterSettings: AllPrintsFilterSettings
 
     // It seems that these cannot share a position object, so we bridge between the two and,
     // unfortunately, also the currentIndex binding from the parent.
@@ -25,7 +26,8 @@ struct CoordinatedAllPrintsView: View {
                     scrollPosition: $mainScrollPosition,
                     partialScrollOffsetFraction: $partialScrollOffsetFraction,
                     screenWidth: geometry.size.width,
-                    isFlipped: $isFlipped
+                    isFlipped: $isFlipped,
+                    filterSettings: filterSettings,
                 )
 
                 ThumbnailPreviewStrip(
@@ -82,12 +84,22 @@ struct CoordinatedAllPrintsView: View {
     }
 }
 
+private extension AllPrintsFilterSettings.SortMode {
+    var priceOrdering: [PriceType] {
+        switch self {
+        case .releaseDate, .regularPrice: .regularFirst
+        case .foilPrice: .foilFirst
+        }
+    }
+}
+
 private struct PagingCardImageView: View {
     let cards: [Card]
     @Binding var scrollPosition: ScrollPosition
     @Binding var partialScrollOffsetFraction: CGFloat
     let screenWidth: CGFloat
     @Binding var isFlipped: Bool
+    let filterSettings: AllPrintsFilterSettings
 
     @State private var scrollPhase: ScrollPhase = .idle
     @State private var cardWidth: CGFloat = 0
@@ -127,10 +139,29 @@ private struct PagingCardImageView: View {
                             VStack(alignment: .leading) {
                                 HStack(alignment: .center) {
                                     Text("\(card.set.uppercased()) #\(card.collectorNumber)")
+                                        .lineLimit(1)
                                     if !card.prices.isEmpty {
-                                        VendorButtonView(prices: card.prices, purchaseUris: card.purchaseUris)
+                                        ViewThatFits(in: .horizontal) {
+                                            VendorButtonView(
+                                                prices: card.prices,
+                                                purchaseUris: card.purchaseUris,
+                                                maxCount: 3,
+                                                ordered: filterSettings.sort.priceOrdering,
+                                            )
+                                            VendorButtonView(
+                                                prices: card.prices,
+                                                purchaseUris: card.purchaseUris,
+                                                maxCount: 2,
+                                                ordered: filterSettings.sort.priceOrdering,
+                                            )
+                                            VendorButtonView(
+                                                prices: card.prices,
+                                                purchaseUris: card.purchaseUris,
+                                                maxCount: 1,
+                                                ordered: filterSettings.sort.priceOrdering,
+                                            )
+                                        }
                                     }
-                                    Spacer()
                                 }
                                 HStack(spacing: 4) {
                                     if let date = card.releasedAtAsDate {
@@ -142,6 +173,7 @@ private struct PagingCardImageView: View {
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                             }
+                            .frame(maxWidth: .infinity, alignment: .leading)
                         }
                         .padding(.vertical)
                         .padding(.horizontal, 4)

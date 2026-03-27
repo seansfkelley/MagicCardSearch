@@ -123,7 +123,8 @@ struct AllPrintsView: View {
                     } else {
                         CoordinatedAllPrintsView(
                             cards: list.data,
-                            currentIndex: $currentIndex
+                            currentIndex: $currentIndex,
+                            filterSettings: printFilterSettings,
                         )
                     }
                 case .errored(_, let error):
