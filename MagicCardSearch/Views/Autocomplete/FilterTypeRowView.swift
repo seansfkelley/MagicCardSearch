@@ -59,14 +59,18 @@ private struct HorizontallyScrollablePillSelector<T: PillSelectorOption>: View {
 
     var body: some View {
         ZStack(alignment: .leading) {
-            BoldedRangeText(text: label, ranges: labelRanges)
+            Text(label.attributed(in: labelRanges))
+                .lineLimit(1)
+                .truncationMode(.tail)
                 .foregroundStyle(.primary)
-                .opacity(labelOpacity)
                 .padding(.trailing, 8)
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
-                    BoldedRangeText(text: label, ranges: labelRanges)
+                    Text(label.attributed(in: labelRanges))
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                        .foregroundStyle(.primary)
                         .padding(.trailing, 8)
                         .hidden()
 

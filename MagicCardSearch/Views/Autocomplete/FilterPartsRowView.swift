@@ -48,11 +48,10 @@ struct FilterPartsRowView: View {
                                 .presentationCompactAdaptation(.popover)
                             }
                             
-                            BoldedRangeText(
-                                text: match.string,
-                                ranges: match.highlights
-                            )
-                            .foregroundStyle(.primary)
+                            Text(match.string.attributed(in: match.highlights))
+                                .lineLimit(2)
+                                .truncationMode(.middle)
+                                .foregroundStyle(.primary)
                             
                             Spacer(minLength: 0)
                         }
