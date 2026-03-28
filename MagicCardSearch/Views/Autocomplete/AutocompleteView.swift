@@ -230,3 +230,13 @@ struct AutocompleteView: View {
         .tint(.orange)
     }
 }
+
+private extension CurrentlyHighlightedFilterFacade {
+    var scopedRange: Range<String.Index>? {
+        if let range, range != inputText.range {
+            range
+        } else {
+            nil
+        }
+    }
+}

@@ -40,12 +40,4 @@ class CurrentlyHighlightedFilterFacade {
             )
         }
     }()
-
-    lazy var scopedRange: Range<String.Index>? = {
-        if let range, range != inputText.range {
-            range
-        } else {
-            nil
-        }
-    }()
 }
