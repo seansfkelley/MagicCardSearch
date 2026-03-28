@@ -2,6 +2,9 @@ import Foundation
 import FuzzyMatch
 import SQLiteData
 import ScryfallKit
+import OSLog
+
+private let logger = Logger(subsystem: "MagicCardSearch", category: "AutocompleteSuggestionProvider")
 
 struct AutocompleteSuggestion {
     enum Source: Equatable {
@@ -85,7 +88,6 @@ class AutocompleteSuggestionProvider {
         }
     }
 
-    // swiftlint:disable:next function_body_length
     func getSuggestions(
         for searchTerm: String,
         existingFilters: Set<FilterQuery<FilterTerm>>,
@@ -94,99 +96,116 @@ class AutocompleteSuggestionProvider {
         let history = filterHistoryEntries
         let catalogData = catalogData
 
-        return try await Task.detached(priority: .userInitiated) {
-            try timed("aggregated autocomplete suggestions", warnThreshold: .milliseconds(50)) {
-                let partial = PartialFilterTerm.from(searchTerm)
+        return try await aggregateAutocompleteSuggestions(
+            searchTerm: searchTerm,
+            existingFilters: existingFilters,
+            filters: filters,
+            history: history,
+            catalogData: catalogData
+        )
+    }
+}
 
-                var suggestions: [AutocompleteSuggestion] = []
+// swiftlint:disable:next function_body_length
+@concurrent nonisolated private func aggregateAutocompleteSuggestions(
+    searchTerm: String,
+    existingFilters: Set<FilterQuery<FilterTerm>>,
+    filters: [PinnedFilterEntry],
+    history: [FilterHistoryEntry],
+    catalogData: AutocompleteCatalogs
+) async throws -> [AutocompleteSuggestion] {
+    try timed("aggregated autocomplete suggestions", warnThreshold: .milliseconds(50)) {
+        logger.trace("running on thread with name=\(Thread.current.name ?? "<unnamed>") main=\(Thread.isMainThread)")
 
-                try Task.checkCancellation()
-                suggestions.append(
-                    contentsOf: timed("pinned filter autocomplete suggestions") {
-                        pinnedFilterSuggestions(
-                            for: partial,
-                            from: filters,
-                            searchTerm: searchTerm
-                        )
-                        .filter { !isRedundantSuggestion($0, existingFilters: existingFilters) }
-                    }
+        let partial = PartialFilterTerm.from(searchTerm)
+
+        var suggestions: [AutocompleteSuggestion] = []
+
+        try Task.checkCancellation()
+        suggestions.append(
+            contentsOf: timed("pinned filter autocomplete suggestions") {
+                pinnedFilterSuggestions(
+                    for: partial,
+                    from: filters,
+                    searchTerm: searchTerm
                 )
-
-                try Task.checkCancellation()
-                suggestions.append(
-                    contentsOf: timed("filter history autocomplete suggestions") {
-                        filterHistorySuggestions(for: searchTerm, from: history)
-                            .filter { !isRedundantSuggestion($0, existingFilters: existingFilters) }
-                            .prefix(20)
-                    }
-                )
-
-                try Task.checkCancellation()
-                suggestions.append(
-                    contentsOf: timed("filter type autocomplete suggestions") {
-                        filterTypeSuggestions(for: partial, searchTerm: searchTerm)
-                            .filter { !isRedundantSuggestion($0, existingFilters: existingFilters) }
-                            .prefix(4)
-                    }
-                )
-
-                try Task.checkCancellation()
-                suggestions.append(
-                    contentsOf: timed("regex filter autocomplete suggestions") {
-                        regexSuggestion(for: partial)
-                            .filter { !isRedundantSuggestion($0, existingFilters: existingFilters) }
-                    }
-                )
-
-                try Task.checkCancellation()
-                suggestions.append(
-                    contentsOf: timed("full text autocomplete suggestions") {
-                        fullTextSuggestion(for: partial)
-                            .filter { !isRedundantSuggestion($0, existingFilters: existingFilters) }
-                    }
-                )
-
-                try Task.checkCancellation()
-                suggestions.append(
-                    contentsOf: timed("reverse enumeration autocomplete suggestions") {
-                        reverseEnumerationSuggestions(
-                            for: partial,
-                            catalogData: catalogData,
-                            searchTerm: searchTerm
-                        )
-                        .filter { !isRedundantSuggestion($0, existingFilters: existingFilters) }
-                        .prefix(20)
-                    }
-                )
-
-                try Task.checkCancellation()
-                suggestions.append(
-                    contentsOf: timed("enumeration autocomplete suggestions") {
-                        enumerationSuggestions(
-                            for: partial,
-                            catalogData: catalogData,
-                            searchTerm: searchTerm
-                        )
-                        .filter { !isRedundantSuggestion($0, existingFilters: existingFilters) }
-                        .prefix(20)
-                    }
-                )
-
-                if let cardNames = catalogData.name {
-                    try Task.checkCancellation()
-                    suggestions.append(
-                        contentsOf: timed("name autocomplete suggestions") {
-                            nameSuggestions(for: partial, in: cardNames, searchTerm: searchTerm)
-                                .filter { !isRedundantSuggestion($0, existingFilters: existingFilters) }
-                                .prefix(10)
-                        }
-                    )
-                }
-
-                try Task.checkCancellation()
-                return sortCombinedSuggestions(suggestions)
+                .filter { !isRedundantSuggestion($0, existingFilters: existingFilters) }
             }
-        }.value
+        )
+
+        try Task.checkCancellation()
+        suggestions.append(
+            contentsOf: timed("filter history autocomplete suggestions") {
+                filterHistorySuggestions(for: searchTerm, from: history)
+                    .filter { !isRedundantSuggestion($0, existingFilters: existingFilters) }
+                    .prefix(20)
+            }
+        )
+
+        try Task.checkCancellation()
+        suggestions.append(
+            contentsOf: timed("filter type autocomplete suggestions") {
+                filterTypeSuggestions(for: partial, searchTerm: searchTerm)
+                    .filter { !isRedundantSuggestion($0, existingFilters: existingFilters) }
+                    .prefix(4)
+            }
+        )
+
+        try Task.checkCancellation()
+        suggestions.append(
+            contentsOf: timed("regex filter autocomplete suggestions") {
+                regexSuggestion(for: partial)
+                    .filter { !isRedundantSuggestion($0, existingFilters: existingFilters) }
+            }
+        )
+
+        try Task.checkCancellation()
+        suggestions.append(
+            contentsOf: timed("full text autocomplete suggestions") {
+                fullTextSuggestion(for: partial)
+                    .filter { !isRedundantSuggestion($0, existingFilters: existingFilters) }
+            }
+        )
+
+        try Task.checkCancellation()
+        suggestions.append(
+            contentsOf: timed("reverse enumeration autocomplete suggestions") {
+                reverseEnumerationSuggestions(
+                    for: partial,
+                    catalogData: catalogData,
+                    searchTerm: searchTerm
+                )
+                .filter { !isRedundantSuggestion($0, existingFilters: existingFilters) }
+                .prefix(20)
+            }
+        )
+
+        try Task.checkCancellation()
+        suggestions.append(
+            contentsOf: timed("enumeration autocomplete suggestions") {
+                enumerationSuggestions(
+                    for: partial,
+                    catalogData: catalogData,
+                    searchTerm: searchTerm
+                )
+                .filter { !isRedundantSuggestion($0, existingFilters: existingFilters) }
+                .prefix(20)
+            }
+        )
+
+        if let cardNames = catalogData.name {
+            try Task.checkCancellation()
+            suggestions.append(
+                contentsOf: timed("name autocomplete suggestions") {
+                    nameSuggestions(for: partial, in: cardNames, searchTerm: searchTerm)
+                        .filter { !isRedundantSuggestion($0, existingFilters: existingFilters) }
+                        .prefix(10)
+                }
+            )
+        }
+
+        try Task.checkCancellation()
+        return sortCombinedSuggestions(suggestions)
     }
 }
 
