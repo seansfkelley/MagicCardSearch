@@ -13,7 +13,7 @@ struct AutocompleteView: View {
         SearchSuggestionKey(
             inputText: searchState.searchText,
             filterCount: searchState.filters.count,
-            selectionRange: searchState.selectedFilter.range,
+            currentFilterRange: searchState.selectedFilter.range,
             nonce: nonce,
         )
     }
@@ -24,8 +24,9 @@ struct AutocompleteView: View {
         // After you add/remove a filter, we may hide or show certain other suggestions.
         let filterCount: Int
         // Dragging the selection around may change the suggestions, if you are editing a string
-        // with multiple subfilters.
-        let selectionRange: Range<String.Index>?
+        // with multiple subfilters. This is the range of the current filter, if any, not the
+        // literal selection range, so it only changes when the user hovers to another filter.
+        let currentFilterRange: Range<String.Index>?
         // This is a proxy for the value we actually care about: did you perform a search?
         // Performing a search commits all the filters to history, meaning that the history provider
         // now has more options. Instead of watching did-search directly, we just watch for times
@@ -85,6 +86,7 @@ struct AutocompleteView: View {
         .scrollDismissesKeyboard(.interactively)
         .task(id: searchSuggestionKey) {
             guard let newSuggestions = try? await searchState.getSuggestions() else { return }
+            guard !Task.isCancelled else { return }
             suggestions = newSuggestions
         }
     }

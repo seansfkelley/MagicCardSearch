@@ -8,7 +8,11 @@ private let logger = Logger(subsystem: "MagicCardSearch", category: "SearchState
 @MainActor
 @Observable
 class SearchState {
-    public var searchText: String = ""
+    public var searchText: String = "" {
+        didSet {
+            cachedSelectedFilter = nil
+        }
+    }
 
     // These are separated because SwiftUI doesn't reliably two-way bind the selection with a
     // TextField. Instead, it appears that providing a selection to the search field will cause it
@@ -32,7 +36,11 @@ class SearchState {
     // can define some of our own semantics, namely, that an empty range is still considered a point
     // insertion.
     public var desiredSearchSelection: TextSelection?
-    public var actualSearchSelection: Range<String.Index> = "".startIndex..<"".endIndex
+    public var actualSearchSelection: Range<String.Index> = "".startIndex..<"".endIndex {
+        didSet {
+            cachedSelectedFilter = nil
+        }
+    }
 
     public var filters: [FilterQuery<FilterTerm>] = []
     public var configuration = SearchConfiguration.load()
@@ -45,10 +53,17 @@ class SearchState {
         try await suggestionProvider.getSuggestions(for: selectedFilter.text, existingFilters: Set(filters))
     }
 
-    // TODO: Cache this based on the inputs?
     public var selectedFilter: CurrentlyHighlightedFilterFacade {
-        CurrentlyHighlightedFilterFacade(inputText: searchText, inputSelection: actualSearchSelection)
+        if let cachedSelectedFilter {
+            return cachedSelectedFilter
+        } else {
+            let filter = CurrentlyHighlightedFilterFacade(inputText: searchText, inputSelection: actualSearchSelection)
+            cachedSelectedFilter = filter
+            return filter
+        }
     }
+
+    private var cachedSelectedFilter: CurrentlyHighlightedFilterFacade?
 
     private let suggestionProvider: AutocompleteSuggestionProvider
     private let scryfall = ScryfallClient(logger: logger)
