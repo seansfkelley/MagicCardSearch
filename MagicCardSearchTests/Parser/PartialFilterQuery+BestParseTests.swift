@@ -231,15 +231,26 @@ struct PartialFilterQueryBestParseTests {
 
         // MARK: Incomplete Regex Patterns
 
-        // Unclosed regex - lex fails without autoclosing; with autoclosing the lexer matches
-        // end-of-string (the token is treated as bare, not as an unclosed regex), so it
-        // parses successfully as .valid rather than .autoclosed
+        // Unclosed regex - lex fails without autoclosing since balanced pairs are done at the
+        // lexing level. With autoclose, the lexer is allowed to have unclosed pairs, but then the
+        // domain-aware query parser knows regexes without a filter are not allowed and considers
+        // the string a valid bare query and does not close it.
+        //
+        // TODO: This seems wrong; fix it?
+        // TODO: Should the lexer have one huge regex for Verbatims instead of concatenating them?
+        // TODO: Should the lexer ALWAYS permit unclosed terms?
         (
             "/^light",
             .fallback(term("/^light")),
             .valid(term("/^light"))
         ),
-        // Multiple unclosed regex - the lexer treats it all as one token (valid without autoclosing)
+        // Multiple unclosed regex - the lexer finds the second slash to close the first regex and
+        // then appends the other text afterwards, producing a string that could never be parsed as
+        // a regex and so always parses as a bare string. See also the previous test.
+        //
+        // TODO: This seems wrong; fix it? Should the lexer have one huge regex for Verbatims instead of concatenating them?
+        // TODO: Should the lexer have one huge regex for Verbatims instead of concatenating them?
+        // TODO: Should the lexer ALWAYS permit unclosed terms?
         (
             "/^light /end$",
             .valid(term("/^light /end$")),
