@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct FilterPartsRowView: View {
+    @ScaledMetric private var iconWidth = AutocompleteConstants.defaultSuggestionIconWidth
+
     let suggestion: AutocompleteSuggestion
     let onSelect: (FilterTerm) -> Void
 
@@ -16,6 +18,7 @@ struct FilterPartsRowView: View {
                     Image(systemName: suggestion.icon)
                         .foregroundStyle(.secondary)
                         .font(.system(size: suggestion.iconFontSize))
+                        .frame(width: iconWidth)
 
                     DebuggableScorableView(scorable: suggestion) {
                         HStack(spacing: 4) {

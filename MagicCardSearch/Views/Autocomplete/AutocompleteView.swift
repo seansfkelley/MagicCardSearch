@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct AutocompleteView: View {
+    @ScaledMetric private var iconWidth = AutocompleteConstants.defaultSuggestionIconWidth
     @Environment(\.dismiss) private var dismiss
     @Environment(HistoryAndPinnedStore.self) private var historyAndPinnedStore
 
@@ -66,6 +67,8 @@ struct AutocompleteView: View {
                     HStack(spacing: 12) {
                         Image(systemName: "magnifyingglass")
                             .foregroundStyle(.secondary)
+                            .font(.system(size: AutocompleteSuggestion.defaultIconFontSize))
+                            .frame(width: iconWidth)
                         Text(filter.description)
                             .foregroundStyle(.primary)
                             .lineLimit(1)

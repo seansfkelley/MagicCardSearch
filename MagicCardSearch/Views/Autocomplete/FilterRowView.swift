@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct FilterRowView: View {
+    @ScaledMetric private var iconWidth = AutocompleteConstants.defaultSuggestionIconWidth
+
     let suggestion: AutocompleteSuggestion
     let showImmediateSearchIcon: Bool
     let onTap: (FilterQuery<FilterTerm>) -> Void
@@ -15,6 +17,7 @@ struct FilterRowView: View {
                     Image(systemName: suggestion.icon)
                         .foregroundStyle(.secondary)
                         .font(.system(size: suggestion.iconFontSize))
+                        .frame(width: iconWidth)
 
                     DebuggableScorableView(scorable: suggestion) {
                         BoldedRangeText(

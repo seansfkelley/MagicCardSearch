@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct FilterTypeRowView: View {
+    @ScaledMetric private var iconWidth = AutocompleteConstants.defaultSuggestionIconWidth
+
     let suggestion: AutocompleteSuggestion
     let orderedAllComparisons: [Comparison]
     let orderedEqualityComparison: [Comparison]
@@ -13,6 +15,7 @@ struct FilterTypeRowView: View {
                 Image(systemName: suggestion.icon)
                     .foregroundStyle(.secondary)
                     .font(.system(size: suggestion.iconFontSize))
+                    .frame(width: iconWidth)
 
                 DebuggableScorableView(scorable: suggestion) {
                     HorizontallyScrollablePillSelector(
