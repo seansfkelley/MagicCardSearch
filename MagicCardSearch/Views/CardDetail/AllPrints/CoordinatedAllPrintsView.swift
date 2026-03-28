@@ -13,11 +13,6 @@ struct CoordinatedAllPrintsView: View {
     @State private var partialScrollOffsetFraction: CGFloat = 0
     @State private var isFlipped: Bool = false
 
-    private var currentCard: Card? {
-        guard currentIndex >= 0 && currentIndex < cards.count else { return nil }
-        return cards[currentIndex]
-    }
-
     var body: some View {
         GeometryReader { geometry in
             VStack(spacing: 0) {
@@ -46,9 +41,9 @@ struct CoordinatedAllPrintsView: View {
             }
         }
         .onAppear {
-            if let currentCard {
-                mainScrollPosition.scrollTo(id: currentCard.id)
-                thumbnailScrollPosition.scrollTo(id: currentCard.id)
+            if let cardId = cards[safe: currentIndex]?.id {
+                mainScrollPosition.scrollTo(id: cardId)
+                thumbnailScrollPosition.scrollTo(id: cardId)
             }
         }
         .onChange(of: currentIndex) { _, newIndex in

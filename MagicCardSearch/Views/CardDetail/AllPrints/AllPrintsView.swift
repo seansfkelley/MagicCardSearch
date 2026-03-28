@@ -63,12 +63,7 @@ struct AllPrintsView: View {
         return components?.url
     }
 
-    private var currentCard: Card? {
-        guard currentIndex >= 0 && currentIndex < (objectList.value.latestValue?.data.count ?? -1) else {
-            return nil
-        }
-        return objectList.value.latestValue?.data[currentIndex]
-    }
+    private var currentCard: Card? { objectList.value.latestValue?.data[safe: currentIndex] }
 
     var body: some View {
         NavigationStack {
@@ -167,20 +162,22 @@ struct AllPrintsView: View {
                     }
                 }
 
-                if let currentCard, let bookmark = bookmarks.first(where: { $0.id == currentCard.id }) {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button {
-                            bookmarkedCardsStore.unbookmark(id: bookmark.id)
-                        } label: {
-                            Image(systemName: "bookmark.fill")
+                if let currentCard {
+                    if let bookmark = bookmarks.first(where: { $0.id == currentCard.id }) {
+                        ToolbarItem(placement: .topBarTrailing) {
+                            Button {
+                                bookmarkedCardsStore.unbookmark(id: bookmark.id)
+                            } label: {
+                                Image(systemName: "bookmark.fill")
+                            }
                         }
-                    }
-                } else if let currentCard {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button {
-                            bookmarkedCardsStore.bookmark(card: currentCard)
-                        } label: {
-                            Image(systemName: "bookmark")
+                    } else {
+                        ToolbarItem(placement: .topBarTrailing) {
+                            Button {
+                                bookmarkedCardsStore.bookmark(card: currentCard)
+                            } label: {
+                                Image(systemName: "bookmark")
+                            }
                         }
                     }
                 } else {
