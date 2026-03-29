@@ -59,12 +59,27 @@ struct CoordinatedAllPrintsView: View {
         .onChange(of: mainScrollPosition.viewID(type: UUID.self)) { _, newCardId in
             if let newCardId, let newIndex = cards.firstIndex(where: { $0.id == newCardId }), newIndex != currentIndex {
                 currentIndex = newIndex
+                // n.b. not animated because the calculated partial scroll offset thing makes sure
+                // that the thumbnails are moving proportionally to the main view.
+                if thumbnailScrollPosition.viewID(type: UUID.self) != newCardId {
+                    // See next onChange for more on the redundancy of this with onChange(of: currentIndex).
+                    thumbnailScrollPosition.scrollTo(id: newCardId)
+                }
             }
         }
         .onChange(of: thumbnailScrollPosition.viewID(type: UUID.self)) { _, newCardId in
             if let newCardId, let newIndex = cards.firstIndex(where: { $0.id == newCardId }), newIndex != currentIndex {
                 currentIndex = newIndex
-                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                // n.b. not animated to prevent excessive motion and potential image loads.
+                if mainScrollPosition.viewID(type: UUID.self) != newCardId {
+                    // Note that this is technically redundant with the onChange(of: currentIndex),
+                    // which would be the "source of truth" for synchronization, however, that
+                    // update pathway takes at least a full render cycle meaning that you can see a
+                    // flicker of misplaced thumbnails when the offset flips suddently from -0.5 to
+                    // +0.5.
+                    mainScrollPosition.scrollTo(id: newCardId)
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                }
             }
         }
     }
