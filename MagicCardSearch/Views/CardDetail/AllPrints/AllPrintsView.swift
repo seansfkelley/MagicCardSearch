@@ -40,9 +40,8 @@ struct AllPrintsView: View {
     let initialCardId: UUID
 
     @State private var objectList: ScryfallObjectList<Card> = .empty()
-    // This is scene storage for the reasons outlined above -- we want to restore our position when
-    // we re-foreground the app.
-    @SceneStorage("allPrintsIndex") private var currentIndex: Int = 0
+    @State private var currentCardId: UUID?
+    @State private var cards = IndexedArray<Card>()
     @State private var showFilterPopover = false
     @State private var printFilterSettings = AllPrintsFilterSettings()
 
@@ -62,8 +61,6 @@ struct AllPrintsView: View {
         ]
         return components?.url
     }
-
-    private var currentCard: Card? { objectList.value.latestValue?.data[safe: currentIndex] }
 
     var body: some View {
         NavigationStack {
@@ -117,8 +114,8 @@ struct AllPrintsView: View {
                         }
                     } else {
                         CoordinatedAllPrintsView(
-                            cards: list.data,
-                            currentIndex: $currentIndex,
+                            cards: cards,
+                            currentId: $currentCardId,
                             filterSettings: printFilterSettings,
                         )
                     }
@@ -130,7 +127,7 @@ struct AllPrintsView: View {
                     } actions: {
                         Button("Try Again") {
                             Task {
-                                await reloadAllPrints()
+                                await reloadAllPrints(andScrollTo: currentCardId ?? initialCardId)
                             }
                         }
                         .buttonStyle(.borderedProminent)
@@ -162,7 +159,7 @@ struct AllPrintsView: View {
                     }
                 }
 
-                if let currentCard {
+                if let currentCard = currentCardId.flatMap({ cards.itemFor(id: $0) }) {
                     if let bookmark = bookmarks.first(where: { $0.id == currentCard.id }) {
                         ToolbarItem(placement: .topBarTrailing) {
                             Button {
@@ -198,40 +195,38 @@ struct AllPrintsView: View {
         }
         .onFirstAppear {
             Task {
-                await reloadAllPrints()
+                await reloadAllPrints(andScrollTo: initialCardId)
             }
         }
         .onChange(of: printFilterSettings) { oldSettings, newSettings in
             if oldSettings.fetchKey == newSettings.fetchKey {
-                let id = currentCard?.id
                 objectList.reprocess { self.printFilterSettings.sort($0) }
-                scrollTo(id)
+                reindexAndScrollTo(currentCardId)
             } else {
                 Task {
-                    await reloadAllPrints()
+                    await reloadAllPrints(andScrollTo: currentCardId)
                 }
             }
         }
     }
 
-    private func scrollTo(_ targetCardId: UUID?) {
-        if let targetCardId,
-           let index = objectList.value.latestValue?.data.firstIndex(where: { $0.id == targetCardId }) {
-            currentIndex = index
-        } else if !(objectList.value.latestValue?.data ?? []).isEmpty {
-            currentIndex = 0
+    private func reindexAndScrollTo(_ targetCardId: UUID?) {
+        cards.reindex(objectList.value.latestValue?.data ?? [])
+        if let targetCardId, cards.itemFor(id: targetCardId) != nil {
+            currentCardId = targetCardId
+        } else {
+            currentCardId = cards.items.first?.id
         }
     }
 
-    private func reloadAllPrints() async {
+    private func reloadAllPrints(andScrollTo targetCardId: UUID?) async {
         let cacheKey = CacheKey(oracleId, printFilterSettings)
 
         if let cachedList = try? Self.objectListCache.entry(forKey: cacheKey) {
             logger.trace("hit cache for object list key=\(cacheKey)")
-            let id = currentCard?.id ?? initialCardId
             objectList = cachedList.object
             objectList.reprocess { self.printFilterSettings.sort($0) }
-            scrollTo(id)
+            reindexAndScrollTo(targetCardId)
         } else {
             let searchQuery = printFilterSettings.toQueryFor(oracleId: oracleId)
             let client = ScryfallClient(logger: logger)
@@ -245,7 +240,6 @@ struct AllPrintsView: View {
             Self.objectListCache.setObject(currentObjectList, forKey: cacheKey)
             logger.trace("set cache for object list key=\(cacheKey)")
 
-            let id = currentCard?.id ?? initialCardId
             objectList = currentObjectList
 
             await objectList.loadAllRemainingPages().value
@@ -253,7 +247,7 @@ struct AllPrintsView: View {
             guard objectList === currentObjectList else { return }
 
             objectList.reprocess { self.printFilterSettings.sort($0) }
-            scrollTo(id)
+            reindexAndScrollTo(targetCardId)
         }
     }
 }

@@ -2,12 +2,12 @@ import SwiftUI
 import ScryfallKit
 
 struct CoordinatedAllPrintsView: View {
-    let cards: [Card]
-    @Binding var currentIndex: Int
+    let cards: IndexedArray<Card>
+    @Binding var currentId: UUID?
     let filterSettings: AllPrintsFilterSettings
 
     // It seems that these cannot share a position object, so we bridge between the two and,
-    // unfortunately, also the currentIndex binding from the parent.
+    // unfortunately, also the binding from the parent.
     @State private var mainScrollPosition = ScrollPosition(idType: UUID.self)
     @State private var thumbnailScrollPosition = ScrollPosition(idType: UUID.self)
     @State private var partialScrollOffsetFraction: CGFloat = 0
@@ -35,44 +35,46 @@ struct CoordinatedAllPrintsView: View {
 
                 Spacer()
 
-                Text("\(currentIndex + 1) of \(cards.count)")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                if let currentId, let idx = cards.indexOf(id: currentId) {
+                    Text("\(idx + 1) of \(cards.items.count)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
         }
         .onAppear {
-            if let cardId = cards[safe: currentIndex]?.id {
-                mainScrollPosition.scrollTo(id: cardId)
-                thumbnailScrollPosition.scrollTo(id: cardId)
-            }
+            guard let currentId else { return }
+            mainScrollPosition.scrollTo(id: currentId)
+            thumbnailScrollPosition.scrollTo(id: currentId)
         }
-        .onChange(of: currentIndex) { _, newIndex in
-            if let cardId = cards[safe: newIndex]?.id {
-                if mainScrollPosition.viewID(type: UUID.self) != cardId {
-                    mainScrollPosition.scrollTo(id: cardId)
-                }
-                if thumbnailScrollPosition.viewID(type: UUID.self) != cardId {
-                    thumbnailScrollPosition.scrollTo(id: cardId)
-                }
+        .onChange(of: currentId) { _, newId in
+            guard let newId else { return }
+            // These apparently-redundant checks prevent the view from snapping immediately between
+            // items. I guess there's some kind of on-set behavior that overrides in-progress animations.
+            if mainScrollPosition.viewID(type: UUID.self) != newId {
+                mainScrollPosition.scrollTo(id: newId)
+            }
+            if thumbnailScrollPosition.viewID(type: UUID.self) != newId {
+                thumbnailScrollPosition.scrollTo(id: newId)
             }
         }
         .onChange(of: mainScrollPosition.viewID(type: UUID.self)) { _, newCardId in
-            if let newCardId, let newIndex = cards.firstIndex(where: { $0.id == newCardId }), newIndex != currentIndex {
-                currentIndex = newIndex
+            if let newCardId, newCardId != currentId {
+                currentId = newCardId
                 // n.b. not animated because the calculated partial scroll offset thing makes sure
                 // that the thumbnails are moving proportionally to the main view.
                 if thumbnailScrollPosition.viewID(type: UUID.self) != newCardId {
-                    // See next onChange for more on the redundancy of this with onChange(of: currentIndex).
+                    // See next onChange for more on the redundancy of this with onChange(of: currentId).
                     thumbnailScrollPosition.scrollTo(id: newCardId)
                 }
             }
         }
         .onChange(of: thumbnailScrollPosition.viewID(type: UUID.self)) { _, newCardId in
-            if let newCardId, let newIndex = cards.firstIndex(where: { $0.id == newCardId }), newIndex != currentIndex {
-                currentIndex = newIndex
+            if let newCardId, newCardId != currentId {
+                currentId = newCardId
                 // n.b. not animated to prevent excessive motion and potential image loads.
                 if mainScrollPosition.viewID(type: UUID.self) != newCardId {
-                    // Note that this is technically redundant with the onChange(of: currentIndex),
+                    // Note that this is technically redundant with the onChange(of: currentId),
                     // which would be the "source of truth" for synchronization, however, that
                     // update pathway takes at least a full render cycle meaning that you can see a
                     // flicker of misplaced thumbnails when the offset flips suddently from -0.5 to
@@ -104,8 +106,6 @@ private struct PagingCardImageView: View {
 
     @State private var scrollPhase: ScrollPhase = .idle
     @State private var cardWidth: CGFloat = 0
-
-    private var cardIndex = IndexedArray<Card>()
 
     var body: some View {
         ScrollView(.horizontal) {
@@ -212,7 +212,7 @@ private struct PagingCardImageView: View {
 }
 
 private struct ThumbnailPreviewStrip: View {
-    let cards: [Card]
+    let cards: IndexedArray<Card>
     @Binding var scrollPosition: ScrollPosition
     var partialScrollOffsetFraction: CGFloat
     let screenWidth: CGFloat
@@ -228,7 +228,7 @@ private struct ThumbnailPreviewStrip: View {
     var body: some View {
         ScrollView(.horizontal) {
             LazyHStack(spacing: thumbnailSpacing) {
-                ForEach(cards, id: \.id) { card in
+                ForEach(cards.items, id: \.id) { card in
                     CardView(
                         card: card,
                         quality: .small,
