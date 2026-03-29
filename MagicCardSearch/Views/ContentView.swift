@@ -53,6 +53,10 @@ struct ContentView: View {
             tabDelegate.onRandomTabTapped = { advanceRandomCard = true }
         }
         .introspect(.tabView, on: .iOS(.v26)) { tabBarController in
+            // SwiftUI installs its own delegate, and if we clobber it without forwarding to it, we
+            // break things like @AppStorage-backed tab restoration on background/foreground.
+            guard tabBarController.delegate !== tabDelegate else { return }
+            tabDelegate.forwardingDelegate = tabBarController.delegate
             tabBarController.delegate = tabDelegate
         }
     }
@@ -63,6 +67,11 @@ struct ContentView: View {
 private final class TabBarDelegate: NSObject, UITabBarControllerDelegate {
     var onRandomTabTapped: (() -> Void)?
     var onSearchTabTapped: (() -> Void)?
+    // nonisolated(unsafe): Claude claims that (1) these two methods are called by the Objective-C
+    // runtime, (2) these calls do not go through Swift's actor system, and (3) the calls _are_
+    // always on the main thread. Assuming this is correct, the problem is only that the Swift
+    // compiler cannot reason about safety and not that this is incorrect.
+    nonisolated(unsafe) weak var forwardingDelegate: (any UITabBarControllerDelegate)?
 
     func tabBarController(
         _ tabBarController: UITabBarController,
@@ -75,12 +84,27 @@ private final class TabBarDelegate: NSObject, UITabBarControllerDelegate {
             switch tabBarController.selectedIndex {
             case 2:
                 onRandomTabTapped?()
+                return false
             case 3:
                 onSearchTabTapped?()
+                return false
             default:
                 break
             }
         }
-        return true
+        return forwardingDelegate?.tabBarController?(tabBarController, shouldSelect: viewController) ?? true
+    }
+
+    // Clause wrote this method. I don't know anything about Objective-C dynamic dispatch but it works.
+    override func responds(to aSelector: Selector!) -> Bool {
+        super.responds(to: aSelector) || forwardingDelegate?.responds(to: aSelector) == true
+    }
+
+    // Clause wrote this method. I don't know anything about Objective-C dynamic dispatch but it works.
+    override func forwardingTarget(for aSelector: Selector!) -> Any? {
+        if !super.responds(to: aSelector), let forwardingDelegate, forwardingDelegate.responds(to: aSelector) {
+            return forwardingDelegate
+        }
+        return super.forwardingTarget(for: aSelector)
     }
 }
