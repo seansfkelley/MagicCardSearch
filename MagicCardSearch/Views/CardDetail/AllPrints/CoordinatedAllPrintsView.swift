@@ -95,7 +95,7 @@ private extension AllPrintsFilterSettings.SortMode {
 }
 
 private struct PagingCardImageView: View {
-    let cards: [Card]
+    let cards: IndexedArray<Card>
     @Binding var scrollPosition: ScrollPosition
     @Binding var partialScrollOffsetFraction: CGFloat
     let screenWidth: CGFloat
@@ -105,10 +105,12 @@ private struct PagingCardImageView: View {
     @State private var scrollPhase: ScrollPhase = .idle
     @State private var cardWidth: CGFloat = 0
 
+    private var cardIndex = IndexedArray<Card>()
+
     var body: some View {
         ScrollView(.horizontal) {
             LazyHStack(spacing: 0) {
-                ForEach(cards, id: \.id) { card in
+                ForEach(cards.items, id: \.id) { card in
                     VStack(alignment: .center, spacing: 0) {
                         // ZStack exists just to separate the padding from the GeometryReader so it
                         // can accurately see how large the card itself is.
@@ -196,10 +198,10 @@ private struct PagingCardImageView: View {
             for: CGFloat.self,
             of: { geometry in
                 guard let currentId = scrollPosition.viewID(type: UUID.self),
-                      let currentIdx = cards.firstIndex(where: { $0.id == currentId }) else {
+                      let currentIndex = cards.indexOf(id: currentId) else {
                     return 0
                 }
-                return (CGFloat(currentIdx) * geometry.containerSize.width - geometry.contentOffset.x) / geometry.containerSize.width
+                return (CGFloat(currentIndex) * geometry.containerSize.width - geometry.contentOffset.x) / geometry.containerSize.width
             },
             action: { _, new in
                 if scrollPhase == .interacting || scrollPhase == .decelerating {
