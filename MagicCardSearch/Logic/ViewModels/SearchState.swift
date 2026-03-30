@@ -83,6 +83,10 @@ class SearchState {
             // has written one by hand in there somewhere.
             mutableQuery = "\(preferClause) \(mutableQuery)"
         }
+        if let gameClause = instancedConfiguration.game.toStringFilter() {
+            // TODO: Scryfall will AND this with any other hand-written game: clause, which is probably wrong.
+            mutableQuery = "\(mutableQuery) \(gameClause)"
+        }
 
         let query = mutableQuery // appease concurrency checker.
 
