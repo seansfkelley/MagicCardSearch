@@ -42,6 +42,7 @@ class ScryfallObjectList<T: Codable & Sendable> {
     // at least it won't be stale when you imperatively trigger this.
     func reprocess(_ postProcess: @escaping ([T]) -> [T]) {
         self.postProcess = postProcess
+        // swiftlint:disable:next trailing_closure
         value = value.map(value: { Self.append(nil, $0, postProcess) })
     }
 

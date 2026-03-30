@@ -96,7 +96,7 @@ class AutocompleteSuggestionProvider {
         let history = filterHistoryEntries
         let catalogData = catalogData
 
-        return try await aggregateAutocompleteSuggestions(
+        return try await getAllAutocompleteSuggestions(
             searchTerm: searchTerm,
             existingFilters: existingFilters,
             filters: filters,
@@ -107,7 +107,7 @@ class AutocompleteSuggestionProvider {
 }
 
 // swiftlint:disable:next function_body_length
-@concurrent nonisolated private func aggregateAutocompleteSuggestions(
+@concurrent nonisolated private func getAllAutocompleteSuggestions(
     searchTerm: String,
     existingFilters: Set<FilterQuery<FilterTerm>>,
     filters: [PinnedFilterEntry],
@@ -342,8 +342,8 @@ func filterHistorySuggestions(
     )
 }
 
-extension [Range<String.Index>] {
-    fileprivate func shift(by count: Int, in string: String) -> [Range<String.Index>] {
+private extension [Range<String.Index>] {
+    func shift(by count: Int, in string: String) -> [Range<String.Index>] {
         guard count != 0 else { return self }
         return compactMap { range in
             guard
@@ -363,9 +363,10 @@ extension [Range<String.Index>] {
     }
 }
 
-func filterTypeSuggestions(for partial: PartialFilterTerm, searchTerm: String) -> some Sequence<
-    AutocompleteSuggestion
-> {
+func filterTypeSuggestions(
+    for partial: PartialFilterTerm,
+    searchTerm: String,
+) -> some Sequence<AutocompleteSuggestion> {
     guard case .name(let exact, let partialTerm) = partial.content,
         !exact,
         partialTerm.quotingType == nil,
@@ -378,9 +379,7 @@ func filterTypeSuggestions(for partial: PartialFilterTerm, searchTerm: String) -
     var seen = Set<String>()
     var deduplicated: [(String, ScryfallFilterType, Double)] = []
     for result in fuzzyMatcher.matches(Array(scryfallFilterByType.keys), against: query) {
-        if let filterType = scryfallFilterByType[result.candidate],
-            seen.insert(filterType.canonicalName).inserted
-        {
+        if let filterType = scryfallFilterByType[result.candidate], seen.insert(filterType.canonicalName).inserted {
             deduplicated.append((result.candidate, filterType, result.match.score))
         }
     }
@@ -444,12 +443,12 @@ func regexSuggestion(for partial: PartialFilterTerm) -> some Sequence<Autocomple
     let filterType: String?
     let comparison: Comparison
     let regexString: String
-    if case .filter(let f, let partialComparison, let partialTerm) = partial.content,
-        let c = partialComparison.toComplete(),
-        partialTerm.quotingType == .forwardSlash
+    if case .filter(let filterName, let partialComparison, let partialTerm) = partial.content,
+       let completeComparison = partialComparison.toComplete(),
+       partialTerm.quotingType == .forwardSlash
     {
-        filterType = f
-        comparison = c
+        filterType = filterName
+        comparison = completeComparison
         regexString = partialTerm.incompleteContent
     } else if case .name(let isExact, let partialTerm) = partial.content,
         !isExact && partialTerm.incompleteContent.count > 1 && partialTerm.incompleteContent.hasPrefix("/")
@@ -560,6 +559,17 @@ func enumerationSuggestions(
     )
 }
 
+// These enumerations are very prolific and cluttery; their match scores are penalized accordingly.
+let reverseEnumerationFilterTypeBiases: [String: Double] = [
+    "art": -0.4,  // extremely cluttery
+    "artist": -0.2,  // marginally less cluttery but not terribly useful
+    "block": -0.1,
+    "frame": -0.1,
+    "function": -0.2,  // cluttery but often very useful
+    "set": -0.1,
+    "watermark": -0.4,  // not super cluttery but also almost never useful
+]
+
 func reverseEnumerationSuggestions(
     for partial: PartialFilterTerm,
     catalogData: AutocompleteCatalogs,
@@ -572,62 +582,46 @@ func reverseEnumerationSuggestions(
         return AnySequence([])
     }
 
-    // These enumerations are very prolific and cluttery; their match scores are penalized accordingly.
-    let biasedFilterTypes: [String: Double] = [
-        "art": -0.4,  // extremely cluttery
-        "artist": -0.2,  // marginally less cluttery but not terribly useful
-        "block": -0.1,
-        "frame": -0.1,
-        "function": -0.2,  // cluttery but often very useful
-        "set": -0.1,
-        "watermark": -0.4,  // not super cluttery but also almost never useful
-    ]
-
     let query = fuzzyMatcher.prepare(partialTerm.incompleteContent)
-    let matchResults:
-        [(candidate: String, filterTypes: [ScryfallFilterType], score: Double, biasedScore: Double)] =
-            timed("reverseEnumerationSuggestions fuzzy match") {
-                var buffer = fuzzyMatcher.makeBuffer()
+    let matchResults = timed("reverseEnumerationSuggestions fuzzy match") {
+        var buffer = fuzzyMatcher.makeBuffer()
 
-                var results:
-                    [(
-                        candidate: String, filterTypes: [ScryfallFilterType], score: Double,
-                        biasedScore: Double
-                    )] = []
-                var unbiasedValueToFilterTypes: [String: [ScryfallFilterType]] = [:]
-                for filterType in scryfallFilterTypes {
-                    let values = catalogData[filterType] ?? filterType.enumerationValues ?? []
-                    guard !values.isEmpty else { continue }
-                    if let bias = biasedFilterTypes[filterType.canonicalName] {
-                        for candidate in values {
-                            if let match = fuzzyMatcher.score(
-                                candidate,
-                                against: query,
-                                buffer: &buffer
-                            ) {
-                                results.append(
-                                    (candidate, [filterType], match.score, match.score + bias)
-                                )
-                            }
-                        }
-                    } else {
-                        for value in values {
-                            unbiasedValueToFilterTypes[value, default: []].append(filterType)
-                        }
-                    }
-                }
-                for candidate in unbiasedValueToFilterTypes.keys {
+        var results: [(
+            candidate: String,
+            filterTypes: [ScryfallFilterType],
+            score: Double,
+            biasedScore: Double,
+        )] = []
+        var unbiasedValueToFilterTypes: [String: [ScryfallFilterType]] = [:]
+        for filterType in scryfallFilterTypes {
+            let values = catalogData[filterType] ?? filterType.enumerationValues ?? []
+            guard !values.isEmpty else { continue }
+            if let bias = reverseEnumerationFilterTypeBiases[filterType.canonicalName] {
+                for candidate in values {
                     if let match = fuzzyMatcher.score(candidate, against: query, buffer: &buffer) {
                         results.append(
-                            (
-                                candidate, unbiasedValueToFilterTypes[candidate]!, match.score,
-                                match.score
-                            )
+                            (candidate, [filterType], match.score, match.score + bias)
                         )
                     }
                 }
-                return results.sorted { $0.biasedScore > $1.biasedScore }
+            } else {
+                for value in values {
+                    unbiasedValueToFilterTypes[value, default: []].append(filterType)
+                }
             }
+        }
+        for candidate in unbiasedValueToFilterTypes.keys {
+            if let match = fuzzyMatcher.score(candidate, against: query, buffer: &buffer) {
+                results.append(
+                    (
+                        candidate, unbiasedValueToFilterTypes[candidate]!, match.score,
+                        match.score
+                    )
+                )
+            }
+        }
+        return results.sorted { $0.biasedScore > $1.biasedScore }
+    }
 
     return AnySequence(
         matchResults
@@ -653,9 +647,11 @@ func reverseEnumerationSuggestions(
     )
 }
 
-func nameSuggestions(for partial: PartialFilterTerm, in cardNames: [String], searchTerm: String)
-    -> some Sequence<AutocompleteSuggestion>
-{
+func nameSuggestions(
+    for partial: PartialFilterTerm,
+    in cardNames: [String],
+    searchTerm: String,
+) -> some Sequence<AutocompleteSuggestion> {
     let name: String
     let comparison: Comparison?
 
@@ -666,8 +662,7 @@ func nameSuggestions(for partial: PartialFilterTerm, in cardNames: [String], sea
     case .filter(let filter, let partialComparison, let partialValue):
         if let completeComparison = partialComparison.toComplete(),
             filter.lowercased() == "name"
-                && (completeComparison == .including || completeComparison == .equal
-                    || completeComparison == .notEqual)
+                && (completeComparison == .including || completeComparison == .equal || completeComparison == .notEqual)
         {
             name = partialValue.incompleteContent
             comparison = completeComparison
@@ -704,8 +699,7 @@ func nameSuggestions(for partial: PartialFilterTerm, in cardNames: [String], sea
                         .init(
                             value: .term(filter),
                             string: filterText,
-                            highlights: (fuzzyMatcher.highlight(result.candidate, against: query)
-                                ?? [])
+                            highlights: (fuzzyMatcher.highlight(result.candidate, against: query) ?? [])
                                 .shift(
                                     by: filterText.distance(
                                         from: filterText.startIndex,

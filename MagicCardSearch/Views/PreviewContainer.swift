@@ -12,6 +12,7 @@ struct PreviewContainer<Content: View>: View {
     private let content: (Binding<SearchState>) -> Content
 
     init(@ViewBuilder content: @escaping (Binding<SearchState>) -> Content) {
+        // swiftlint:disable:next force_try
         let database = try! appDatabase()
         prepareDependencies { $0.defaultDatabase = database }
         bookmarkedCardsStore = .init(database: database)

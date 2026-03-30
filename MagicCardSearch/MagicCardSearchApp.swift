@@ -11,6 +11,7 @@ struct MagicCardSearchApp: App {
     private var scryfallCatalogs: ScryfallCatalogs
 
     init() {
+        // swiftlint:disable:next force_try
         let database = try! appDatabase()
 
         prepareDependencies {

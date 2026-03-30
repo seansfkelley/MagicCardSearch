@@ -542,7 +542,7 @@ private struct PreviewError: LocalizedError {
             CardView.Placeholder(name: nil, cornerRadius: 16, with: .image("shuffle"))
             CardView.Placeholder(name: "Lightning Bolt", cornerRadius: 16, with: .spinner)
             CardView.Placeholder(name: "Lightning Bolt", cornerRadius: 16, with: .error(PreviewError("Could not connect to Scryfall."), nil))
-            CardView.Placeholder(name: "Lightning Bolt", cornerRadius: 16, with: .error(PreviewError("The Internet connection appears to be offline."), {}))
+            CardView.Placeholder(name: "Lightning Bolt", cornerRadius: 16, with: .error(PreviewError("The Internet connection appears to be offline.")) {})
         }
         .padding()
     }

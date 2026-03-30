@@ -28,6 +28,7 @@ enum LoadableResult<T, E: Error> {
     }
 
     func map<U>(value: (T) -> U) -> LoadableResult<U, E> {
+        // swiftlint:disable:next trailing_closure
         map(value: value, error: { x in x })
     }
 
