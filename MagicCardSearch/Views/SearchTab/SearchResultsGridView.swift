@@ -62,6 +62,7 @@ struct SearchResultsGridView: View {
                                     quality: .normal,
                                     isFlipped: $cardFlipStates.for(card.id),
                                     cornerRadius: 10,
+                                    enableZoomGestures: .pinchOnly,
                                     enableCopyActions: true,
                                 )
                                 .onTapGesture {

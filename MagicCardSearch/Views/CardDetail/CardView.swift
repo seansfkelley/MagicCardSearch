@@ -211,7 +211,7 @@ struct CardView: View {
     @Binding var isFlipped: Bool
     let cornerRadius: CGFloat
     let showFlipButton: Bool
-    let enableZoomGestures: Bool
+    let enableZoomGestures: ZoomOverlayInitationGestures?
     let enableCopyActions: Bool
 
     init(
@@ -220,7 +220,7 @@ struct CardView: View {
         isFlipped: Binding<Bool>,
         cornerRadius: CGFloat,
         showFlipButton: Bool = true,
-        enableZoomGestures: Bool = false,
+        enableZoomGestures: ZoomOverlayInitationGestures? = nil,
         enableCopyActions: Bool = false,
     ) {
         self.card = card
@@ -268,7 +268,7 @@ private struct CardFaceView: View {
     let orientation: Card.Orientation
     let quality: CardImageQuality
     let cornerRadius: CGFloat
-    let enableZoomGestures: Bool
+    let enableZoomGestures: ZoomOverlayInitationGestures?
     let enableCopyActions: Bool
 
     var body: some View {
@@ -280,10 +280,11 @@ private struct CardFaceView: View {
                         .resizable()
                         .aspectRatio(contentMode: .fit)
                         .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
-                        .if(enableZoomGestures) { view in
+                        .if(enableZoomGestures) { view, gestures in
                             view.zoomOverlay(
                                 for: state.imageContainer?.image,
                                 clippingTo: AnyShape(RoundedRectangle(cornerRadius: cornerRadius)),
+                                initatedWith: gestures,
                             )
                         }
                         .if(enableCopyActions) { view in
@@ -333,7 +334,7 @@ private struct FlippableCardFaceView: View {
     @Binding var isShowingBackFace: Bool
     let cornerRadius: CGFloat
     let showFlipButton: Bool
-    let enableZoomGestures: Bool
+    let enableZoomGestures: ZoomOverlayInitationGestures?
     let enableCopyActions: Bool
 
     private var rotationAxis: (x: CGFloat, y: CGFloat, z: CGFloat) {

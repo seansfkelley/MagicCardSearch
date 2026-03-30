@@ -3,14 +3,33 @@ import OSLog
 
 private let logger = Logger(subsystem: "MagicCardSearch", category: "ZoomOverlayInitiatingGestureView")
 
+enum ZoomOverlayInitationGestures {
+    case tapOnly, pinchOnly, tapAndPinch
+
+    var allowsTap: Bool {
+        switch self {
+        case .tapOnly, .tapAndPinch: true
+        case .pinchOnly: false
+        }
+    }
+
+    var allowsPinch: Bool {
+        switch self {
+        case .pinchOnly, .tapAndPinch: true
+        case .tapOnly: false
+        }
+    }
+}
+
 /// Transparent UIView overlay that drives ZoomOverlayState
 /// during the originating gesture phase (before the overlay takes over).
 struct ZoomOverlayInitiatingGestureView: UIViewRepresentable {
     let uiImage: UIImage
     let clipShape: AnyShape?
+    let initiatingGestures: ZoomOverlayInitationGestures
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(uiImage: uiImage, clipShape: clipShape)
+        Coordinator(uiImage: uiImage, clipShape: clipShape, initiatingGestures: initiatingGestures)
     }
 
     func makeUIView(context: Context) -> UIView {
@@ -31,20 +50,22 @@ struct ZoomOverlayInitiatingGestureView: UIViewRepresentable {
     final class Coordinator: NSObject, UIGestureRecognizerDelegate {
         private let uiImage: UIImage
         private let clipShape: AnyShape?
+        private let initiatingGestures: ZoomOverlayInitationGestures
         private var state: ZoomOverlayState { .shared }
 
-        lazy var pinchRecognizer = UIPinchGestureRecognizer(target: self, action: #selector(handlePinch))
-        lazy var tapRecognizer = UITapGestureRecognizer(target: self, action: #selector(handleTap))
-        lazy var panRecognizer: UIPanGestureRecognizer = {
+        fileprivate lazy var pinchRecognizer = UIPinchGestureRecognizer(target: self, action: #selector(handlePinch))
+        fileprivate lazy var tapRecognizer = UITapGestureRecognizer(target: self, action: #selector(handleTap))
+        fileprivate lazy var panRecognizer: UIPanGestureRecognizer = {
             let pan = UIPanGestureRecognizer(target: self, action: #selector(handlePan))
             pan.minimumNumberOfTouches = 2
             pan.maximumNumberOfTouches = 2
             return pan
         }()
 
-        init(uiImage: UIImage, clipShape: AnyShape?) {
+        init(uiImage: UIImage, clipShape: AnyShape?, initiatingGestures: ZoomOverlayInitationGestures) {
             self.uiImage = uiImage
             self.clipShape = clipShape
+            self.initiatingGestures = initiatingGestures
             super.init()
             pinchRecognizer.delegate = self
             tapRecognizer.delegate = self
@@ -119,7 +140,11 @@ struct ZoomOverlayInitiatingGestureView: UIViewRepresentable {
             // The pan recognizer only exists to track finger drift during a pinch.
             // Don't let it recognize on its own.
             if gestureRecognizer === panRecognizer {
-                return pinchRecognizer.state == .began || pinchRecognizer.state == .changed
+                // Two-finger pan handling (pun intended) is intended to complement pinch gestures.
+                return initiatingGestures.allowsPinch && (
+                    pinchRecognizer.state == .began
+                    || pinchRecognizer.state == .changed
+                )
             }
 
             // Don't open the preview via tap if the user is touching down to arrest a
@@ -128,10 +153,17 @@ struct ZoomOverlayInitiatingGestureView: UIViewRepresentable {
             // This is a bit of a hack, partly because of the amount of introspection and partly
             // because it only works with scroll views, and only the nearest at that.
             if gestureRecognizer === tapRecognizer {
+                guard initiatingGestures.allowsTap else { return false }
+
                 if let scrollView = gestureRecognizer.view?.firstScrollViewAncestor {
                     return !scrollView.isDecelerating && !scrollView.isOutOfBounds
                 }
             }
+
+            if gestureRecognizer === pinchRecognizer {
+                return initiatingGestures.allowsPinch
+            }
+
             return true
         }
 

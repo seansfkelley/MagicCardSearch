@@ -75,7 +75,7 @@ struct CardDetailView: View {
                     quality: .large,
                     isFlipped: $isFlipped,
                     cornerRadius: 16,
-                    enableZoomGestures: true,
+                    enableZoomGestures: .tapAndPinch,
                     enableCopyActions: true,
                 )
                 .padding(.horizontal)
