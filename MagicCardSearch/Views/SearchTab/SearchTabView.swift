@@ -55,12 +55,16 @@ struct SearchTabView: View {
         }
         .toolbarBackground(.hidden, for: .navigationBar)
         .navigationBarTitleDisplayMode(.inline)
-        .onChange(of: showSearchSheet) { _, isShowing in
-            if isShowing {
+        .onChange(of: showSearchSheet) {
+            // A bit unfortunate to have derived state like this, but it's simple to enforce and
+            // simple to understand and allows parent views to programmatically open the search.
+            if showSearchSheet {
                 editingState = searchState.makeEditingState()
+            } else {
+                editingState = nil
             }
         }
-        .sheet(isPresented: $showSearchSheet, onDismiss: { editingState = nil }) {
+        .sheet(isPresented: $showSearchSheet) {
             if let editingState {
                 NavigationStack {
                     SearchSheetView(
