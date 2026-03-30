@@ -6,7 +6,7 @@ final class IndexedArray<T: Identifiable> {
     private var cachedIds: [T.ID] = []
     private var index: [T.ID: Int] = [:]
 
-    func reindex(_ array: [T]) -> Void {
+    func reindex(_ array: [T]) {
         guard cachedIds.count != array.count || !cachedIds.elementsEqual(array.lazy.map(\.id)) else {
             return
         }
