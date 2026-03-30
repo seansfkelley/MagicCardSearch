@@ -7,14 +7,9 @@ private let logger = Logger(subsystem: "MagicCardSearch", category: "SearchState
 @MainActor
 @Observable
 class SearchState {
-    public var filters: [FilterQuery<FilterTerm>] = [] {
-        didSet {
-            results = nil
-        }
-    }
-    public var configuration = SearchConfiguration.load()
+    public private(set) var filters: [FilterQuery<FilterTerm>] = []
+    public private(set) var configuration = SearchConfiguration.load()
     public private(set) var results: ScryfallObjectList<Card>?
-    public private(set) var searchNonce = 0
 
     private let suggestionProvider: AutocompleteSuggestionProvider
     private let scryfall = ScryfallClient(logger: logger)
@@ -29,15 +24,22 @@ class SearchState {
         SearchEditingState(filters: filters, suggestionProvider: suggestionProvider)
     }
 
-    public func clearAll() {
+    public func reset() {
         filters = []
         results = nil
     }
 
-    public func performSearch() {
-        logger.info("starting new search filters=\(self.filters) configuration=\(self.configuration)")
+    public func search(
+        withFilters newFilters: [FilterQuery<FilterTerm>]? = nil,
+        withConfiguration newConfiguration: SearchConfiguration? = nil,
+    ) {
+        filters = newFilters ?? filters
+        configuration = newConfiguration ?? configuration
 
-        searchNonce += 1
+        // TODO: Move this into a didSet and/or make it more automatic.
+        configuration.save()
+
+        logger.info("starting new search filters=\(self.filters) configuration=\(self.configuration)")
 
         guard !filters.isEmpty else {
             logger.info("no search filters; skipping to empty result")
@@ -60,6 +62,6 @@ class SearchState {
             )
         }
 
-        _ = results!.loadNextPage()
+        results!.loadNextPage()
     }
 }

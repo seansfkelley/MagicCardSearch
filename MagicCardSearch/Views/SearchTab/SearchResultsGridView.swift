@@ -103,7 +103,7 @@ struct SearchResultsGridView: View {
                 )
             }
         }
-        .onChange(of: searchState.searchNonce) {
+        .onChange(of: searchState.filters) {
             cardFlipStates = [:]
         }
         .onChange(of: searchState.results?.value.latestValue?.data ?? []) { _, newValue in

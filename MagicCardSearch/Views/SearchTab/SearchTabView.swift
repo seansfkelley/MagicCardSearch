@@ -65,17 +65,19 @@ struct SearchTabView: View {
                 NavigationStack {
                     SearchSheetView(
                         editingState: editingState,
+                        // TODO: Should we display the warnings here?
                         warnings: searchState.results?.value.latestValue?.warnings ?? [],
-                        onSearch: commitSearch
-                    )
+                    ) {
+                        // n.b. we throw out any incomplete state in the search bar by design.
+                        searchState.search(withFilters: editingState.filters)
+                        showSearchSheet = false
+                    }
                 }
             }
         }
         .sheet(isPresented: $showDisplayOptionsSheet, onDismiss: {
             if let pending = pendingSearchConfig, pending != searchState.configuration {
-                searchState.configuration = pending
-                searchState.performSearch()
-                searchState.configuration.save()
+                searchState.search(withConfiguration: pending)
             }
             pendingSearchConfig = nil
         }) {
@@ -87,17 +89,5 @@ struct SearchTabView: View {
             }
             .presentationDetents([.medium])
         }
-    }
-
-    private func commitSearch() {
-        guard let editingState else { return }
-        if let filter = PartialFilterQuery.from(
-            editingState.searchText, autoclosePairedDelimiters: true
-        ).value?.transformLeaves(using: FilterTerm.from) {
-            editingState.filters.append(filter)
-        }
-        searchState.filters = editingState.filters
-        searchState.performSearch()
-        showSearchSheet = false
     }
 }

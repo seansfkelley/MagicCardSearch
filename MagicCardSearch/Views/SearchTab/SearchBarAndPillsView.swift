@@ -19,7 +19,11 @@ struct SearchBarAndPillsView: View {
                 )
                 Spacer()
                 if !editingState.filters.isEmpty {
-                    Button(role: .destructive, action: editingState.clearAll) {
+                    Button(role: .destructive) {
+                        editingState.searchText = ""
+                        editingState.desiredSearchSelection = nil
+                        editingState.filters = []
+                    } label: {
                         Text("Clear all")
                             .font(.subheadline)
                             .fontWeight(.medium)

@@ -396,21 +396,20 @@ private struct TagRow: View {
                     if let searchState {
                         if searchState.wrappedValue.filters.isEmpty {
                             Button {
-                                searchState.wrappedValue.filters = [.term(filterTerm)]
-                                searchState.wrappedValue.performSearch()
+                                searchState.wrappedValue.search(withFilters: [.term(filterTerm)])
                             } label: {
                                 Label("Search for this Tag", systemImage: "magnifyingglass")
                             }
                         } else {
                             Button {
-                                searchState.wrappedValue.filters.append(.term(filterTerm))
-                                searchState.wrappedValue.performSearch()
+                                searchState.wrappedValue.search(
+                                    withFilters: searchState.wrappedValue.filters + [.term(filterTerm)],
+                                )
                             } label: {
                                 Label("Add to Current Search", systemImage: "plus.magnifyingglass")
                             }
                             Button {
-                                searchState.wrappedValue.filters = [.term(filterTerm)]
-                                searchState.wrappedValue.performSearch()
+                                searchState.wrappedValue.search(withFilters: [.term(filterTerm)])
                             } label: {
                                 Label("Replace Current Search", systemImage: "magnifyingglass")
                             }

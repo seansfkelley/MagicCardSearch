@@ -239,6 +239,7 @@ private extension UITextRange {
                 .padding()
         }
     }
+
     return PreviewContainer { searchState in
         Wrapper(editingState: searchState.wrappedValue.makeEditingState())
     }

@@ -63,10 +63,4 @@ class SearchEditingState {
     public func getSuggestions() async throws -> [AutocompleteSuggestion] {
         try await suggestionProvider.getSuggestions(for: selectedFilter.text, existingFilters: Set(filters))
     }
-
-    public func clearAll() {
-        searchText = ""
-        desiredSearchSelection = nil
-        filters = []
-    }
 }

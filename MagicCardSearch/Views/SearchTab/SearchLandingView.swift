@@ -83,8 +83,7 @@ struct SearchLandingView: View {
             Section {
                 ForEach(pinnedSearches, id: \.listId) { entry in
                     Button {
-                        searchState.filters = entry.filters
-                        searchState.performSearch()
+                        searchState.search(withFilters: entry.filters)
                     } label: {
                         HStack {
                             Text(entry.filters.plaintext)
@@ -135,8 +134,7 @@ struct SearchLandingView: View {
             Section {
                 ForEach(visibleRecentSearches, id: \.listId) { entry in
                     Button {
-                        searchState.filters = entry.filters
-                        searchState.performSearch()
+                        searchState.search(withFilters: entry.filters)
                     } label: {
                         HStack {
                             Text(entry.filters.plaintext)
@@ -240,8 +238,7 @@ struct SearchLandingView: View {
         Section {
             ForEach(ExampleSearch.dailyExamples, id: \.title) { example in
                 Button {
-                    searchState.filters = example.filters.map { .term($0) }
-                    searchState.performSearch()
+                    searchState.search(withFilters: example.filters.map { .term($0) })
                 } label: {
                     HStack {
                         VStack(alignment: .leading, spacing: 4) {

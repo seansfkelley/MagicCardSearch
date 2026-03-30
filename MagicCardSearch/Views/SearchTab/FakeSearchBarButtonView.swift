@@ -70,7 +70,7 @@ struct FakeSearchBarButtonView: View {
                 if !searchState.filters.isEmpty {
                     Spacer()
                     Button(action: {
-                        searchState.clearAll()
+                        searchState.reset()
                         onTap()
                     }) {
                         Image(systemName: "xmark")

@@ -267,8 +267,7 @@ private struct FilteredSearchHistoryList: View {
             List {
                 ForEach(results, id: \.content.id) { suggestion in
                     Button {
-                        searchState.filters = suggestion.content.filters
-                        searchState.performSearch()
+                        searchState.search(withFilters: suggestion.content.filters)
                         dismiss()
                     } label: {
                         DebuggableScorableView(scorable: suggestion.biasedScore) {
@@ -383,8 +382,7 @@ private struct GroupedSearchHistoryList: View {
                     ForEach(entries, id: \.id) { entry in
                         Button {
                             guard !isEditing else { return }
-                            searchState.filters = entry.filters
-                            searchState.performSearch()
+                            searchState.search(withFilters: entry.filters)
                             dismiss()
                         } label: {
                             HStack {
