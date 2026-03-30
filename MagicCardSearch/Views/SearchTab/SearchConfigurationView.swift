@@ -18,7 +18,13 @@ struct SearchConfigurationView: View {
     var body: some View {
         Form {
             Section {
-                Picker("Display Mode", selection: $workingConfig.uniqueMode) {
+                Picker("Prefer print", selection: $workingConfig.preferredPrint) {
+                    ForEach(SearchConfiguration.PreferredPrint.allCases, id: \.self) { mode in
+                        Text(mode.rawValue).tag(mode)
+                    }
+                }
+
+                Picker("Print Kinds", selection: $workingConfig.uniqueMode) {
                     ForEach(SearchConfiguration.UniqueMode.allCases, id: \.self) { mode in
                         Text(mode.rawValue).tag(mode)
                     }
@@ -26,7 +32,7 @@ struct SearchConfigurationView: View {
                 .pickerStyle(.segmented)
                 .labelsHidden()
             } footer: {
-                Text("Use the `unique:` filter to temporarily override this for one search.")
+                Text("Use the `prefer:` and `unique:` filters to temporarily override these for one search.")
             }
             
             Section {

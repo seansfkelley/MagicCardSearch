@@ -77,7 +77,14 @@ class SearchState {
     ) {
         logger.info("starting new search filters=\(instancedFilters) configuration=\(instancedConfiguration)")
 
-        let query = instancedFilters.map { $0.description }.joined(separator: " ")
+        var mutableQuery = instancedFilters.map { $0.description }.joined(separator: " ")
+        if let preferClause = instancedConfiguration.preferredPrint.toStringFilter() {
+            // Scryfall will silently pick the last prefer: clause, so prepend it in case the user
+            // has written one by hand in there somewhere.
+            mutableQuery = "\(preferClause) \(mutableQuery)"
+        }
+
+        let query = mutableQuery // appease concurrency checker.
 
         let thisSearch = ScryfallObjectList<Card>({ [weak self] page async throws in
             guard let self else { return .empty() }

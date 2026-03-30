@@ -78,6 +78,10 @@ private let scryfallIsEnumerationValues = [
     "checkland", "dual", "fastland", "fetchland", "filterland", "gainland", "painland",
     "scryland", "surveilland", "shadowland", "shockland", "storageland", "creatureland",
     "triland", "tangoland", "battleland", "masterpiece",
+    // From a blog post
+    "default", "typical", "normal", "traditional", "baseline",
+    "nondefault", "atypical", "abnormal", "nontraditional",
+    "universesbeyond", "ub", "notuniversesbeyond", "notub",
     // Not listed in the documentation, but discovered/mentioned elsewhere
     "gamechanger", "reversible", "fullart", "textless", "misprint",
 ]
@@ -250,7 +254,10 @@ let scryfallFilterTypes: [ScryfallFilterType] = [
     ]),
     .init("prefer", enumerationValues: [
         "oldest", "newest", "usd-low", "usd-high", "eur-low", "eur-high", "tix-low", "tix-high", "promo",
-        "default", "atypical", "universesbeyond", "ub", "notuniversesbeyond", "notub",
+        // From a blog post introducing is:default
+        "default", "typical", "normal", "traditional", "baseline",
+        "nondefault", "atypical", "abnormal", "nontraditional",
+        "universesbeyond", "ub", "notuniversesbeyond", "notub",
     ]),
     .init("direction", ["dir"], enumerationValues: ["asc", "desc"]),
     
