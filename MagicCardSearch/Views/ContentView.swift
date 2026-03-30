@@ -33,19 +33,27 @@ struct ContentView: View {
     var body: some View {
         TabView(selection: $selectedTab) {
             SwiftUI.Tab("Spoilers", systemImage: "sparkles", value: Tab.spoilers) {
-                SpoilersView()
+                NavigationStack {
+                    SpoilersView()
+                }
             }
 
             SwiftUI.Tab("Bookmarks", systemImage: "bookmark", value: Tab.bookmarks) {
-                BookmarkedCardListView()
+                NavigationStack {
+                    BookmarkedCardListView()
+                }
             }
 
             SwiftUI.Tab("Random", systemImage: "shuffle", value: Tab.random) {
-                RandomCardView(advanceCard: $advanceRandomCard)
+                NavigationStack {
+                    RandomCardView(advanceCard: $advanceRandomCard)
+                }
             }
 
             SwiftUI.Tab("Search", systemImage: "magnifyingglass", value: Tab.search) {
-                SearchTabView(searchState: $searchState, showSearchSheet: $showSearchSheet)
+                NavigationStack {
+                    SearchTabView(searchState: $searchState, showSearchSheet: $showSearchSheet)
+                }
             }
         }
         .onAppear {

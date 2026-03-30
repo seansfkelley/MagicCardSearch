@@ -33,8 +33,13 @@ class SearchState {
         withFilters newFilters: [FilterQuery<FilterTerm>]? = nil,
         withConfiguration newConfiguration: SearchConfiguration? = nil,
     ) {
+        let oldFilters = filters
+        let oldConfiguration = configuration
+
         filters = newFilters ?? filters
         configuration = newConfiguration ?? configuration
+
+        guard filters != oldFilters || configuration != oldConfiguration else { return }
 
         // TODO: Move this into a didSet and/or make it more automatic.
         configuration.save()

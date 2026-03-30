@@ -39,10 +39,10 @@ struct SearchResultsGridView: View {
             } else if let results = list.value.latestValue, !results.data.isEmpty {
                 ScrollView {
                     VStack(spacing: 0) {
-                        Text("\(results.totalCards ?? 0) \((results.totalCards ?? 0 == 1) ? "result" : "results")")
+                        Text("^[\(results.totalCards ?? 0) result](inflect: true)")
                             .font(.caption)
                             .foregroundStyle(.secondary)
-                            .padding(.vertical, 20)
+                            .padding(.bottom)
 
                         LazyVGrid(columns: columns, spacing: spacing) {
                             ForEach(Array(results.data.enumerated()), id: \.element.id) { index, card in

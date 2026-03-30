@@ -2,19 +2,19 @@ import SwiftUI
 
 struct DisplayOptionsView: View {
     @Environment(\.dismiss) private var dismiss
-    @Binding var searchConfig: SearchConfiguration
-    
-    @State private var workingConfig = SearchConfiguration()
-    
-    init(searchConfig: Binding<SearchConfiguration>) {
-        self._searchConfig = searchConfig
-        self._workingConfig = State(wrappedValue: searchConfig.wrappedValue)
-    }
-    
+    let onCommit: (SearchConfiguration) -> Void
+
+    @State private var workingConfig: SearchConfiguration
+
     private var hasNonDefaultSettings: Bool {
         workingConfig != SearchConfiguration.defaultConfig
     }
-    
+
+    init(initialSearchConfig: SearchConfiguration, onCommit: @escaping (SearchConfiguration) -> Void) {
+        self._workingConfig = State(wrappedValue: initialSearchConfig)
+        self.onCommit = onCommit
+    }
+
     var body: some View {
         Form {
             Section {
@@ -73,7 +73,7 @@ struct DisplayOptionsView: View {
             }
             ToolbarItem(placement: .confirmationAction) {
                 Button {
-                    searchConfig = workingConfig
+                    onCommit(workingConfig)
                     dismiss()
                 } label: {
                     Image(systemName: "checkmark")
