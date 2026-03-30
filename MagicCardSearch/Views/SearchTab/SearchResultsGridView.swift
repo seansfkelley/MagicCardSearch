@@ -94,12 +94,14 @@ struct SearchResultsGridView: View {
                 set: { selectedCardIndex = $0?.index }
             )
         ) { identifier in
-            LazyPagingCardDetailNavigatorView(
-                list: list,
-                initialIndex: identifier.index,
-                cardFlipStates: $cardFlipStates,
-                searchState: $searchState,
-            )
+            NavigationStack {
+                LazyPagingCardDetailNavigatorView(
+                    list: list,
+                    initialIndex: identifier.index,
+                    cardFlipStates: $cardFlipStates,
+                    searchState: $searchState,
+                )
+            }
         }
         .onChange(of: searchState.searchNonce) {
             cardFlipStates = [:]

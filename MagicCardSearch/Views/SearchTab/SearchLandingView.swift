@@ -61,15 +61,19 @@ struct SearchLandingView: View {
         }
         .contentMargins(.top, 20)
         .sheet(isPresented: $showAllSearchHistory) {
-            AllSearchHistoryView(searchState: $searchState)
+            NavigationStack {
+                AllSearchHistoryView(searchState: $searchState)
+            }
         }
         .sheet(item: $recentlyViewedSheetState) { state in
-            FixedListCardDetailNavigatorView(
-                cards: state.cards,
-                initialIndex: state.index,
-                searchState: $searchState,
-                showCount: false,
-            )
+            NavigationStack {
+                FixedListCardDetailNavigatorView(
+                    cards: state.cards,
+                    initialIndex: state.index,
+                    searchState: $searchState,
+                    showCount: false,
+                )
+            }
         }
     }
 

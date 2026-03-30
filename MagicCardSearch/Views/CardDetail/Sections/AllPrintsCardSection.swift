@@ -36,7 +36,9 @@ struct AllPrintsCardSection: View {
         }
         .buttonStyle(.plain)
         .sheet(isPresented: $showingPrintsSheet) {
-            AllPrintsView(oracleId: oracleId, initialCardId: currentCardId)
+            NavigationStack {
+                AllPrintsView(oracleId: oracleId, initialCardId: currentCardId)
+            }
         }
     }
 }

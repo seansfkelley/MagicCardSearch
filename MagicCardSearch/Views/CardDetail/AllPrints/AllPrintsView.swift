@@ -63,133 +63,131 @@ struct AllPrintsView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            // This is a ZStack for identity stability. If it were a Group, the toolbars would be
-            // detached and reattached to whichever underlying view was rendered by the switch,
-            // which is visible to the user as repeated collapsing and expanding of the filter
-            // popover, if it's open.
-            ZStack {
-                switch objectList.value {
-                case .unloaded, .loading:
-                    VStack {
+        // This is a ZStack for identity stability. If it were a Group, the toolbars would be
+        // detached and reattached to whichever underlying view was rendered by the switch,
+        // which is visible to the user as repeated collapsing and expanding of the filter
+        // popover, if it's open.
+        ZStack {
+            switch objectList.value {
+            case .unloaded, .loading:
+                VStack {
+                    Spacer()
+                    HStack {
                         Spacer()
-                        HStack {
-                            Spacer()
-                            ProgressView()
-                                .tint(.white)
-                            Text("Loading prints...")
-                                .foregroundStyle(.white)
-                                .font(.subheadline)
-                            Spacer()
-                        }
+                        ProgressView()
+                            .tint(.white)
+                        Text("Loading prints...")
+                            .foregroundStyle(.white)
+                            .font(.subheadline)
                         Spacer()
                     }
-                    .background(Color(white: 0, opacity: 0.4))
-                    .allowsHitTesting(false)
-                case .loaded(let list, _):
-                    if list.data.isEmpty {
-                        if printFilterSettings.isDefault {
-                            ContentUnavailableView(
-                                "No Prints Found",
-                                systemImage: "rectangle.on.rectangle.slash",
-                                description: Text("This card doesn't have any printings?")
-                            )
-                        } else {
-                            ContentUnavailableView {
-                                Label("No Matching Prints", systemImage: "sparkle.magnifyingglass")
-                            } description: {
-                                Text("Widen your filters to see more results.")
-                            } actions: {
-                                Button {
-                                    printFilterSettings.reset()
-                                } label: {
-                                    HStack {
-                                        Image(systemName: "arrow.counterclockwise")
-                                        Text("Reset All Filters")
-                                    }
-                                }
-                                .buttonStyle(.borderedProminent)
-                                .controlSize(.regular)
-                            }
-                        }
-                    } else {
-                        CoordinatedAllPrintsView(
-                            cards: cards,
-                            currentId: $currentCardId,
-                            filterSettings: printFilterSettings,
+                    Spacer()
+                }
+                .background(Color(white: 0, opacity: 0.4))
+                .allowsHitTesting(false)
+            case .loaded(let list, _):
+                if list.data.isEmpty {
+                    if printFilterSettings.isDefault {
+                        ContentUnavailableView(
+                            "No Prints Found",
+                            systemImage: "rectangle.on.rectangle.slash",
+                            description: Text("This card doesn't have any printings?")
                         )
-                    }
-                case .errored(_, let error):
-                    ContentUnavailableView {
-                        Label("Failed to load prints", systemImage: "exclamationmark.triangle")
-                    } description: {
-                        Text(error.localizedDescription)
-                    } actions: {
-                        Button("Try Again") {
-                            Task {
-                                await reloadAllPrints(andScrollTo: currentCardId ?? initialCardId)
+                    } else {
+                        ContentUnavailableView {
+                            Label("No Matching Prints", systemImage: "sparkle.magnifyingglass")
+                        } description: {
+                            Text("Widen your filters to see more results.")
+                        } actions: {
+                            Button {
+                                printFilterSettings.reset()
+                            } label: {
+                                HStack {
+                                    Image(systemName: "arrow.counterclockwise")
+                                    Text("Reset All Filters")
+                                }
                             }
+                            .buttonStyle(.borderedProminent)
+                            .controlSize(.regular)
                         }
-                        .buttonStyle(.borderedProminent)
                     }
+                } else {
+                    CoordinatedAllPrintsView(
+                        cards: cards,
+                        currentId: $currentCardId,
+                        filterSettings: printFilterSettings,
+                    )
+                }
+            case .errored(_, let error):
+                ContentUnavailableView {
+                    Label("Failed to load prints", systemImage: "exclamationmark.triangle")
+                } description: {
+                    Text(error.localizedDescription)
+                } actions: {
+                    Button("Try Again") {
+                        Task {
+                            await reloadAllPrints(andScrollTo: currentCardId ?? initialCardId)
+                        }
+                    }
+                    .buttonStyle(.borderedProminent)
                 }
             }
-            // TODO: Should there be a title? It looks naked up there but a title is pretty useless.
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button {
-                        dismiss()
-                    } label: {
-                        Image(systemName: "xmark")
-                    }
+        }
+        // TODO: Should there be a title? It looks naked up there but a title is pretty useless.
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                Button {
+                    dismiss()
+                } label: {
+                    Image(systemName: "xmark")
                 }
+            }
 
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        showFilterPopover.toggle()
-                    } label: {
-                        Image(systemName: printFilterSettings.isDefault
-                            ? "line.3.horizontal.decrease.circle"
-                            : "line.3.horizontal.decrease.circle.fill"
-                        )
-                    }
-                    .popover(isPresented: $showFilterPopover) {
-                        FilterPopoverView(filterSettings: $printFilterSettings)
-                            .presentationCompactAdaptation(.popover)
-                    }
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    showFilterPopover.toggle()
+                } label: {
+                    Image(systemName: printFilterSettings.isDefault
+                        ? "line.3.horizontal.decrease.circle"
+                        : "line.3.horizontal.decrease.circle.fill"
+                    )
                 }
+                .popover(isPresented: $showFilterPopover) {
+                    FilterPopoverView(filterSettings: $printFilterSettings)
+                        .presentationCompactAdaptation(.popover)
+                }
+            }
 
-                if let currentCard = currentCardId.flatMap({ cards.itemFor(id: $0) }) {
-                    if let bookmark = bookmarks.first(where: { $0.id == currentCard.id }) {
-                        ToolbarItem(placement: .topBarTrailing) {
-                            Button {
-                                bookmarkedCardsStore.unbookmark(id: bookmark.id)
-                            } label: {
-                                Image(systemName: "bookmark.fill")
-                            }
-                        }
-                    } else {
-                        ToolbarItem(placement: .topBarTrailing) {
-                            Button {
-                                bookmarkedCardsStore.bookmark(card: currentCard)
-                            } label: {
-                                Image(systemName: "bookmark")
-                            }
+            if let currentCard = currentCardId.flatMap({ cards.itemFor(id: $0) }) {
+                if let bookmark = bookmarks.first(where: { $0.id == currentCard.id }) {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            bookmarkedCardsStore.unbookmark(id: bookmark.id)
+                        } label: {
+                            Image(systemName: "bookmark.fill")
                         }
                     }
                 } else {
                     ToolbarItem(placement: .topBarTrailing) {
-                        Button {} label: {
+                        Button {
+                            bookmarkedCardsStore.bookmark(card: currentCard)
+                        } label: {
                             Image(systemName: "bookmark")
                         }
-                        .disabled(true)
                     }
                 }
-
-                if let url = scryfallSearchUrl {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        ShareLink(item: url)
+            } else {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {} label: {
+                        Image(systemName: "bookmark")
                     }
+                    .disabled(true)
+                }
+            }
+
+            if let url = scryfallSearchUrl {
+                ToolbarItem(placement: .topBarTrailing) {
+                    ShareLink(item: url)
                 }
             }
         }

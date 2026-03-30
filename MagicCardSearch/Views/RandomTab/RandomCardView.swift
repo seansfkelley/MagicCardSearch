@@ -92,76 +92,74 @@ struct RandomCardView: View {
     // MARK: - Navigator
 
     var body: some View {
-        NavigationStack {
-            GeometryReader { geometry in
-                ScrollView(.horizontal) {
-                    LazyHStack(spacing: 0) {
-                        RandomCardOnboardingView()
-                            .frame(width: geometry.size.width, height: geometry.size.height)
-                            .containerRelativeFrame(.horizontal)
-                            .id(ScrollItem.intro)
+        GeometryReader { geometry in
+            ScrollView(.horizontal) {
+                LazyHStack(spacing: 0) {
+                    RandomCardOnboardingView()
+                        .frame(width: geometry.size.width, height: geometry.size.height)
+                        .containerRelativeFrame(.horizontal)
+                        .id(ScrollItem.intro)
 
-                        ForEach(Array(history.enumerated()), id: \.element.id) { index, entry in
-                            Group {
-                                switch entry.result {
-                                case .success(let card):
-                                    CardDetailView(card: card, isFlipped: $cardFlipStates.for(card.id), searchState: nil)
-                                case .failure(let error):
-                                    CardDetailView.Placeholder(name: nil, cornerRadius: 16, with: .error(error, nil))
-                                }
+                    ForEach(Array(history.enumerated()), id: \.element.id) { index, entry in
+                        Group {
+                            switch entry.result {
+                            case .success(let card):
+                                CardDetailView(card: card, isFlipped: $cardFlipStates.for(card.id), searchState: nil)
+                            case .failure(let error):
+                                CardDetailView.Placeholder(name: nil, cornerRadius: 16, with: .error(error, nil))
                             }
-                            .frame(width: geometry.size.width, height: geometry.size.height)
-                            .containerRelativeFrame(.horizontal)
-                            .id(ScrollItem.entry(entry.id, index))
                         }
-
-                        CardDetailView.Placeholder(name: nil, cornerRadius: 16, with: .spinner)
-                            .frame(width: geometry.size.width, height: geometry.size.height)
-                            .containerRelativeFrame(.horizontal)
-                            .id(ScrollItem.placeholder)
+                        .frame(width: geometry.size.width, height: geometry.size.height)
+                        .containerRelativeFrame(.horizontal)
+                        .id(ScrollItem.entry(entry.id, index))
                     }
-                    .scrollTargetLayout()
+
+                    CardDetailView.Placeholder(name: nil, cornerRadius: 16, with: .spinner)
+                        .frame(width: geometry.size.width, height: geometry.size.height)
+                        .containerRelativeFrame(.horizontal)
+                        .id(ScrollItem.placeholder)
                 }
-                .scrollTargetBehavior(.paging)
-                .scrollPosition(id: $scrollPosition)
-                .scrollIndicators(.hidden)
+                .scrollTargetLayout()
             }
-            .navigationTitle(currentCard?.name ?? "")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button {
-                        showingFilterSheet = true
-                    } label: {
-                        Image(systemName: filters != RandomCardFilters()
-                              ? "line.3.horizontal.decrease.circle.fill"
-                              : "line.3.horizontal.decrease.circle")
+            .scrollTargetBehavior(.paging)
+            .scrollPosition(id: $scrollPosition)
+            .scrollIndicators(.hidden)
+        }
+        .navigationTitle(currentCard?.name ?? "")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button {
+                    showingFilterSheet = true
+                } label: {
+                    Image(systemName: filters != RandomCardFilters()
+                          ? "line.3.horizontal.decrease.circle.fill"
+                          : "line.3.horizontal.decrease.circle")
+                }
+            }
+
+            if let card = currentCard {
+                if bookmarks.contains(where: { $0.id == card.id }) {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            bookmarkedCardsStore.unbookmark(id: card.id)
+                        } label: {
+                            Image(systemName: "bookmark.fill")
+                        }
+                    }
+                } else {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            bookmarkedCardsStore.bookmark(card: card)
+                        } label: {
+                            Image(systemName: "bookmark")
+                        }
                     }
                 }
 
-                if let card = currentCard {
-                    if bookmarks.contains(where: { $0.id == card.id }) {
-                        ToolbarItem(placement: .topBarTrailing) {
-                            Button {
-                                bookmarkedCardsStore.unbookmark(id: card.id)
-                            } label: {
-                                Image(systemName: "bookmark.fill")
-                            }
-                        }
-                    } else {
-                        ToolbarItem(placement: .topBarTrailing) {
-                            Button {
-                                bookmarkedCardsStore.bookmark(card: card)
-                            } label: {
-                                Image(systemName: "bookmark")
-                            }
-                        }
-                    }
-
-                    if let url = URL(string: card.scryfallUri) {
-                        ToolbarItem(placement: .topBarTrailing) {
-                            ShareLink(item: url)
-                        }
+                if let url = URL(string: card.scryfallUri) {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        ShareLink(item: url)
                     }
                 }
             }
@@ -210,18 +208,20 @@ struct RandomCardView: View {
             }
         }
         .sheet(isPresented: $showingFilterSheet) {
-            RandomCardFilterSheet(filters: filters) { newFilters in
-                filters = newFilters
-                history = switch scrollPosition {
-                case .intro, nil:
-                    []
-                case .entry(_, let index):
-                    Array(history[0...index])
-                case .placeholder:
-                    history
+            NavigationStack {
+                RandomCardFilterSheet(filters: filters) { newFilters in
+                    filters = newFilters
+                    history = switch scrollPosition {
+                    case .intro, nil:
+                        []
+                    case .entry(_, let index):
+                        Array(history[0...index])
+                    case .placeholder:
+                        history
+                    }
+                    scrollPosition = .placeholder
+                    fetchNextCard()
                 }
-                scrollPosition = .placeholder
-                fetchNextCard()
             }
         }
     }
@@ -258,37 +258,35 @@ private struct RandomCardFilterSheet: View {
     }
 
     var body: some View {
-        NavigationStack {
-            Form {
-                colorSection
-                formatSection
-                typeSection
-                raritySection
+        Form {
+            colorSection
+            formatSection
+            typeSection
+            raritySection
 
-                Section {
-                    Button("Reset to Defaults", role: .destructive) {
-                        draft = RandomCardFilters()
-                    }
+            Section {
+                Button("Reset to Defaults", role: .destructive) {
+                    draft = RandomCardFilters()
                 }
             }
-            .navigationTitle("Filters")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button {
-                        dismiss()
-                    } label: {
-                        Image(systemName: "xmark")
-                    }
+        }
+        .navigationTitle("Filters")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                Button {
+                    dismiss()
+                } label: {
+                    Image(systemName: "xmark")
                 }
+            }
 
-                ToolbarItem(placement: .confirmationAction) {
-                    Button {
-                        onApply(draft)
-                        dismiss()
-                    } label: {
-                        Image(systemName: "checkmark")
-                    }
+            ToolbarItem(placement: .confirmationAction) {
+                Button {
+                    onApply(draft)
+                    dismiss()
+                } label: {
+                    Image(systemName: "checkmark")
                 }
             }
         }

@@ -25,75 +25,73 @@ struct LazyPagingCardDetailNavigatorView: View {
 
     var body: some View {
         let items = list.value.latestValue?.data ?? []
-        NavigationStack {
-            GeometryReader { geometry in
-                ScrollView(.horizontal) {
-                    LazyHStack(spacing: 0) {
-                        ForEach(Array(items.enumerated()), id: \.element.id) { index, card in
-                            CardDetailView(
-                                card: card,
-                                isFlipped: $cardFlipStates.for(card.id),
-                                searchState: searchState,
-                            )
-                            .frame(width: geometry.size.width, height: geometry.size.height)
-                            .containerRelativeFrame(.horizontal)
-                            .id(index)
-                        }
-
-                        if list.value.latestValue?.hasMore ?? false || list.value.isLoadingNextPage || list.value.nextPageError != nil {
-                            paginationStatusPage(geometry: geometry).id(items.count)
-                        }
+        GeometryReader { geometry in
+            ScrollView(.horizontal) {
+                LazyHStack(spacing: 0) {
+                    ForEach(Array(items.enumerated()), id: \.element.id) { index, card in
+                        CardDetailView(
+                            card: card,
+                            isFlipped: $cardFlipStates.for(card.id),
+                            searchState: searchState,
+                        )
+                        .frame(width: geometry.size.width, height: geometry.size.height)
+                        .containerRelativeFrame(.horizontal)
+                        .id(index)
                     }
-                    .scrollTargetLayout()
+
+                    if list.value.latestValue?.hasMore ?? false || list.value.isLoadingNextPage || list.value.nextPageError != nil {
+                        paginationStatusPage(geometry: geometry).id(items.count)
+                    }
                 }
-                .scrollTargetBehavior(.paging)
-                .scrollPosition(id: $scrollIndex)
-                .scrollIndicators(.hidden)
+                .scrollTargetLayout()
             }
-            .navigationTitle(list.value.latestValue?.data[safe: scrollIndex ?? -1]?.name ?? "Loading...")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button { dismiss() } label: {
-                        Image(systemName: "xmark")
-                    }
+            .scrollTargetBehavior(.paging)
+            .scrollPosition(id: $scrollIndex)
+            .scrollIndicators(.hidden)
+        }
+        .navigationTitle(list.value.latestValue?.data[safe: scrollIndex ?? -1]?.name ?? "Loading...")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                Button { dismiss() } label: {
+                    Image(systemName: "xmark")
                 }
+            }
 
-                if let card = items[safe: scrollIndex ?? -1] {
-                    if bookmarks.contains(where: { $0.id == card.id }) {
-                        ToolbarItem(placement: .topBarTrailing) {
-                            Button {
-                                bookmarkedCardsStore.unbookmark(id: card.id)
-                            } label: {
-                                Image(systemName: "bookmark.fill")
-                            }
-                        }
-                    } else {
-                        ToolbarItem(placement: .topBarTrailing) {
-                            Button {
-                                bookmarkedCardsStore.bookmark(card: card)
-                            } label: {
-                                Image(systemName: "bookmark")
-                            }
+            if let card = items[safe: scrollIndex ?? -1] {
+                if bookmarks.contains(where: { $0.id == card.id }) {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            bookmarkedCardsStore.unbookmark(id: card.id)
+                        } label: {
+                            Image(systemName: "bookmark.fill")
                         }
                     }
-
-                    if let url = URL(string: card.scryfallUri) {
-                        ToolbarItem(placement: .topBarTrailing) {
-                            ShareLink(item: url)
+                } else {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            bookmarkedCardsStore.bookmark(card: card)
+                        } label: {
+                            Image(systemName: "bookmark")
                         }
                     }
                 }
+
+                if let url = URL(string: card.scryfallUri) {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        ShareLink(item: url)
+                    }
+                }
             }
-            .safeAreaInset(edge: .bottom) {
-                Text("\((scrollIndex ?? 0) + 1) of \(list.value.latestValue?.totalCards ?? items.count)")
-                    .font(.caption)
-                    .foregroundStyle(.primary)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
-                    .glassEffect(.regular, in: .capsule)
-                    .padding(.bottom, 20)
-            }
+        }
+        .safeAreaInset(edge: .bottom) {
+            Text("\((scrollIndex ?? 0) + 1) of \(list.value.latestValue?.totalCards ?? items.count)")
+                .font(.caption)
+                .foregroundStyle(.primary)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+                .glassEffect(.regular, in: .capsule)
+                .padding(.bottom, 20)
         }
         .onAppear {
             if let scrollIndex {

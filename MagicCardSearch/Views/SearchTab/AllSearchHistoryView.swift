@@ -58,152 +58,150 @@ struct AllSearchHistoryView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            // HStack doesn't do anything except wrap the real content and maintain its own
-            // identity, which makes sure the main view doesn't get unmounted and remounted, which
-            // throws out focus state, every time it switches modes.
-            HStack {
-                if searchHistory.isEmpty {
-                    ContentUnavailableView(
-                        "No Recent Searches",
-                        systemImage: "clock.arrow.circlepath",
-                        description: Text("Your search history will appear here.")
-                    )
-                } else if isSearchFocused || !filterText.isEmpty {
-                    FilteredSearchHistoryList(
-                        searchHistory: searchHistory,
-                        pinnedSearches: pinnedSearches,
-                        filterText: filterText,
-                        searchState: $searchState
-                    )
-                } else {
-                    GroupedSearchHistoryList(
-                        searchHistory: searchHistory,
-                        pinnedSearches: pinnedSearches,
-                        editMode: $editMode,
-                        selectedSearches: $selectedSearches,
-                        searchState: $searchState
-                    )
-                }
+        // HStack doesn't do anything except wrap the real content and maintain its own
+        // identity, which makes sure the main view doesn't get unmounted and remounted, which
+        // throws out focus state, every time it switches modes.
+        HStack {
+            if searchHistory.isEmpty {
+                ContentUnavailableView(
+                    "No Recent Searches",
+                    systemImage: "clock.arrow.circlepath",
+                    description: Text("Your search history will appear here.")
+                )
+            } else if isSearchFocused || !filterText.isEmpty {
+                FilteredSearchHistoryList(
+                    searchHistory: searchHistory,
+                    pinnedSearches: pinnedSearches,
+                    filterText: filterText,
+                    searchState: $searchState
+                )
+            } else {
+                GroupedSearchHistoryList(
+                    searchHistory: searchHistory,
+                    pinnedSearches: pinnedSearches,
+                    editMode: $editMode,
+                    selectedSearches: $selectedSearches,
+                    searchState: $searchState
+                )
             }
-            .navigationTitle("Search History")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    if isEditing {
-                        if selectedSearches.count == searchHistory.count {
-                            Button {
-                                withAnimation {
-                                    selectedSearches.removeAll()
-                                }
-                            } label: {
-                                Text("Deselect All")
+        }
+        .navigationTitle("Search History")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                if isEditing {
+                    if selectedSearches.count == searchHistory.count {
+                        Button {
+                            withAnimation {
+                                selectedSearches.removeAll()
                             }
-                        } else {
-                            Button {
-                                withAnimation {
-                                    selectedSearches = Set(searchHistory.map(\.id))
-                                }
-                            } label: {
-                                Text("Select All")
-                            }
+                        } label: {
+                            Text("Deselect All")
                         }
                     } else {
                         Button {
-                            dismiss()
-                        } label: {
-                            Image(systemName: "xmark")
-                        }
-                    }
-                }
-
-                if isEditing {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button {
                             withAnimation {
-                                editMode = .inactive
-                                selectedSearches.removeAll()
+                                selectedSearches = Set(searchHistory.map(\.id))
                             }
                         } label: {
-                            Text("Done")
+                            Text("Select All")
                         }
-                    }
-
-                    ToolbarItemGroup(placement: .bottomBar) {
-                        Spacer()
-
-                        Button(role: .destructive) {
-                            withAnimation {
-                                let filtersToDelete = searchHistory
-                                    .filter { selectedSearches.contains($0.id) }
-                                    .map(\.filters)
-                                historyAndPinnedStore.delete(searches: filtersToDelete)
-                                selectedSearches.removeAll()
-                                editMode = .inactive
-                            }
-                        } label: {
-                            Label("Delete", systemImage: "trash")
-                        }
-                        .disabled(selectedSearches.isEmpty)
                     }
                 } else {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button {
-                            withAnimation {
-                                editMode = .active
-                            }
-                        } label: {
-                            Image(systemName: "checklist")
-                        }
-                        .disabled(searchHistory.isEmpty || isSearchFocused)
+                    Button {
+                        dismiss()
+                    } label: {
+                        Image(systemName: "xmark")
                     }
                 }
             }
-            .safeAreaInset(edge: .bottom) {
-                if !isEditing {
-                    HStack {
-                        SearchBarLayout {
-                            TextField("Filter searches...", text: $filterText)
-                                .textFieldStyle(.plain)
-                                .textInputAutocapitalization(.never)
-                                .autocorrectionDisabled(true)
-                                .textContentType(.none)
-                                .focused($isSearchFocused)
 
-                            if !filterText.isEmpty {
-                                Button(action: {
-                                    filterText = ""
-                                    isSearchFocused = true
-                                }) {
-                                    Image(systemName: "xmark.circle.fill")
-                                        .foregroundStyle(.secondary)
-                                        .imageScale(.large)
-                                }
-                                .buttonStyle(.plain)
-                            }
+            if isEditing {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        withAnimation {
+                            editMode = .inactive
+                            selectedSearches.removeAll()
                         }
-                        .frame(height: buttonSize)
-                        .contentShape(Capsule())
-                        .glassEffect(.regular.interactive())
-
-                        Spacer()
-
-                        Button {
-                            filterText = ""
-                            isSearchFocused = false
-                        } label: {
-                            Image(systemName: "xmark")
-                                .foregroundStyle(.primary)
-                                .font(.system(size: 20))
-                                .frame(width: buttonSize, height: buttonSize)
-                        }
-                        .buttonStyle(.plain)
-                        .contentShape(Circle())
-                        .glassEffect(.regular.interactive())
+                    } label: {
+                        Text("Done")
                     }
-                    .padding(.bottom)
-                    .padding(.horizontal, 20)
                 }
+
+                ToolbarItemGroup(placement: .bottomBar) {
+                    Spacer()
+
+                    Button(role: .destructive) {
+                        withAnimation {
+                            let filtersToDelete = searchHistory
+                                .filter { selectedSearches.contains($0.id) }
+                                .map(\.filters)
+                            historyAndPinnedStore.delete(searches: filtersToDelete)
+                            selectedSearches.removeAll()
+                            editMode = .inactive
+                        }
+                    } label: {
+                        Label("Delete", systemImage: "trash")
+                    }
+                    .disabled(selectedSearches.isEmpty)
+                }
+            } else {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        withAnimation {
+                            editMode = .active
+                        }
+                    } label: {
+                        Image(systemName: "checklist")
+                    }
+                    .disabled(searchHistory.isEmpty || isSearchFocused)
+                }
+            }
+        }
+        .safeAreaInset(edge: .bottom) {
+            if !isEditing {
+                HStack {
+                    SearchBarLayout {
+                        TextField("Filter searches...", text: $filterText)
+                            .textFieldStyle(.plain)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled(true)
+                            .textContentType(.none)
+                            .focused($isSearchFocused)
+
+                        if !filterText.isEmpty {
+                            Button(action: {
+                                filterText = ""
+                                isSearchFocused = true
+                            }) {
+                                Image(systemName: "xmark.circle.fill")
+                                    .foregroundStyle(.secondary)
+                                    .imageScale(.large)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .frame(height: buttonSize)
+                    .contentShape(Capsule())
+                    .glassEffect(.regular.interactive())
+
+                    Spacer()
+
+                    Button {
+                        filterText = ""
+                        isSearchFocused = false
+                    } label: {
+                        Image(systemName: "xmark")
+                            .foregroundStyle(.primary)
+                            .font(.system(size: 20))
+                            .frame(width: buttonSize, height: buttonSize)
+                    }
+                    .buttonStyle(.plain)
+                    .contentShape(Circle())
+                    .glassEffect(.regular.interactive())
+                }
+                .padding(.bottom)
+                .padding(.horizontal, 20)
             }
         }
     }

@@ -11,32 +11,32 @@ struct SearchSheetView: View {
     @State private var showSyntaxReference = false
 
     var body: some View {
-        NavigationStack {
-            AutocompleteView(searchState: $searchState)
-                .safeAreaInset(edge: .bottom) {
-                    SearchBarAndPillsView(searchState: $searchState)
-                }
-                .toolbar {
-                    ToolbarItem(placement: .topBarLeading) {
-                        Button {
-                            dismiss()
-                        } label: {
-                            Image(systemName: "xmark")
-                        }
+        AutocompleteView(searchState: $searchState)
+            .safeAreaInset(edge: .bottom) {
+                SearchBarAndPillsView(searchState: $searchState)
+            }
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        dismiss()
+                    } label: {
+                        Image(systemName: "xmark")
                     }
+                }
 
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button {
-                            showSyntaxReference = true
-                        } label: {
-                            Image(systemName: "book")
-                        }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        showSyntaxReference = true
+                    } label: {
+                        Image(systemName: "book")
                     }
                 }
-                .navigationBarTitleDisplayMode(.inline)
-        }
-        .sheet(isPresented: $showSyntaxReference) {
-            SyntaxReferenceView()
-        }
+            }
+            .navigationBarTitleDisplayMode(.inline)
+            .sheet(isPresented: $showSyntaxReference) {
+                NavigationStack {
+                    SyntaxReferenceView()
+                }
+            }
     }
 }

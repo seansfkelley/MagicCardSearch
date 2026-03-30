@@ -18,37 +18,35 @@ struct SpoilersView: View {
     private let spacing: CGFloat = 4
 
     var body: some View {
-        NavigationStack {
-            ZStack {
-                Color(uiColor: .systemBackground)
-                    .ignoresSafeArea()
+        ZStack {
+            Color(uiColor: .systemBackground)
+                .ignoresSafeArea()
 
-                switch spoilersList.value {
-                case .loading(nil, _), .unloaded:
-                    ProgressView()
-                        .scaleEffect(1.5)
+            switch spoilersList.value {
+            case .loading(nil, _), .unloaded:
+                ProgressView()
+                    .scaleEffect(1.5)
 
-                case .errored(nil, let error):
+            case .errored(nil, let error):
+                ContentUnavailableView(
+                    "Unable to Load Spoilers",
+                    systemImage: "exclamationmark.triangle",
+                    description: Text(error.description)
+                )
+
+            case .loading(let results?, _), .loaded(let results, _), .errored(let results?, _):
+                if results.data.isEmpty {
                     ContentUnavailableView(
-                        "Unable to Load Spoilers",
-                        systemImage: "exclamationmark.triangle",
-                        description: Text(error.description)
+                        "No Spoilers",
+                        systemImage: "sparkles",
+                        description: Text("No new cards have been spoiled recently.")
                     )
-
-                case .loading(let results?, _), .loaded(let results, _), .errored(let results?, _):
-                    if results.data.isEmpty {
-                        ContentUnavailableView(
-                            "No Spoilers",
-                            systemImage: "sparkles",
-                            description: Text("No new cards have been spoiled recently.")
-                        )
-                    } else {
-                        spoilersGrid(results: results)
-                    }
+                } else {
+                    spoilersGrid(results: results)
                 }
             }
-            .toolbar(.hidden, for: .navigationBar)
         }
+        .toolbar(.hidden, for: .navigationBar)
         .task {
             if isRunningTests() {
                 logger.info("skipping spoilers load in test environment")
@@ -62,12 +60,14 @@ struct SpoilersView: View {
                 set: { selectedCardIndex = $0?.index }
             )
         ) { identifier in
-            LazyPagingCardDetailNavigatorView(
-                list: SpoilersObjectList.shared,
-                initialIndex: identifier.index,
-                cardFlipStates: $cardFlipStates,
-                searchState: nil,
-            )
+            NavigationStack {
+                LazyPagingCardDetailNavigatorView(
+                    list: SpoilersObjectList.shared,
+                    initialIndex: identifier.index,
+                    cardFlipStates: $cardFlipStates,
+                    searchState: nil,
+                )
+            }
         }
     }
 

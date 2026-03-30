@@ -20,152 +20,152 @@ struct BookmarkedCardListView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            Group {
-                if bookmarks.isEmpty {
-                    VStack(spacing: 16) {
-                        Image(systemName: "bookmark.slash")
-                            .font(.system(size: 60))
-                            .foregroundStyle(.secondary)
+        Group {
+            if bookmarks.isEmpty {
+                VStack(spacing: 16) {
+                    Image(systemName: "bookmark.slash")
+                        .font(.system(size: 60))
+                        .foregroundStyle(.secondary)
 
-                        Text("No Cards Saved")
-                            .font(.title2)
-                            .fontWeight(.semibold)
+                    Text("No Cards Saved")
+                        .font(.title2)
+                        .fontWeight(.semibold)
 
-                        Text("Tap the bookmark button on any card to add it to your saved cards.")
-                            .font(.body)
-                            .foregroundStyle(.secondary)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, 32)
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else {
-                    List(selection: $selectedCards) {
-                        ForEach(Array(bookmarks.enumerated()), id: \.element.id) { index, bookmark in
-                            BookmarkedCardRowView(card: bookmark)
-                                .contentShape(Rectangle())
-                                .onTapGesture {
-                                    if !isEditing {
-                                        detailSheetState = SheetState(index: index, cards: bookmarks)
-                                    }
-                                }
-                                .tag(bookmark.id)
-                                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                                    Button(role: .destructive) {
-                                        withAnimation {
-                                            bookmarkedCardsStore.unbookmark(id: bookmark.id)
-                                        }
-                                    } label: {
-                                        Label("Delete", systemImage: "trash")
-                                    }
-                                }
-                        }
-                    }
-                    .listStyle(.insetGrouped)
-                    .environment(\.editMode, $editMode)
+                    Text("Tap the bookmark button on any card to add it to your saved cards.")
+                        .font(.body)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 32)
                 }
-            }
-            .toolbarVisibility(isEditing ? .hidden : .automatic, for: .tabBar)
-            .toolbar {
-                if isEditing {
-                    ToolbarItem(placement: .topBarLeading) {
-                        if selectedCards.count == bookmarks.count {
-                            Button {
-                                withAnimation {
-                                    selectedCards.removeAll()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                List(selection: $selectedCards) {
+                    ForEach(Array(bookmarks.enumerated()), id: \.element.id) { index, bookmark in
+                        BookmarkedCardRowView(card: bookmark)
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                if !isEditing {
+                                    detailSheetState = SheetState(index: index, cards: bookmarks)
                                 }
-                            } label: {
-                                Text("Deselect All")
                             }
-                        } else {
-                            Button {
-                                withAnimation {
-                                    selectedCards = Set(bookmarks.map(\.id))
-                                }
-                            } label: {
-                                Text("Select All")
-                            }
-                        }
-                    }
-
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button {
-                            withAnimation {
-                                editMode = .inactive
-                                selectedCards.removeAll()
-                            }
-                        } label: {
-                            Text("Done")
-                        }
-                    }
-
-                    ToolbarItemGroup(placement: .bottomBar) {
-                        Spacer()
-
-                        Button(role: .destructive) {
-                            withAnimation {
-                                bookmarkedCardsStore.unbookmark(ids: selectedCards)
-                                selectedCards.removeAll()
-                                editMode = .inactive
-                            }
-                        } label: {
-                            Label("Delete", systemImage: "trash")
-                        }
-                        .disabled(selectedCards.isEmpty)
-                    }
-                } else {
-                    ToolbarItem(placement: .topBarLeading) {
-                        Menu {
-                            Picker("Sort Order", selection: $sortMode) {
-                                ForEach(BookmarkSortMode.allCases) { mode in
-                                    Button(action: {}) {
-                                        if let subtitle = mode.subtitle {
-                                            Text(mode.displayName)
-                                            Text(subtitle)
-                                                .font(.caption)
-                                                .foregroundStyle(.secondary)
-                                        } else {
-                                            Text(mode.displayName)
-                                        }
+                            .tag(bookmark.id)
+                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                Button(role: .destructive) {
+                                    withAnimation {
+                                        bookmarkedCardsStore.unbookmark(id: bookmark.id)
                                     }
-                                    .tag(mode)
+                                } label: {
+                                    Label("Delete", systemImage: "trash")
                                 }
                             }
-                            .pickerStyle(.inline)
-                        } label: {
-                            Image(systemName: "arrow.up.arrow.down")
-                        }
-                        .disabled(bookmarks.isEmpty)
                     }
-
-                    ToolbarItem(placement: .topBarLeading) {
+                }
+                .listStyle(.insetGrouped)
+                .environment(\.editMode, $editMode)
+            }
+        }
+        .toolbarVisibility(isEditing ? .hidden : .automatic, for: .tabBar)
+        .toolbar {
+            if isEditing {
+                ToolbarItem(placement: .topBarLeading) {
+                    if selectedCards.count == bookmarks.count {
                         Button {
                             withAnimation {
-                                editMode = .active
+                                selectedCards.removeAll()
                             }
                         } label: {
-                            Image(systemName: "checklist")
+                            Text("Deselect All")
                         }
-                        .disabled(bookmarks.isEmpty)
+                    } else {
+                        Button {
+                            withAnimation {
+                                selectedCards = Set(bookmarks.map(\.id))
+                            }
+                        } label: {
+                            Text("Select All")
+                        }
                     }
+                }
 
-                    ToolbarItem(placement: .topBarTrailing) {
-                        ShareLink(
-                            item: shareableText
-                        ) {
-                            Image(systemName: "square.and.arrow.up")
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        withAnimation {
+                            editMode = .inactive
+                            selectedCards.removeAll()
                         }
-                        .disabled(bookmarks.isEmpty)
+                    } label: {
+                        Text("Done")
                     }
+                }
+
+                ToolbarItemGroup(placement: .bottomBar) {
+                    Spacer()
+
+                    Button(role: .destructive) {
+                        withAnimation {
+                            bookmarkedCardsStore.unbookmark(ids: selectedCards)
+                            selectedCards.removeAll()
+                            editMode = .inactive
+                        }
+                    } label: {
+                        Label("Delete", systemImage: "trash")
+                    }
+                    .disabled(selectedCards.isEmpty)
+                }
+            } else {
+                ToolbarItem(placement: .topBarLeading) {
+                    Menu {
+                        Picker("Sort Order", selection: $sortMode) {
+                            ForEach(BookmarkSortMode.allCases) { mode in
+                                Button(action: {}) {
+                                    if let subtitle = mode.subtitle {
+                                        Text(mode.displayName)
+                                        Text(subtitle)
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                    } else {
+                                        Text(mode.displayName)
+                                    }
+                                }
+                                .tag(mode)
+                            }
+                        }
+                        .pickerStyle(.inline)
+                    } label: {
+                        Image(systemName: "arrow.up.arrow.down")
+                    }
+                    .disabled(bookmarks.isEmpty)
+                }
+
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        withAnimation {
+                            editMode = .active
+                        }
+                    } label: {
+                        Image(systemName: "checklist")
+                    }
+                    .disabled(bookmarks.isEmpty)
+                }
+
+                ToolbarItem(placement: .topBarTrailing) {
+                    ShareLink(
+                        item: shareableText
+                    ) {
+                        Image(systemName: "square.and.arrow.up")
+                    }
+                    .disabled(bookmarks.isEmpty)
                 }
             }
         }
         .sheet(item: $detailSheetState) { state in
-            FixedListCardDetailNavigatorView(
-                cards: state.cards,
-                initialIndex: state.index,
-                searchState: nil
-            )
+            NavigationStack {
+                FixedListCardDetailNavigatorView(
+                    cards: state.cards,
+                    initialIndex: state.index,
+                    searchState: nil
+                )
+            }
         }
         .task(id: sortMode) {
             _ = await withErrorReporting {

@@ -132,7 +132,9 @@ private struct LegalityListView: View {
             }
         }
         .sheet(isPresented: $isEditMode) {
-            LegalityEditView(card: card, configuration: configuration)
+            NavigationStack {
+                LegalityEditView(card: card, configuration: configuration)
+            }
         }
     }
 }
@@ -172,50 +174,48 @@ private struct LegalityEditView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            List {
-                ForEach(listItems(), id: \.self) { item in
-                    switch item {
-                    case .format(let format):
-                        LegalityItemView(
-                            format: format,
-                            legality: card.getLegality(for: format),
-                            isGameChanger: card.gameChanger ?? false
-                        )
-                    case .divider:
-                        Rectangle()
-                            .fill(.tertiary)
-                            .frame(height: 1)
-                            .frame(maxWidth: .infinity)
-                            .padding(.horizontal)
-                    }
-                }
-                .onMove { from, to in
-                    handleMove(from: from, to: to)
+        List {
+            ForEach(listItems(), id: \.self) { item in
+                switch item {
+                case .format(let format):
+                    LegalityItemView(
+                        format: format,
+                        legality: card.getLegality(for: format),
+                        isGameChanger: card.gameChanger ?? false
+                    )
+                case .divider:
+                    Rectangle()
+                        .fill(.tertiary)
+                        .frame(height: 1)
+                        .frame(maxWidth: .infinity)
+                        .padding(.horizontal)
                 }
             }
-            .navigationTitle("Edit Visible Legalities")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button {
-                        dismiss()
-                    } label: {
-                        Image(systemName: "xmark")
-                    }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button {
-                        configuration.update(formatOrder: workingFormatOrder, dividerIndex: workingDividerIndex)
-                        dismiss()
-                    } label: {
-                        Image(systemName: "checkmark")
-                    }
-                    .buttonStyle(.glassProminent)
-                }
+            .onMove { from, to in
+                handleMove(from: from, to: to)
             }
-            .environment(\.editMode, .constant(.active))
         }
+        .navigationTitle("Edit Visible Legalities")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                Button {
+                    dismiss()
+                } label: {
+                    Image(systemName: "xmark")
+                }
+            }
+            ToolbarItem(placement: .confirmationAction) {
+                Button {
+                    configuration.update(formatOrder: workingFormatOrder, dividerIndex: workingDividerIndex)
+                    dismiss()
+                } label: {
+                    Image(systemName: "checkmark")
+                }
+                .buttonStyle(.glassProminent)
+            }
+        }
+        .environment(\.editMode, .constant(.active))
     }
 
     private func handleMove(from source: IndexSet, to destination: Int) {

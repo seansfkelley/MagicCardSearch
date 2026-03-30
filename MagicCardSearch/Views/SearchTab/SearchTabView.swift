@@ -13,49 +13,47 @@ struct SearchTabView: View {
     @State private var pendingSearchConfig: SearchConfiguration?
 
     var body: some View {
-        NavigationStack {
-            Group {
-                if let results = searchState.results {
-                    SearchResultsGridView(list: results, searchState: $searchState)
-                } else {
-                    SearchLandingView(searchState: $searchState)
-                }
+        Group {
+            if let results = searchState.results {
+                SearchResultsGridView(list: results, searchState: $searchState)
+            } else {
+                SearchLandingView(searchState: $searchState)
             }
-            .safeAreaInset(edge: .bottom) {
-                FakeSearchBarButtonView(searchState: $searchState) {
-                    showSearchSheet = true
-                }
-                .padding(.bottom)
-                .padding(.horizontal, SearchTabConstants.horizontalPadding)
-            }
-            .toolbar {
-                if searchState.results != nil {
-                    ToolbarItem(placement: .topBarLeading) {
-                        Button {
-                            pendingSearchConfig = searchState.configuration
-                            showDisplayOptionsSheet = true
-                        } label: {
-                            Image(systemName: "arrow.up.arrow.down")
-                        }
-                    }
-
-                    ToolbarItem(placement: .topBarTrailing) {
-                        ShareLink(
-                            item: CardSearchService
-                                .buildSearchURL(
-                                    filters: searchState.filters,
-                                    config: searchState.configuration,
-                                    forAPI: false
-                                ) ?? URL(string: "https://scryfall.com")!
-                        ) {
-                            Image(systemName: "square.and.arrow.up")
-                        }
-                    }
-                }
-            }
-            .toolbarBackground(.hidden, for: .navigationBar)
-            .navigationBarTitleDisplayMode(.inline)
         }
+        .safeAreaInset(edge: .bottom) {
+            FakeSearchBarButtonView(searchState: $searchState) {
+                showSearchSheet = true
+            }
+            .padding(.bottom)
+            .padding(.horizontal, SearchTabConstants.horizontalPadding)
+        }
+        .toolbar {
+            if searchState.results != nil {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        pendingSearchConfig = searchState.configuration
+                        showDisplayOptionsSheet = true
+                    } label: {
+                        Image(systemName: "arrow.up.arrow.down")
+                    }
+                }
+
+                ToolbarItem(placement: .topBarTrailing) {
+                    ShareLink(
+                        item: CardSearchService
+                            .buildSearchURL(
+                                filters: searchState.filters,
+                                config: searchState.configuration,
+                                forAPI: false
+                            ) ?? URL(string: "https://scryfall.com")!
+                    ) {
+                        Image(systemName: "square.and.arrow.up")
+                    }
+                }
+            }
+        }
+        .toolbarBackground(.hidden, for: .navigationBar)
+        .navigationBarTitleDisplayMode(.inline)
         .onChange(of: searchState.filters) { _, newFilters in
             searchState.results?.clearWarnings()
             if newFilters.isEmpty {
@@ -66,7 +64,9 @@ struct SearchTabView: View {
             showSearchSheet = false
         }
         .sheet(isPresented: $showSearchSheet) {
-            SearchSheetView(searchState: $searchState)
+            NavigationStack {
+                SearchSheetView(searchState: $searchState)
+            }
         }
         .sheet(isPresented: $showDisplayOptionsSheet, onDismiss: {
             if let pending = pendingSearchConfig, pending != searchState.configuration {
@@ -76,10 +76,12 @@ struct SearchTabView: View {
             }
             pendingSearchConfig = nil
         }) {
-            DisplayOptionsView(searchConfig: Binding(
-                get: { pendingSearchConfig ?? searchState.configuration },
-                set: { pendingSearchConfig = $0 }
-            ))
+            NavigationStack {
+                DisplayOptionsView(searchConfig: Binding(
+                    get: { pendingSearchConfig ?? searchState.configuration },
+                    set: { pendingSearchConfig = $0 }
+                ))
+            }
             .presentationDetents([.medium])
         }
     }
