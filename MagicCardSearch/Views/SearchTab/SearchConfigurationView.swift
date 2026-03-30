@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct DisplayOptionsView: View {
+struct SearchConfigurationView: View {
     @Environment(\.dismiss) private var dismiss
     let onCommit: (SearchConfiguration) -> Void
 
@@ -46,11 +46,17 @@ struct DisplayOptionsView: View {
             } footer: {
                 Text("Use the `order:` and `dir:` filters to temporarily override these for one search.")
             }
-            
+
             Section {
-                Button(action: {
+                Toggle("Automatically Include Extras", isOn: $workingConfig.automaticallyIncludeExtras)
+            } footer: {
+                Text("If a search returns no results, automatically add `include:extras` and retry.")
+            }
+
+            Section {
+                Button {
                     workingConfig.resetToDefaults()
-                }) {
+                } label: {
                     HStack {
                         Image(systemName: "arrow.counterclockwise")
                         Text("Reset to Defaults")

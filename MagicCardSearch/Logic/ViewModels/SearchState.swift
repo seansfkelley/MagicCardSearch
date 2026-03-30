@@ -4,12 +4,19 @@ import ScryfallKit
 
 private let logger = Logger(subsystem: "MagicCardSearch", category: "SearchState")
 
+private let includeExtrasFilter: FilterQuery<FilterTerm> = .term(.basic(.positive, "include", .including, "extras"))
+
 @MainActor
 @Observable
 class SearchState {
     public private(set) var filters: [FilterQuery<FilterTerm>] = []
-    public private(set) var configuration = SearchConfiguration.load()
+    public private(set) var configuration = SearchConfiguration.load() {
+        didSet {
+            configuration.save()
+        }
+    }
     public private(set) var results: ScryfallObjectList<Card>?
+    public private(set) var didAutomaticallyIncludeExtras: Bool?
 
     private let suggestionProvider: AutocompleteSuggestionProvider
     private let scryfall = ScryfallClient(logger: logger)
@@ -27,24 +34,31 @@ class SearchState {
     public func reset() {
         filters = []
         results = nil
+        didAutomaticallyIncludeExtras = nil
     }
 
     public func search(
         withFilters newFilters: [FilterQuery<FilterTerm>]? = nil,
         withConfiguration newConfiguration: SearchConfiguration? = nil,
     ) {
-        let oldFilters = filters
-        let oldConfiguration = configuration
+        var shouldSearch = false
 
-        filters = newFilters ?? filters
-        configuration = newConfiguration ?? configuration
+        if let newFilters, newFilters != filters {
+            filters = newFilters
+            shouldSearch = true
+        }
 
-        guard filters != oldFilters || configuration != oldConfiguration else { return }
+        if let newConfiguration, newConfiguration != configuration {
+            configuration = newConfiguration
+            shouldSearch = true
+        }
 
-        // TODO: Move this into a didSet and/or make it more automatic.
-        configuration.save()
+        didAutomaticallyIncludeExtras = false
 
-        logger.info("starting new search filters=\(self.filters) configuration=\(self.configuration)")
+        guard shouldSearch else {
+            logger.debug("early-aborting search because filters and configuration are the same")
+            return
+        }
 
         guard !filters.isEmpty else {
             logger.info("no search filters; skipping to empty result")
@@ -54,19 +68,45 @@ class SearchState {
 
         historyAndPinnedStore.record(search: filters)
 
-        let query = filters.map { $0.description }.joined(separator: " ")
-        results = .init { [weak self] page async throws in
+        doSearch(withFilters: filters, withConfiguration: configuration)
+    }
+
+    private func doSearch(
+        withFilters instancedFilters: [FilterQuery<FilterTerm>],
+        withConfiguration instancedConfiguration: SearchConfiguration,
+    ) {
+        logger.info("starting new search filters=\(instancedFilters) configuration=\(instancedConfiguration)")
+
+        let query = instancedFilters.map { $0.description }.joined(separator: " ")
+
+        let thisSearch = ScryfallObjectList<Card>({ [weak self] page async throws in
             guard let self else { return .empty() }
 
             return try await scryfall.searchCards(
                 query: query,
-                unique: configuration.uniqueMode.toScryfallKitUniqueMode(),
-                order: configuration.sortField.toScryfallKitSortMode(),
-                sortDirection: configuration.sortOrder.toScryfallKitSortDirection(),
+                unique: instancedConfiguration.uniqueMode.toScryfallKitUniqueMode(),
+                order: instancedConfiguration.sortField.toScryfallKitSortMode(),
+                sortDirection: instancedConfiguration.sortOrder.toScryfallKitSortDirection(),
                 page: page,
             )
-        }
+        })
 
-        results!.loadNextPage()
+        results = thisSearch
+
+        Task {
+            await thisSearch.loadNextPage().value
+
+            if (results === thisSearch
+                && instancedConfiguration.automaticallyIncludeExtras
+                && thisSearch.value.latestValue?.data.isEmpty ?? false)
+                && !(didAutomaticallyIncludeExtras ?? true) // err on the side of not doing extra work
+            {
+                didAutomaticallyIncludeExtras = true
+                doSearch(
+                    withFilters: instancedFilters + [includeExtrasFilter],
+                    withConfiguration: instancedConfiguration,
+                )
+            }
+        }
     }
 }

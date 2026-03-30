@@ -80,7 +80,7 @@ struct SearchTabView: View {
         }
         .sheet(isPresented: $showDisplayOptionsSheet) {
             NavigationStack {
-                DisplayOptionsView(initialSearchConfig: searchState.configuration) {
+                SearchConfigurationView(initialSearchConfig: searchState.configuration) {
                     searchState.search(withConfiguration: $0)
                 }
             }

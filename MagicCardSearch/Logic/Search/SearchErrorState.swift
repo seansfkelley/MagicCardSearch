@@ -61,7 +61,7 @@ enum SearchErrorState: Error {
     var iconName: String {
         switch self {
         case .clientError:
-            return "exclamationmark.triangle"
+            return "exclamationmark.magnifyingglass"
         case .serverError:
             return "server.rack"
         case .networkError:

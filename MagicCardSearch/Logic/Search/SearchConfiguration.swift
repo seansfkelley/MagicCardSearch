@@ -5,6 +5,7 @@ struct SearchConfiguration: Equatable, Codable, CustomStringConvertible {
     var uniqueMode: UniqueMode = .cards
     var sortField: SortField = .name
     var sortOrder: SortOrder = .auto
+    var automaticallyIncludeExtras = true
 
     public var description: String {
         "unique:\(uniqueMode) order:\(sortField) dir:\(sortOrder)"
@@ -16,6 +17,7 @@ struct SearchConfiguration: Equatable, Codable, CustomStringConvertible {
         uniqueMode = .cards
         sortField = .name
         sortOrder = .auto
+        automaticallyIncludeExtras = true
     }
     
     // MARK: - Enums
@@ -107,7 +109,7 @@ struct SearchConfiguration: Equatable, Codable, CustomStringConvertible {
     // MARK: - Persistence
     
     private enum CodingKeys: String, CodingKey {
-        case uniqueMode, sortField, sortOrder
+        case uniqueMode, sortField, sortOrder, automaticallyIncludeExtras
     }
     
     // Save to UserDefaults
