@@ -74,6 +74,7 @@ struct SearchTabView: View {
                     ) {
                         // n.b. we throw out any incomplete state in the search bar by design.
                         searchState.search(withFilters: editingState.filters)
+                        showSearchSheet = false
                     }
                 }
             }

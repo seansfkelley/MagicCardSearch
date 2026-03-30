@@ -4,8 +4,10 @@ import ScryfallKit
 struct SearchResultsGridView: View {
     let list: ScryfallObjectList<Card>
     @Binding var searchState: SearchState
+    
     @State private var selectedCardIndex: Int?
     @State private var cardFlipStates: [UUID: Bool] = [:]
+    @State private var showSyntaxReference = false
 
     private let spacing: CGFloat = 4
 
@@ -32,10 +34,19 @@ struct SearchResultsGridView: View {
                     Text(error.description)
                 }
             } else if case .loaded(let results, _) = list.value, results.data.isEmpty {
-                ContentUnavailableView(
-                    "No Results",
-                    systemImage: "circle.slash",
-                )
+                ContentUnavailableView {
+                    Label("No Results", systemImage: "circle.slash")
+                } description: {
+                    Text("Your search didn't match any cards.")
+                } actions: {
+                    Button {
+                        showSyntaxReference = true
+                    } label: {
+                        Text("Syntax Reference")
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.regular)
+                }
             } else if let results = list.value.latestValue, !results.data.isEmpty {
                 ScrollView {
                     VStack(spacing: 0) {
@@ -88,6 +99,11 @@ struct SearchResultsGridView: View {
             }
         }
         .animation(.easeInOut(duration: 0.2), value: list.value.isInitiallyLoading)
+        .sheet(isPresented: $showSyntaxReference) {
+            NavigationStack {
+                SyntaxReferenceView()
+            }
+        }
         .sheet(
             item: Binding(
                 get: { selectedCardIndex.map { IdentifiableIndex(index: $0) } },
