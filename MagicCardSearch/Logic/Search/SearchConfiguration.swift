@@ -8,7 +8,7 @@ struct SearchConfiguration: Equatable, Codable, CustomStringConvertible {
     var automaticallyIncludeExtras = true
 
     public var description: String {
-        "unique:\(uniqueMode) order:\(sortField) dir:\(sortOrder)"
+        "uniqueMode: \(uniqueMode.apiValue), sortField: \(sortField.apiValue), sortOrder: \(sortOrder.apiValue), automaticallyIncludeExtras: \(automaticallyIncludeExtras)"
     }
 
     static let defaultConfig = SearchConfiguration()
