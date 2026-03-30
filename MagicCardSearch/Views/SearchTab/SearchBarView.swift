@@ -6,41 +6,46 @@ import SwiftUIIntrospect
 private let logger = Logger(subsystem: "MagicCardSearch", category: "SearchBarView")
 
 struct SearchBarView: View {
-    @Binding var searchState: SearchState
+    @Bindable var editingState: SearchEditingState
+    let onSearch: () -> Void
     var isFocused: FocusState<Bool>.Binding
 
     @State private var showSymbolPicker = false
     private let textFieldDelegate: SearchTextFieldDelegate
 
-    init(searchState: Binding<SearchState>, isFocused: FocusState<Bool>.Binding) {
-        self._searchState = searchState
+    init(editingState: SearchEditingState, onSearch: @escaping () -> Void, isFocused: FocusState<Bool>.Binding) {
+        self._editingState = Bindable(wrappedValue: editingState)
+        self.onSearch = onSearch
         self.isFocused = isFocused
 
         // The only reason this is here is because UITextField.delegate is weak, so we need to
         // retain it as long as this view is alive.
         self.textFieldDelegate = SearchTextFieldDelegate(
             onReturn: {
-                if let filter = PartialFilterQuery.from(searchState.wrappedValue.searchText, autoclosePairedDelimiters: true).value?.transformLeaves(using: FilterTerm.from) {
-                    searchState.wrappedValue.filters.append(filter)
-                    searchState.wrappedValue.searchText = ""
-                    searchState.wrappedValue.desiredSearchSelection = nil
+                if let filter = PartialFilterQuery.from(editingState.searchText, autoclosePairedDelimiters: true).value?.transformLeaves(using: FilterTerm.from) {
+                    editingState.filters.append(filter)
+                    editingState.searchText = ""
+                    editingState.desiredSearchSelection = nil
                     return false
                 } else {
-                    searchState.wrappedValue.performSearch()
+                    onSearch()
                     return true
                 }
             },
-            onAddFilter: { searchState.wrappedValue.filters.append($0) },
-            actualSelection: searchState.actualSearchSelection,
+            onAddFilter: { editingState.filters.append($0) },
+            actualSelection: Binding(
+                get: { editingState.actualSearchSelection },
+                set: { editingState.actualSearchSelection = $0 }
+            ),
         )
     }
 
     var body: some View {
         SearchBarLayout {
             TextField(
-                searchState.filters.isEmpty ? "Search for cards..." : "Add filters...",
-                text: $searchState.searchText,
-                selection: $searchState.desiredSearchSelection,
+                editingState.filters.isEmpty ? "Search for cards..." : "Add filters...",
+                text: $editingState.searchText,
+                selection: $editingState.desiredSearchSelection,
             )
             .textFieldStyle(.plain)
             .textInputAutocapitalization(.never)
@@ -66,10 +71,10 @@ struct SearchBarView: View {
             ))
             .frame(maxWidth: .infinity)
 
-            if !searchState.searchText.isEmpty {
+            if !editingState.searchText.isEmpty {
                 Button(action: {
-                    searchState.searchText = ""
-                    searchState.desiredSearchSelection = nil
+                    editingState.searchText = ""
+                    editingState.desiredSearchSelection = nil
                     isFocused.wrappedValue = true
                 }) {
                     Image(systemName: "xmark.circle.fill")
@@ -92,10 +97,10 @@ struct SearchBarView: View {
                     .presentationCompactAdaptation(.popover)
             }
         }
-        .onChange(of: searchState.filters) {
+        .onChange(of: editingState.filters) {
             showSymbolPicker = false
         }
-        .onChange(of: searchState.desiredSearchSelection) {
+        .onChange(of: editingState.desiredSearchSelection) {
             // Once it's passed in one time, nil it out:
             //
             // - this makes it "imperative" which is the current desired behavior
@@ -106,15 +111,15 @@ struct SearchBarView: View {
             // selection are set simultaneously -- without this, it would focus but not select. This
             // used to happen when tapping a pill to edit it on an unfocused search bar.
             DispatchQueue.main.async {
-                searchState.desiredSearchSelection = nil
+                editingState.desiredSearchSelection = nil
             }
         }
     }
 
     private func insertSymbol(_ symbol: SymbolCode) {
-        searchState.searchText.replaceSubrange(searchState.actualSearchSelection, with: symbol.rawValue)
-        let index = searchState.searchText.index(searchState.actualSearchSelection.lowerBound, offsetBy: symbol.rawValue.count)
-        searchState.desiredSearchSelection = .init(insertionPoint: index)
+        editingState.searchText.replaceSubrange(editingState.actualSearchSelection, with: symbol.rawValue)
+        let index = editingState.searchText.index(editingState.actualSearchSelection.lowerBound, offsetBy: symbol.rawValue.count)
+        editingState.desiredSearchSelection = .init(insertionPoint: index)
     }
 }
 
@@ -228,13 +233,13 @@ private extension UITextRange {
 #Preview {
     struct Wrapper: View {
         @FocusState var focused: Bool
-        @Binding var searchState: SearchState
+        var editingState: SearchEditingState
         var body: some View {
-            SearchBarView(searchState: $searchState, isFocused: $focused)
+            SearchBarView(editingState: editingState, onSearch: {}, isFocused: $focused)
                 .padding()
         }
     }
     return PreviewContainer { searchState in
-        Wrapper(searchState: searchState)
+        Wrapper(editingState: searchState.wrappedValue.makeEditingState())
     }
 }

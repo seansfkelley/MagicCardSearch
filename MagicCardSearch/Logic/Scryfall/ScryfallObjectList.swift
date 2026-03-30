@@ -29,18 +29,6 @@ class ScryfallObjectList<T: Codable & Sendable> {
         ScryfallObjectList { _ in .empty() }
     }
 
-    func clearWarnings() {
-        value = value.map(value: {
-            ObjectList(
-                data: $0.data,
-                hasMore: $0.hasMore,
-                nextPage: $0.nextPage,
-                totalCards: $0.totalCards,
-                warnings: [],
-            )
-        })
-    }
-
     // This horrible shit is because any attempt to map .value onto another Loadable with some
     // post-processing in the view -- in order to avoid recalculating that value on every single
     // frame, should that be desirable -- gets into some kind of insane state where SwiftUI appears

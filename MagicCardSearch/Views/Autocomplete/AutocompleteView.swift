@@ -5,16 +5,17 @@ struct AutocompleteView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(HistoryAndPinnedStore.self) private var historyAndPinnedStore
 
-    @Binding var searchState: SearchState
+    var editingState: SearchEditingState
+    let onSearch: () -> Void
 
     @State private var suggestions: [AutocompleteSuggestion] = []
     @State private var nonce: Int = 0
 
     private var searchSuggestionKey: SearchSuggestionKey {
         SearchSuggestionKey(
-            inputText: searchState.searchText,
-            filterCount: searchState.filters.count,
-            currentFilterRange: searchState.selectedFilter.range,
+            inputText: editingState.searchText,
+            filterCount: editingState.filters.count,
+            currentFilterRange: editingState.selectedFilter.range,
             nonce: nonce,
         )
     }
@@ -58,11 +59,11 @@ struct AutocompleteView: View {
 
     var body: some View {
         List {
-            if let filter = PartialFilterQuery.from(searchState.searchText, autoclosePairedDelimiters: true).value?.transformLeaves(using: FilterTerm.from) {
+            if let filter = PartialFilterQuery.from(editingState.searchText, autoclosePairedDelimiters: true).value?.transformLeaves(using: FilterTerm.from) {
                 Button {
-                    searchState.filters.append(filter)
-                    searchState.searchText = ""
-                    searchState.desiredSearchSelection = nil
+                    editingState.filters.append(filter)
+                    editingState.searchText = ""
+                    editingState.desiredSearchSelection = nil
                 } label: {
                     HStack(spacing: 12) {
                         Image(systemName: "magnifyingglass")
@@ -88,7 +89,7 @@ struct AutocompleteView: View {
         .listStyle(.plain)
         .scrollDismissesKeyboard(.interactively)
         .task(id: searchSuggestionKey) {
-            guard let newSuggestions = try? await searchState.getSuggestions() else { return }
+            guard let newSuggestions = try? await editingState.getSuggestions() else { return }
             guard !Task.isCancelled else { return }
             suggestions = newSuggestions
         }
@@ -117,7 +118,7 @@ struct AutocompleteView: View {
 
     @ViewBuilder
     private func filterRow(_ suggestion: AutocompleteSuggestion) -> some View {
-        let shouldSearchImmediately = suggestion.source == .name && searchState.selectedFilter.scopedRange == nil
+        let shouldSearchImmediately = suggestion.source == .name && editingState.selectedFilter.scopedRange == nil
 
         let row = FilterRowView(
             suggestion: suggestion,
@@ -126,7 +127,7 @@ struct AutocompleteView: View {
             // Belt-and-suspenders to make sure we don't search immediately if we somehow only ended
             // up modifying the search text.
             if addFilter(filter) == .filter && shouldSearchImmediately {
-                searchState.performSearch()
+                onSearch()
             }
         }
 
@@ -187,34 +188,34 @@ struct AutocompleteView: View {
 
     @discardableResult
     private func addFilter(_ filter: FilterQuery<FilterTerm>) -> AddedFilterResult {
-        if let range = searchState.selectedFilter.scopedRange {
+        if let range = editingState.selectedFilter.scopedRange {
             let filterString = filter.description
-            if range.upperBound == searchState.searchText.endIndex {
-                searchState.searchText.replaceSubrange(range, with: filterString)
-                searchState.desiredSearchSelection = nil
+            if range.upperBound == editingState.searchText.endIndex {
+                editingState.searchText.replaceSubrange(range, with: filterString)
+                editingState.desiredSearchSelection = nil
             } else {
-                searchState.searchText.replaceSubrange(range, with: filterString)
-                let index = searchState.searchText.index(range.lowerBound, offsetBy: filterString.count)
-                searchState.desiredSearchSelection = .init(insertionPoint: index)
+                editingState.searchText.replaceSubrange(range, with: filterString)
+                let index = editingState.searchText.index(range.lowerBound, offsetBy: filterString.count)
+                editingState.desiredSearchSelection = .init(insertionPoint: index)
             }
             return .text
         } else {
-            searchState.filters.append(filter)
-            searchState.searchText = ""
-            searchState.desiredSearchSelection = nil
+            editingState.filters.append(filter)
+            editingState.searchText = ""
+            editingState.desiredSearchSelection = nil
             return .filter
         }
     }
 
     @discardableResult
     private func setFilterString(_ string: String) -> AddedFilterResult {
-        if let range = searchState.selectedFilter.range {
-            searchState.searchText.replaceSubrange(range, with: string)
-            let index = searchState.searchText.index(range.lowerBound, offsetBy: string.count)
-            searchState.desiredSearchSelection = .init(insertionPoint: index)
+        if let range = editingState.selectedFilter.range {
+            editingState.searchText.replaceSubrange(range, with: string)
+            let index = editingState.searchText.index(range.lowerBound, offsetBy: string.count)
+            editingState.desiredSearchSelection = .init(insertionPoint: index)
         } else {
-            searchState.searchText = string
-            searchState.desiredSearchSelection = nil
+            editingState.searchText = string
+            editingState.desiredSearchSelection = nil
         }
         return .text
     }

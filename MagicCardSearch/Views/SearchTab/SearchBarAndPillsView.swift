@@ -1,7 +1,9 @@
 import SwiftUI
 
 struct SearchBarAndPillsView: View {
-    @Binding var searchState: SearchState
+    var editingState: SearchEditingState
+    let warnings: [String]
+    let onSearch: () -> Void
 
     @State var showWarningsPopover: Bool = false
     @FocusState private var searchBarFocused: Bool
@@ -11,13 +13,13 @@ struct SearchBarAndPillsView: View {
         VStack(spacing: 0) {
             HStack(alignment: .bottom) {
                 WarningsPillView(
-                    warnings: searchState.results?.value.latestValue?.warnings ?? [],
+                    warnings: warnings,
                     mode: .pill,
                     isExpanded: $showWarningsPopover
                 )
                 Spacer()
-                if !searchState.filters.isEmpty {
-                    Button(role: .destructive, action: searchState.clearAll) {
+                if !editingState.filters.isEmpty {
+                    Button(role: .destructive, action: editingState.clearAll) {
                         Text("Clear all")
                             .font(.subheadline)
                             .fontWeight(.medium)
@@ -30,9 +32,9 @@ struct SearchBarAndPillsView: View {
             .padding(.bottom, 8)
 
             VStack(spacing: 0) {
-                if !searchState.filters.isEmpty {
+                if !editingState.filters.isEmpty {
                     ReflowingFilterPillsView(
-                        filters: searchState.filters,
+                        filters: editingState.filters,
                         maxRows: maxPillRows,
                         onEdit: onFilterEdit,
                         onRemove: onFilterRemove
@@ -53,7 +55,7 @@ struct SearchBarAndPillsView: View {
                         .padding(.horizontal)
                 }
 
-                SearchBarView(searchState: $searchState, isFocused: $searchBarFocused)
+                SearchBarView(editingState: editingState, onSearch: onSearch, isFocused: $searchBarFocused)
             }
             .contentShape(Rectangle())
             .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 20))
@@ -63,17 +65,17 @@ struct SearchBarAndPillsView: View {
     }
 
     private func onFilterEdit(_ filter: FilterQuery<FilterTerm>) {
-        if let index = searchState.filters.firstIndex(of: filter) {
-            searchState.filters.remove(at: index)
+        if let index = editingState.filters.firstIndex(of: filter) {
+            editingState.filters.remove(at: index)
         }
-        searchState.searchText = filter.description
-        searchState.desiredSearchSelection = .init(range: filter.suggestedEditingRange)
+        editingState.searchText = filter.description
+        editingState.desiredSearchSelection = .init(range: filter.suggestedEditingRange)
         searchBarFocused = true
     }
 
     private func onFilterRemove(_ filter: FilterQuery<FilterTerm>) {
-        if let index = searchState.filters.firstIndex(of: filter) {
-            searchState.filters.remove(at: index)
+        if let index = editingState.filters.firstIndex(of: filter) {
+            editingState.filters.remove(at: index)
         }
         searchBarFocused = true
     }

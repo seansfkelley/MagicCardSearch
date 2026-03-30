@@ -11,6 +11,7 @@ struct SearchTabView: View {
 
     @State private var showDisplayOptionsSheet = false
     @State private var pendingSearchConfig: SearchConfiguration?
+    @State private var editingState: SearchEditingState?
 
     var body: some View {
         Group {
@@ -54,18 +55,20 @@ struct SearchTabView: View {
         }
         .toolbarBackground(.hidden, for: .navigationBar)
         .navigationBarTitleDisplayMode(.inline)
-        .onChange(of: searchState.filters) { _, newFilters in
-            searchState.results?.clearWarnings()
-            if newFilters.isEmpty {
-                searchState.results = nil
+        .onChange(of: showSearchSheet) { _, isShowing in
+            if isShowing {
+                editingState = searchState.makeEditingState()
             }
         }
-        .onChange(of: searchState.searchNonce) {
-            showSearchSheet = false
-        }
-        .sheet(isPresented: $showSearchSheet) {
-            NavigationStack {
-                SearchSheetView(searchState: $searchState)
+        .sheet(isPresented: $showSearchSheet, onDismiss: { editingState = nil }) {
+            if let editingState {
+                NavigationStack {
+                    SearchSheetView(
+                        editingState: editingState,
+                        warnings: searchState.results?.value.latestValue?.warnings ?? [],
+                        onSearch: commitSearch
+                    )
+                }
             }
         }
         .sheet(isPresented: $showDisplayOptionsSheet, onDismiss: {
@@ -84,5 +87,17 @@ struct SearchTabView: View {
             }
             .presentationDetents([.medium])
         }
+    }
+
+    private func commitSearch() {
+        guard let editingState else { return }
+        if let filter = PartialFilterQuery.from(
+            editingState.searchText, autoclosePairedDelimiters: true
+        ).value?.transformLeaves(using: FilterTerm.from) {
+            editingState.filters.append(filter)
+        }
+        searchState.filters = editingState.filters
+        searchState.performSearch()
+        showSearchSheet = false
     }
 }

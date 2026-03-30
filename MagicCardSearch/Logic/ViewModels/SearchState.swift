@@ -4,66 +4,17 @@ import ScryfallKit
 
 private let logger = Logger(subsystem: "MagicCardSearch", category: "SearchState")
 
-// TODO: Remove this decorator once I have disentagled a bunch of the state management.
 @MainActor
 @Observable
 class SearchState {
-    public var searchText: String = "" {
+    public var filters: [FilterQuery<FilterTerm>] = [] {
         didSet {
-            cachedSelectedFilter = nil
+            results = nil
         }
     }
-
-    // These are separated because SwiftUI doesn't reliably two-way bind the selection with a
-    // TextField. Instead, it appears that providing a selection to the search field will cause it
-    // to move the cursor, but it will not report back cursor moves on that binding, that is, it is
-    // write-only.
-    //
-    // We hook into the UIKit backing implementation to listen to cursor changes. Initially there
-    // was an implementation that bridged to UIKit and had a single Binding for reading and writing,
-    // but this caused all manner of synchronization issues since things are happening on other
-    // threads, or some state changes (namely a change to searchText) would cause the cursor to move
-    // which would then immediately clobber any selection you had intended to change right after
-    // changing the text, etc. etc.
-    //
-    // As it turns out, nothing ever wants to read and write cursor positions at the same time. So
-    // by separating it we can maintain two unambiguous states -- desired and actual -- and
-    // consumers can just interact with the one they want. Boom.
-    //
-    // As an additional constraint, the representation here is narrowed to only a single range so
-    // that we don't have to juggle the possibility of multiple selections, which we are not
-    // interested in and, in any case, UITextField doesn't seem to support anyway. It also means we
-    // can define some of our own semantics, namely, that an empty range is still considered a point
-    // insertion.
-    public var desiredSearchSelection: TextSelection?
-    public var actualSearchSelection: Range<String.Index> = "".startIndex..<"".endIndex {
-        didSet {
-            cachedSelectedFilter = nil
-        }
-    }
-
-    public var filters: [FilterQuery<FilterTerm>] = []
     public var configuration = SearchConfiguration.load()
-    public var results: ScryfallObjectList<Card>?
+    public private(set) var results: ScryfallObjectList<Card>?
     public private(set) var searchNonce = 0
-
-    // This is a function partly because async but also partly to remind the caller that it is a
-    // whole operation, not just a property read.
-    public func getSuggestions() async throws -> [AutocompleteSuggestion] {
-        try await suggestionProvider.getSuggestions(for: selectedFilter.text, existingFilters: Set(filters))
-    }
-
-    public var selectedFilter: CurrentlyHighlightedFilterFacade {
-        if let cachedSelectedFilter {
-            return cachedSelectedFilter
-        } else {
-            let filter = CurrentlyHighlightedFilterFacade(inputText: searchText, inputSelection: actualSearchSelection)
-            cachedSelectedFilter = filter
-            return filter
-        }
-    }
-
-    private var cachedSelectedFilter: CurrentlyHighlightedFilterFacade?
 
     private let suggestionProvider: AutocompleteSuggestionProvider
     private let scryfall = ScryfallClient(logger: logger)
@@ -74,15 +25,13 @@ class SearchState {
         self.suggestionProvider = AutocompleteSuggestionProvider(scryfallCatalogs: scryfallCatalogs)
     }
 
-    public func clearAll() {
-        searchText = ""
-        desiredSearchSelection = nil
-        filters = []
-        results = nil
+    public func makeEditingState() -> SearchEditingState {
+        SearchEditingState(filters: filters, suggestionProvider: suggestionProvider)
     }
 
-    public func clearWarnings() {
-        results?.clearWarnings()
+    public func clearAll() {
+        filters = []
+        results = nil
     }
 
     public func performSearch() {

@@ -1,19 +1,18 @@
 import SwiftUI
-import ScryfallKit
-import OSLog
-import SQLiteData
 
 struct SearchSheetView: View {
     @Environment(\.dismiss) private var dismiss
 
-    @Binding var searchState: SearchState
+    let editingState: SearchEditingState
+    let warnings: [String]
+    let onSearch: () -> Void
 
     @State private var showSyntaxReference = false
 
     var body: some View {
-        AutocompleteView(searchState: $searchState)
+        AutocompleteView(editingState: editingState, onSearch: onSearch)
             .safeAreaInset(edge: .bottom) {
-                SearchBarAndPillsView(searchState: $searchState)
+                SearchBarAndPillsView(editingState: editingState, warnings: warnings, onSearch: onSearch)
             }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
