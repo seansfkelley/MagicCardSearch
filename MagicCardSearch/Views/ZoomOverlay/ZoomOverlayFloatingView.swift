@@ -30,7 +30,7 @@ struct ZoomOverlayFloatingView: View {
 
     private var backgroundOpacity: Double {
         // swiftlint:disable:next identifier_name
-        let t = (Double(state.scale) - 1.0) / (ZoomOverlayConstants.maxOpacityReachedAtScaleFactor - 1.0)
+        let t = (Double(state.scale) - 1.0) / (Double(state.maxOpacityReachedAtScaleFactor) - 1.0)
         return UnitCurve.easeOut.value(at: max(0, min(1, t))) * ZoomOverlayConstants.maxLightboxOpacity
     }
 }

@@ -27,9 +27,15 @@ struct ZoomOverlayInitiatingGestureView: UIViewRepresentable {
     let uiImage: UIImage
     let clipShape: AnyShape?
     let initiatingGestures: ZoomOverlayInitationGestures
+    let zoomBasisAdjustment: CGFloat
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(uiImage: uiImage, clipShape: clipShape, initiatingGestures: initiatingGestures)
+        Coordinator(
+            uiImage: uiImage,
+            clipShape: clipShape,
+            initiatingGestures: initiatingGestures,
+            zoomBasisAdjustment: zoomBasisAdjustment,
+        )
     }
 
     func makeUIView(context: Context) -> UIView {
@@ -51,6 +57,7 @@ struct ZoomOverlayInitiatingGestureView: UIViewRepresentable {
         private let uiImage: UIImage
         private let clipShape: AnyShape?
         private let initiatingGestures: ZoomOverlayInitationGestures
+        private let zoomBasisAdjustment: CGFloat
         private var state: ZoomOverlayState { .shared }
 
         fileprivate lazy var pinchRecognizer = UIPinchGestureRecognizer(target: self, action: #selector(handlePinch))
@@ -62,10 +69,16 @@ struct ZoomOverlayInitiatingGestureView: UIViewRepresentable {
             return pan
         }()
 
-        init(uiImage: UIImage, clipShape: AnyShape?, initiatingGestures: ZoomOverlayInitationGestures) {
+        init(
+            uiImage: UIImage,
+            clipShape: AnyShape?,
+            initiatingGestures: ZoomOverlayInitationGestures,
+            zoomBasisAdjustment: CGFloat,
+        ) {
             self.uiImage = uiImage
             self.clipShape = clipShape
             self.initiatingGestures = initiatingGestures
+            self.zoomBasisAdjustment = zoomBasisAdjustment
             super.init()
             pinchRecognizer.delegate = self
             tapRecognizer.delegate = self
@@ -92,6 +105,7 @@ struct ZoomOverlayInitiatingGestureView: UIViewRepresentable {
                     in: screenSpaceFrame(for: view),
                     screenSize: screenSize(for: view),
                     clippingImageWith: clipShape,
+                    zoomBasisAdjustment: zoomBasisAdjustment,
                     with: .continuingGesture,
                 )
             case .changed:
@@ -119,6 +133,7 @@ struct ZoomOverlayInitiatingGestureView: UIViewRepresentable {
                 in: frame,
                 screenSize: size,
                 clippingImageWith: clipShape,
+                zoomBasisAdjustment: zoomBasisAdjustment,
                 with: .autoZoomTo(targetOffset),
             )
         }

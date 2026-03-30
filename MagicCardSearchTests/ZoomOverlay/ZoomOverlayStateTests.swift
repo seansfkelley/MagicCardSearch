@@ -113,7 +113,7 @@ struct ZoomOverlayStateTests {
     func applyScaleBelowMin() {
         state.show(image: image, in: frame, screenSize: screenSize, with: .continuingGesture)
         state.applyScale(0.5, aroundCentroid: frameCenter)
-        #expect(abs(state.scale - 0.8) < 0.1)
+        #expect(abs(state.scale - 0.667) < 0.05)
         #expect(state.translation == .zero)
     }
 
@@ -173,6 +173,35 @@ struct ZoomOverlayStateTests {
         // Subtracted values were computed empirically and given extreme epsilon.
         #expect(abs(state.translation.width - 232) < 1)
         #expect(abs(state.translation.height - 424) < 1)
+    }
+
+    // MARK: - zoomBasisAdjustment
+
+    @Test("zoomBasisAdjustment > 1.0 produces thresholds larger than the base constants")
+    func zoomBasisAdjustmentScalesThresholds() {
+        state.show(image: image, in: frame, screenSize: screenSize, zoomBasisAdjustment: 2.0, with: .continuingGesture)
+        #expect(state.minRetainedZoomScale > ZoomOverlayConstants.minRetainedZoomScale)
+        #expect(state.maxNonRubberBandingZoomScale > ZoomOverlayConstants.maxNonRubberBandingZoomScale)
+        #expect(state.maxOpacityReachedAtScaleFactor > ZoomOverlayConstants.maxOpacityReachedAtScaleFactor)
+    }
+
+    @Test("zoomBasisAdjustment below 1.0 clamps to the base constants", arguments: [0.5, -1.0] as [CGFloat])
+    func zoomBasisAdjustmentClampsBelowOne(adjustment: CGFloat) {
+        state.show(image: image, in: frame, screenSize: screenSize, zoomBasisAdjustment: adjustment, with: .continuingGesture)
+        #expect(state.minRetainedZoomScale == ZoomOverlayConstants.minRetainedZoomScale)
+        #expect(state.maxNonRubberBandingZoomScale == ZoomOverlayConstants.maxNonRubberBandingZoomScale)
+        #expect(state.maxOpacityReachedAtScaleFactor == ZoomOverlayConstants.maxOpacityReachedAtScaleFactor)
+    }
+
+    @Test("finishedScaling dismisses when scale is between base min and adjusted min")
+    func zoomBasisAdjustmentFinishedScalingDismissesBeforeAdjustedMin() {
+        // With adjustment=2.0 the adjusted min is 1.4; a scale of 1.3 is above the base min (1.2)
+        // but below the adjusted min, so the overlay should dismiss.
+        state.show(image: image, in: frame, screenSize: screenSize, zoomBasisAdjustment: 2.0, with: .continuingGesture)
+        state.applyScale(1.3, aroundCentroid: frameCenter)
+        #expect(state.scale < state.minRetainedZoomScale)
+        state.finishedScaling()
+        #expect(state.isVisible == false)
     }
 
     // MARK: - finishedScaling

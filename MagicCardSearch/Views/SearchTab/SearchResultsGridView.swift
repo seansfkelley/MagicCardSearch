@@ -62,8 +62,9 @@ struct SearchResultsGridView: View {
                                     quality: .normal,
                                     isFlipped: $cardFlipStates.for(card.id),
                                     cornerRadius: 10,
-                                    enableZoomGestures: .pinchOnly,
                                     enableCopyActions: true,
+                                    enableZoomGestures: .pinchOnly,
+                                    zoomGestureBasisAdjustment: 3.0,
                                 )
                                 .onTapGesture {
                                     selectedCardIndex = index

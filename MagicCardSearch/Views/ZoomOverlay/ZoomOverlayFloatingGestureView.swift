@@ -89,7 +89,7 @@ struct ZoomOverlayFloatingGestureView: UIViewRepresentable {
                 let speed = sqrt(v.x * v.x + v.y * v.y)
 
                 // The pinch gesture will handle dismissing instead.
-                guard state.scale > ZoomOverlayConstants.minRetainedZoomScale else { break }
+                guard state.scale > state.minRetainedZoomScale else { break }
 
                 if speed > ZoomOverlayConstants.flingVelocityThreshold {
                     state.dismiss(withFling: CGVector(dx: v.x, dy: v.y))

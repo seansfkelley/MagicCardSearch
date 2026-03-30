@@ -120,8 +120,9 @@ private struct PagingCardImageView: View {
                                 quality: .large,
                                 isFlipped: $isFlipped,
                                 cornerRadius: 16,
-                                enableZoomGestures: .tapAndPinch,
                                 enableCopyActions: true,
+                                enableZoomGestures: .tapAndPinch,
+                                zoomGestureBasisAdjustment: 1.2,
                             )
                             .background(
                                 GeometryReader { geometry in

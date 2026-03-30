@@ -13,11 +13,26 @@ final class ZoomOverlayState: ObservableObject {
     @Published public private(set) var scale: CGFloat = 1
     @Published public private(set) var translation: CGSize = .zero
 
-    private let enableAnimations: Bool
-
     init(yesThisIsTheSingletonOrTestCode: Bool, enableAnimations: Bool = true) {
         self.enableAnimations = enableAnimations
     }
+
+    // Scales all zoom thresholds (retain min, rubber-band max, opacity ramp) proportionally.
+    // Use a value greater than 1.0 for views that start visually smaller than the reference size,
+    // so that the same physical gesture covers proportionally more of the zoom range.
+    private var clampedZoomBasisAdjustment: CGFloat = 1.0
+
+    var minRetainedZoomScale: CGFloat {
+        1.0 + (ZoomOverlayConstants.minRetainedZoomScale - 1.0) * clampedZoomBasisAdjustment
+    }
+    var maxNonRubberBandingZoomScale: CGFloat {
+        1.0 + (ZoomOverlayConstants.maxNonRubberBandingZoomScale - 1.0) * clampedZoomBasisAdjustment
+    }
+    var maxOpacityReachedAtScaleFactor: CGFloat {
+        1.0 + (ZoomOverlayConstants.maxOpacityReachedAtScaleFactor - 1.0) * clampedZoomBasisAdjustment
+    }
+
+    private let enableAnimations: Bool
 
     enum ShowType {
         case continuingGesture
@@ -32,6 +47,7 @@ final class ZoomOverlayState: ObservableObject {
         in frame: CGRect,
         screenSize: CGSize,
         clippingImageWith clipShape: AnyShape? = nil,
+        zoomBasisAdjustment: CGFloat = 1.0,
         with showType: ShowType,
     ) {
         self.image = image
@@ -40,6 +56,7 @@ final class ZoomOverlayState: ObservableObject {
         self.scale = 1
         self.translation = .zero
         self.clipShape = clipShape
+        self.clampedZoomBasisAdjustment = max(1.0, zoomBasisAdjustment)
         self.isVisible = true
 
         switch showType {
@@ -48,7 +65,7 @@ final class ZoomOverlayState: ObservableObject {
         case .autoZoomTo(let size):
             isInitiatingGesture = false
             animate(ZoomOverlayConstants.presentCenteredAnimation) {
-                scale = ZoomOverlayConstants.maxOpacityReachedAtScaleFactor
+                scale = maxOpacityReachedAtScaleFactor
                 translation = size
             }
         }
@@ -65,7 +82,7 @@ final class ZoomOverlayState: ObservableObject {
         // This is not-DRY but I couldn't figure out how to only translate if the scale decided we
         // should stick around without breaking things up into a bunch of smaller private methods.
         // This is close enough.
-        if scale >= ZoomOverlayConstants.minRetainedZoomScale {
+        if scale >= minRetainedZoomScale {
             finishedTranslating()
         }
     }
@@ -121,8 +138,9 @@ final class ZoomOverlayState: ObservableObject {
     func applyScale(_ newScale: CGFloat, aroundCentroid centroid: CGPoint) {
         let rubberBandedScale = rubberBand(
             newScale,
-            min: ZoomOverlayConstants.minRetainedZoomScale,
-            max: ZoomOverlayConstants.maxNonRubberBandingZoomScale,
+            // Not adjusted for basis; the point is it should resist getting smaller than it starts.
+            min: 1.0,
+            max: maxNonRubberBandingZoomScale,
             coefficient: ZoomOverlayConstants.scaleRubberBandCoefficient
         )
         let effectiveScale = rubberBandedScale / scale
@@ -160,11 +178,11 @@ final class ZoomOverlayState: ObservableObject {
 
     /// Snaps scale to [minScale, maxScale] if outside bounds.
     func finishedScaling() {
-        if scale < ZoomOverlayConstants.minRetainedZoomScale {
+        if scale < minRetainedZoomScale {
             dismiss()
-        } else if scale > ZoomOverlayConstants.maxNonRubberBandingZoomScale {
+        } else if scale > maxNonRubberBandingZoomScale {
             animate(ZoomOverlayConstants.snapBackAnimation) {
-                scale = ZoomOverlayConstants.maxNonRubberBandingZoomScale
+                scale = maxNonRubberBandingZoomScale
             }
         }
     }
