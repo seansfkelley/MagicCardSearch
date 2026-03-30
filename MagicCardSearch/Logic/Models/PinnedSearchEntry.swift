@@ -2,7 +2,7 @@ import Foundation
 import SQLiteData
 
 @Table
-struct PinnedSearchEntry: Identifiable, Equatable {
+struct PinnedSearchEntry: Identifiable {
     let id: Int64?
     let pinnedAt: Date
     @Column(as: [FilterQuery<FilterTerm>].StableJSONRepresentation.self)
