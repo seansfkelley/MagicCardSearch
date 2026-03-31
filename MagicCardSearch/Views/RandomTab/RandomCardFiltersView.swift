@@ -221,7 +221,9 @@ struct RandomCardFiltersView: View {
                     if let assetName = type.assetName {
                         Spacer()
                         Image(assetName)
-                            .frame(width: 16, height: 16)
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 24, height: 24)
                     }
                 }
             }
@@ -246,8 +248,9 @@ struct RandomCardFiltersView: View {
                     if let assetName = rarity.assetName {
                         Spacer()
                         Image(assetName)
-                            .frame(width: 16, height: 16)
-                            .backgroundStyle(.green)
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 24, height: 24)
                     }
                 }
             }
