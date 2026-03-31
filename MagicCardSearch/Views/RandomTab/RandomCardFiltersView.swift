@@ -47,11 +47,41 @@ struct RandomCardFiltersView: View {
 
     @State private var draft: RandomCardFilters
     let onApply: (RandomCardFilters) -> Void
-    @State private var binding: Set<FilterSelection> = []
 
     init(filters: RandomCardFilters, onApply: @escaping (RandomCardFilters) -> Void) {
         self._draft = State(initialValue: filters)
         self.onApply = onApply
+    }
+
+    private var draftBinding: Binding<Set<FilterSelection>> {
+        Binding(
+            get: {
+                var selection = Set<FilterSelection>()
+                selection.formUnion(draft.types.map { .type($0) })
+                selection.formUnion(draft.rarities.map { .rarity($0) })
+                selection.formUnion(draft.games.map { .game($0) })
+                selection.formUnion(draft.formats.map { .format($0) })
+                return selection
+            },
+            set: { newValue in
+                draft = .init(
+                    colors: draft.colors,
+                    useColorIdentity: draft.useColorIdentity,
+                    formats: Set(newValue.compactMap {
+                        if case .format(let format) = $0 { format } else { nil }
+                    }),
+                    types: Set(newValue.compactMap {
+                        if case .type(let type) = $0 { type } else { nil }
+                    }),
+                    rarities: Set(newValue.compactMap {
+                        if case .rarity(let rarity) = $0 { rarity } else { nil }
+                    }),
+                    games: Set(newValue.compactMap {
+                        if case .game(let game) = $0 { game } else { nil }
+                    }),
+                )
+            }
+        )
     }
 
     // MARK: - Selection
@@ -77,7 +107,7 @@ struct RandomCardFiltersView: View {
     // MARK: - Body
 
     var body: some View {
-        List(selection: $binding) {
+        List(selection: draftBinding) {
             colorSection
             typeSection
             raritySection
@@ -107,20 +137,6 @@ struct RandomCardFiltersView: View {
                 }
                 .buttonStyle(.glassProminent)
             }
-        }
-        .onChange(of: draft, initial: true) {
-            var s = Set<FilterSelection>()
-            s.formUnion(draft.types.map { .type($0) })
-            s.formUnion(draft.rarities.map { .rarity($0) })
-            s.formUnion(draft.games.map { .game($0) })
-            s.formUnion(draft.formats.map { .format($0) })
-            binding = s
-        }
-        .onChange(of: binding) {
-            draft.types = Set(binding.compactMap { if case .type(let t) = $0 { t } else { nil } })
-            draft.rarities = Set(binding.compactMap { if case .rarity(let r) = $0 { r } else { nil } })
-            draft.games = Set(binding.compactMap { if case .game(let g) = $0 { g } else { nil } })
-            draft.formats = Set(binding.compactMap { if case .format(let f) = $0 { f } else { nil } })
         }
     }
 
