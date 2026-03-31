@@ -18,8 +18,8 @@ struct RandomCardFilters: Equatable {
 
         if !colors.isEmpty {
             let key = useColorIdentity ? "id" : "color"
-            let clause = colors.map { "\(key):\($0.rawValue.lowercased())" }.joined(separator: " OR ")
-            groups.append("(\(clause))")
+            let clause = "\(key)<=\(colors.map { $0.rawValue.lowercased() }.joined())"
+            groups.append(clause)
         }
 
         if !formats.isEmpty {
@@ -60,10 +60,10 @@ struct RandomCardFiltersView: View {
     var body: some View {
         Form {
             colorSection
-            formatSection
             typeSection
             raritySection
             gamesSection
+            formatSection
 
             Section {
                 Button("Reset to Defaults", role: .destructive) {
@@ -89,6 +89,7 @@ struct RandomCardFiltersView: View {
                 } label: {
                     Image(systemName: "checkmark")
                 }
+                .buttonStyle(.glassProminent)
             }
         }
     }
@@ -108,13 +109,17 @@ struct RandomCardFiltersView: View {
             .frame(maxWidth: .infinity)
             .padding(.vertical, 4)
 
-            Toggle("Color identity", isOn: $draft.useColorIdentity)
+            Toggle("Color Identity", isOn: $draft.useColorIdentity)
         } header: {
             Text("Color")
         } footer: {
-            draft.useColorIdentity
-                ? Text("Show cards with a color identity.")
-                : Text("Show cards matching any of these colors.")
+            if draft.colors.isEmpty {
+                Text("Not currently filtering by color.")
+            } else if draft.useColorIdentity {
+                Text("Show cards with a color identity playable in these colors.")
+            } else {
+                Text("Show cards playable in these colors.")
+            }
         }
     }
 
@@ -192,7 +197,11 @@ struct RandomCardFiltersView: View {
         } header: {
             Text("Format")
         } footer: {
-            Text("Show cards legal in any of these formats.")
+            if draft.formats.isEmpty {
+                Text("Not currently filtering by legality.")
+            } else {
+                Text("Show cards legal in any of these formats.")
+            }
         }
         .onAppear {
             if !draft.formats.isDisjoint(with: Self.belowFoldFormats) {
@@ -226,7 +235,11 @@ struct RandomCardFiltersView: View {
         } header: {
             Text("Type")
         } footer: {
-            Text("Show cards matching any of these types.")
+            if draft.types.isEmpty {
+                Text("Not currently filtering by type.")
+            } else {
+                Text("Show cards matching any of these types.")
+            }
         }
     }
 
@@ -258,7 +271,11 @@ struct RandomCardFiltersView: View {
         } header: {
             Text("Rarity")
         } footer: {
-            Text("Show cards matching any of these rarities.")
+            if draft.rarities.isEmpty {
+                Text("Not currently filtering by rarity.")
+            } else {
+                Text("Show cards matching any of these rarities.")
+            }
         }
     }
 
@@ -289,7 +306,11 @@ struct RandomCardFiltersView: View {
         } header: {
             Text("Games")
         } footer: {
-            Text("Show cards matching any of these games.")
+            if draft.games.isEmpty {
+                Text("Not currently filtering by game type.")
+            } else {
+                Text("Show cards printed into any of these games.")
+            }
         }
     }
 
