@@ -2,10 +2,6 @@ import SwiftUI
 import ScryfallKit
 
 struct RandomCardFilters: Equatable {
-    enum Game: String {
-        case paper, arena, mtgo
-    }
-
     var colors: Set<Card.Color> = []
     var useColorIdentity = false
     var formats: Set<Format> = []
@@ -62,8 +58,17 @@ struct RandomCardFiltersView: View {
     private enum FilterSelection: Hashable {
         case type(String)
         case rarity(Card.Rarity)
-        case game(RandomCardFilters.Game)
+        case game(Game)
         case format(Format)
+
+        var label: String {
+            switch self {
+            case .type(let type): type
+            case .rarity(let rarity): rarity.label
+            case .game(let game): game.label
+            case .format(let format): format.label
+            }
+        }
     }
 
     private var filterSelectionBinding: Binding<Set<FilterSelection>?> {
@@ -93,8 +98,8 @@ struct RandomCardFiltersView: View {
             colorSection
             typeSection
             raritySection
-            formatSection
             gamesSection
+            formatSection
             resetSection
         }
         .listStyle(.insetGrouped)
@@ -169,14 +174,15 @@ struct RandomCardFiltersView: View {
 
     // MARK: - Type Section
 
-    private static let cardTypes = [
+    private static let cardTypes: [FilterSelection] = [
         "Artifact", "Creature", "Enchantment", "Instant", "Land", "Legendary", "Planeswalker", "Sorcery",
-    ]
+    ].map { .type($0) }
 
     private var typeSection: some View {
         Section {
             ForEach(Self.cardTypes, id: \.self) { type in
-                Text(type).tag(FilterSelection.type(type))
+                Text(type.label)
+                    .id(type)
             }
         } header: {
             Text("Type")
@@ -189,17 +195,15 @@ struct RandomCardFiltersView: View {
 
     // MARK: - Rarity Section
 
-    private static let allRarities: [(Card.Rarity, String)] = [
-        (.common, "Common"),
-        (.uncommon, "Uncommon"),
-        (.rare, "Rare"),
-        (.mythic, "Mythic"),
-    ]
+    private static let allRarities: [FilterSelection] = [
+        .common, .uncommon, .rare, .mythic,
+    ].map { .rarity($0) }
 
     private var raritySection: some View {
         Section {
-            ForEach(Self.allRarities, id: \.0) { rarity, label in
-                Text(label).tag(FilterSelection.rarity(rarity))
+            ForEach(Self.allRarities, id: \.self) { rarity in
+                Text(rarity.label)
+                    .id(rarity)
             }
         } header: {
             Text("Rarity")
@@ -212,16 +216,15 @@ struct RandomCardFiltersView: View {
 
     // MARK: - Games Section
 
-    private static let allGames: [(RandomCardFilters.Game, String)] = [
-        (.paper, "Paper"),
-        (.arena, "Arena"),
-        (.mtgo, "MTGO"),
-    ]
+    private static let allGames: [FilterSelection] = [
+        .paper, .arena, .mtgo,
+    ].map { .game($0) }
 
     private var gamesSection: some View {
         Section {
-            ForEach(Self.allGames, id: \.0) { game, label in
-                Text(label).tag(FilterSelection.game(game))
+            ForEach(Self.allGames, id: \.self) { game in
+                Text(game.label)
+                    .id(game)
             }
         } header: {
             Text("Games")
@@ -234,23 +237,27 @@ struct RandomCardFiltersView: View {
 
     // MARK: - Format Section
 
-    private static let aboveFoldFormats: [Format] = [.standard, .commander, .modern, .legacy]
-    private static let belowFoldFormats: [Format] = [
-        .alchemy, .brawl, .duel, .future, .gladiator, .historic,
-        .oathbreaker, .oldschool, .pauper, .paupercommander, .penny,
-        .pioneer, .predh, .premodern, .standardbrawl, .timeless, .vintage,
-    ]
+    private static let aboveFoldFormats: [FilterSelection] = [
+        .standard, .commander, .modern, .legacy,
+    ].map { .format($0) }
+
+    private static let belowFoldFormats: [FilterSelection] = [
+        .alchemy, .brawl, .duel, .future, .gladiator, .historic, .oathbreaker, .oldschool, .pauper,
+        .paupercommander, .penny, .pioneer, .predh, .premodern, .standardbrawl, .timeless, .vintage,
+    ].map { .format($0) }
 
     @State private var formatsExpanded = false
 
     private var formatSection: some View {
         Section {
             ForEach(Self.aboveFoldFormats, id: \.self) { format in
-                Text(format.label).tag(FilterSelection.format(format))
+                Text(format.label)
+                    .id(format)
             }
             if formatsExpanded {
                 ForEach(Self.belowFoldFormats, id: \.self) { format in
-                    Text(format.label).tag(FilterSelection.format(format))
+                    Text(format.label)
+                        .id(format)
                 }
             } else {
                 Button("Show More") {
@@ -266,7 +273,10 @@ struct RandomCardFiltersView: View {
                  : "Show cards legal in any of these formats.")
         }
         .onAppear {
-            if !draft.formats.isDisjoint(with: Self.belowFoldFormats) {
+            let belowFoldRawFormats = Self.belowFoldFormats.compactMap {
+                if case .format(let f) = $0 { f } else { nil }
+            }
+            if !draft.formats.isDisjoint(with: belowFoldRawFormats) {
                 formatsExpanded = true
             }
         }
@@ -288,5 +298,4 @@ struct RandomCardFiltersView: View {
     NavigationStack {
         RandomCardFiltersView(filters: RandomCardFilters()) { _ in }
     }
-    .environment(ScryfallCatalogs())
 }
