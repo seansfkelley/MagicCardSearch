@@ -80,6 +80,9 @@ struct SymbolView: View {
                     .frame(width: targetSize, height: targetSize)
             }
         }
+        // Prevent the drop shadow and the image overlay from getting effects like opacity applied
+        // separately, instead treating this whole view like a single visual unit.
+        .compositingGroup()
     }
     
     private func renderImage() -> UIImage? {

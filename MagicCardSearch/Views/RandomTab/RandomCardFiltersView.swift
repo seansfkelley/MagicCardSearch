@@ -133,7 +133,7 @@ struct RandomCardFiltersView: View {
             }
         } label: {
             SymbolView(SymbolCode("{\(color.rawValue)}"), size: 40, showDropShadow: true)
-                .opacity(isSelected ? 1.0 : 0.3)
+                .opacity(isSelected ? 1.0 : 0.4)
         }
         .buttonStyle(.plain)
         .accessibilityLabel(color.name)
@@ -142,7 +142,7 @@ struct RandomCardFiltersView: View {
 
     // MARK: - Format Section
 
-    private static let aboveFoldFormats: [Format] = [.standard, .modern, .legacy, .commander]
+    private static let aboveFoldFormats: [Format] = [.standard, .commander, .modern, .legacy]
     private static let belowFoldFormats: [Format] = [
         .pioneer, .historic, .timeless, .vintage, .pauper, .penny,
         .brawl, .standardbrawl, .alchemy, .gladiator, .oathbreaker,
