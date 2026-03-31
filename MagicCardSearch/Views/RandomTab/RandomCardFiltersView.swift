@@ -13,7 +13,7 @@ struct RandomCardFilters: Equatable {
     var rarities: Set<Card.Rarity> = []
     var games: Set<Game> = []
 
-    var queryString: String {
+    var queryString: String? {
         var groups: [String] = ["language:en"]
 
         if !colors.isEmpty {
@@ -42,7 +42,7 @@ struct RandomCardFilters: Equatable {
             groups.append("(\(clause))")
         }
 
-        return groups.joined(separator: " ")
+        return groups.isEmpty ? nil : groups.joined(separator: " ")
     }
 }
 
@@ -57,15 +57,48 @@ struct RandomCardFiltersView: View {
         self.onApply = onApply
     }
 
+    // MARK: - Selection
+
+    private enum FilterSelection: Hashable {
+        case type(String)
+        case rarity(Card.Rarity)
+        case game(RandomCardFilters.Game)
+        case format(Format)
+    }
+
+    private var filterSelectionBinding: Binding<Set<FilterSelection>?> {
+        Binding(
+            get: {
+                var s = Set<FilterSelection>()
+                s.formUnion(draft.types.map { .type($0) })
+                s.formUnion(draft.rarities.map { .rarity($0) })
+                s.formUnion(draft.games.map { .game($0) })
+                s.formUnion(draft.formats.map { .format($0) })
+                return s
+            },
+            set: { newValue in
+                let value = newValue ?? []
+                draft.types = Set(value.compactMap { if case .type(let t) = $0 { t } else { nil } })
+                draft.rarities = Set(value.compactMap { if case .rarity(let r) = $0 { r } else { nil } })
+                draft.games = Set(value.compactMap { if case .game(let g) = $0 { g } else { nil } })
+                draft.formats = Set(value.compactMap { if case .format(let f) = $0 { f } else { nil } })
+            }
+        )
+    }
+
+    // MARK: - Body
+
     var body: some View {
-        ScrollView {
+        List(selection: filterSelectionBinding) {
             colorSection
             typeSection
             raritySection
-            gamesSection
             formatSection
+            gamesSection
             resetSection
         }
+        .listStyle(.insetGrouped)
+        .environment(\.editMode, .constant(.active))
         .navigationTitle("Filters")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -94,29 +127,27 @@ struct RandomCardFiltersView: View {
     private static let allColors: [Card.Color] = [.W, .U, .B, .R, .G, .C]
 
     private var colorSection: some View {
-        List {
-            Section {
-                HStack(spacing: 16) {
-                    ForEach(Self.allColors, id: \.self) { colorButton($0) }
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 4)
+        Section {
+            HStack(spacing: 16) {
+                ForEach(Self.allColors, id: \.self) { colorButton($0) }
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 4)
+            .selectionDisabled()
 
-                Toggle("Color Identity", isOn: $draft.useColorIdentity)
-            } header: {
-                Text("Color")
-            } footer: {
-                if draft.colors.isEmpty {
-                    Text("Not currently filtering by color.")
-                } else if draft.useColorIdentity {
-                    Text("Show cards with a color identity playable in these colors.")
-                } else {
-                    Text("Show cards playable in these colors.")
-                }
+            Toggle("Color Identity", isOn: $draft.useColorIdentity)
+                .selectionDisabled()
+        } header: {
+            Text("Color")
+        } footer: {
+            if draft.colors.isEmpty {
+                Text("Not currently filtering by color.")
+            } else if draft.useColorIdentity {
+                Text("Show cards with a color identity playable in these colors.")
+            } else {
+                Text("Show cards playable in these colors.")
             }
         }
-        .listStyle(.insetGrouped)
-        .scrollDisabled(true)
     }
 
     private func colorButton(_ color: Card.Color) -> some View {
@@ -143,20 +174,17 @@ struct RandomCardFiltersView: View {
     ]
 
     private var typeSection: some View {
-        List(selection: $draft.types) {
-            Section {
-                ForEach(Self.cardTypes, id: \.self) { Text($0) }
-            } header: {
-                Text("Type")
-            } footer: {
-                Text(draft.types.isEmpty
-                     ? "Not currently filtering by type."
-                     : "Show cards matching any of these types.")
+        Section {
+            ForEach(Self.cardTypes, id: \.self) { type in
+                Text(type).tag(FilterSelection.type(type))
             }
+        } header: {
+            Text("Type")
+        } footer: {
+            Text(draft.types.isEmpty
+                 ? "Not currently filtering by type."
+                 : "Show cards matching any of these types.")
         }
-        .listStyle(.insetGrouped)
-        .scrollDisabled(true)
-        .environment(\.editMode, .constant(.active))
     }
 
     // MARK: - Rarity Section
@@ -169,22 +197,17 @@ struct RandomCardFiltersView: View {
     ]
 
     private var raritySection: some View {
-        List(selection: $draft.rarities) {
-            Section {
-                ForEach(Self.allRarities, id: \.0) { rarity, label in
-                    Text(label)
-                }
-            } header: {
-                Text("Rarity")
-            } footer: {
-                Text(draft.rarities.isEmpty
-                     ? "Not currently filtering by rarity."
-                     : "Show cards matching any of these rarities.")
+        Section {
+            ForEach(Self.allRarities, id: \.0) { rarity, label in
+                Text(label).tag(FilterSelection.rarity(rarity))
             }
+        } header: {
+            Text("Rarity")
+        } footer: {
+            Text(draft.rarities.isEmpty
+                 ? "Not currently filtering by rarity."
+                 : "Show cards matching any of these rarities.")
         }
-        .listStyle(.insetGrouped)
-        .scrollDisabled(true)
-        .environment(\.editMode, .constant(.active))
     }
 
     // MARK: - Games Section
@@ -196,22 +219,17 @@ struct RandomCardFiltersView: View {
     ]
 
     private var gamesSection: some View {
-        List(selection: $draft.games) {
-            Section {
-                ForEach(Self.allGames, id: \.0) { game, label in
-                    Text(label)
-                }
-            } header: {
-                Text("Games")
-            } footer: {
-                Text(draft.games.isEmpty
-                     ? "Not currently filtering by game type."
-                     : "Show cards printed into any of these games.")
+        Section {
+            ForEach(Self.allGames, id: \.0) { game, label in
+                Text(label).tag(FilterSelection.game(game))
             }
+        } header: {
+            Text("Games")
+        } footer: {
+            Text(draft.games.isEmpty
+                 ? "Not currently filtering by game type."
+                 : "Show cards printed into any of these games.")
         }
-        .listStyle(.insetGrouped)
-        .scrollDisabled(true)
-        .environment(\.editMode, .constant(.active))
     }
 
     // MARK: - Format Section
@@ -226,34 +244,27 @@ struct RandomCardFiltersView: View {
     @State private var formatsExpanded = false
 
     private var formatSection: some View {
-        List(selection: $draft.formats) {
-            Section {
-                ForEach(Self.aboveFoldFormats, id: \.self) { format in
-                    Text(format.label)
-                }
-                if formatsExpanded {
-                    ForEach(Self.belowFoldFormats, id: \.self) { format in
-                        Text(format.label)
-                    }
-                }
-            } header: {
-                Text("Format")
-            } footer: {
-                VStack(alignment: .leading, spacing: 8) {
-                    if !formatsExpanded {
-                        Button("Show More") {
-                            withAnimation { formatsExpanded = true }
-                        }
-                    }
-                    Text(draft.formats.isEmpty
-                         ? "Not currently filtering by legality."
-                         : "Show cards legal in any of these formats.")
-                }
+        Section {
+            ForEach(Self.aboveFoldFormats, id: \.self) { format in
+                Text(format.label).tag(FilterSelection.format(format))
             }
+            if formatsExpanded {
+                ForEach(Self.belowFoldFormats, id: \.self) { format in
+                    Text(format.label).tag(FilterSelection.format(format))
+                }
+            } else {
+                Button("Show More") {
+                    withAnimation { formatsExpanded = true }
+                }
+                .selectionDisabled()
+            }
+        } header: {
+            Text("Format")
+        } footer: {
+            Text(draft.formats.isEmpty
+                 ? "Not currently filtering by legality."
+                 : "Show cards legal in any of these formats.")
         }
-        .listStyle(.insetGrouped)
-        .scrollDisabled(true)
-        .environment(\.editMode, .constant(.active))
         .onAppear {
             if !draft.formats.isDisjoint(with: Self.belowFoldFormats) {
                 formatsExpanded = true
@@ -264,15 +275,12 @@ struct RandomCardFiltersView: View {
     // MARK: - Reset Section
 
     private var resetSection: some View {
-        List {
-            Section {
-                Button("Reset to Defaults", role: .destructive) {
-                    draft = RandomCardFilters()
-                }
+        Section {
+            Button("Reset to Defaults", role: .destructive) {
+                draft = RandomCardFilters()
             }
+            .selectionDisabled()
         }
-        .listStyle(.insetGrouped)
-        .scrollDisabled(true)
     }
 }
 
@@ -280,4 +288,5 @@ struct RandomCardFiltersView: View {
     NavigationStack {
         RandomCardFiltersView(filters: RandomCardFilters()) { _ in }
     }
+    .environment(ScryfallCatalogs())
 }
