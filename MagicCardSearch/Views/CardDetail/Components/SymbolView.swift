@@ -55,22 +55,28 @@ struct SymbolView: View {
     
     var body: some View {
         ZStack {
-            if showDropShadow && !Self.symbolsWithoutBackgrounds.contains(symbol) {
+            let image = renderImage()
+
+            if showDropShadow && (image == nil || !Self.symbolsWithoutBackgrounds.contains(symbol)) {
                 Circle()
                     .fill(Color.black)
                     .frame(width: targetSize, height: targetSize)
-                    .offset(x: -1, y: 1)
+                    .offset(x: -targetSize / 20, y: targetSize / 20)
             }
             
-            if let image = renderImage() {
+            if let image {
                 Image(uiImage: image)
                     .resizable()
                     .aspectRatio(contentMode: .fit)
                     .frame(width: targetSize, height: targetSize)
             } else {
+                Circle()
+                    .fill(Color(red: 201 / 255, green: 197 / 255, blue: 192 / 255))
+                    .frame(width: targetSize, height: targetSize)
+
                 Text(symbol.rawValue)
                     .font(.system(size: targetSize * 0.5))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.black)
                     .frame(width: targetSize, height: targetSize)
             }
         }
@@ -277,4 +283,5 @@ struct SymbolView: View {
         .padding()
         .frame(maxWidth: .infinity, alignment: .leading)
     }
+    .environment(ScryfallCatalogs())
 }

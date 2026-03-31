@@ -101,7 +101,7 @@ struct RandomCardFiltersView: View {
     @ViewBuilder
     private var colorSection: some View {
         Section {
-            HStack(spacing: 12) {
+            HStack(spacing: 16) {
                 ForEach(Self.allColors, id: \.self) { color in
                     colorButton(color)
                 }
@@ -132,7 +132,7 @@ struct RandomCardFiltersView: View {
                 draft.colors.insert(color)
             }
         } label: {
-            SymbolView(SymbolCode("{\(color.rawValue)}"), size: 32, showDropShadow: true)
+            SymbolView(SymbolCode("{\(color.rawValue)}"), size: 40, showDropShadow: true)
                 .opacity(isSelected ? 1.0 : 0.3)
         }
         .buttonStyle(.plain)
