@@ -42,20 +42,15 @@ struct CoordinatedAllPrintsView: View {
                 }
             }
         }
-        .onAppear {
+        .onChange(of: currentId, initial: true) {
             guard let currentId else { return }
-            mainScrollPosition.scrollTo(id: currentId)
-            thumbnailScrollPosition.scrollTo(id: currentId)
-        }
-        .onChange(of: currentId) { _, newId in
-            guard let newId else { return }
             // These apparently-redundant checks prevent the view from snapping immediately between
             // items. I guess there's some kind of on-set behavior that overrides in-progress animations.
-            if mainScrollPosition.viewID(type: UUID.self) != newId {
-                mainScrollPosition.scrollTo(id: newId)
+            if mainScrollPosition.viewID(type: UUID.self) != currentId {
+                mainScrollPosition.scrollTo(id: currentId)
             }
-            if thumbnailScrollPosition.viewID(type: UUID.self) != newId {
-                thumbnailScrollPosition.scrollTo(id: newId)
+            if thumbnailScrollPosition.viewID(type: UUID.self) != currentId {
+                thumbnailScrollPosition.scrollTo(id: currentId)
             }
         }
         .onChange(of: mainScrollPosition.viewID(type: UUID.self)) { _, newCardId in
@@ -127,10 +122,7 @@ private struct PagingCardImageView: View {
                             .background(
                                 GeometryReader { geometry in
                                     Color.clear
-                                        .onAppear {
-                                            cardWidth = geometry.size.width
-                                        }
-                                        .onChange(of: geometry.size.width) {
+                                        .onChange(of: geometry.size.width, initial: true) {
                                             cardWidth = geometry.size.width
                                         }
                                 }

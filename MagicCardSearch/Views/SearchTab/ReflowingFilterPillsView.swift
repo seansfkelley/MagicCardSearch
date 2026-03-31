@@ -43,11 +43,8 @@ struct ReflowingFilterPillsView: View {
                             .background(
                                 GeometryReader { pillGeometry in
                                     Color.clear
-                                        .onAppear {
+                                        .onChange(of: pillGeometry.size, initial: true) {
                                             pillSizes[item.filter] = pillGeometry.size
-                                        }
-                                        .onChange(of: pillGeometry.size) { _, newValue in
-                                            pillSizes[item.filter] = newValue
                                         }
                                 }
                             )
@@ -68,11 +65,8 @@ struct ReflowingFilterPillsView: View {
         .overlay(
             GeometryReader { geometry in
                 Color.clear
-                    .onAppear {
+                    .onChange(of: geometry.size.width, initial: true) {
                         availableWidth = geometry.size.width
-                    }
-                    .onChange(of: geometry.size.width) { _, newValue in
-                        availableWidth = newValue
                     }
             }
             .allowsHitTesting(false)

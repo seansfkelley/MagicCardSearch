@@ -93,17 +93,7 @@ struct LazyPagingCardDetailNavigatorView: View {
                 .glassEffect(.regular, in: .capsule)
                 .padding(.bottom, 20)
         }
-        .onAppear {
-            if let scrollIndex {
-                if scrollIndex > items.count - pagePreloadDistance {
-                    list.loadNextPage()
-                }
-                if let card = items[safe: scrollIndex] {
-                    recentlyViewedCardsStore.add(.init(card: card))
-                }
-            }
-        }
-        .onChange(of: scrollIndex) {
+        .onChange(of: scrollIndex, initial: true) {
             if let scrollIndex {
                 if scrollIndex > items.count - pagePreloadDistance {
                     list.loadNextPage()

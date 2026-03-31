@@ -103,13 +103,8 @@ struct ScryfallTagsCardSection: View {
         )
         .tint(.primary)
         .padding(.horizontal)
-        .onAppear {
-            if isExpanded {
-                loadTags()
-            }
-        }
-        .onChange(of: isExpanded) { _, expanded in
-            if expanded, case .unloaded = card {
+        .onChange(of: isExpanded, initial: true) {
+            if isExpanded, case .unloaded = card {
                 loadTags()
             }
         }

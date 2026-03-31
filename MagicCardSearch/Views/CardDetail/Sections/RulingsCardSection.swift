@@ -89,10 +89,7 @@ struct RulingsCardSection<DividerContent: View>: View {
                 .padding()
             }
         }
-        .onAppear {
-            fetch()
-        }
-        .onChange(of: scryfallId) {
+        .onChange(of: scryfallId, initial: true) {
             fetch()
         }
     }

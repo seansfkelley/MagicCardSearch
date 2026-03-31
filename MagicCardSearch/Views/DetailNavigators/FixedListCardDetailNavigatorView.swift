@@ -101,13 +101,7 @@ struct FixedListCardDetailNavigatorView<C: CardDisplayable & Identifiable<UUID>>
                     .padding(.bottom, 20)
             }
         }
-        .onAppear {
-            if let scrollIndex, let card = cards[safe: scrollIndex] {
-                load(card: card)
-                recentlyViewedCardsStore.add(.init(card: card))
-            }
-        }
-        .onChange(of: scrollIndex) {
+        .onChange(of: scrollIndex, initial: true) {
             if let scrollIndex, let card = cards[safe: scrollIndex] {
                 load(card: card)
                 recentlyViewedCardsStore.add(.init(card: card))
