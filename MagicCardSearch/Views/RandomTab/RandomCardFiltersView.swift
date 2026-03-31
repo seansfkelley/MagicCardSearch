@@ -43,50 +43,10 @@ struct RandomCardFilters: Equatable {
 }
 
 struct RandomCardFiltersView: View {
-    @Environment(\.dismiss) private var dismiss
-
-    @State private var draft: RandomCardFilters
-    let onApply: (RandomCardFilters) -> Void
-
-    init(filters: RandomCardFilters, onApply: @escaping (RandomCardFilters) -> Void) {
-        self._draft = State(initialValue: filters)
-        self.onApply = onApply
-    }
-
-    private var draftBinding: Binding<Set<FilterSelection>> {
-        Binding(
-            get: {
-                var selection = Set<FilterSelection>()
-                selection.formUnion(draft.types.map { .type($0) })
-                selection.formUnion(draft.rarities.map { .rarity($0) })
-                selection.formUnion(draft.games.map { .game($0) })
-                selection.formUnion(draft.formats.map { .format($0) })
-                return selection
-            },
-            set: { newValue in
-                draft = .init(
-                    colors: draft.colors,
-                    useColorIdentity: draft.useColorIdentity,
-                    formats: Set(newValue.compactMap {
-                        if case .format(let format) = $0 { format } else { nil }
-                    }),
-                    types: Set(newValue.compactMap {
-                        if case .type(let type) = $0 { type } else { nil }
-                    }),
-                    rarities: Set(newValue.compactMap {
-                        if case .rarity(let rarity) = $0 { rarity } else { nil }
-                    }),
-                    games: Set(newValue.compactMap {
-                        if case .game(let game) = $0 { game } else { nil }
-                    }),
-                )
-            }
-        )
-    }
-
-    // MARK: - Selection
-
-    private enum FilterSelection: Hashable, Identifiable {
+    // To use the selection mode of a List, and have that List be scrollable in a sheet, there can
+    // only be one List at the top level. That means that all selectable rows must be mashed into a
+    // single heterogenous set, which is what this type is for.
+    private enum FlattenedEnumerationFilter: Hashable, Identifiable {
         case type(String)
         case rarity(Card.Rarity)
         case game(Game)
@@ -104,10 +64,32 @@ struct RandomCardFiltersView: View {
         }
     }
 
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var colors: Set<Card.Color>
+    @State private var useColorIdentity: Bool
+    @State private var enumerations: Set<FlattenedEnumerationFilter>
+    let onApply: (RandomCardFilters) -> Void
+
+    init(filters: RandomCardFilters, onApply: @escaping (RandomCardFilters) -> Void) {
+        self.onApply = onApply
+
+        self._colors = State(initialValue: filters.colors)
+        self._useColorIdentity = State(initialValue: filters.useColorIdentity)
+        self._enumerations = State(initialValue: {
+            var initial = Set<FlattenedEnumerationFilter>()
+            initial.formUnion(filters.types.map { .type($0) })
+            initial.formUnion(filters.rarities.map { .rarity($0) })
+            initial.formUnion(filters.games.map { .game($0) })
+            initial.formUnion(filters.formats.map { .format($0) })
+            return initial
+        }())
+    }
+
     // MARK: - Body
 
     var body: some View {
-        List(selection: draftBinding) {
+        List(selection: $enumerations) {
             colorSection
             typeSection
             raritySection
@@ -116,7 +98,7 @@ struct RandomCardFiltersView: View {
             resetSection
         }
         .listStyle(.insetGrouped)
-        .environment(\.editMode, .constant(.transient))
+        .environment(\.editMode, .constant(.active))
         .navigationTitle("Filters")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -130,7 +112,23 @@ struct RandomCardFiltersView: View {
 
             ToolbarItem(placement: .confirmationAction) {
                 Button {
-                    onApply(draft)
+                    let merged = RandomCardFilters(
+                        colors: colors,
+                        useColorIdentity: useColorIdentity,
+                        formats: Set(enumerations.compactMap {
+                            if case .format(let format) = $0 { format } else { nil }
+                        }),
+                        types: Set(enumerations.compactMap {
+                            if case .type(let type) = $0 { type } else { nil }
+                        }),
+                        rarities: Set(enumerations.compactMap {
+                            if case .rarity(let rarity) = $0 { rarity } else { nil }
+                        }),
+                        games: Set(enumerations.compactMap {
+                            if case .game(let game) = $0 { game } else { nil }
+                        }),
+                    )
+                    onApply(merged)
                     dismiss()
                 } label: {
                     Image(systemName: "checkmark")
@@ -153,28 +151,26 @@ struct RandomCardFiltersView: View {
             .padding(.vertical, 4)
             .selectionDisabled()
 
-            Toggle("Color Identity", isOn: $draft.useColorIdentity)
+            Toggle("Color Identity", isOn: $useColorIdentity)
                 .selectionDisabled()
         } header: {
             Text("Color")
         } footer: {
-            if draft.colors.isEmpty {
-                Text("Not currently filtering by color.")
-            } else if draft.useColorIdentity {
-                Text("Show cards with a color identity playable in these colors.")
+            if useColorIdentity {
+                Text("Show cards with a color identity playable in these colors, or any color if none are selected.")
             } else {
-                Text("Show cards playable in these colors.")
+                Text("Show cards playable in these colors, or any color if none are selected.")
             }
         }
     }
 
     private func colorButton(_ color: Card.Color) -> some View {
-        let isSelected = draft.colors.contains(color)
+        let isSelected = colors.contains(color)
         return Button {
             if isSelected {
-                draft.colors.remove(color)
+                colors.remove(color)
             } else {
-                draft.colors.insert(color)
+                colors.insert(color)
             }
         } label: {
             SymbolView(SymbolCode("{\(color.rawValue)}"), size: 40, showDropShadow: true)
@@ -187,7 +183,7 @@ struct RandomCardFiltersView: View {
 
     // MARK: - Type Section
 
-    private static let cardTypes: [FilterSelection] = [
+    private static let cardTypes: [FlattenedEnumerationFilter] = [
         "Artifact", "Creature", "Enchantment", "Instant", "Land", "Legendary", "Planeswalker", "Sorcery",
     ].map { .type($0) }
 
@@ -200,15 +196,13 @@ struct RandomCardFiltersView: View {
         } header: {
             Text("Type")
         } footer: {
-            Text(draft.types.isEmpty
-                 ? "Not currently filtering by type."
-                 : "Show cards matching any of these types.")
+            Text("Show cards matching any of these types, or any type if none are selected.")
         }
     }
 
     // MARK: - Rarity Section
 
-    private static let allRarities: [FilterSelection] = [
+    private static let allRarities: [FlattenedEnumerationFilter] = [
         .common, .uncommon, .rare, .mythic,
     ].map { .rarity($0) }
 
@@ -221,15 +215,13 @@ struct RandomCardFiltersView: View {
         } header: {
             Text("Rarity")
         } footer: {
-            Text(draft.rarities.isEmpty
-                 ? "Not currently filtering by rarity."
-                 : "Show cards matching any of these rarities.")
+            Text("Show cards matching any of these rarities, or any rarity if none are selected.")
         }
     }
 
     // MARK: - Games Section
 
-    private static let allGames: [FilterSelection] = [
+    private static let allGames: [FlattenedEnumerationFilter] = [
         .paper, .arena, .mtgo,
     ].map { .game($0) }
 
@@ -242,19 +234,17 @@ struct RandomCardFiltersView: View {
         } header: {
             Text("Games")
         } footer: {
-            Text(draft.games.isEmpty
-                 ? "Not currently filtering by game type."
-                 : "Show cards printed into any of these games.")
+            Text("Show cards from any of these games, or any game if none are selected.")
         }
     }
 
     // MARK: - Format Section
 
-    private static let aboveFoldFormats: [FilterSelection] = [
+    private static let aboveFoldFormats: [FlattenedEnumerationFilter] = [
         .standard, .commander, .modern, .legacy,
     ].map { .format($0) }
 
-    private static let belowFoldFormats: [FilterSelection] = [
+    private static let belowFoldFormats: [FlattenedEnumerationFilter] = [
         .alchemy, .brawl, .duel, .future, .gladiator, .historic, .oathbreaker, .oldschool, .pauper,
         .paupercommander, .penny, .pioneer, .predh, .premodern, .standardbrawl, .timeless, .vintage,
     ].map { .format($0) }
@@ -281,15 +271,16 @@ struct RandomCardFiltersView: View {
         } header: {
             Text("Format")
         } footer: {
-            Text(draft.formats.isEmpty
-                 ? "Not currently filtering by legality."
-                 : "Show cards legal in any of these formats.")
+            Text("Show cards legal in any of these formats, or any format if none are selected.")
         }
         .onAppear {
-            let belowFoldRawFormats = Self.belowFoldFormats.compactMap {
-                if case .format(let f) = $0 { f } else { nil }
+            let allBelowFoldFormats = Self.belowFoldFormats.compactMap {
+                if case .format(let format) = $0 { format } else { nil }
             }
-            if !draft.formats.isDisjoint(with: belowFoldRawFormats) {
+            let selectedFormats = Set(enumerations.compactMap {
+                if case .format(let format) = $0 { format } else { nil }
+            })
+            if !selectedFormats.isDisjoint(with: allBelowFoldFormats) {
                 formatsExpanded = true
             }
         }
@@ -300,7 +291,9 @@ struct RandomCardFiltersView: View {
     private var resetSection: some View {
         Section {
             Button("Reset to Defaults", role: .destructive) {
-                draft = RandomCardFilters()
+                colors = []
+                useColorIdentity = false
+                enumerations = []
             }
             .selectionDisabled()
         }
@@ -309,6 +302,8 @@ struct RandomCardFiltersView: View {
 
 #Preview {
     NavigationStack {
-        RandomCardFiltersView(filters: RandomCardFilters()) { _ in }
+        RandomCardFiltersView(filters: RandomCardFilters()) {
+            print($0)
+        }
     }
 }
