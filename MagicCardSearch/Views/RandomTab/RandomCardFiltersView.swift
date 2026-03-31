@@ -13,7 +13,7 @@ struct RandomCardFilters: Equatable {
     var rarities: Set<Card.Rarity> = []
     var games: Set<Game> = []
 
-    var queryString: String? {
+    var queryString: String {
         var groups: [String] = ["language:en"]
 
         if !colors.isEmpty {
@@ -42,7 +42,7 @@ struct RandomCardFilters: Equatable {
             groups.append("(\(clause))")
         }
 
-        return groups.isEmpty ? nil : groups.joined(separator: " ")
+        return groups.joined(separator: " ")
     }
 }
 
@@ -58,18 +58,13 @@ struct RandomCardFiltersView: View {
     }
 
     var body: some View {
-        Form {
+        ScrollView {
             colorSection
             typeSection
             raritySection
             gamesSection
             formatSection
-
-            Section {
-                Button("Reset to Defaults", role: .destructive) {
-                    draft = RandomCardFilters()
-                }
-            }
+            resetSection
         }
         .navigationTitle("Filters")
         .navigationBarTitleDisplayMode(.inline)
@@ -98,29 +93,30 @@ struct RandomCardFiltersView: View {
 
     private static let allColors: [Card.Color] = [.W, .U, .B, .R, .G, .C]
 
-    @ViewBuilder
     private var colorSection: some View {
-        Section {
-            HStack(spacing: 16) {
-                ForEach(Self.allColors, id: \.self) { color in
-                    colorButton(color)
+        List {
+            Section {
+                HStack(spacing: 16) {
+                    ForEach(Self.allColors, id: \.self) { colorButton($0) }
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 4)
+
+                Toggle("Color Identity", isOn: $draft.useColorIdentity)
+            } header: {
+                Text("Color")
+            } footer: {
+                if draft.colors.isEmpty {
+                    Text("Not currently filtering by color.")
+                } else if draft.useColorIdentity {
+                    Text("Show cards with a color identity playable in these colors.")
+                } else {
+                    Text("Show cards playable in these colors.")
                 }
             }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 4)
-
-            Toggle("Color Identity", isOn: $draft.useColorIdentity)
-        } header: {
-            Text("Color")
-        } footer: {
-            if draft.colors.isEmpty {
-                Text("Not currently filtering by color.")
-            } else if draft.useColorIdentity {
-                Text("Show cards with a color identity playable in these colors.")
-            } else {
-                Text("Show cards playable in these colors.")
-            }
         }
+        .listStyle(.insetGrouped)
+        .scrollDisabled(true)
     }
 
     private func colorButton(_ color: Card.Color) -> some View {
@@ -140,107 +136,27 @@ struct RandomCardFiltersView: View {
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 
-    // MARK: - Format Section
-
-    private static let aboveFoldFormats: [Format] = [.standard, .commander, .modern, .legacy]
-    private static let belowFoldFormats: [Format] = [
-        .pioneer, .historic, .timeless, .vintage, .pauper, .penny,
-        .brawl, .standardbrawl, .alchemy, .gladiator, .oathbreaker,
-        .paupercommander, .duel, .oldschool, .premodern, .predh, .future,
-    ]
-
-    @State private var formatsExpanded = false
-
-    @ViewBuilder
-    private var formatSection: some View {
-        Section {
-            FlowLayout(spacing: 8) {
-                ForEach(Self.aboveFoldFormats, id: \.self) { format in
-                    let isSelected = draft.formats.contains(format)
-                    chipButton(format.label, isSelected: isSelected) {
-                        if isSelected {
-                            draft.formats.remove(format)
-                        } else {
-                            draft.formats.insert(format)
-                        }
-                    }
-                }
-
-                if formatsExpanded {
-                    ForEach(Self.belowFoldFormats, id: \.self) { format in
-                        let isSelected = draft.formats.contains(format)
-                        chipButton(format.label, isSelected: isSelected) {
-                            if isSelected {
-                                draft.formats.remove(format)
-                            } else {
-                                draft.formats.insert(format)
-                            }
-                        }
-                    }
-                }
-            }
-            .padding(.vertical, 4)
-
-            if !formatsExpanded {
-                Button {
-                    withAnimation {
-                        formatsExpanded = true
-                    }
-                } label: {
-                    HStack {
-                        Text("Show More")
-                        Spacer()
-                        Image(systemName: "chevron.down")
-                    }
-                }
-            }
-        } header: {
-            Text("Format")
-        } footer: {
-            if draft.formats.isEmpty {
-                Text("Not currently filtering by legality.")
-            } else {
-                Text("Show cards legal in any of these formats.")
-            }
-        }
-        .onAppear {
-            if !draft.formats.isDisjoint(with: Self.belowFoldFormats) {
-                formatsExpanded = true
-            }
-        }
-    }
-
     // MARK: - Type Section
 
     private static let cardTypes = [
         "Artifact", "Creature", "Enchantment", "Instant", "Land", "Legendary", "Planeswalker", "Sorcery",
     ]
 
-    @ViewBuilder
     private var typeSection: some View {
-        Section {
-            FlowLayout(spacing: 8) {
-                ForEach(Self.cardTypes, id: \.self) { type in
-                    let isSelected = draft.types.contains(type)
-                    chipButton(type, isSelected: isSelected) {
-                        if isSelected {
-                            draft.types.remove(type)
-                        } else {
-                            draft.types.insert(type)
-                        }
-                    }
-                }
-            }
-            .padding(.vertical, 4)
-        } header: {
-            Text("Type")
-        } footer: {
-            if draft.types.isEmpty {
-                Text("Not currently filtering by type.")
-            } else {
-                Text("Show cards matching any of these types.")
+        List(selection: $draft.types) {
+            Section {
+                ForEach(Self.cardTypes, id: \.self) { Text($0) }
+            } header: {
+                Text("Type")
+            } footer: {
+                Text(draft.types.isEmpty
+                     ? "Not currently filtering by type."
+                     : "Show cards matching any of these types.")
             }
         }
+        .listStyle(.insetGrouped)
+        .scrollDisabled(true)
+        .environment(\.editMode, .constant(.active))
     }
 
     // MARK: - Rarity Section
@@ -252,31 +168,23 @@ struct RandomCardFiltersView: View {
         (.mythic, "Mythic"),
     ]
 
-    @ViewBuilder
     private var raritySection: some View {
-        Section {
-            FlowLayout(spacing: 8) {
+        List(selection: $draft.rarities) {
+            Section {
                 ForEach(Self.allRarities, id: \.0) { rarity, label in
-                    let isSelected = draft.rarities.contains(rarity)
-                    chipButton(label, isSelected: isSelected) {
-                        if isSelected {
-                            draft.rarities.remove(rarity)
-                        } else {
-                            draft.rarities.insert(rarity)
-                        }
-                    }
+                    Text(label)
                 }
-            }
-            .padding(.vertical, 4)
-        } header: {
-            Text("Rarity")
-        } footer: {
-            if draft.rarities.isEmpty {
-                Text("Not currently filtering by rarity.")
-            } else {
-                Text("Show cards matching any of these rarities.")
+            } header: {
+                Text("Rarity")
+            } footer: {
+                Text(draft.rarities.isEmpty
+                     ? "Not currently filtering by rarity."
+                     : "Show cards matching any of these rarities.")
             }
         }
+        .listStyle(.insetGrouped)
+        .scrollDisabled(true)
+        .environment(\.editMode, .constant(.active))
     }
 
     // MARK: - Games Section
@@ -287,103 +195,89 @@ struct RandomCardFiltersView: View {
         (.mtgo, "MTGO"),
     ]
 
-    @ViewBuilder
     private var gamesSection: some View {
-        Section {
-            FlowLayout(spacing: 8) {
+        List(selection: $draft.games) {
+            Section {
                 ForEach(Self.allGames, id: \.0) { game, label in
-                    let isSelected = draft.games.contains(game)
-                    chipButton(label, isSelected: isSelected) {
-                        if isSelected {
-                            draft.games.remove(game)
-                        } else {
-                            draft.games.insert(game)
-                        }
+                    Text(label)
+                }
+            } header: {
+                Text("Games")
+            } footer: {
+                Text(draft.games.isEmpty
+                     ? "Not currently filtering by game type."
+                     : "Show cards printed into any of these games.")
+            }
+        }
+        .listStyle(.insetGrouped)
+        .scrollDisabled(true)
+        .environment(\.editMode, .constant(.active))
+    }
+
+    // MARK: - Format Section
+
+    private static let aboveFoldFormats: [Format] = [.standard, .commander, .modern, .legacy]
+    private static let belowFoldFormats: [Format] = [
+        .alchemy, .brawl, .duel, .future, .gladiator, .historic,
+        .oathbreaker, .oldschool, .pauper, .paupercommander, .penny,
+        .pioneer, .predh, .premodern, .standardbrawl, .timeless, .vintage,
+    ]
+
+    @State private var formatsExpanded = false
+
+    private var formatSection: some View {
+        List(selection: $draft.formats) {
+            Section {
+                ForEach(Self.aboveFoldFormats, id: \.self) { format in
+                    Text(format.label)
+                }
+                if formatsExpanded {
+                    ForEach(Self.belowFoldFormats, id: \.self) { format in
+                        Text(format.label)
                     }
                 }
+            } header: {
+                Text("Format")
+            } footer: {
+                VStack(alignment: .leading, spacing: 8) {
+                    if !formatsExpanded {
+                        Button("Show More") {
+                            withAnimation { formatsExpanded = true }
+                        }
+                    }
+                    Text(draft.formats.isEmpty
+                         ? "Not currently filtering by legality."
+                         : "Show cards legal in any of these formats.")
+                }
             }
-            .padding(.vertical, 4)
-        } header: {
-            Text("Games")
-        } footer: {
-            if draft.games.isEmpty {
-                Text("Not currently filtering by game type.")
-            } else {
-                Text("Show cards printed into any of these games.")
+        }
+        .listStyle(.insetGrouped)
+        .scrollDisabled(true)
+        .environment(\.editMode, .constant(.active))
+        .onAppear {
+            if !draft.formats.isDisjoint(with: Self.belowFoldFormats) {
+                formatsExpanded = true
             }
         }
     }
 
-    // MARK: - Chip Button
+    // MARK: - Reset Section
 
-    private func chipButton(_ label: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Text(label)
-                .font(.subheadline)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-                .background(isSelected ? Color.accentColor : Color(.tertiarySystemFill))
-                .foregroundStyle(isSelected ? .white : .primary)
-                .clipShape(Capsule())
+    private var resetSection: some View {
+        List {
+            Section {
+                Button("Reset to Defaults", role: .destructive) {
+                    draft = RandomCardFilters()
+                }
+            }
         }
-        .buttonStyle(.plain)
-        .accessibilityAddTraits(isSelected ? .isSelected : [])
+        .listStyle(.insetGrouped)
+        .scrollDisabled(true)
     }
 }
 
-// MARK: - FlowLayout
-
-private struct FlowLayout: Layout {
-    var spacing: CGFloat
-
-    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
-        let result = arrangeSubviews(proposal: proposal, subviews: subviews)
-        return result.size
-    }
-
-    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
-        let result = arrangeSubviews(proposal: proposal, subviews: subviews)
-        for (index, position) in result.positions.enumerated() {
-            subviews[index].place(
-                at: CGPoint(x: bounds.minX + position.x, y: bounds.minY + position.y),
-                proposal: .unspecified
-            )
-        }
-    }
-
-    private struct ArrangementResult {
-        var size: CGSize
-        var positions: [CGPoint]
-    }
-
-    private func arrangeSubviews(proposal: ProposedViewSize, subviews: Subviews) -> ArrangementResult {
-        let maxWidth = proposal.width ?? .infinity
-        var positions: [CGPoint] = []
-        var currentX: CGFloat = 0
-        var currentY: CGFloat = 0
-        var lineHeight: CGFloat = 0
-        var totalHeight: CGFloat = 0
-        var totalWidth: CGFloat = 0
-
-        for subview in subviews {
-            let size = subview.sizeThatFits(.unspecified)
-
-            if currentX + size.width > maxWidth && currentX > 0 {
-                currentX = 0
-                currentY += lineHeight + spacing
-                lineHeight = 0
-            }
-
-            positions.append(CGPoint(x: currentX, y: currentY))
-            lineHeight = max(lineHeight, size.height)
-            currentX += size.width + spacing
-            totalWidth = max(totalWidth, currentX - spacing)
-            totalHeight = currentY + lineHeight
-        }
-
-        return ArrangementResult(
-            size: CGSize(width: totalWidth, height: totalHeight),
-            positions: positions
-        )
+#Preview {
+    NavigationStack {
+        RandomCardFiltersView(filters: RandomCardFilters()) { _ in }
     }
 }
