@@ -2,11 +2,16 @@ import SwiftUI
 import ScryfallKit
 
 struct RandomCardFilters: Equatable {
+    enum Game: String {
+        case paper, arena, mtgo
+    }
+
     var colors: Set<Card.Color> = []
     var useColorIdentity = false
     var formats: Set<Format> = []
     var types: Set<String> = []
     var rarities: Set<Card.Rarity> = []
+    var games: Set<Game> = []
 
     var queryString: String? {
         var groups: [String] = ["language:en"]
@@ -32,6 +37,11 @@ struct RandomCardFilters: Equatable {
             groups.append("(\(clause))")
         }
 
+        if !games.isEmpty {
+            let clause = games.map { "game:\($0.rawValue)" }.joined(separator: " OR ")
+            groups.append("(\(clause))")
+        }
+
         return groups.isEmpty ? nil : groups.joined(separator: " ")
     }
 }
@@ -53,6 +63,7 @@ struct RandomCardFiltersView: View {
             formatSection
             typeSection
             raritySection
+            gamesSection
 
             Section {
                 Button("Reset to Defaults", role: .destructive) {
@@ -102,7 +113,7 @@ struct RandomCardFiltersView: View {
             Text("Color")
         } footer: {
             draft.useColorIdentity
-                ? Text("Show cards with a color identity .")
+                ? Text("Show cards with a color identity.")
                 : Text("Show cards matching any of these colors.")
         }
     }
@@ -140,15 +151,25 @@ struct RandomCardFiltersView: View {
         Section {
             FlowLayout(spacing: 8) {
                 ForEach(Self.aboveFoldFormats, id: \.self) { format in
-                    chipButton(format.label, isSelected: draft.formats.contains(format)) {
-                        draft.formats.toggle(format)
+                    let isSelected = draft.formats.contains(format)
+                    chipButton(format.label, isSelected: isSelected) {
+                        if isSelected {
+                            draft.formats.remove(format)
+                        } else {
+                            draft.formats.insert(format)
+                        }
                     }
                 }
 
                 if formatsExpanded {
                     ForEach(Self.belowFoldFormats, id: \.self) { format in
-                        chipButton(format.label, isSelected: draft.formats.contains(format)) {
-                            draft.formats.toggle(format)
+                        let isSelected = draft.formats.contains(format)
+                        chipButton(format.label, isSelected: isSelected) {
+                            if isSelected {
+                                draft.formats.remove(format)
+                            } else {
+                                draft.formats.insert(format)
+                            }
                         }
                     }
                 }
@@ -191,8 +212,13 @@ struct RandomCardFiltersView: View {
         Section {
             FlowLayout(spacing: 8) {
                 ForEach(Self.cardTypes, id: \.self) { type in
-                    chipButton(type, isSelected: draft.types.contains(type)) {
-                        draft.types.toggle(type)
+                    let isSelected = draft.types.contains(type)
+                    chipButton(type, isSelected: isSelected) {
+                        if isSelected {
+                            draft.types.remove(type)
+                        } else {
+                            draft.types.insert(type)
+                        }
                     }
                 }
             }
@@ -218,8 +244,13 @@ struct RandomCardFiltersView: View {
         Section {
             FlowLayout(spacing: 8) {
                 ForEach(Self.allRarities, id: \.0) { rarity, label in
-                    chipButton(label, isSelected: draft.rarities.contains(rarity)) {
-                        draft.rarities.toggle(rarity)
+                    let isSelected = draft.rarities.contains(rarity)
+                    chipButton(label, isSelected: isSelected) {
+                        if isSelected {
+                            draft.rarities.remove(rarity)
+                        } else {
+                            draft.rarities.insert(rarity)
+                        }
                     }
                 }
             }
@@ -228,6 +259,37 @@ struct RandomCardFiltersView: View {
             Text("Rarity")
         } footer: {
             Text("Show cards matching any of these rarities.")
+        }
+    }
+
+    // MARK: - Games Section
+
+    private static let allGames: [(RandomCardFilters.Game, String)] = [
+        (.paper, "Paper"),
+        (.arena, "Arena"),
+        (.mtgo, "MTGO"),
+    ]
+
+    @ViewBuilder
+    private var gamesSection: some View {
+        Section {
+            FlowLayout(spacing: 8) {
+                ForEach(Self.allGames, id: \.0) { game, label in
+                    let isSelected = draft.games.contains(game)
+                    chipButton(label, isSelected: isSelected) {
+                        if isSelected {
+                            draft.games.remove(game)
+                        } else {
+                            draft.games.insert(game)
+                        }
+                    }
+                }
+            }
+            .padding(.vertical, 4)
+        } header: {
+            Text("Games")
+        } footer: {
+            Text("Show cards matching any of these games.")
         }
     }
 
@@ -302,17 +364,5 @@ private struct FlowLayout: Layout {
             size: CGSize(width: totalWidth, height: totalHeight),
             positions: positions
         )
-    }
-}
-
-// MARK: - Set Toggle Helper
-
-private extension Set {
-    mutating func toggle(_ element: Element) {
-        if contains(element) {
-            remove(element)
-        } else {
-            insert(element)
-        }
     }
 }
