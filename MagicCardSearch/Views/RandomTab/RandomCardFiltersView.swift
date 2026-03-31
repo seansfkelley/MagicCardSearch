@@ -42,6 +42,19 @@ struct RandomCardFilters: Equatable {
     }
 }
 
+private extension Card.Rarity {
+    var assetName: String? {
+        switch self {
+        case .common: "common"
+        case .uncommon: "uncommon"
+        case .rare: "rare"
+        case .mythic: "mythic"
+        case .bonus: nil
+        case .special: nil
+        }
+    }
+}
+
 struct RandomCardFiltersView: View {
     // To use the selection mode of a List, and have that List be scrollable in a sheet, there can
     // only be one List at the top level. That means that all selectable rows must be mashed into a
@@ -60,6 +73,15 @@ struct RandomCardFiltersView: View {
             case .rarity(let rarity): rarity.label
             case .game(let game): game.label
             case .format(let format): format.label
+            }
+        }
+
+        var assetName: String? {
+            switch self {
+            case .type(let type): nil
+            case .rarity(let rarity): rarity.assetName
+            case .game(let game): nil
+            case .format(let format): nil
             }
         }
     }
@@ -209,8 +231,13 @@ struct RandomCardFiltersView: View {
     private var raritySection: some View {
         Section {
             ForEach(Self.allRarities) { rarity in
-                Text(rarity.label)
-                    .id(rarity)
+                HStack {
+                    Text(rarity.label)
+                    if let assetName = rarity.assetName {
+                        Spacer()
+                        Image(assetName)
+                    }
+                }
             }
         } header: {
             Text("Rarity")
