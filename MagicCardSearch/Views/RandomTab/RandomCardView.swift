@@ -207,6 +207,9 @@ struct RandomCardView: View {
             } catch {
                 entry = HistoryEntry(result: .failure(error))
             }
+
+            guard !Task.isCancelled else { return }
+
             history.append(entry)
             if case .placeholder = scrollPosition {
                 scrollPosition = .entry(entry.id, history.count - 1)
