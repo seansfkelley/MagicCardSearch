@@ -379,7 +379,7 @@ private struct GroupedSearchHistoryList: View {
         List(selection: $selectedSearches) {
             ForEach(groupedSearchHistory, id: \.0) { interval, entries in
                 Section {
-                    ForEach(entries, id: \.id) { entry in
+                    ForEach(entries) { entry in
                         Button {
                             guard !isEditing else { return }
                             searchState.search(withFilters: entry.filters)

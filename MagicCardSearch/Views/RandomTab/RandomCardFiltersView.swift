@@ -47,6 +47,7 @@ struct RandomCardFiltersView: View {
 
     @State private var draft: RandomCardFilters
     let onApply: (RandomCardFilters) -> Void
+    @State private var binding: Set<FilterSelection> = []
 
     init(filters: RandomCardFilters, onApply: @escaping (RandomCardFilters) -> Void) {
         self._draft = State(initialValue: filters)
@@ -55,11 +56,13 @@ struct RandomCardFiltersView: View {
 
     // MARK: - Selection
 
-    private enum FilterSelection: Hashable {
+    private enum FilterSelection: Hashable, Identifiable {
         case type(String)
         case rarity(Card.Rarity)
         case game(Game)
         case format(Format)
+
+        var id: Self { self }
 
         var label: String {
             switch self {
@@ -71,30 +74,10 @@ struct RandomCardFiltersView: View {
         }
     }
 
-    private var filterSelectionBinding: Binding<Set<FilterSelection>?> {
-        Binding(
-            get: {
-                var s = Set<FilterSelection>()
-                s.formUnion(draft.types.map { .type($0) })
-                s.formUnion(draft.rarities.map { .rarity($0) })
-                s.formUnion(draft.games.map { .game($0) })
-                s.formUnion(draft.formats.map { .format($0) })
-                return s
-            },
-            set: { newValue in
-                let value = newValue ?? []
-                draft.types = Set(value.compactMap { if case .type(let t) = $0 { t } else { nil } })
-                draft.rarities = Set(value.compactMap { if case .rarity(let r) = $0 { r } else { nil } })
-                draft.games = Set(value.compactMap { if case .game(let g) = $0 { g } else { nil } })
-                draft.formats = Set(value.compactMap { if case .format(let f) = $0 { f } else { nil } })
-            }
-        )
-    }
-
     // MARK: - Body
 
     var body: some View {
-        List(selection: filterSelectionBinding) {
+        List(selection: $binding) {
             colorSection
             typeSection
             raritySection
@@ -103,7 +86,7 @@ struct RandomCardFiltersView: View {
             resetSection
         }
         .listStyle(.insetGrouped)
-        .environment(\.editMode, .constant(.active))
+        .environment(\.editMode, .constant(.transient))
         .navigationTitle("Filters")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -124,6 +107,20 @@ struct RandomCardFiltersView: View {
                 }
                 .buttonStyle(.glassProminent)
             }
+        }
+        .onChange(of: draft, initial: true) {
+            var s = Set<FilterSelection>()
+            s.formUnion(draft.types.map { .type($0) })
+            s.formUnion(draft.rarities.map { .rarity($0) })
+            s.formUnion(draft.games.map { .game($0) })
+            s.formUnion(draft.formats.map { .format($0) })
+            binding = s
+        }
+        .onChange(of: binding) {
+            draft.types = Set(binding.compactMap { if case .type(let t) = $0 { t } else { nil } })
+            draft.rarities = Set(binding.compactMap { if case .rarity(let r) = $0 { r } else { nil } })
+            draft.games = Set(binding.compactMap { if case .game(let g) = $0 { g } else { nil } })
+            draft.formats = Set(binding.compactMap { if case .format(let f) = $0 { f } else { nil } })
         }
     }
 
@@ -180,7 +177,7 @@ struct RandomCardFiltersView: View {
 
     private var typeSection: some View {
         Section {
-            ForEach(Self.cardTypes, id: \.self) { type in
+            ForEach(Self.cardTypes) { type in
                 Text(type.label)
                     .id(type)
             }
@@ -201,7 +198,7 @@ struct RandomCardFiltersView: View {
 
     private var raritySection: some View {
         Section {
-            ForEach(Self.allRarities, id: \.self) { rarity in
+            ForEach(Self.allRarities) { rarity in
                 Text(rarity.label)
                     .id(rarity)
             }
@@ -222,7 +219,7 @@ struct RandomCardFiltersView: View {
 
     private var gamesSection: some View {
         Section {
-            ForEach(Self.allGames, id: \.self) { game in
+            ForEach(Self.allGames) { game in
                 Text(game.label)
                     .id(game)
             }
@@ -250,12 +247,12 @@ struct RandomCardFiltersView: View {
 
     private var formatSection: some View {
         Section {
-            ForEach(Self.aboveFoldFormats, id: \.self) { format in
+            ForEach(Self.aboveFoldFormats) { format in
                 Text(format.label)
                     .id(format)
             }
             if formatsExpanded {
-                ForEach(Self.belowFoldFormats, id: \.self) { format in
+                ForEach(Self.belowFoldFormats) { format in
                     Text(format.label)
                         .id(format)
                 }
