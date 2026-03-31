@@ -78,10 +78,14 @@ struct RandomCardFiltersView: View {
 
         var assetName: String? {
             switch self {
-            case .type(let type): nil
+            case .type(let type):
+                switch type {
+                case "Artifact", "Creature", "Enchantment", "Instant", "Land", "Planeswalker", "Sorcery": type.lowercased()
+                default: nil
+                }
             case .rarity(let rarity): rarity.assetName
-            case .game(let game): nil
-            case .format(let format): nil
+            case .game: nil
+            case .format: nil
             }
         }
     }
@@ -212,8 +216,14 @@ struct RandomCardFiltersView: View {
     private var typeSection: some View {
         Section {
             ForEach(Self.cardTypes) { type in
-                Text(type.label)
-                    .id(type)
+                HStack {
+                    Text(type.label)
+                    if let assetName = type.assetName {
+                        Spacer()
+                        Image(assetName)
+                            .frame(width: 16, height: 16)
+                    }
+                }
             }
         } header: {
             Text("Type")
@@ -236,6 +246,8 @@ struct RandomCardFiltersView: View {
                     if let assetName = rarity.assetName {
                         Spacer()
                         Image(assetName)
+                            .frame(width: 16, height: 16)
+                            .backgroundStyle(.green)
                     }
                 }
             }
