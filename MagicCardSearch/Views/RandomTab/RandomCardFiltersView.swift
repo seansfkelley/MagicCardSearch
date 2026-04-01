@@ -97,6 +97,10 @@ struct RandomCardFiltersView: View {
     @State private var enumerations: Set<FlattenedEnumerationFilter>
     let onApply: (RandomCardFilters) -> Void
 
+    private var areFiltersDefault: Bool {
+        colors.isEmpty && useColorIdentity == false && enumerations.isEmpty
+    }
+
     init(filters: RandomCardFilters, onApply: @escaping (RandomCardFilters) -> Void) {
         self.onApply = onApply
 
@@ -300,9 +304,12 @@ struct RandomCardFiltersView: View {
                     .id(format)
             }
             if formatsExpanded {
-                ForEach(Self.belowFoldFormats) { format in
+                ForEach(Self.belowFoldFormats.enumerated(), id: \.element) { index, format in
                     Text(format.label)
                         .id(format)
+                        .if(index == 0) { view in
+                            view.listRowSeparatorTint(.secondary, edges: .top)
+                        }
                 }
             } else {
                 Button("Show More") {
@@ -331,13 +338,23 @@ struct RandomCardFiltersView: View {
     // MARK: - Reset Section
 
     private var resetSection: some View {
-        Section {
-            Button("Reset to Defaults", role: .destructive) {
+        // By making this a footer of a Section instead of a bare item or content in a Section, we
+        // seem to get better visuals and interactions because the List doesn't consider it to be
+        // a regular item, and we don't get an extra layer of bordering from the Section itself.
+        Section {} footer: {
+            Button(role: .destructive) {
                 colors = []
                 useColorIdentity = false
                 enumerations = []
+            } label: {
+                HStack {
+                    Image(systemName: "arrow.counterclockwise")
+                    Text("Reset to Defaults")
+                }
+                .frame(maxWidth: .infinity)
+                .foregroundStyle(areFiltersDefault ? .gray : .red)
             }
-            .selectionDisabled()
+            .disabled(areFiltersDefault)
         }
     }
 }
