@@ -14,7 +14,7 @@ struct RandomCardFilters: Equatable {
 
         if !colors.isEmpty {
             let key = useColorIdentity ? "id" : "color"
-            let orClauses = colors.map { "\(key):\($0.rawValue.lowercased())" }.joined(separator: "OR")
+            let orClauses = colors.map { "\(key):\($0.rawValue.lowercased())" }.joined(separator: " OR ")
             let combinedColorClause = "\(key)<=\(colors.map { $0.rawValue.lowercased() }.joined())"
             groups.append("(\(orClauses)) \(combinedColorClause)")
         }
