@@ -1,23 +1,13 @@
 import SwiftUI
 import ScryfallKit
-import Sliders
 
 struct RandomCardFilters: Equatable {
-    static let manaValueSteps: [Int?] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 14, 16, nil]
-
     var colors: Set<Card.Color> = []
     var useColorIdentity = false
     var formats: Set<Format> = []
     var types: Set<String> = []
     var rarities: Set<Card.Rarity> = []
     var games: Set<Game> = []
-    var manaValueLowerIndex = 0
-    var manaValueUpperIndex = Self.manaValueSteps.count - 1
-
-    static func manaValueLabel(for index: Int) -> String {
-        guard index >= 0 && index < manaValueSteps.count else { return "?" }
-        return manaValueSteps[index].map(String.init) ?? "∞"
-    }
 
     var queryString: String? {
         var groups: [String] = ["language:en"]
@@ -48,14 +38,6 @@ struct RandomCardFilters: Equatable {
             groups.append("(\(clause))")
         }
 
-        if let lower = Self.manaValueSteps[manaValueLowerIndex], lower > 0 {
-            groups.append("manavalue>=\(lower)")
-        }
-
-        if let upper = Self.manaValueSteps[manaValueUpperIndex] {
-            groups.append("manavalue<=\(upper)")
-        }
-
         return groups.isEmpty ? nil : groups.joined(separator: " ")
     }
 }
@@ -68,8 +50,6 @@ struct RandomCardFiltersView: View {
     @State private var colors: Set<Card.Color>
     @State private var useColorIdentity: Bool
     @State private var enumerations: Set<FlattenedEnumerationFilter>
-    @State private var manaValueLower: Double
-    @State private var manaValueUpper: Double
     let onApply: (RandomCardFilters) -> Void
 
     init(filters: RandomCardFilters, onApply: @escaping (RandomCardFilters) -> Void) {
@@ -85,15 +65,12 @@ struct RandomCardFiltersView: View {
             initial.formUnion(filters.formats.map { .format($0) })
             return initial
         }())
-        self._manaValueLower = State(initialValue: Double(filters.manaValueLowerIndex))
-        self._manaValueUpper = State(initialValue: Double(filters.manaValueUpperIndex))
     }
 
     var body: some View {
         List(selection: $enumerations) {
             ColorFilterSection(colors: $colors, useColorIdentity: $useColorIdentity)
             TypeFilterSection()
-            ManaValueFilterSection(manaValueLower: $manaValueLower, manaValueUpper: $manaValueUpper)
             RarityFilterSection()
             GamesFilterSection()
             FormatFilterSection(enumerations: $enumerations)
@@ -101,8 +78,6 @@ struct RandomCardFiltersView: View {
                 colors: $colors,
                 useColorIdentity: $useColorIdentity,
                 enumerations: $enumerations,
-                manaValueLower: $manaValueLower,
-                manaValueUpper: $manaValueUpper
             )
         }
         .listStyle(.insetGrouped)
@@ -135,8 +110,6 @@ struct RandomCardFiltersView: View {
                         games: Set(enumerations.compactMap {
                             if case .game(let game) = $0 { game } else { nil }
                         }),
-                        manaValueLowerIndex: Int(manaValueLower.rounded()),
-                        manaValueUpperIndex: Int(manaValueUpper.rounded()),
                     )
                     onApply(merged)
                     dismiss()
@@ -275,64 +248,6 @@ private struct TypeFilterSection: View {
     }
 }
 
-// MARK: - Mana Value Section
-
-private struct ManaValueSliderStyle: DoubleLSliderStyle {
-    private let base = DefaultDoubleLSliderStyle()
-
-    func makeLowerThumb(configuration: DoubleLSliderConfiguration) -> some View {
-        base.makeLowerThumb(configuration: configuration)
-    }
-
-    func makeUpperThumb(configuration: DoubleLSliderConfiguration) -> some View {
-        base.makeUpperThumb(configuration: configuration)
-    }
-
-    func makeTrack(configuration: DoubleLSliderConfiguration) -> some View {
-        base.makeTrack(configuration: configuration)
-    }
-
-    func makeTickMark(configuration: DoubleLSliderConfiguration, tickValue: Double) -> some View {
-        Text(RandomCardFilters.manaValueLabel(for: Int(tickValue.rounded())))
-            .font(.system(size: 9))
-            .foregroundStyle(.secondary)
-            .offset(y: configuration.trackThickness)
-    }
-}
-
-
-private struct ManaValueFilterSection: View {
-    @Binding var manaValueLower: Double
-    @Binding var manaValueUpper: Double
-
-    var body: some View {
-        Section {
-            DoubleLSlider(
-                lowerValue: $manaValueLower,
-                upperValue: $manaValueUpper,
-                range: 0.0...Double(RandomCardFilters.manaValueSteps.count - 1),
-//                keepThumbInTrack: true,
-                trackThickness: 10.0,
-                minimumDistance: 0,
-                tickMarkSpacing: .spacing(1.0),
-                affinityEnabled: true,
-                affinityRadius: 0.04,
-                affinityResistance: 0.02,
-                lowerLabel: { Text(RandomCardFilters.manaValueLabel(for: Int($0.rounded()))) },
-                upperLabel: { Text(RandomCardFilters.manaValueLabel(for: Int($0.rounded()))) },
-            )
-            .doubleLSliderStyle(ManaValueSliderStyle())
-            .labelsVisibility(.hidden)
-            .frame(height: 60)
-            .selectionDisabled()
-        } header: {
-            Text("Mana Value")
-        } footer: {
-            Text("Show cards with a mana value in this range.")
-        }
-    }
-}
-
 // MARK: - Rarity Section
 
 private struct RarityFilterSection: View {
@@ -443,12 +358,9 @@ private struct ResetFilterSection: View {
     @Binding var colors: Set<Card.Color>
     @Binding var useColorIdentity: Bool
     @Binding var enumerations: Set<FlattenedEnumerationFilter>
-    @Binding var manaValueLower: Double
-    @Binding var manaValueUpper: Double
 
     private var areFiltersDefault: Bool {
         colors.isEmpty && useColorIdentity == false && enumerations.isEmpty
-            && manaValueLower == 0.0 && manaValueUpper == 14.0
     }
 
     var body: some View {
@@ -460,8 +372,6 @@ private struct ResetFilterSection: View {
                 colors = []
                 useColorIdentity = false
                 enumerations = []
-                manaValueLower = 0.0
-                manaValueUpper = 14.0
             } label: {
                 HStack {
                     Image(systemName: "arrow.counterclockwise")
