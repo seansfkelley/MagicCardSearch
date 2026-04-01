@@ -282,7 +282,7 @@ struct RandomCardFiltersView: View {
         } header: {
             Text("Games")
         } footer: {
-            Text("Show cards from any of these games, or any game if none are selected.")
+            Text("Show cards printed in any of these games, or any game if none are selected.")
         }
     }
 
