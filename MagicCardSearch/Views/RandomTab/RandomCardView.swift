@@ -40,6 +40,8 @@ struct RandomCardView: View {
     @State private var filters = RandomCardFilters()
     @State private var showingFilterSheet = false
     @State private var fetchTask: Task<Void, Never>?
+    private let onboardingFadeWidthFraction: CGFloat = 0.4
+    @State var onboardingOpacity: CGFloat = 1
 
     @Environment(BookmarkedCardsStore.self) private var bookmarkedCardsStore
     @Environment(RecentlyViewedCardsStore.self) private var recentlyViewedCardsStore
@@ -56,45 +58,67 @@ struct RandomCardView: View {
 
     var body: some View {
         GeometryReader { geometry in
-            ScrollView(.horizontal) {
-                LazyHStack(spacing: 0) {
-                    RandomCardOnboardingView()
-                        .frame(width: geometry.size.width, height: geometry.size.height)
-                        .containerRelativeFrame(.horizontal)
-                        .id(ScrollItem.intro)
+            ZStack {
+                RandomCardOnboardingView()
+                    .frame(width: geometry.size.width, height: geometry.size.height)
+                    .opacity(onboardingOpacity)
 
-                    ForEach(Array(history.enumerated()), id: \.element.id) { index, entry in
-                        Group {
-                            switch entry.result {
-                            case .success(let card):
-                                CardDetailView(
-                                    card: card,
-                                    isFlipped: $cardFlipStates.for(card.id),
-                                    searchState: nil,
-                                )
-                            case .failure(let error):
-                                CardDetailView.Placeholder(
-                                    name: nil,
-                                    cornerRadius: 16,
-                                    with: .error(error, nil),
-                                )
+                ScrollView(.horizontal) {
+                    LazyHStack(spacing: 0) {
+                        Color.clear
+                            .frame(width: geometry.size.width, height: geometry.size.height)
+                            .containerRelativeFrame(.horizontal)
+                            .id(ScrollItem.intro)
+
+                        ForEach(Array(history.enumerated()), id: \.element.id) { index, entry in
+                            Group {
+                                switch entry.result {
+                                case .success(let card):
+                                    CardDetailView(
+                                        card: card,
+                                        isFlipped: $cardFlipStates.for(card.id),
+                                        searchState: nil,
+                                    )
+                                case .failure(let error):
+                                    CardDetailView.Placeholder(
+                                        name: nil,
+                                        cornerRadius: 16,
+                                        with: .error(error, nil),
+                                    )
+                                }
                             }
+                            .frame(width: geometry.size.width, height: geometry.size.height)
+                            .containerRelativeFrame(.horizontal)
+                            .id(ScrollItem.entry(entry.id, index))
                         }
-                        .frame(width: geometry.size.width, height: geometry.size.height)
-                        .containerRelativeFrame(.horizontal)
-                        .id(ScrollItem.entry(entry.id, index))
-                    }
 
-                    CardDetailView.Placeholder(name: nil, cornerRadius: 16, with: .spinner)
-                        .frame(width: geometry.size.width, height: geometry.size.height)
-                        .containerRelativeFrame(.horizontal)
-                        .id(ScrollItem.placeholder)
+                        CardDetailView.Placeholder(name: nil, cornerRadius: 16, with: .spinner)
+                            .frame(width: geometry.size.width, height: geometry.size.height)
+                            .containerRelativeFrame(.horizontal)
+                            .id(ScrollItem.placeholder)
+                    }
+                    .scrollTargetLayout()
                 }
-                .scrollTargetLayout()
+                .scrollTargetBehavior(.paging)
+                .scrollPosition(id: $scrollPosition)
+                .scrollIndicators(.hidden)
+                .onScrollGeometryChange(
+                    for: CGFloat.self,
+                    of: { scrollGeometry in
+                        let x = scrollGeometry.contentOffset.x
+                        let fadeWidth = geometry.size.width * onboardingFadeWidthFraction
+                        return if x >= fadeWidth {
+                            0
+                        } else if x <= 0 {
+                            1
+                        } else {
+                            (1 - x / fadeWidth)
+                        }
+                    },
+                    action: { _, currentValue in
+                        onboardingOpacity = currentValue
+                    })
             }
-            .scrollTargetBehavior(.paging)
-            .scrollPosition(id: $scrollPosition)
-            .scrollIndicators(.hidden)
         }
         .navigationTitle(currentCard?.name ?? "")
         .navigationBarTitleDisplayMode(.inline)
