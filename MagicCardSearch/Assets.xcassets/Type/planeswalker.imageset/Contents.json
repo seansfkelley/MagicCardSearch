@@ -3,6 +3,16 @@
     {
       "filename" : "planeswalker.svg",
       "idiom" : "universal"
+    },
+    {
+      "appearances" : [
+        {
+          "appearance" : "luminosity",
+          "value" : "dark"
+        }
+      ],
+      "filename" : "planeswalker 1.svg",
+      "idiom" : "universal"
     }
   ],
   "info" : {

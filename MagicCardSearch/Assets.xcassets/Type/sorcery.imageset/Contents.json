@@ -3,6 +3,16 @@
     {
       "filename" : "sorcery.svg",
       "idiom" : "universal"
+    },
+    {
+      "appearances" : [
+        {
+          "appearance" : "luminosity",
+          "value" : "dark"
+        }
+      ],
+      "filename" : "sorcery 1.svg",
+      "idiom" : "universal"
     }
   ],
   "info" : {

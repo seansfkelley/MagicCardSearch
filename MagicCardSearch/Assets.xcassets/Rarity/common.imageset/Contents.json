@@ -3,6 +3,16 @@
     {
       "filename" : "pmtg2.svg",
       "idiom" : "universal"
+    },
+    {
+      "appearances" : [
+        {
+          "appearance" : "luminosity",
+          "value" : "dark"
+        }
+      ],
+      "filename" : "pmtg2 1.svg",
+      "idiom" : "universal"
     }
   ],
   "info" : {
