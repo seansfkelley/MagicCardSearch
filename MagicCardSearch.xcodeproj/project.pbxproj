@@ -15,6 +15,7 @@
 		213F299A2EE9285400E058DB /* SVGKitSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 213F29992EE9285400E058DB /* SVGKitSwift */; };
 		21874B3A2F07045300E07D9A /* SQLiteData in Frameworks */ = {isa = PBXBuildFile; productRef = 21874B392F07045300E07D9A /* SQLiteData */; };
 		218E3DEC2F5A0C7D00AA066E /* Cache in Frameworks */ = {isa = PBXBuildFile; productRef = 218E3DEB2F5A0C7D00AA066E /* Cache */; };
+		2197DE4F2F7D7A8400A6FAA8 /* Sliders in Frameworks */ = {isa = PBXBuildFile; productRef = 2197DE4E2F7D7A8400A6FAA8 /* Sliders */; };
 		21A856BD2EE3AAE400E72541 /* ScryfallKit in Frameworks */ = {isa = PBXBuildFile; productRef = 21A856BC2EE3AAE400E72541 /* ScryfallKit */; };
 		21B726C12F0B101300D2F951 /* SwiftSoup in Frameworks */ = {isa = PBXBuildFile; productRef = 21B726C02F0B101300D2F951 /* SwiftSoup */; };
 		21C24E722F5A518300B730AC /* FuzzyMatch in Frameworks */ = {isa = PBXBuildFile; productRef = 21C24E712F5A518300B730AC /* FuzzyMatch */; };
@@ -134,6 +135,7 @@
 				213F299A2EE9285400E058DB /* SVGKitSwift in Frameworks */,
 				210E14922EFDE5FB009D9FE0 /* SwiftUIIntrospect in Frameworks */,
 				21C24E722F5A518300B730AC /* FuzzyMatch in Frameworks */,
+				2197DE4F2F7D7A8400A6FAA8 /* Sliders in Frameworks */,
 				210E13AA2EFC66C4009D9FE0 /* FocusOnAppear in Frameworks */,
 				21332B992EF5D04100C80208 /* Algorithms in Frameworks */,
 				21A856BD2EE3AAE400E72541 /* ScryfallKit in Frameworks */,
@@ -251,6 +253,7 @@
 				21B726C02F0B101300D2F951 /* SwiftSoup */,
 				218E3DEB2F5A0C7D00AA066E /* Cache */,
 				21C24E712F5A518300B730AC /* FuzzyMatch */,
+				2197DE4E2F7D7A8400A6FAA8 /* Sliders */,
 			);
 			productName = MagicCardSearch;
 			productReference = 2137B5AD2EE139C60066BF7E /* MagicCardSearch.app */;
@@ -353,6 +356,7 @@
 				21B726BF2F0B101300D2F951 /* XCRemoteSwiftPackageReference "SwiftSoup" */,
 				218E3DEA2F5A0C7D00AA066E /* XCRemoteSwiftPackageReference "Cache" */,
 				21C24E702F5A518300B730AC /* XCRemoteSwiftPackageReference "FuzzyMatch" */,
+				2197DE4D2F7D7A8400A6FAA8 /* XCRemoteSwiftPackageReference "Sliders-SwiftUI" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 2137B5AE2EE139C60066BF7E /* Products */;
@@ -891,6 +895,14 @@
 				kind = branch;
 			};
 		};
+		2197DE4D2F7D7A8400A6FAA8 /* XCRemoteSwiftPackageReference "Sliders-SwiftUI" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/kieranb662/Sliders-SwiftUI";
+			requirement = {
+				branch = master;
+				kind = branch;
+			};
+		};
 		21A5FCA72EE9E7FA0034E695 /* XCRemoteSwiftPackageReference "SwiftLintPlugins" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/SimplyDanny/SwiftLintPlugins";
@@ -965,6 +977,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 218E3DEA2F5A0C7D00AA066E /* XCRemoteSwiftPackageReference "Cache" */;
 			productName = Cache;
+		};
+		2197DE4E2F7D7A8400A6FAA8 /* Sliders */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 2197DE4D2F7D7A8400A6FAA8 /* XCRemoteSwiftPackageReference "Sliders-SwiftUI" */;
+			productName = Sliders;
 		};
 		21A5FCA82EE9E81E0034E695 /* SwiftLintBuildToolPlugin */ = {
 			isa = XCSwiftPackageProductDependency;

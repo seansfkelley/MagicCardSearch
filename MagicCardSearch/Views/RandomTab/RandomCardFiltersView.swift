@@ -1,13 +1,23 @@
 import SwiftUI
 import ScryfallKit
+import Sliders
 
 struct RandomCardFilters: Equatable {
+    static let manaValueSteps: [Int?] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 14, 16, nil]
+
     var colors: Set<Card.Color> = []
     var useColorIdentity = false
     var formats: Set<Format> = []
     var types: Set<String> = []
     var rarities: Set<Card.Rarity> = []
     var games: Set<Game> = []
+    var manaValueLowerIndex = 0
+    var manaValueUpperIndex = Self.manaValueSteps.count - 1
+
+    static func manaValueLabel(for index: Int) -> String {
+        guard index >= 0 && index < manaValueSteps.count else { return "?" }
+        return manaValueSteps[index].map(String.init) ?? "∞"
+    }
 
     var queryString: String? {
         var groups: [String] = ["language:en"]
@@ -38,68 +48,29 @@ struct RandomCardFilters: Equatable {
             groups.append("(\(clause))")
         }
 
+        if let lower = Self.manaValueSteps[manaValueLowerIndex], lower > 0 {
+            groups.append("manavalue>=\(lower)")
+        }
+
+        if let upper = Self.manaValueSteps[manaValueUpperIndex] {
+            groups.append("manavalue<=\(upper)")
+        }
+
         return groups.isEmpty ? nil : groups.joined(separator: " ")
     }
 }
 
-private extension Card.Rarity {
-    var assetName: String? {
-        switch self {
-        case .common: "common"
-        case .uncommon: "uncommon"
-        case .rare: "rare"
-        case .mythic: "mythic"
-        case .bonus: nil
-        case .special: nil
-        }
-    }
-}
+// MARK: - Main View
 
 struct RandomCardFiltersView: View {
-    // To use the selection mode of a List, and have that List be scrollable in a sheet, there can
-    // only be one List at the top level. That means that all selectable rows must be mashed into a
-    // single heterogenous set, which is what this type is for.
-    private enum FlattenedEnumerationFilter: Hashable, Identifiable {
-        case type(String)
-        case rarity(Card.Rarity)
-        case game(Game)
-        case format(Format)
-
-        var id: Self { self }
-
-        var label: String {
-            switch self {
-            case .type(let type): type
-            case .rarity(let rarity): rarity.label
-            case .game(let game): game.label
-            case .format(let format): format.label
-            }
-        }
-
-        var assetName: String? {
-            switch self {
-            case .type(let type):
-                switch type {
-                case "Artifact", "Creature", "Enchantment", "Instant", "Land", "Legendary", "Planeswalker", "Sorcery": type.lowercased()
-                default: nil
-                }
-            case .rarity(let rarity): rarity.assetName
-            case .game: nil
-            case .format: nil
-            }
-        }
-    }
-
     @Environment(\.dismiss) private var dismiss
 
     @State private var colors: Set<Card.Color>
     @State private var useColorIdentity: Bool
     @State private var enumerations: Set<FlattenedEnumerationFilter>
+    @State private var manaValueLower: Double
+    @State private var manaValueUpper: Double
     let onApply: (RandomCardFilters) -> Void
-
-    private var areFiltersDefault: Bool {
-        colors.isEmpty && useColorIdentity == false && enumerations.isEmpty
-    }
 
     init(filters: RandomCardFilters, onApply: @escaping (RandomCardFilters) -> Void) {
         self.onApply = onApply
@@ -114,18 +85,25 @@ struct RandomCardFiltersView: View {
             initial.formUnion(filters.formats.map { .format($0) })
             return initial
         }())
+        self._manaValueLower = State(initialValue: Double(filters.manaValueLowerIndex))
+        self._manaValueUpper = State(initialValue: Double(filters.manaValueUpperIndex))
     }
-
-    // MARK: - Body
 
     var body: some View {
         List(selection: $enumerations) {
-            colorSection
-            typeSection
-            raritySection
-            gamesSection
-            formatSection
-            resetSection
+            ColorFilterSection(colors: $colors, useColorIdentity: $useColorIdentity)
+            TypeFilterSection()
+            ManaValueFilterSection(manaValueLower: $manaValueLower, manaValueUpper: $manaValueUpper)
+            RarityFilterSection()
+            GamesFilterSection()
+            FormatFilterSection(enumerations: $enumerations)
+            ResetFilterSection(
+                colors: $colors,
+                useColorIdentity: $useColorIdentity,
+                enumerations: $enumerations,
+                manaValueLower: $manaValueLower,
+                manaValueUpper: $manaValueUpper
+            )
         }
         .listStyle(.insetGrouped)
         .environment(\.editMode, .constant(.active))
@@ -157,6 +135,8 @@ struct RandomCardFiltersView: View {
                         games: Set(enumerations.compactMap {
                             if case .game(let game) = $0 { game } else { nil }
                         }),
+                        manaValueLowerIndex: Int(manaValueLower.rounded()),
+                        manaValueUpperIndex: Int(manaValueUpper.rounded()),
                     )
                     onApply(merged)
                     dismiss()
@@ -167,12 +147,64 @@ struct RandomCardFiltersView: View {
             }
         }
     }
+}
 
-    // MARK: - Color Section
+private extension Card.Rarity {
+    var assetName: String? {
+        switch self {
+        case .common: "common"
+        case .uncommon: "uncommon"
+        case .rare: "rare"
+        case .mythic: "mythic"
+        case .bonus: nil
+        case .special: nil
+        }
+    }
+}
 
-    private static let allColors: [Card.Color] = [.W, .U, .B, .R, .G, .C]
+// To use the selection mode of a List, and have that List be scrollable in a sheet, there can
+// only be one List at the top level. That means that all selectable rows must be mashed into a
+// single heterogenous set, which is what this type is for.
+private enum FlattenedEnumerationFilter: Hashable, Identifiable {
+    case type(String)
+    case rarity(Card.Rarity)
+    case game(Game)
+    case format(Format)
 
-    private var colorSection: some View {
+    var id: Self { self }
+
+    var label: String {
+        switch self {
+        case .type(let type): type
+        case .rarity(let rarity): rarity.label
+        case .game(let game): game.label
+        case .format(let format): format.label
+        }
+    }
+
+    var assetName: String? {
+        switch self {
+        case .type(let type):
+            switch type {
+            case "Artifact", "Creature", "Enchantment", "Instant", "Land", "Legendary", "Planeswalker", "Sorcery": type.lowercased()
+            default: nil
+            }
+        case .rarity(let rarity): rarity.assetName
+        case .game: nil
+        case .format: nil
+        }
+    }
+}
+
+// MARK: - Color Section
+
+private struct ColorFilterSection: View {
+    static let allColors: [Card.Color] = [.W, .U, .B, .R, .G, .C]
+
+    @Binding var colors: Set<Card.Color>
+    @Binding var useColorIdentity: Bool
+
+    var body: some View {
         Section {
             HStack(spacing: 16) {
                 ForEach(Self.allColors, id: \.self) { colorButton($0) }
@@ -212,14 +244,16 @@ struct RandomCardFiltersView: View {
         .accessibilityLabel(color.name)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
+}
 
-    // MARK: - Type Section
+// MARK: - Type Section
 
-    private static let cardTypes: [FlattenedEnumerationFilter] = [
+private struct TypeFilterSection: View {
+    static let cardTypes: [FlattenedEnumerationFilter] = [
         "Artifact", "Creature", "Enchantment", "Instant", "Land", "Legendary", "Planeswalker", "Sorcery",
     ].map { .type($0) }
 
-    private var typeSection: some View {
+    var body: some View {
         Section {
             ForEach(Self.cardTypes) { type in
                 HStack {
@@ -239,14 +273,74 @@ struct RandomCardFiltersView: View {
             Text("Show cards matching any of these types, or any type if none are selected.")
         }
     }
+}
 
-    // MARK: - Rarity Section
+// MARK: - Mana Value Section
 
-    private static let allRarities: [FlattenedEnumerationFilter] = [
+private struct ManaValueSliderStyle: DoubleLSliderStyle {
+    private let base = DefaultDoubleLSliderStyle()
+
+    func makeLowerThumb(configuration: DoubleLSliderConfiguration) -> some View {
+        base.makeLowerThumb(configuration: configuration)
+    }
+
+    func makeUpperThumb(configuration: DoubleLSliderConfiguration) -> some View {
+        base.makeUpperThumb(configuration: configuration)
+    }
+
+    func makeTrack(configuration: DoubleLSliderConfiguration) -> some View {
+        base.makeTrack(configuration: configuration)
+    }
+
+    func makeTickMark(configuration: DoubleLSliderConfiguration, tickValue: Double) -> some View {
+        Text(RandomCardFilters.manaValueLabel(for: Int(tickValue.rounded())))
+            .font(.system(size: 9))
+            .foregroundStyle(.secondary)
+            .offset(y: configuration.trackThickness)
+    }
+}
+
+
+private struct ManaValueFilterSection: View {
+    @Binding var manaValueLower: Double
+    @Binding var manaValueUpper: Double
+
+    var body: some View {
+        Section {
+            DoubleLSlider(
+                lowerValue: $manaValueLower,
+                upperValue: $manaValueUpper,
+                range: 0.0...Double(RandomCardFilters.manaValueSteps.count - 1),
+//                keepThumbInTrack: true,
+                trackThickness: 10.0,
+                minimumDistance: 0,
+                tickMarkSpacing: .spacing(1.0),
+                affinityEnabled: true,
+                affinityRadius: 0.04,
+                affinityResistance: 0.02,
+                lowerLabel: { Text(RandomCardFilters.manaValueLabel(for: Int($0.rounded()))) },
+                upperLabel: { Text(RandomCardFilters.manaValueLabel(for: Int($0.rounded()))) },
+            )
+            .doubleLSliderStyle(ManaValueSliderStyle())
+            .labelsVisibility(.hidden)
+            .frame(height: 60)
+            .selectionDisabled()
+        } header: {
+            Text("Mana Value")
+        } footer: {
+            Text("Show cards with a mana value in this range.")
+        }
+    }
+}
+
+// MARK: - Rarity Section
+
+private struct RarityFilterSection: View {
+    static let allRarities: [FlattenedEnumerationFilter] = [
         .common, .uncommon, .rare, .mythic,
     ].map { .rarity($0) }
 
-    private var raritySection: some View {
+    var body: some View {
         Section {
             ForEach(Self.allRarities) { rarity in
                 HStack {
@@ -266,14 +360,16 @@ struct RandomCardFiltersView: View {
             Text("Show cards matching any of these rarities, or any rarity if none are selected.")
         }
     }
+}
 
-    // MARK: - Games Section
+// MARK: - Games Section
 
-    private static let allGames: [FlattenedEnumerationFilter] = [
+private struct GamesFilterSection: View {
+    static let allGames: [FlattenedEnumerationFilter] = [
         .paper, .arena, .mtgo,
     ].map { .game($0) }
 
-    private var gamesSection: some View {
+    var body: some View {
         Section {
             ForEach(Self.allGames) { game in
                 Text(game.label)
@@ -285,21 +381,24 @@ struct RandomCardFiltersView: View {
             Text("Show cards printed in any of these games, or any game if none are selected.")
         }
     }
+}
 
-    // MARK: - Format Section
+// MARK: - Format Section
 
-    private static let aboveFoldFormats: [FlattenedEnumerationFilter] = [
+private struct FormatFilterSection: View {
+    static let aboveFoldFormats: [FlattenedEnumerationFilter] = [
         .standard, .commander, .modern, .legacy,
     ].map { .format($0) }
 
-    private static let belowFoldFormats: [FlattenedEnumerationFilter] = [
+    static let belowFoldFormats: [FlattenedEnumerationFilter] = [
         .alchemy, .brawl, .duel, .future, .gladiator, .historic, .oathbreaker, .oldschool, .pauper,
         .paupercommander, .penny, .pioneer, .predh, .premodern, .standardbrawl, .timeless, .vintage,
     ].map { .format($0) }
 
+    @Binding var enumerations: Set<FlattenedEnumerationFilter>
     @State private var formatsExpanded = false
 
-    private var formatSection: some View {
+    var body: some View {
         Section {
             ForEach(Self.aboveFoldFormats) { format in
                 Text(format.label)
@@ -336,10 +435,23 @@ struct RandomCardFiltersView: View {
             }
         }
     }
+}
 
-    // MARK: - Reset Section
+// MARK: - Reset Section
 
-    private var resetSection: some View {
+private struct ResetFilterSection: View {
+    @Binding var colors: Set<Card.Color>
+    @Binding var useColorIdentity: Bool
+    @Binding var enumerations: Set<FlattenedEnumerationFilter>
+    @Binding var manaValueLower: Double
+    @Binding var manaValueUpper: Double
+
+    private var areFiltersDefault: Bool {
+        colors.isEmpty && useColorIdentity == false && enumerations.isEmpty
+            && manaValueLower == 0.0 && manaValueUpper == 14.0
+    }
+
+    var body: some View {
         // By making this a footer of a Section instead of a bare item or content in a Section, we
         // seem to get better visuals and interactions because the List doesn't consider it to be
         // a regular item, and we don't get an extra layer of bordering from the Section itself.
@@ -348,6 +460,8 @@ struct RandomCardFiltersView: View {
                 colors = []
                 useColorIdentity = false
                 enumerations = []
+                manaValueLower = 0.0
+                manaValueUpper = 14.0
             } label: {
                 HStack {
                     Image(systemName: "arrow.counterclockwise")

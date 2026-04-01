@@ -1,5 +1,5 @@
 {
-  "originHash" : "8938b6ddd4ed75c21738362d0649913098b57a24e75272769cf00573e8e60cfb",
+  "originHash" : "a016c1b2cca2c9df65e725213ad54278c994034cb4afa0f38b9eda5ce4fcfa8f",
   "pins" : [
     {
       "identity" : "cache",
@@ -71,6 +71,15 @@
       "state" : {
         "branch" : "main",
         "revision" : "abc7971f6229226bbbadab75651908e1d30e814a"
+      }
+    },
+    {
+      "identity" : "sliders-swiftui",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/kieranb662/Sliders-SwiftUI",
+      "state" : {
+        "branch" : "master",
+        "revision" : "d0439db83a03001781f894f3efa9583836a32ae8"
       }
     },
     {
