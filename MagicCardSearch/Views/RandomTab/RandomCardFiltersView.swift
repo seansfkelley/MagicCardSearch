@@ -367,4 +367,5 @@ struct RandomCardFiltersView: View {
             print($0)
         }
     }
+    .environment(ScryfallCatalogs())
 }
