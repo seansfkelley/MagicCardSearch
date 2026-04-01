@@ -197,10 +197,12 @@ struct RandomCardFiltersView: View {
     private func colorButton(_ color: Card.Color) -> some View {
         let isSelected = colors.contains(color)
         return Button {
-            if isSelected {
-                colors.remove(color)
-            } else {
-                colors.insert(color)
+            withAnimation(.easeOut(duration: 0.15)) {
+                if isSelected {
+                    colors.remove(color)
+                } else {
+                    colors.insert(color)
+                }
             }
         } label: {
             SymbolView(SymbolCode("{\(color.rawValue)}"), size: 40, showDropShadow: true)
