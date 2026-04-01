@@ -39,7 +39,7 @@ struct RandomCardFilters: Equatable {
             groups.append("(\(clause))")
         }
 
-        return groups.isEmpty ? nil : groups.joined(separator: " ")
+        return groups.joined(separator: " ")
     }
 }
 
