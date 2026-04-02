@@ -230,6 +230,7 @@ struct FullTextSuggestionTests {
         let suggestions = try unwrapFilter(fullTextSuggestion(for: partial))
         #expect(suggestions == [
             .term(.basic(.positive, "oracle", .including, "flies high")),
+            .term(.basic(.positive, "fulloracle", .including, "flies high")),
             .term(.basic(.positive, "flavor", .including, "flies high")),
         ])
     }
@@ -240,6 +241,7 @@ struct FullTextSuggestionTests {
         let suggestions = try unwrapFilter(fullTextSuggestion(for: partial))
         #expect(suggestions == [
             .term(.basic(.negative, "oracle", .including, "flies high")),
+            .term(.basic(.negative, "fulloracle", .including, "flies high")),
             .term(.basic(.negative, "flavor", .including, "flies high")),
         ])
     }

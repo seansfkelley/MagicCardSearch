@@ -105,7 +105,7 @@ let scryfallFilterTypes: [ScryfallFilterType] = [
 
     // MARK: - Card Text
     .init("oracle", ["o"], supportsRegex: true),
-    .init("fulloracle", ["fo"]),
+    .init("fulloracle", ["fo"], supportsRegex: true),
     .init("keyword", ["kw"]), // Enumeration values loaded from Scryfall.
     
     // MARK: - Mana Costs

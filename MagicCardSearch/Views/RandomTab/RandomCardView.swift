@@ -229,6 +229,7 @@ struct RandomCardView: View {
                 let card = try await client.getRandomCard(query: filters.queryString)
                 entry = HistoryEntry(result: .success(card))
             } catch {
+                logger.error("failed to load random card with error=\(error)")
                 entry = HistoryEntry(result: .failure(error))
             }
 
