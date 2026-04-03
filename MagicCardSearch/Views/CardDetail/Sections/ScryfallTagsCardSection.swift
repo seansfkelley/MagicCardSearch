@@ -205,7 +205,7 @@ private struct TagListView: View {
             if hasGameplay {
                 CombinedSectionView(
                     title: "Gameplay",
-                    tagIconName: "list.bullet.rectangle.portrait",
+                    tagIconName: "custom.list.bullet.rectangle.portrait",
                     tags: gameplayTags,
                     relationships: gameplayRelationships,
                     card: card,

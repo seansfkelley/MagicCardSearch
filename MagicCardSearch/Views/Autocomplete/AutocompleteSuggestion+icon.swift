@@ -8,7 +8,7 @@ extension AutocompleteSuggestion {
         case .filterType: "line.3.horizontal.decrease"
         case .enumeration: "list.bullet"
         case .reverseEnumeration: "list.bullet"
-        case .name: "rectangle.portrait"
+        case .name: "custom.list.bullet.rectangle.portrait"
         case .fullText: "text.rectangle"
         case .regex: "chevron.left.forwardslash.chevron.right"
         }
