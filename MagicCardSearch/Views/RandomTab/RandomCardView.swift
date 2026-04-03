@@ -40,10 +40,12 @@ struct RandomCardView: View {
     // implement. So we do this total nonsense.
     @Binding var advanceCard: Bool
 
+    @AppStorage("randomCardFilters") private var wrappedFilters = RawRepresentableWrapper(RandomCardFilters())
+    var filters: RandomCardFilters { wrappedFilters.value }
+
     @State private var history: [HistoryEntry] = []
     @State private var scrollPosition: ScrollItem?
     @State private var cardFlipStates: [UUID: Bool] = [:]
-    @State private var filters = RandomCardFilters()
     @State private var showingFilterSheet = false
     @State private var fetchTask: Task<Void, Never>?
     private let onboardingFadeWidthFraction: CGFloat = 0.4
@@ -231,7 +233,7 @@ struct RandomCardView: View {
         .sheet(isPresented: $showingFilterSheet) {
             NavigationStack {
                 RandomCardFiltersView(filters: filters) { newFilters in
-                    filters = newFilters
+                    wrappedFilters = RawRepresentableWrapper(newFilters)
                     var preserved: [HistoryEntry] = switch scrollPosition {
                     case .intro, nil:
                         []
