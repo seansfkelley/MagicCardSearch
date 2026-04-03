@@ -30,8 +30,6 @@ enum Vendor: String, CaseIterable {
 
     var image: Image { Image(rawValue) }
 
-    var blueImage: Image { Image("\(rawValue)-blue") }
-
     // swiftlint:disable:next cyclomatic_complexity
     func price(from prices: Card.Prices, for type: PriceType) -> String? {
         switch self {
