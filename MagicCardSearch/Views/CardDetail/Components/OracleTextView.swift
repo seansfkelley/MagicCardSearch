@@ -105,4 +105,5 @@ struct OracleTextView: View {
         }
         .padding()
     }
+    .environment(ScryfallCatalogs())
 }

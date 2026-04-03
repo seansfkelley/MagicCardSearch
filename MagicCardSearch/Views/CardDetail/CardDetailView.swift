@@ -248,7 +248,7 @@ struct CardDetailView: View {
 
         if let power = face.power, let toughness = face.toughness, !power.isEmpty || !toughness.isEmpty {
             Divider().padding(.horizontal)
-            StatLineCardSection(value: "\(power)/\(toughness)")
+            StatLineCardSection(value: "\(power.asVulgarFraction)/\(toughness.asVulgarFraction)")
                 .textSelection(.enabled)
         }
         
