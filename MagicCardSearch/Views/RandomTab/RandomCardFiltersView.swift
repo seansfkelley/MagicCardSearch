@@ -193,9 +193,9 @@ private struct ColorFilterSection: View {
             Text("Color")
         } footer: {
             if useColorIdentity {
-                Text("Show cards including these colors, and no more than these colors, or any color if none are selected.")
-            } else {
                 Text("Show cards including these colors, and legal in these colors, or any color if none are selected.")
+            } else {
+                Text("Show cards including these colors, and no more than these colors, or any color if none are selected.")
             }
         }
     }
