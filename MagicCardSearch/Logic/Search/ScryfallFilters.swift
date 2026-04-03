@@ -83,7 +83,8 @@ private let scryfallIsEnumerationValues = [
     "nondefault", "atypical", "abnormal", "nontraditional",
     "universesbeyond", "ub", "notuniversesbeyond", "notub",
     // Not listed in the documentation, but discovered/mentioned elsewhere
-    "gamechanger", "reversible", "fullart", "textless", "misprint",
+    "gamechanger", "reversible", "fullart", "textless", "misprint", "flavorname", "doublefaced",
+    "doublesided",
 ]
 
 // MARK: - Filter Definitions

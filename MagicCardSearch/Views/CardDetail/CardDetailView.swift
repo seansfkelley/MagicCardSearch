@@ -6,6 +6,7 @@ private let logger = Logger(subsystem: "MagicCardSearch", category: "CardDetailV
 
 protocol CardDetailDisplayable {
     var name: String { get }
+    var flavorName: String? { get }
     var typeLine: String? { get }
     var oracleText: String? { get }
     var flavorText: String? { get }
@@ -82,16 +83,21 @@ struct CardDetailView: View {
                 .padding(.bottom, 24)
                 
                 if let faces = card.cardFaces {
-                    // Some double-faced cards are just alternate arts on both sides!
-                    let uniqueFaces = faces.uniqued(by: \.name)
                     let allArtists = faces.compactMap(\.artist)
                         .filter { !$0.isEmpty }
                         .uniqued()
-                    
-                    ForEach(Array(uniqueFaces.enumerated()), id: \.element.name) { index, face in
-                        cardFaceDetailsView(face: face, showArtist: false)
+
+                    // Faces don't have a single field that is guaranteed to differentiate them from
+                    // other faces. Particularly bad cases are those that are just alternate arts:
+                    // https://api.scryfall.com/cards/4d227cd3-ebfe-4dd3-929a-4f8ff7c8981e
+                    //
+                    // Hence why we use the index. We don't attempt to unique the text box to only
+                    // show one in this case, since they often (always?) have at least different
+                    // flavor text, so the text box is actually different.
+                    ForEach(Array(faces.enumerated()), id: \.offset) { index, face in
+                        cardFaceDetailsView(face: face)
                         
-                        if index < uniqueFaces.count - 1 {
+                        if index < faces.count - 1 {
                             Divider().padding(.horizontal)
                         }
                     }
@@ -102,6 +108,11 @@ struct CardDetailView: View {
                     }
                 } else {
                     cardFaceDetailsView(face: card)
+
+                    if let artist = card.artist, !artist.isEmpty {
+                        Divider().padding(.horizontal)
+                        ArtistCardSection(artist: artist)
+                    }
                 }
 
                 Divider().padding(.horizontal)
@@ -189,8 +200,8 @@ struct CardDetailView: View {
     // MARK: - Card Face Details View
     
     @ViewBuilder
-    private func cardFaceDetailsView(face: CardDetailDisplayable, showArtist: Bool = true) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
+    private func cardFaceDetailsView(face: CardDetailDisplayable) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
             HStack(alignment: .center) {
                 Text(face.name)
                     .font(.title2)
@@ -201,6 +212,13 @@ struct CardDetailView: View {
                 if !face.displayableManaCost.isEmpty {
                     ManaCostView(face.displayableManaCost, size: 20)
                 }
+            }
+
+            if let flavorName = face.flavorName {
+                Text(flavorName)
+                    .fontWeight(.medium)
+                    .foregroundStyle(.secondary)
+                    .italic()
             }
         }
         .padding(.horizontal)
@@ -261,12 +279,6 @@ struct CardDetailView: View {
         if let defense = face.defense, !defense.isEmpty {
             Divider().padding(.horizontal)
             StatLineCardSection(value: defense, label: "Defense")
-                .textSelection(.enabled)
-        }
-
-        if showArtist, let artist = face.artist, !artist.isEmpty {
-            Divider().padding(.horizontal)
-            ArtistCardSection(artist: artist)
                 .textSelection(.enabled)
         }
     }
