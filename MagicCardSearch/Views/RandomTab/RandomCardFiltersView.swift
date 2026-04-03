@@ -6,6 +6,7 @@ struct RandomCardFilters: Equatable {
     var useColorIdentity = false
     var formats: Set<Format> = []
     var types: Set<String> = []
+    var legendary: Bool = false
     var rarities: Set<Card.Rarity> = []
     var games: Set<Game> = []
 
@@ -29,6 +30,10 @@ struct RandomCardFilters: Equatable {
             groups.append("(\(clause))")
         }
 
+        if legendary {
+            groups.append("type:legendary")
+        }
+
         if !rarities.isEmpty {
             let clause = rarities.map { "rarity:\($0.rawValue)" }.joined(separator: " OR ")
             groups.append("(\(clause))")
@@ -50,6 +55,7 @@ struct RandomCardFiltersView: View {
 
     @State private var colors: Set<Card.Color>
     @State private var useColorIdentity: Bool
+    @State private var legendary: Bool
     @State private var enumerations: Set<FlattenedEnumerationFilter>
     let onApply: (RandomCardFilters) -> Void
 
@@ -58,6 +64,7 @@ struct RandomCardFiltersView: View {
 
         self._colors = State(initialValue: filters.colors)
         self._useColorIdentity = State(initialValue: filters.useColorIdentity)
+        self._legendary = State(initialValue: filters.legendary)
         self._enumerations = State(initialValue: {
             var initial = Set<FlattenedEnumerationFilter>()
             initial.formUnion(filters.types.map { .type($0) })
@@ -71,13 +78,14 @@ struct RandomCardFiltersView: View {
     var body: some View {
         List(selection: $enumerations) {
             ColorFilterSection(colors: $colors, useColorIdentity: $useColorIdentity)
-            TypeFilterSection()
+            TypeFilterSection(legendary: $legendary)
             RarityFilterSection()
             GamesFilterSection()
             FormatFilterSection(enumerations: $enumerations)
             ResetFilterSection(
                 colors: $colors,
                 useColorIdentity: $useColorIdentity,
+                legendary: $legendary,
                 enumerations: $enumerations,
             )
         }
@@ -105,6 +113,7 @@ struct RandomCardFiltersView: View {
                         types: Set(enumerations.compactMap {
                             if case .type(let type) = $0 { type } else { nil }
                         }),
+                        legendary: legendary,
                         rarities: Set(enumerations.compactMap {
                             if case .rarity(let rarity) = $0 { rarity } else { nil }
                         }),
@@ -224,11 +233,15 @@ private struct ColorFilterSection: View {
 
 private struct TypeFilterSection: View {
     static let cardTypes: [FlattenedEnumerationFilter] = [
-        "Artifact", "Creature", "Enchantment", "Instant", "Land", "Legendary", "Planeswalker", "Sorcery",
+        "Artifact", "Creature", "Enchantment", "Instant", "Land", "Planeswalker", "Sorcery",
     ].map { .type($0) }
+
+    @Binding var legendary: Bool
 
     var body: some View {
         Section {
+            Toggle("Legendary", isOn: $legendary)
+                .selectionDisabled()
             ForEach(Self.cardTypes) { type in
                 HStack {
                     Text(type.label)
@@ -358,10 +371,11 @@ private struct FormatFilterSection: View {
 private struct ResetFilterSection: View {
     @Binding var colors: Set<Card.Color>
     @Binding var useColorIdentity: Bool
+    @Binding var legendary: Bool
     @Binding var enumerations: Set<FlattenedEnumerationFilter>
 
     private var areFiltersDefault: Bool {
-        colors.isEmpty && useColorIdentity == false && enumerations.isEmpty
+        colors.isEmpty && useColorIdentity == false && legendary == false && enumerations.isEmpty
     }
 
     var body: some View {
@@ -372,6 +386,7 @@ private struct ResetFilterSection: View {
             Button(role: .destructive) {
                 colors = []
                 useColorIdentity = false
+                legendary = false
                 enumerations = []
             } label: {
                 HStack {
