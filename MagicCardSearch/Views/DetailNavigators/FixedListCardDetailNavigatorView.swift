@@ -128,7 +128,11 @@ struct FixedListCardDetailNavigatorView<C: CardDisplayable & Identifiable<UUID>>
             CardDetailView.Placeholder(
                 name: card.frontFace.name,
                 cornerRadius: 16,
-                with: .error(error) { load(card: card) },
+                with: .action(
+                    "exclamationmark.triangle",
+                    error.localizedDescription,
+                    ("Retry", { load(card: card) }),
+                ),
             )
         case nil:
             CardDetailView.Placeholder(

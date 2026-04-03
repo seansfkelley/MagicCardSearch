@@ -83,7 +83,7 @@ struct RandomCardView: View {
                                     CardDetailView.Placeholder(
                                         name: nil,
                                         cornerRadius: 16,
-                                        with: .error(error, nil),
+                                        with: .error(error.localizedDescription, nil),
                                     )
                                 }
                             }

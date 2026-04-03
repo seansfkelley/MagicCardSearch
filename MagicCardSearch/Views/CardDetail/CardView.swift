@@ -90,7 +90,7 @@ struct CardView: View {
         enum Decoration {
             case none, spinner
             case image(String)
-            case error(any Error, (() -> Void)?)
+            case action(String?, String, (String, () -> Void)?)
         }
 
         let name: String?
@@ -146,19 +146,21 @@ struct CardView: View {
                                         .controlSize(.large)
                                         .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-                                case .error(let error, let retry):
+                                case .action(let icon, let description, let action):
                                     VStack(spacing: 12) {
-                                        Image(systemName: "exclamationmark.triangle")
-                                            .foregroundStyle(.secondary)
-                                            .imageScale(.large)
+                                        if let icon {
+                                            Image(systemName: icon)
+                                                .foregroundStyle(.secondary)
+                                                .imageScale(.large)
+                                        }
 
-                                        Text(error.localizedDescription)
+                                        Text(description)
                                             .foregroundStyle(.secondary)
                                             .multilineTextAlignment(.center)
                                             .padding(.horizontal, width * 0.12)
 
-                                        if let retry {
-                                            Button("Retry") { retry() }
+                                        if let action {
+                                            Button(action.0) { action.1() }
                                                 .buttonStyle(.borderedProminent)
                                         }
                                     }
@@ -538,22 +540,39 @@ private extension PreviewCard {
     )
 }
 
-private struct PreviewError: LocalizedError {
-    var errorDescription: String?
-
-    init(_ errorDescription: String) {
-        self.errorDescription = errorDescription
-    }
-}
 
 #Preview("Placeholders") {
     ScrollView {
         VStack {
-            CardView.Placeholder(name: nil, cornerRadius: 16, with: .none)
-            CardView.Placeholder(name: nil, cornerRadius: 16, with: .image("shuffle"))
-            CardView.Placeholder(name: "Lightning Bolt", cornerRadius: 16, with: .spinner)
-            CardView.Placeholder(name: "Lightning Bolt", cornerRadius: 16, with: .error(PreviewError("Could not connect to Scryfall."), nil))
-            CardView.Placeholder(name: "Lightning Bolt", cornerRadius: 16, with: .error(PreviewError("The Internet connection appears to be offline.")) {})
+            CardView.Placeholder(
+                name: nil,
+                cornerRadius: 16,
+                with: .none,
+            )
+            CardView.Placeholder(
+                name: nil,
+                cornerRadius: 16,
+                with: .image("shuffle"),
+            )
+            CardView.Placeholder(
+                name: "Lightning Bolt",
+                cornerRadius: 16,
+                with: .spinner,
+            )
+            CardView.Placeholder(
+                name: "Lightning Bolt",
+                cornerRadius: 16,
+                with: .action("exclamationmark.triangle", "Could not connect to Scryfall.", nil),
+            )
+            CardView.Placeholder(
+                name: "Lightning Bolt",
+                cornerRadius: 16,
+                with: .action(
+                    "exclamationmark.triangle",
+                    "The Internet connection appears to be offline.",
+                    ("Retry", {}),
+                ),
+            )
         }
         .padding()
     }
