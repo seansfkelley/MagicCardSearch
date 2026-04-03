@@ -193,9 +193,9 @@ private struct ColorFilterSection: View {
             Text("Color")
         } footer: {
             if useColorIdentity {
-                Text("Show cards including these colors, and legal in these colors, or any color if none are selected.")
+                Text("If set, show cards matching any of these colors that are legal in a deck with this color identity.")
             } else {
-                Text("Show cards including these colors, and no more than these colors, or any color if none are selected.")
+                Text("If set, show cards matching any of these colors, and no more than these colors.")
             }
         }
     }
@@ -244,7 +244,7 @@ private struct TypeFilterSection: View {
         } header: {
             Text("Type")
         } footer: {
-            Text("Show cards matching any of these types, or any type if none are selected.")
+            Text("If set, only show cards matching at least one of these types.")
         }
     }
 }
@@ -273,7 +273,7 @@ private struct RarityFilterSection: View {
         } header: {
             Text("Rarity")
         } footer: {
-            Text("Show cards matching any of these rarities, or any rarity if none are selected.")
+            Text("If set, only show cards matching one of these rarities.")
         }
     }
 }
@@ -294,7 +294,7 @@ private struct GamesFilterSection: View {
         } header: {
             Text("Games")
         } footer: {
-            Text("Show cards printed in any of these games, or any game if none are selected.")
+            Text("If set, only show cards printed in at least one of these games.")
         }
     }
 }
@@ -337,7 +337,7 @@ private struct FormatFilterSection: View {
         } header: {
             Text("Format")
         } footer: {
-            Text("Show cards legal in any of these formats, or any format if none are selected.")
+            Text("If set, only show cards legal in at least one of these formats.")
         }
         .onAppear {
             let allBelowFoldFormats = Self.belowFoldFormats.compactMap {
