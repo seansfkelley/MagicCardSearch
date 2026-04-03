@@ -150,8 +150,8 @@ struct CardView: View {
                                     VStack(spacing: 12) {
                                         if let icon {
                                             Image(systemName: icon)
-                                                .foregroundStyle(.secondary)
-                                                .imageScale(.large)
+                                                .font(.system(size: width * 0.25))
+                                                .foregroundStyle(Color(.systemGray3))
                                         }
 
                                         Text(description)

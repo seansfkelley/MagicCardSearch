@@ -8,11 +8,17 @@ private let logger = Logger(subsystem: "MagicCardSearch", category: "RandomCardV
 // MARK: - History Entry
 
 private struct HistoryEntry: Identifiable {
+    enum Content {
+        case card(Card)
+        case error(Error)
+        case noResults
+    }
+
     let id = UUID()
-    let result: Result<Card, Error>
+    let content: Content
 
     var card: Card? {
-        try? result.get()
+        if case .card(let c) = content { c } else { nil }
     }
 }
 
@@ -54,6 +60,10 @@ struct RandomCardView: View {
         return history[safe: index]?.card
     }
 
+    private var isLastHistoryEntryNoResults: Bool {
+        if case .noResults = history.last?.content { true } else { false }
+    }
+
     // MARK: - Navigator
 
     var body: some View {
@@ -72,18 +82,32 @@ struct RandomCardView: View {
 
                         ForEach(Array(history.enumerated()), id: \.element.id) { index, entry in
                             Group {
-                                switch entry.result {
-                                case .success(let card):
+                                switch entry.content {
+                                case .card(let card):
                                     CardDetailView(
                                         card: card,
                                         isFlipped: $cardFlipStates.for(card.id),
                                         searchState: nil,
                                     )
-                                case .failure(let error):
+                                case .error(let error):
                                     CardDetailView.Placeholder(
                                         name: nil,
                                         cornerRadius: 16,
-                                        with: .error(error.localizedDescription, nil),
+                                        with: .action(
+                                            "exclamationmark.triangle",
+                                            error.localizedDescription,
+                                            nil,
+                                        ),
+                                    )
+                                case .noResults:
+                                    CardDetailView.Placeholder(
+                                        name: nil,
+                                        cornerRadius: 16,
+                                        with: .action(
+                                            "rectangle.portrait.slash",
+                                            "No cards match your filters.",
+                                            ("Change Filters", { showingFilterSheet = true }),
+                                        ),
                                     )
                                 }
                             }
@@ -92,10 +116,12 @@ struct RandomCardView: View {
                             .id(ScrollItem.entry(entry.id, index))
                         }
 
-                        CardDetailView.Placeholder(name: nil, cornerRadius: 16, with: .spinner)
-                            .frame(width: geometry.size.width, height: geometry.size.height)
-                            .containerRelativeFrame(.horizontal)
-                            .id(ScrollItem.placeholder)
+                        if !isLastHistoryEntryNoResults {
+                            CardDetailView.Placeholder(name: nil, cornerRadius: 16, with: .spinner)
+                                .frame(width: geometry.size.width, height: geometry.size.height)
+                                .containerRelativeFrame(.horizontal)
+                                .id(ScrollItem.placeholder)
+                        }
                     }
                     .scrollTargetLayout()
                 }
@@ -169,7 +195,7 @@ struct RandomCardView: View {
             case .intro, nil:
                 break
             case .entry(_, let index):
-                if index == history.count - 1 {
+                if index == history.count - 1, !isLastHistoryEntryNoResults {
                     fetchNextCard()
                 }
                 if let card = history[safe: index]?.card {
@@ -194,7 +220,7 @@ struct RandomCardView: View {
                     let nextIndex = index + 1
                     if let next = history[safe: nextIndex] {
                         scrollPosition = .entry(next.id, nextIndex)
-                    } else {
+                    } else if !isLastHistoryEntryNoResults {
                         scrollPosition = .placeholder
                     }
                 case .placeholder:
@@ -206,7 +232,7 @@ struct RandomCardView: View {
             NavigationStack {
                 RandomCardFiltersView(filters: filters) { newFilters in
                     filters = newFilters
-                    history = switch scrollPosition {
+                    var preserved: [HistoryEntry] = switch scrollPosition {
                     case .intro, nil:
                         []
                     case .entry(_, let index):
@@ -214,6 +240,10 @@ struct RandomCardView: View {
                     case .placeholder:
                         history
                     }
+                    if case .noResults = preserved.last?.content {
+                        preserved = Array(preserved.dropLast())
+                    }
+                    history = preserved
                     scrollPosition = .placeholder
                     fetchNextCard()
                 }
@@ -227,7 +257,7 @@ struct RandomCardView: View {
             let entry: HistoryEntry
             do {
                 let card = try await client.getRandomCard(query: filters.queryString)
-                entry = HistoryEntry(result: .success(card))
+                entry = HistoryEntry(content: .card(card))
             } catch let error as ScryfallKitError {
                 guard !Task.isCancelled else { return }
 
@@ -235,19 +265,18 @@ struct RandomCardView: View {
                 // Note that this condition assumes that we will never get legit 404s. This should
                 // be fine since we only use a small number of fixed URLs, but of course it's not
                 // foolproof if Scryfall makes breaking changes.
-                if case .scryfallError(let error) = error, error.status == 404 {
+                if case .scryfallError(let scryfallError) = error, scryfallError.status == 404 {
                     logger.debug("intercepted Scryfall 404 and set to empty instead")
-
-                    // ???
+                    entry = HistoryEntry(content: .noResults)
                 } else {
                     logger.error("failed to load random card with error=\(error)")
-                    entry = HistoryEntry(result: .failure(error))
+                    entry = HistoryEntry(content: .error(error))
                 }
             } catch {
                 guard !Task.isCancelled else { return }
 
                 logger.error("failed to load random card with error=\(error)")
-                entry = HistoryEntry(result: .failure(error))
+                entry = HistoryEntry(content: .error(error))
             }
 
             history.append(entry)

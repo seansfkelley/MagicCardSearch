@@ -35,7 +35,7 @@ struct SearchResultsGridView: View {
                 }
             } else if case .loaded(let results, _) = list.value, results.data.isEmpty {
                 ContentUnavailableView {
-                    Label("No Results", systemImage: "circle.slash")
+                    Label("No Results", systemImage: "rectangle.portrait.slash")
                 } description: {
                     Text("Your search didn't match any cards.")
                 } actions: {
