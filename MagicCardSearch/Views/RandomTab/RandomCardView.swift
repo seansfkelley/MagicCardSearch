@@ -18,7 +18,7 @@ private struct HistoryEntry: Identifiable {
     let content: Content
 
     var card: Card? {
-        if case .card(let c) = content { c } else { nil }
+        if case .card(let card) = content { card } else { nil }
     }
 }
 
