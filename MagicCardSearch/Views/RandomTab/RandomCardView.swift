@@ -47,7 +47,7 @@ struct RandomCardView: View {
     @Environment(RecentlyViewedCardsStore.self) private var recentlyViewedCardsStore
     @FetchAll private var bookmarks: [BookmarkedCard]
 
-    private let client = ScryfallClient()
+    private let client = ScryfallClient(logger: logger)
 
     private var currentCard: Card? {
         guard case .entry(_, let index) = scrollPosition else { return nil }
@@ -228,12 +228,27 @@ struct RandomCardView: View {
             do {
                 let card = try await client.getRandomCard(query: filters.queryString)
                 entry = HistoryEntry(result: .success(card))
+            } catch let error as ScryfallKitError {
+                guard !Task.isCancelled else { return }
+
+                // When searching for cards, a 404 means "no results found", not an actual error.
+                // Note that this condition assumes that we will never get legit 404s. This should
+                // be fine since we only use a small number of fixed URLs, but of course it's not
+                // foolproof if Scryfall makes breaking changes.
+                if case .scryfallError(let error) = error, error.status == 404 {
+                    logger.debug("intercepted Scryfall 404 and set to empty instead")
+
+                    // ???
+                } else {
+                    logger.error("failed to load random card with error=\(error)")
+                    entry = HistoryEntry(result: .failure(error))
+                }
             } catch {
+                guard !Task.isCancelled else { return }
+
                 logger.error("failed to load random card with error=\(error)")
                 entry = HistoryEntry(result: .failure(error))
             }
-
-            guard !Task.isCancelled else { return }
 
             history.append(entry)
             if case .placeholder = scrollPosition {
