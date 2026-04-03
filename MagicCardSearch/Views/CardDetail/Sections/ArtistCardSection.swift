@@ -12,7 +12,6 @@ struct ArtistCardSection: View {
                     .frame(width: 16, height: 16)
                 Text(artist)
                     .font(.caption)
-                    .foregroundStyle(.secondary)
             }
         }
         .padding(.horizontal)
