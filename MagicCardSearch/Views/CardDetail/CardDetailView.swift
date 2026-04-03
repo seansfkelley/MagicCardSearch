@@ -70,7 +70,10 @@ struct CardDetailView: View {
 
     var body: some View {
         ScrollView {
-            VStack(spacing: 0) {
+            // This is lazy ONLY because it prevents the rulings section from being loaded until it
+            // is (near) visible, which seems like all upside and helps avoid getting rate-limited
+            // by Scryfall.
+            LazyVStack(spacing: 0) {
                 CardView(
                     card: card,
                     quality: .large,
