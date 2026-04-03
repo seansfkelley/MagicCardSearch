@@ -73,42 +73,27 @@ struct SpoilersView: View {
 
     @ViewBuilder
     private func spoilersGrid(results: ObjectList<Card>) -> some View {
-        let grouped = groupByDate(results.data)
-
         ScrollView {
-            LazyVGrid(columns: columns, spacing: spacing, pinnedViews: .sectionHeaders) {
-                ForEach(grouped, id: \.date) { section in
-                    Section {
-                        ForEach(Array(section.cards.enumerated()), id: \.element.id) { _, card in
-                            let globalIndex = results.data.firstIndex { $0.id == card.id } ?? 0
-                            CardView(
-                                card: card,
-                                quality: .normal,
-                                isFlipped: $cardFlipStates.for(card.id),
-                                cornerRadius: 10,
-                                enableCopyActions: true,
-                                enableZoomGestures: .pinchOnly,
-                                zoomGestureBasisAdjustment: 3.0,
-                            )
-                            .onTapGesture {
-                                selectedCardIndex = globalIndex
-                            }
-                            .onAppear {
-                                if globalIndex == results.data.count - 4 {
-                                    spoilersList.loadNextPage()
-                                }
-                            }
-                            .padding(.horizontal, spacing / 2)
-                        }
-                    } header: {
-                        Text(section.date?.formatted() ?? "Unknown")
-                            .font(.headline)
-                            .foregroundStyle(.secondary)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.horizontal)
-                            .padding(.vertical, 8)
-                            .background(.background)
+            LazyVGrid(columns: columns, spacing: spacing) {
+                ForEach(Array(results.data.enumerated()), id: \.element.id) { index, card in
+                    CardView(
+                        card: card,
+                        quality: .normal,
+                        isFlipped: $cardFlipStates.for(card.id),
+                        cornerRadius: 10,
+                        enableCopyActions: true,
+                        enableZoomGestures: .pinchOnly,
+                        zoomGestureBasisAdjustment: 3.0,
+                    )
+                    .onTapGesture {
+                        selectedCardIndex = index
                     }
+                    .onAppear {
+                        if index == results.data.count - 4 {
+                            spoilersList.loadNextPage()
+                        }
+                    }
+                    .padding(.horizontal, spacing / 2)
                 }
 
                 if (results.hasMore ?? false) || spoilersList.value.isLoadingNextPage {
@@ -121,37 +106,6 @@ struct SpoilersView: View {
             .padding(.horizontal, spacing / 2)
             .padding(.vertical)
         }
-    }
-
-    private struct DateSection: Identifiable {
-        let date: PlainDate?
-        let cards: [Card]
-        var id: PlainDate? { date }
-    }
-
-    private func groupByDate(_ cards: [Card]) -> [DateSection] {
-        var unknownCards: [Card] = []
-        var orderedDates: [PlainDate] = []
-        var cardsByDate: [PlainDate: [Card]] = [:]
-
-        for card in cards {
-            if let rawDate = card.preview?.previewedAtAsDate {
-                let date = PlainDate(date: rawDate)
-                if cardsByDate[date] == nil {
-                    orderedDates.append(date)
-                }
-                cardsByDate[date, default: []].append(card)
-            } else {
-                unknownCards.append(card)
-            }
-        }
-
-        var sections: [DateSection] = []
-        if !unknownCards.isEmpty {
-            sections.append(DateSection(date: nil, cards: unknownCards))
-        }
-        sections += orderedDates.map { DateSection(date: $0, cards: cardsByDate[$0]!) }
-        return sections
     }
 }
 
