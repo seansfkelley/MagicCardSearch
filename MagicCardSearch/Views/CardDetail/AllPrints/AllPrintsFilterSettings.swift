@@ -16,8 +16,9 @@ struct AllPrintsFilterSettings: Equatable, Hashable, CustomStringConvertible {
 
     enum GameFilter: String, CaseIterable {
         case any = "Any"
-        case digital = "Digital"
         case paper = "Paper"
+        case arena = "Arena"
+        case mtgo = "MTGO"
     }
 
     enum SortMode: String, CaseIterable {
@@ -86,10 +87,12 @@ struct AllPrintsFilterSettings: Equatable, Hashable, CustomStringConvertible {
         switch game {
         case .any:
             break
-        case .digital:
-            query += " (game:mtgo OR game:arena)"
         case .paper:
             query += " game:paper"
+        case .arena:
+            query += " game:arena"
+        case .mtgo:
+            query += " game:mtgo"
         }
 
         return query
