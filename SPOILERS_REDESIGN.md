@@ -4,152 +4,120 @@
 
 ### Overview
 
-Add a daily-cached MTGJSON data feed to determine which sets are currently spoiling,
-and expose a floating set-selector header above the card grid that lets users narrow
-results to a single set or view all spoiling sets at once.
+Filter `ScryfallCatalogs.sets` — which is already fetched and cached at startup — to
+find currently-spoiling sets, and expose a floating set-selector header above the card
+grid that lets users narrow results to a single set or view all spoiling sets at once.
+
+No new dependencies or data fetches are required.
 
 ---
 
-### 1. CSV Library
+### 1. `MTGSet` Extension
 
-Add **`CodableCSV`** (`https://github.com/dehesa/CodableCSV.git`) as a Swift Package
-Manager dependency.
-
-The URL to fetch is `https://mtgjson.com/api/v5/csv/sets.csv`.
-
-`CSVDecoder` decodes directly into a `Decodable` type, with a `dateStrategy`
-configuration property. MTGJSON dates are `yyyy-MM-dd`. CodableCSV's `.iso8601` case
-hardcodes `yyyy-MM-dd'T'HH:mm:ss.SSSZZZZZ` (verified in `sources/Utils.swift`), so
-use `.formatted` instead. Extra columns in the CSV are ignored — standard `Decodable`
-behavior.
+`MTGSet.releasedAt` is a `String?` in the same `yyyy-MM-dd` format as `Card.releasedAt`.
+Add a `releasedAtAsDate: Date?` extension to `MTGSet` matching the existing one on
+`Card` (in `Card+Extensions.swift`):
 
 ```swift
-import CodableCSV
-
-private let mtgjsonDateFormatter: DateFormatter = {
-    let f = DateFormatter()
-    f.dateFormat = "yyyy-MM-dd"
-    f.locale = Locale(identifier: "en_US_POSIX")
-    return f
-}()
-
-let decoder = CSVDecoder {
-    $0.headerStrategy = .firstLine
-    $0.dateStrategy = .formatted(mtgjsonDateFormatter)
-}
-// takes Data (not String), convenient since we cache Data from the network anyway
-let sets = try decoder.decode([SpoilingSet].self, from: csvData)
-```
-
-`SpoilingSet` itself conforms to `Decodable` (see section 2). If the CSV column names
-don't match the Swift property names exactly, add `CodingKeys` to `SpoilingSet` rather
-than introducing a separate row struct.
-
----
-
-### 2. Data Model: `SpoilingSet`
-
-A lightweight value type that captures only what we need:
-
-```swift
-struct SpoilingSet: Identifiable, Hashable, Decodable {
-    let code: String
-    let name: String
-    let releaseDate: Date
-
-    var id: String { code }
+extension MTGSet {
+    var releasedAtAsDate: Date? {
+        guard let releasedAt else { return nil }
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withFullDate]
+        return formatter.date(from: releasedAt)
+    }
 }
 ```
 
----
-
-### 3. Data Layer: `SpoilingSetService`
-
-A new `@MainActor @Observable` singleton responsible for:
-
-1. **Daily-cached fetch** of the MTGJSON CSV
-   Use `bestEffortCache` (memory + disk) with a 1-day expiry, keyed by a fixed
-   string such as `"mtgjson-sets-csv"`. Cache the raw `Data` from the URL response.
-
-2. **Parsing** the CSV into `[SpoilingSet]` via `CSVDecoder` as described above, then
-   filtering to sets whose release date is `>= today - 14 days`.
-
-3. **Exposing** a sorted `[SpoilingSet]` property (farthest-in-the-future first,
-   then descending by date for already-released sets).
-
-The service should expose a `LoadableResult<[SpoilingSet], Error>` property so
-`SpoilersView` can render an appropriate loading/error/empty state.
+Place this in a new `Extensions/MTGSet+Extensions.swift`.
 
 ---
 
-### 4. Set Selector Header
+### 2. Spoiling Sets
+
+No new service or model is needed. Store the result as `@State` in `SpoilersView` and
+recompute it whenever catalogs refresh. `MTGSet.sets` is `@ObservationIgnored` on
+`ScryfallCatalogs`, so views can't observe it directly — use `catalogChangeNonce`
+as the trigger instead:
+
+```swift
+@State private var spoilingSets: [MTGSet] = []
+
+// called from .task and .onChange(of: scryfallCatalogs.catalogChangeNonce)
+private func recomputeSpoilingSets() {
+    let twoWeeksAgo = Calendar.current.date(byAdding: .weekOfYear, value: -2, to: .now)!
+    spoilingSets = (scryfallCatalogs.sets?.values ?? [])
+        .filter { ($0.releasedAtAsDate ?? .distantPast) >= twoWeeksAgo }
+        .sorted { ($0.releasedAtAsDate ?? .distantPast) > ($1.releasedAtAsDate ?? .distantPast) }
+}
+```
+
+This runs at most once per catalog load, not on every render.
+
+---
+
+### 3. Set Selector Header
 
 A new `SpoilersSetSelectorView` rendered above (not inside) the card grid `ScrollView`.
 
-**Layout:**  
+**Layout:**
 A horizontally scrolling row of `Capsule`-shaped buttons, each containing:
 - An icon on the left
 - A label on the right (set code in all-caps)
 
-The first item is **"All Sets"** using the `common` SVG asset (rendered via the
-existing `SetIconView`/SVGKit infrastructure or as a simple `Image("common")`
-asset reference) and the label "ALL".
+The first item is **"All Sets"** using the `common` SVG asset and the label "All Sets".
 
 Subsequent items use `SetIconView(setCode: SetCode(set.code), size: 16)` and display
-the uppercased set code. Items are ordered farthest-in-the-future first, matching
-the order exposed by `SpoilingSetService`.
+the uppercased set code. Items are ordered by `spoilingSets` (farthest-future first).
+Items have the release date as a secondary caption below the set code.
 
 The selected capsule should have a filled/tinted appearance; unselected capsules
 should have a secondary/outline style.
 
 ---
 
-### 5. Selection State & `@AppStorage`
+### 4. Selection State & `@AppStorage`
 
 The selected set code is stored in `@AppStorage("spoilersSelectedSetCode")` as a
 `String`. An empty string represents the "all sets" selection.
 
-**Stale-selection guard:** After `SpoilingSetService` finishes loading (or when the
-app foregrounds and the service data refreshes), check whether the stored set code
-is present in the current `spoilingSets` list. If not, reset the stored value to
-`""` (all sets).
+**Stale-selection guard:** When `spoilingSets` is computed, check whether the stored
+set code is present in the result. If not, reset it to `""` (all sets).
 
 ---
 
-### 6. Query Construction
+### 5. Query Construction
 
 Replace the current `SpoilersObjectList.shared` singleton with a per-query approach
 modeled after `AllPrintsView`:
 
-- **All sets:** `(set:aaa OR set:bbb OR set:ccc)` where the set codes are taken
-  from `SpoilingSetService.spoilingSets`. Sort: `order: .spoiled, sortDirection: .desc`.
-  If `spoilingSets` is empty (service still loading or error), fall back to the
-  previous `date>=today` query as a temporary measure.
+- **All sets:** `(set:aaa OR set:bbb OR set:ccc)` enumerating all codes from
+  `spoilingSets`. Sort: `order: .spoiled, sortDirection: .desc`.
 - **Single set:** `set:aaa`. Sort: `order: .spoiled, sortDirection: .desc`.
 
-Both queries should pass `unique: .prints` to match current behavior.
+Both queries pass `unique: .prints` to match current behavior.
+
+If `spoilingSets` is empty (catalogs still loading), the entire spoilers view should
+show a loading spinner.
 
 ---
 
-### 7. In-Memory Query Cache
+### 6. In-Memory Query Cache
 
 Mirror the `AllPrintsView` pattern:
 
 ```swift
 private static let objectListCache = StrongMemoryStorage<String, ScryfallObjectList<Card>>(
-    config: .init(expiry: .hours(1), countLimit: 10)
+    config: .init(expiry: .hours(1), countLimit: 50)
 )
 ```
 
-The cache key is the selected set code string (empty = all sets). When the selected
-set changes, look up the cache first; create and store a new `ScryfallObjectList`
-only on a miss. When `SpoilingSetService` refreshes its data (i.e., a new day's
-fetch returns different sets), flush this cache entirely so queries are rebuilt with
-the updated set list.
+The cache key is the selected set code string (empty = all sets). When `spoilingSets`
+changes (catalogs reload), flush this cache so queries rebuild with the updated set list.
 
 ---
 
-### 8. `SpoilersView` Layout Changes
+### 7. `SpoilersView` Layout Changes
 
 Current structure:
 
@@ -162,24 +130,28 @@ ZStack
 New structure:
 
 ```
-VStack(spacing: 0)
-  ├── SpoilersSetSelectorView   ← floating header (not in the scroll view)
-  └── ZStack
-        └── switch(objectList.value)
-              └── ScrollView > LazyVGrid
+ZStack
+  └── switch(objectList.value)
+        └── ScrollView > LazyVGrid
+            .safeAreaInset(edge: .top) {
+                SpoilersSetSelectorView + Divider()
+                    .background(.systemBackground)
+            }
 ```
 
-The set selector view gets a background matching `systemBackground` and a subtle
-bottom separator to visually "float" over the grid.
+`.safeAreaInset` is the correct approach here. The scroll view fills the full height;
+its content inset is automatically pushed down to start below the header. As the user
+scrolls, cards slide under the header, which covers them with its `systemBackground`
+background. A `VStack` would not achieve this — the scroll content would just sit
+below the header with no overlap.
 
 ---
 
-### 9. Files to Create / Modify
+### 8. Files to Create / Modify
 
 | File | Action |
 |------|--------|
-| `Logic/Spoilers/SpoilingSet.swift` | New — model |
-| `Logic/Spoilers/SpoilingSetService.swift` | New — singleton service |
+| `Extensions/MTGSet+Extensions.swift` | New — `releasedAtAsDate` |
 | `Views/SpoilersTab/SpoilersSetSelectorView.swift` | New — header UI |
 | `Views/SpoilersTab/SpoilersView.swift` | Modify — add header, replace singleton with dynamic queries, add cache |
 
@@ -263,16 +235,23 @@ A new view with a single-row `HStack`:
 **Layout in `SpoilersView`:**
 
 ```
-VStack(spacing: 0)
-  ├── SpoilersSetSelectorView     ← set selector (Phase 1)
-  ├── SpoilersFilterBarView       ← sort + color filter (Phase 2)
-  └── ZStack
-        └── switch(objectList.value)
-              └── ScrollView > LazyVGrid
+ZStack
+  └── switch(objectList.value)
+        └── ScrollView > LazyVGrid
+            .safeAreaInset(edge: .top) {
+                VStack(spacing: 0) {
+                    SpoilersSetSelectorView
+                    SpoilersFilterBarView
+                    Divider()
+                }
+                .background(.systemBackground)
+            }
 ```
 
-Both headers get a `systemBackground` background to cover the grid beneath them
-when it scrolls under.
+Both headers sit inside the `.safeAreaInset` content, sharing a single
+`systemBackground` background. The scroll view fills the full height; its
+content inset is pushed down to start below both headers. As the user scrolls,
+cards slide under the headers.
 
 ---
 
@@ -308,52 +287,13 @@ No other cache changes are needed.
 
 ## Alternatives Considered
 
-### CSV Libraries
+### Data Source for Spoiling Sets
 
-#### `SwiftCSV` (`https://github.com/swiftcsv/SwiftCSV.git`)
+The original design proposed fetching `https://mtgjson.com/api/v5/csv/sets.csv` daily
+and parsing it with `CodableCSV` to determine which sets are currently spoiling. This
+was superseded when it became clear that `ScryfallCatalogs.sets` already contains the
+same information (`MTGSet.releasedAt`) and is already fetched and cached at startup —
+making the CSV fetch, the new library dependency, and the intermediate model type all
+unnecessary.
 
-Parses into `[[String: String]]` row dictionaries keyed by header name. No Codable,
-minimal API surface. Requires manual date parsing after the fact.
-
-```swift
-import SwiftCSV
-
-let csv = try CSV<Named>(string: csvString)
-let sets = csv.rows.compactMap { row -> SpoilingSet? in
-    guard let code = row["code"],
-          let name = row["name"],
-          let dateString = row["releaseDate"],
-          let date = dateFormatter.date(from: dateString)
-    else { return nil }
-    return SpoilingSet(code: code, name: name, releaseDate: date)
-}
-```
-
-Not chosen because: date parsing is a separate step and the dictionary subscript
-pattern is less type-safe than a `Decodable` struct.
-
----
-
-#### `yaslab/CSV.swift` (`https://github.com/yaslab/CSV.swift.git`)
-
-Streaming row-by-row API with subscript access by header name. Also requires manual
-date parsing.
-
-```swift
-import CSV
-
-let reader = try CSVReader(string: csvString, hasHeaderRow: true)
-var sets: [SpoilingSet] = []
-while reader.next() != nil {
-    guard let code = reader["code"],
-          let name = reader["name"],
-          let dateString = reader["releaseDate"],
-          let date = dateFormatter.date(from: dateString)
-    else { continue }
-    sets.append(SpoilingSet(code: code, name: name, releaseDate: date))
-}
-```
-
-Not chosen for the same reason as SwiftCSV; additionally the `while` loop pattern
-is more verbose than a single `decode` call.
 
