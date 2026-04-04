@@ -123,7 +123,14 @@ private struct PagingCardImageView: View {
                                 GeometryReader { geometry in
                                     Color.clear
                                         .onChange(of: geometry.size.width, initial: true) {
-                                            cardWidth = geometry.size.width
+                                            // HACK. On fast internet and with a card with only one
+                                            // print ever, this might update multiple times a second
+                                            // on appear which triggers a warning and causes later
+                                            // updates to get dropped, so it ends up too small.
+                                            // FIXME: Does this require a GeometryReader?
+                                            DispatchQueue.main.async {
+                                                cardWidth = geometry.size.width
+                                            }
                                         }
                                 }
                             )
