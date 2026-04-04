@@ -12,76 +12,19 @@ results to a single set or view all spoiling sets at once.
 
 ### 1. CSV Library
 
+Add **`CodableCSV`** (`https://github.com/dehesa/CodableCSV.git`) as a Swift Package
+Manager dependency.
+
 The URL to fetch is `https://mtgjson.com/api/v5/csv/sets.csv`.
 
-Three viable options — all give named-column access. The parsing code differs slightly.
-
----
-
-#### Option A: `SwiftCSV` (`https://github.com/swiftcsv/SwiftCSV.git`)
-
-Parses into `[[String: String]]` row dictionaries keyed by header name.
-No Codable, minimal API surface.
-
-```swift
-import SwiftCSV
-
-// csvString is the raw String from the network response
-let csv = try CSV<Named>(string: csvString)
-let sets = csv.rows.compactMap { row -> SpoilingSet? in
-    guard let code = row["code"],
-          let name = row["name"],
-          let dateString = row["releaseDate"],
-          let date = dateFormatter.date(from: dateString)
-    else { return nil }
-    return SpoilingSet(code: code, name: name, releaseDate: date)
-}
-```
-
----
-
-#### Option B: `yaslab/CSV.swift` (`https://github.com/yaslab/CSV.swift.git`, from `2.5.2`)
-
-Streaming row-by-row API with subscript access by header name.
-
-```swift
-import CSV
-
-let reader = try CSVReader(string: csvString, hasHeaderRow: true)
-var sets: [SpoilingSet] = []
-while reader.next() != nil {
-    guard let code = reader["code"],
-          let name = reader["name"],
-          let dateString = reader["releaseDate"],
-          let date = dateFormatter.date(from: dateString)
-    else { continue }
-    sets.append(SpoilingSet(code: code, name: name, releaseDate: date))
-}
-```
-
----
-
-#### Option C: `CodableCSV` (`https://github.com/dehesa/CodableCSV.git`)
-
-Decodes directly into a `Decodable` type using `CSVDecoder`. It supports a
-`dateStrategy` configuration property with cases including `.deferredToDate`,
-`.iso8601`, `.formatted(DateFormatter)`, and `.custom(...)`.
-
-MTGJSON dates are `yyyy-MM-dd`. While ISO 8601 as a standard supports date-only
-strings, CodableCSV's `.iso8601` case hardcodes the format `yyyy-MM-dd'T'HH:mm:ss.SSSZZZZZ`
-(verified in `sources/Utils.swift`), so it won't parse them. Use `.formatted` instead.
-
-With `dateStrategy` set on the decoder, `releaseDate` can be `Date` directly in
-the row struct — no post-hoc string conversion needed:
+`CSVDecoder` decodes directly into a `Decodable` type, with a `dateStrategy`
+configuration property. MTGJSON dates are `yyyy-MM-dd`. CodableCSV's `.iso8601` case
+hardcodes `yyyy-MM-dd'T'HH:mm:ss.SSSZZZZZ` (verified in `sources/Utils.swift`), so
+use `.formatted` instead. Extra columns in the CSV are ignored — standard `Decodable`
+behavior.
 
 ```swift
 import CodableCSV
-
-private struct SetRow: Decodable {
-    let code: String
-    let name: String
-    let releaseDate: Date
-}
 
 private let mtgjsonDateFormatter: DateFormatter = {
     let f = DateFormatter()
@@ -95,19 +38,12 @@ let decoder = CSVDecoder {
     $0.dateStrategy = .formatted(mtgjsonDateFormatter)
 }
 // takes Data (not String), convenient since we cache Data from the network anyway
-let sets = try decoder.decode([SetRow].self, from: csvData).map {
-    SpoilingSet(code: $0.code, name: $0.name, releaseDate: $0.releaseDate)
-}
+let sets = try decoder.decode([SpoilingSet].self, from: csvData)
 ```
 
-Extra columns in the CSV are ignored — standard `Decodable` behavior. The private
-`SetRow` struct is the only extra piece; it could be eliminated if `SpoilingSet`
-itself were made `Decodable`, but that's not worth the conformance noise.
-
----
-
-All three work fine. A and B are more minimal; C is the most idiomatic Swift but
-adds a dependency heavier than needed for one small fetch. Pick any.
+`SpoilingSet` itself conforms to `Decodable` (see section 2). If the CSV column names
+don't match the Swift property names exactly, add `CodingKeys` to `SpoilingSet` rather
+than introducing a separate row struct.
 
 ---
 
@@ -116,9 +52,9 @@ adds a dependency heavier than needed for one small fetch. Pick any.
 A lightweight value type that captures only what we need:
 
 ```swift
-struct SpoilingSet: Identifiable, Hashable {
-    let code: String      // lowercased set code, used as `id`
-    let name: String      // human-readable set name
+struct SpoilingSet: Identifiable, Hashable, Decodable {
+    let code: String
+    let name: String
     let releaseDate: Date
 
     var id: String { code }
@@ -131,13 +67,11 @@ struct SpoilingSet: Identifiable, Hashable {
 
 A new `@MainActor @Observable` singleton responsible for:
 
-1. **Daily-cached fetch** of the MTGJSON CSV  
+1. **Daily-cached fetch** of the MTGJSON CSV
    Use `bestEffortCache` (memory + disk) with a 1-day expiry, keyed by a fixed
-   string such as `"mtgjson-set-decks-csv"`. Cache the raw `Data` from the URL
-   response. On app start, check the cache first; fetch from the network only when
-   the cache entry is absent or expired.
+   string such as `"mtgjson-sets-csv"`. Cache the raw `Data` from the URL response.
 
-2. **Parsing** the CSV into `[SpoilingSet]` via `CSVReader<HasHeaderRow>` and
+2. **Parsing** the CSV into `[SpoilingSet]` via `CSVDecoder` as described above, then
    filtering to sets whose release date is `>= today - 14 days`.
 
 3. **Exposing** a sorted `[SpoilingSet]` property (farthest-in-the-future first,
@@ -367,3 +301,59 @@ No other cache changes are needed.
 | `Logic/Spoilers/SpoilersSortOrder.swift` | New — enum + Scryfall params |
 | `Views/SpoilersTab/SpoilersFilterBarView.swift` | New — second header UI |
 | `Views/SpoilersTab/SpoilersView.swift` | Modify — add second header, update cache key |
+
+---
+
+---
+
+## Alternatives Considered
+
+### CSV Libraries
+
+#### `SwiftCSV` (`https://github.com/swiftcsv/SwiftCSV.git`)
+
+Parses into `[[String: String]]` row dictionaries keyed by header name. No Codable,
+minimal API surface. Requires manual date parsing after the fact.
+
+```swift
+import SwiftCSV
+
+let csv = try CSV<Named>(string: csvString)
+let sets = csv.rows.compactMap { row -> SpoilingSet? in
+    guard let code = row["code"],
+          let name = row["name"],
+          let dateString = row["releaseDate"],
+          let date = dateFormatter.date(from: dateString)
+    else { return nil }
+    return SpoilingSet(code: code, name: name, releaseDate: date)
+}
+```
+
+Not chosen because: date parsing is a separate step and the dictionary subscript
+pattern is less type-safe than a `Decodable` struct.
+
+---
+
+#### `yaslab/CSV.swift` (`https://github.com/yaslab/CSV.swift.git`)
+
+Streaming row-by-row API with subscript access by header name. Also requires manual
+date parsing.
+
+```swift
+import CSV
+
+let reader = try CSVReader(string: csvString, hasHeaderRow: true)
+var sets: [SpoilingSet] = []
+while reader.next() != nil {
+    guard let code = reader["code"],
+          let name = reader["name"],
+          let dateString = reader["releaseDate"],
+          let date = dateFormatter.date(from: dateString)
+    else { continue }
+    sets.append(SpoilingSet(code: code, name: name, releaseDate: date))
+}
+```
+
+Not chosen for the same reason as SwiftCSV; additionally the `while` loop pattern
+is more verbose than a single `decode` call.
+
