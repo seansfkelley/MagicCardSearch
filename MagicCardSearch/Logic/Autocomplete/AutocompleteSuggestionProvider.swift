@@ -475,7 +475,7 @@ func regexSuggestion(for partial: PartialFilterTerm) -> some Sequence<Autocomple
     let candidates = if let filterType {
         [(filterType, 1.0)]
     } else {
-        [("oracle", 1.0), ("name", 0.95), ("type", 0.95), ("flavor", 0.85)]
+        [("oracle", 1.0), ("name", 0.95), ("type", 0.95), ("fulloracle", 0.9), ("flavor", 0.85)]
     }
 
     return AnySequence(candidates.map {
