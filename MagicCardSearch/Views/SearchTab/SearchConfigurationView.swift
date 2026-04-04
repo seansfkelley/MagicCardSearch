@@ -49,7 +49,11 @@ struct SearchConfigurationView: View {
                 }
                 .pickerStyle(.segmented)
                 .labelsHidden()
+            } footer: {
+                Text("Use the `prefer:` or `unique:` filters to temporarily override these for one search.")
+            }
 
+            Section {
                 Picker("Game", selection: $workingConfig.game) {
                     ForEach(SearchConfiguration.Game.allCases, id: \.self) { mode in
                         Text(mode.rawValue).tag(mode)
@@ -58,7 +62,7 @@ struct SearchConfigurationView: View {
                 .pickerStyle(.segmented)
                 .labelsHidden()
             } footer: {
-                Text("Use the `prefer:`, `unique:` and/or `game:` filters to temporarily override these for one search.")
+                Text("If set, combines with any `game:` filters you add manually.")
             }
 
             Section {

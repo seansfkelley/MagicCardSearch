@@ -43,7 +43,7 @@ class CardSearchService {
             return nil
         }
 
-        // `prefer` is not allowed, and doesn't really mean anything, by itself, so add it after
+        // `prefer` by itself is not allowed, and doesn't really mean anything, so add it after
         // the empty check.
         if let preferClause = config.preferredPrint.toStringFilter() {
             // Scryfall will silently pick the last prefer: clause, so prepend it in case the user

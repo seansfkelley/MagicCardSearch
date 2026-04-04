@@ -155,9 +155,8 @@ struct RandomCardView: View {
                 Button {
                     showingFilterSheet = true
                 } label: {
-                    Image(systemName: filters != RandomCardFilters()
-                          ? "line.3.horizontal.decrease.circle.fill"
-                          : "line.3.horizontal.decrease.circle")
+                    Image(systemName: "line.3.horizontal.decrease")
+                        .badge(filters != RandomCardFilters() ? " " : nil)
                 }
             }
 
