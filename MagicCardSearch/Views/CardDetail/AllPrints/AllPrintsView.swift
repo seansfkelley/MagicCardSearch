@@ -33,7 +33,7 @@ struct AllPrintsView: View {
     // changing and presumably the culprit, but in most of those cases the parent views reported no
     // changes at all! So why did this one change identity? Something to do with being in a sheet?
     private static let objectListCache = StrongMemoryStorage<CacheKey, ScryfallObjectList<Card>>(
-        config: .init(expiry: .seconds(60.0 * 60), countLimit: 20),
+        config: .init(expiry: .days(1), countLimit: 20),
     )
 
     let oracleId: String

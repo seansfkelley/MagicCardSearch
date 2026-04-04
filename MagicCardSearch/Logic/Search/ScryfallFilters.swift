@@ -92,6 +92,7 @@ private let scryfallIsEnumerationValues = [
 let scryfallFilterTypes: [ScryfallFilterType] = [
     // MARK: - Name and ID
     .init("name", supportsRegex: true),
+//    .init("scryfallid"),
 //    .init("oracleid"),
 //    .init("illustrationid"),
 //    .init("printingid"),
