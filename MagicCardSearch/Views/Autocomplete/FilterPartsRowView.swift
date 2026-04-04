@@ -15,7 +15,7 @@ struct FilterPartsRowView: View {
                 onSelect(.basic(polarity, filterType.canonicalName, .including, match.value))
             } label: {
                 HStack(spacing: 12) {
-                    Image(systemName: suggestion.icon)
+                    suggestion.icon
                         .foregroundStyle(.secondary)
                         .font(.system(size: suggestion.iconFontSize))
                         .frame(width: iconWidth)

@@ -12,7 +12,7 @@ struct FilterTypeRowView: View {
         switch suggestion.content {
         case .filterType(let match):
             HStack(spacing: 12) {
-                Image(systemName: suggestion.icon)
+                suggestion.icon
                     .foregroundStyle(.secondary)
                     .font(.system(size: suggestion.iconFontSize))
                     .frame(width: iconWidth)

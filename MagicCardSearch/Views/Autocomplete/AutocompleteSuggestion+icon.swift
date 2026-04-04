@@ -1,16 +1,17 @@
 import Foundation
+import SwiftUI
 
 extension AutocompleteSuggestion {
-    var icon: String {
+    var icon: Image {
         switch source {
-        case .pinnedFilter: "pin.fill"
-        case .historyFilter: "clock.arrow.circlepath"
-        case .filterType: "line.3.horizontal.decrease"
-        case .enumeration: "list.bullet"
-        case .reverseEnumeration: "list.bullet"
-        case .name: "custom.list.bullet.rectangle.portrait"
-        case .fullText: "text.rectangle"
-        case .regex: "chevron.left.forwardslash.chevron.right"
+        case .pinnedFilter: Image(systemName: "pin.fill")
+        case .historyFilter: Image(systemName: "clock.arrow.circlepath")
+        case .filterType: Image(systemName: "line.3.horizontal.decrease")
+        case .enumeration: Image(systemName: "list.bullet")
+        case .reverseEnumeration: Image(systemName: "list.bullet")
+        case .name: Image("custom.list.bullet.rectangle.portrait")
+        case .fullText: Image(systemName: "text.rectangle")
+        case .regex: Image(systemName: "chevron.left.forwardslash.chevron.right")
         }
     }
 

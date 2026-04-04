@@ -14,7 +14,7 @@ struct FilterRowView: View {
                 onTap(match.value)
             } label: {
                 HStack(spacing: 12) {
-                    Image(systemName: suggestion.icon)
+                    suggestion.icon
                         .foregroundStyle(.secondary)
                         .font(.system(size: suggestion.iconFontSize))
                         .frame(width: iconWidth)

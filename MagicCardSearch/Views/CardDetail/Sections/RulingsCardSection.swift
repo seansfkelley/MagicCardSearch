@@ -39,6 +39,8 @@ struct RulingsCardSection<DividerContent: View>: View {
                     Label("Rulings", systemImage: "book.and.wrench")
                         .labelReservedIconWidth(iconWidth)
                         .font(.headline)
+                        // pixel-push to make it line up with the adjacent DisclosureGroup
+                        .padding(.vertical, 3)
 
                     VStack(alignment: .leading, spacing: 16) {
                         switch rulings {
