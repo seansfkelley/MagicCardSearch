@@ -20,7 +20,7 @@ struct RandomCardFilters: Equatable, Codable {
             let key = useColorIdentity ? "id" : "color"
 
             let orClauses = colors.map { "\(key):\($0.rawValue.lowercased())" }.joined(separator: " OR ")
-            clauses.append("(\(orClauses)")
+            clauses.append("(\(orClauses))")
 
             let nonColorless = colors.subtracting([.C])
             if !nonColorless.isEmpty {
