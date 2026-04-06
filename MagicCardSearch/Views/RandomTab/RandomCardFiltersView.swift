@@ -32,9 +32,9 @@ struct RandomCardFiltersView: View {
         List(selection: $enumerations) {
             ColorFilterSection(colors: $colors, useColorIdentity: $useColorIdentity)
             TypeFilterSection(legendary: $legendary)
+            FormatFilterSection(enumerations: $enumerations)
             RarityFilterSection()
             GamesFilterSection()
-            FormatFilterSection(enumerations: $enumerations)
             ResetFilterSection(
                 colors: $colors,
                 useColorIdentity: $useColorIdentity,
