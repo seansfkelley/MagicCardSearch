@@ -322,12 +322,11 @@ private struct SetFilterSection: View {
 // MARK: - Set Picker
 
 private struct SetPickerView: View {
-    private struct SetSection: Identifiable {
-        let name: String
+    private struct AlphabeticalSection: Identifiable {
+        let letter: String
         let sets: [MTGSet]
-        let indexLabel: String?
 
-        var id: String { name }
+        var id: String { letter }
     }
 
     private let ignoredSetTypes: Set<MTGSet.Kind> = [
@@ -342,16 +341,28 @@ private struct SetPickerView: View {
     @Environment(\.dismiss) private var dismiss
     @Binding var setCode: SetCode?
 
-    @State private var recentSection: SetSection?
-    @State private var alphabeticalSections: [SetSection] = []
+    @State private var recentSets: [MTGSet] = []
+    @State private var alphabeticalSections: [AlphabeticalSection] = []
 
     var body: some View {
         List {
-            if let recentSection {
-                makeSection(recentSection)
+            if !recentSets.isEmpty {
+                makeSection("Recent Sets", sets: recentSets) { set in
+                    Text(set.name)
+                        .foregroundStyle(.primary)
+                    if let date = set.releasedAtAsDate {
+                        Text(date.formatted(date: .long, time: .omitted))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
             }
             ForEach(alphabeticalSections) { section in
-                makeSection(section)
+                makeSection(section.letter, sets: section.sets) { set in
+                    Text(set.name)
+                        .foregroundStyle(.primary)
+                }
+                .sectionIndexLabel(section.letter)
             }
         }
         .listStyle(.plain)
@@ -363,16 +374,16 @@ private struct SetPickerView: View {
     }
 
     @ViewBuilder
-    private func makeSection(_ section: SetSection) -> some View {
+    private func makeSection(_ header: String, sets: [MTGSet], @ViewBuilder content: @escaping (MTGSet) -> some View) -> some View {
         Section {
-            Text(section.name)
+            Text(header)
                 .fontWeight(.bold)
                 .foregroundStyle(.secondary)
                 .listRowSeparator(.hidden)
                 .listRowInsets(EdgeInsets())
                 .padding(.horizontal)
 
-            ForEach(section.sets, id: \.code) { set in
+            ForEach(sets, id: \.code) { set in
                 Button {
                     setCode = SetCode(set.code)
                     dismiss()
@@ -380,13 +391,7 @@ private struct SetPickerView: View {
                     HStack(spacing: 12) {
                         SetIconView(setCode: SetCode(set.code), size: 32)
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(set.name)
-                                .foregroundStyle(.primary)
-                            if let releasedAt = set.releasedAtAsDate {
-                                Text(releasedAt.formatted(date: .long, time: .omitted))
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
+                            content(set)
                         }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -394,9 +399,6 @@ private struct SetPickerView: View {
                 }
                 .buttonStyle(.plain)
             }
-        }
-        .if(section.indexLabel) { view, label in
-            view.sectionIndexLabel(label)
         }
     }
 
@@ -407,10 +409,9 @@ private struct SetPickerView: View {
         // Exploit ISO8601-style date formats to avoid ever having to parse the date.
         let recencyCutoff = Calendar.current.date(byAdding: .year, value: -1, to: .now)?
             .ISO8601Format(.iso8601.year().month().day().dateSeparator(.dash)) ?? "1900-01-01"
-        let recentSets = allSets
+        recentSets = allSets
             .filter { ($0.releasedAt ?? "1900-01-01") >= recencyCutoff }
             .sorted { ($0.releasedAt ?? "1900-01-01") > ($1.releasedAt ?? "1900-01-01") }
-        recentSection = recentSets.isEmpty ? nil : SetSection(name: "Recent Sets", sets: recentSets, indexLabel: nil)
 
         let sorted = allSets.sorted { $0.name < $1.name }
         let grouped = Dictionary(grouping: sorted) { set -> String in
@@ -422,9 +423,9 @@ private struct SetPickerView: View {
         var result = grouped.keys
             .filter { $0 != "#" }
             .sorted()
-            .map { SetSection(name: $0, sets: grouped[$0]!, indexLabel: $0) }
+            .map { AlphabeticalSection(letter: $0, sets: grouped[$0]!) }
         if let hashSets = grouped["#"] {
-            result.append(SetSection(name: "#", sets: hashSets, indexLabel: "#"))
+            result.append(AlphabeticalSection(letter: "#", sets: hashSets))
         }
         alphabeticalSections = result
     }
