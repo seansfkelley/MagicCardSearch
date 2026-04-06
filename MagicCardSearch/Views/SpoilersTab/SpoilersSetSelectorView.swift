@@ -27,7 +27,7 @@ struct SpoilersSetSelectorView: View {
                             label: set.name,
                             sublabel: [
                                 set.code.uppercased(),
-                                set.releasedAtAsDate.map { $0.formatted(.dateTime.month(.abbreviated).day()) },
+                                set.releasedAtAsDate.map { $0.formatted(.dateTime.month(.wide).day()) },
                             ].compactMap(\.self).joined(separator: " • "),
                             isSelected: selectedSetCode == SetCode(set.code)
                         ) {
