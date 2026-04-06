@@ -36,7 +36,6 @@ struct SearchTabView: View {
                         showDisplayOptionsSheet = true
                     } label: {
                         Image(systemName: "arrow.up.arrow.down")
-                            .badge(searchState.configuration.hasNonOverridableFilters ? nil : " ")
                     }
                 }
 
@@ -128,11 +127,5 @@ private struct SearchSheetView: View {
                     SyntaxReferenceView()
                 }
             }
-    }
-}
-
-private extension SearchConfiguration {
-    var hasNonOverridableFilters: Bool {
-        game == .any
     }
 }

@@ -50,10 +50,6 @@ class CardSearchService {
             // has written one by hand in there somewhere.
             queryString = "\(preferClause) \(queryString)"
         }
-        if let gameClause = config.game.toStringFilter() {
-            // TODO: Scryfall will AND this with any other hand-written game: clause, which is probably wrong.
-            queryString = "\(queryString) \(gameClause)"
-        }
 
         // For sharing, always build the web URL
         let baseURL = webBaseURL

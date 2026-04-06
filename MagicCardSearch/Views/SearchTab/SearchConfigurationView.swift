@@ -54,18 +54,6 @@ struct SearchConfigurationView: View {
             }
 
             Section {
-                Picker("Game", selection: $workingConfig.game) {
-                    ForEach(SearchConfiguration.Game.allCases, id: \.self) { mode in
-                        Text(mode.rawValue).tag(mode)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .labelsHidden()
-            } footer: {
-                Text("If set, combines with any `game:` filters you add manually.")
-            }
-
-            Section {
                 Toggle("Automatically Include Extras", isOn: $workingConfig.automaticallyIncludeExtras)
             } footer: {
                 Text("If a search returns no results, automatically add `include:extras` and retry.")

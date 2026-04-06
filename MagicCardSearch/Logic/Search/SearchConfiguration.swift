@@ -6,11 +6,10 @@ struct SearchConfiguration: Equatable, Codable, CustomStringConvertible {
     var sortField: SortField = .name
     var sortOrder: SortOrder = .auto
     var preferredPrint: PreferredPrint = .newest
-    var game: Game = .any
     var automaticallyIncludeExtras = true
 
     public var description: String {
-        "uniqueMode: \(uniqueMode.apiValue), sortField: \(sortField.apiValue), sortOrder: \(sortOrder.apiValue), preferredPrint: \(preferredPrint.apiValue), game: \(game.apiValue), automaticallyIncludeExtras: \(automaticallyIncludeExtras)"
+        "uniqueMode: \(uniqueMode.apiValue), sortField: \(sortField.apiValue), sortOrder: \(sortOrder.apiValue), preferredPrint: \(preferredPrint.apiValue), automaticallyIncludeExtras: \(automaticallyIncludeExtras)"
     }
 
     static let defaultConfig = SearchConfiguration()
@@ -20,7 +19,6 @@ struct SearchConfiguration: Equatable, Codable, CustomStringConvertible {
         sortField = .name
         sortOrder = .auto
         preferredPrint = .newest
-        game = .any
         automaticallyIncludeExtras = true
     }
     
@@ -41,27 +39,6 @@ struct SearchConfiguration: Equatable, Codable, CustomStringConvertible {
             case .cards: .cards
             case .prints: .prints
             case .art: .art
-            }
-        }
-    }
-
-    enum Game: String, CaseIterable, Codable {
-        case any = "Any"
-        case paper = "Paper"
-        case arena = "Arena"
-        case mtgo = "MTGO"
-
-        var apiValue: String {
-            String(describing: self)
-        }
-
-        // Because this can clutter up the main query string instead of just the URL parameters, try
-        // to avoid including it unless we need to. This makes shared URLs reflect what you actually
-        // wrote more often.
-        func toStringFilter() -> String? {
-            switch self {
-            case .any: nil
-            default: "game:\(self.apiValue)"
             }
         }
     }
