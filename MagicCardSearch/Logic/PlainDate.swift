@@ -19,6 +19,10 @@ import Foundation
 public struct PlainDate {
     // MARK: - Creating an instance
 
+    public static var now: PlainDate {
+        .init(date: .now)
+    }
+
     /// Returns a date string initialized using their ISO 8601 representation.
     /// - Parameters:
     ///   - dateAsString: The ISO 8601 representation of the date. For instance, `2022-03-02`for March 2nd of 2022.

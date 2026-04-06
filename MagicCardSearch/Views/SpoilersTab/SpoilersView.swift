@@ -153,7 +153,7 @@ struct SpoilersView: View {
                         }
                         .padding(.horizontal, spacing / 2)
                         .overlay(alignment: .bottomTrailing) {
-                            if let date = card.preview?.previewedAtAsDate {
+                            if let previewedAt = card.preview?.previewedAt, let date = PlainDate(from: previewedAt) {
                                 Text(date.relativeLabel)
                                     .font(.caption2)
                                     .fontWeight(.medium)
@@ -245,18 +245,13 @@ struct SpoilersView: View {
     }
 }
 
-private extension Date {
+private extension PlainDate {
     var relativeLabel: String {
-        let calendar = Calendar.current
-        let days = calendar.dateComponents(
-            [.day],
-            from: calendar.startOfDay(for: self),
-            to: calendar.startOfDay(for: .now)
-        ).day ?? 0
-        switch days {
-        case 0: return "today"
-        case 1: return "yesterday"
-        default: return "\(days) days ago"
+        switch distance(to: .now) {
+        case -1: "tomorrow"
+        case 0: "today"
+        case 1: "yesterday"
+        case let days: days < 0 ? "in \(days) days" : "\(days) days ago"
         }
     }
 }
