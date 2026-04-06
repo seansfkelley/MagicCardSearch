@@ -41,7 +41,9 @@ struct SpoilersSetSelectorView: View {
             .onChange(of: spoilingSets) {
                 guard !hasScrolledInitially, !spoilingSets.isEmpty else { return }
                 hasScrolledInitially = true
-                proxy.scrollTo(selectedSetCode, anchor: .center)
+                withAnimation {
+                    proxy.scrollTo(selectedSetCode, anchor: .center)
+                }
             }
         }
     }

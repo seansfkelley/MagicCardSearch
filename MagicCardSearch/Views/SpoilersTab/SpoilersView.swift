@@ -72,8 +72,8 @@ struct SpoilersView: View {
                     if results.data.isEmpty {
                         ContentUnavailableView(
                             "No Spoilers",
-                            systemImage: "sparkles",
-                            description: Text("No new cards have been spoiled recently.")
+                            systemImage: "rectangle.portrait.slash",
+                            description: Text("No recent spoilers matching your filters.")
                         )
                     } else {
                         spoilersGrid(results: results)
