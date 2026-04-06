@@ -131,7 +131,7 @@ private enum FlattenedEnumerationFilter: Hashable, Identifiable {
         switch self {
         case .type(let type):
             switch type {
-            case "Artifact", "Creature", "Enchantment", "Instant", "Land", "Legendary", "Planeswalker", "Sorcery": type.lowercased()
+            case "Artifact", "Creature", "Enchantment", "Instant", "Land", "Planeswalker", "Sorcery": type.lowercased()
             default: nil
             }
         case .rarity(let rarity): rarity.assetName
