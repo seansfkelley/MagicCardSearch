@@ -374,6 +374,8 @@ private struct SetPickerView: View {
                         }
                         .buttonStyle(.plain)
                     }
+                } header: {
+                    Text(section.fullSectionName)
                 }
                 .sectionIndexLabel(section.shortSectionName)
             }
@@ -406,11 +408,17 @@ private struct SetPickerView: View {
     }
 
     private func dateSections(from sets: [MTGSet]) -> [SetSection] {
-        let sorted = sets.sorted {
-            ($0.releasedAtAsDate ?? .distantPast) > ($1.releasedAtAsDate ?? .distantPast)
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withFullDate]
+        let withDates = sets.map { set -> (MTGSet, Date?) in
+            let date = set.releasedAt.flatMap { formatter.date(from: $0) }
+            return (set, date)
         }
-        let grouped = Dictionary(grouping: sorted) { set -> String in
-            if let date = set.releasedAtAsDate {
+        let sorted = withDates.sorted {
+            ($0.1 ?? .distantPast) > ($1.1 ?? .distantPast)
+        }
+        let grouped = Dictionary(grouping: sorted) { pair -> String in
+            if let date = pair.1 {
                 return String(Calendar.current.component(.year, from: date))
             }
             return "—"
@@ -420,7 +428,7 @@ private struct SetPickerView: View {
             if rhs == "—" { return true }
             return lhs > rhs
         }
-        return keys.map { SetSection($0, shortSectionName: "'\($0.suffix(2))", sets: grouped[$0]!) }
+        return keys.map { SetSection($0, shortSectionName: "'\($0.suffix(2))", sets: grouped[$0]!.map(\.0)) }
     }
 
     private func alphabetSections(from sets: [MTGSet]) -> [SetSection] {
