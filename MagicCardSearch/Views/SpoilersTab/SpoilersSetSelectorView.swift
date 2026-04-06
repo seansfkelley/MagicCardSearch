@@ -33,8 +33,6 @@ struct SpoilersSetSelectorView: View {
             }
             .padding(6)
         }
-        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 30))
-        .clipShape(Capsule())
     }
 }
 
@@ -63,7 +61,7 @@ private struct SetSelectorCapsule<Icon: View>: View {
             .padding(.vertical, 4)
         }
         .buttonStyle(.plain)
-        .padding(.trailing, 4) // The text ends up real close to the edge otherwise.
+        .padding(.trailing, 8) // The text ends up real close to the edge otherwise.
         .foregroundStyle(isSelected ? Color.white : Color.primary)
         .background {
             if isSelected {

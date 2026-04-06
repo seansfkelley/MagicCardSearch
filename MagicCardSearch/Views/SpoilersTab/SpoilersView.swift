@@ -12,19 +12,30 @@ private let ignoredSetTypes: Set<MTGSet.Kind> = [
 
 private let logger = Logger(subsystem: "MagicCardSearch", category: "SpoilersView")
 
+private let canonicalColorOrder = ["W", "U", "B", "R", "G", "C"]
+
 struct SpoilersView: View {
     @State private var selectedCardIndex: Int?
     @State private var cardFlipStates: [UUID: Bool] = [:]
     @State private var orderedSelectableSets: [MTGSet] = []
     @State private var currentSearchResults: ScryfallObjectList<Card> = .empty()
+    @State private var selectedColors: Set<String> = []
 
     @AppStorage("spoilersSelectedSetCode") private var selectedSetCode: SetCode = allSetsSentinel
+    @AppStorage("spoilersSortOrder") private var sortOrder: SpoilersSortOrder = .spoiled
+    @AppStorage("spoilersColorFilter") private var colorFilterStorage: String = ""
 
     @Environment(ScryfallCatalogs.self) private var scryfallCatalogs
 
     private static let client = ScryfallClient(logger: logger)
 
-    private static let objectListCache = StrongMemoryStorage<SetCode, ScryfallObjectList<Card>>(
+    private struct CacheKey: Hashable {
+        let setCode: SetCode
+        let sortOrder: SpoilersSortOrder
+        let colorFilter: String
+    }
+
+    private static let objectListCache = StrongMemoryStorage<CacheKey, ScryfallObjectList<Card>>(
         config: .init(expiry: .hours(1), countLimit: 50)
     )
 
@@ -70,22 +81,38 @@ struct SpoilersView: View {
             }
         }
         .safeAreaInset(edge: .top) {
-            SpoilersSetSelectorView(spoilingSets: orderedSelectableSets, selectedSetCode: $selectedSetCode)
-                .padding(.horizontal, 8)
+            VStack(spacing: 0) {
+                SpoilersSetSelectorView(spoilingSets: orderedSelectableSets, selectedSetCode: $selectedSetCode)
+                Divider()
+                SpoilersFilterBarView(sortOrder: $sortOrder, selectedColors: $selectedColors)
+            }
+            .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 20))
+            .clipShape(RoundedRectangle(cornerRadius: 20))
+            .padding(.horizontal)
         }
         .toolbar(.hidden, for: .navigationBar)
         .task {
             if isRunningTests() {
                 logger.info("skipping spoilers load in test environment")
             } else {
+                selectedColors = parseColorFilter(colorFilterStorage)
                 recomputeSpoilingSets()
                 reloadSpoilers()
             }
         }
         .onChange(of: scryfallCatalogs.catalogChangeNonce) {
+            Self.objectListCache.removeAll()
             recomputeSpoilingSets()
+            reloadSpoilers()
         }
         .onChange(of: selectedSetCode) {
+            reloadSpoilers()
+        }
+        .onChange(of: sortOrder) {
+            reloadSpoilers()
+        }
+        .onChange(of: selectedColors) {
+            colorFilterStorage = serializeColorFilter(selectedColors)
             reloadSpoilers()
         }
         .sheet(
@@ -168,31 +195,66 @@ struct SpoilersView: View {
     private func reloadSpoilers() {
         guard !orderedSelectableSets.isEmpty else { return }
 
-        if let cached = try? Self.objectListCache.entry(forKey: selectedSetCode) {
+        let canonicalColorFilter = serializeColorFilter(selectedColors)
+        let cacheKey = CacheKey(setCode: selectedSetCode, sortOrder: sortOrder, colorFilter: canonicalColorFilter)
+
+        if let cached = try? Self.objectListCache.entry(forKey: cacheKey) {
             currentSearchResults = cached.object
             return
         }
 
-        let query: String
+        var queryParts: [String] = []
+
         if selectedSetCode == allSetsSentinel {
-            query = "date>=today"
+            queryParts.append("date>=today")
         } else {
-            query = "set:\(selectedSetCode.rawValue.lowercased())"
+            queryParts.append("set:\(selectedSetCode.rawValue.lowercased())")
         }
+
+        if let colorClause = buildColorClause(from: selectedColors) {
+            queryParts.append(colorClause)
+        }
+
+        let query = queryParts.joined(separator: " ")
 
         let newObjectList = ScryfallObjectList<Card> { page in
             try await Self.client.searchCards(
                 query: query,
                 unique: .prints,
-                order: .spoiled,
+                order: sortOrder.scryfallSortMode,
                 sortDirection: .desc,
                 page: page,
             )
         }
 
-        Self.objectListCache.setObject(newObjectList, forKey: selectedSetCode)
+        Self.objectListCache.setObject(newObjectList, forKey: cacheKey)
         currentSearchResults = newObjectList
         currentSearchResults.loadNextPage()
+    }
+
+    private func buildColorClause(from colors: Set<String>) -> String? {
+        guard !colors.isEmpty else { return nil }
+
+        let hasColorless = colors.contains("C")
+        let chromatic = colors.subtracting(["C"])
+
+        if !hasColorless {
+            let colorString = canonicalColorOrder.filter { chromatic.contains($0) }.joined()
+            return "color<=\(colorString)"
+        } else if chromatic.isEmpty {
+            return "color:C"
+        } else {
+            let colorString = canonicalColorOrder.filter { chromatic.contains($0) }.joined()
+            return "(color:C OR color<=\(colorString))"
+        }
+    }
+
+    private func serializeColorFilter(_ colors: Set<String>) -> String {
+        canonicalColorOrder.filter { colors.contains($0) }.joined(separator: ",")
+    }
+
+    private func parseColorFilter(_ storage: String) -> Set<String> {
+        Set(storage.split(separator: ",").map(String.init))
     }
 }
 
