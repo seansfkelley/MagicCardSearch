@@ -10,6 +10,8 @@ struct RandomCardFiltersView: View {
     @State private var useColorIdentity: Bool
     @State private var legendary: Bool
     @State private var enumerations: Set<FlattenedEnumerationFilter>
+    @State private var setCode: SetCode?
+    @State private var showingSetPicker = false
     let onApply: (RandomCardFilters) -> Void
 
     init(filters: RandomCardFilters, onApply: @escaping (RandomCardFilters) -> Void) {
@@ -18,6 +20,7 @@ struct RandomCardFiltersView: View {
         self._colors = State(initialValue: filters.colors)
         self._useColorIdentity = State(initialValue: filters.useColorIdentity)
         self._legendary = State(initialValue: filters.legendary)
+        self._setCode = State(initialValue: filters.setCode)
         self._enumerations = State(initialValue: {
             var initial = Set<FlattenedEnumerationFilter>()
             initial.formUnion(filters.types.map { .type($0) })
@@ -32,6 +35,7 @@ struct RandomCardFiltersView: View {
         List(selection: $enumerations) {
             ColorFilterSection(colors: $colors, useColorIdentity: $useColorIdentity)
             TypeFilterSection(legendary: $legendary)
+            SetFilterSection(setCode: $setCode, showingSetPicker: $showingSetPicker)
             FormatFilterSection(enumerations: $enumerations)
             RarityFilterSection()
             GamesFilterSection()
@@ -40,10 +44,14 @@ struct RandomCardFiltersView: View {
                 useColorIdentity: $useColorIdentity,
                 legendary: $legendary,
                 enumerations: $enumerations,
+                setCode: $setCode,
             )
         }
         .listStyle(.insetGrouped)
         .environment(\.editMode, .constant(.active))
+        .navigationDestination(isPresented: $showingSetPicker) {
+            SetPickerView(setCode: $setCode)
+        }
         .navigationTitle("Filters")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -73,6 +81,7 @@ struct RandomCardFiltersView: View {
                         games: Set(enumerations.compactMap {
                             if case .game(let game) = $0 { game } else { nil }
                         }),
+                        setCode: setCode,
                     )
                     onApply(merged)
                     dismiss()
@@ -265,6 +274,119 @@ private struct GamesFilterSection: View {
     }
 }
 
+// MARK: - Set Section
+
+private struct SetFilterSection: View {
+    @Environment(ScryfallCatalogs.self) private var scryfallCatalogs
+    @Binding var setCode: SetCode?
+    @Binding var showingSetPicker: Bool
+
+    var body: some View {
+        Section {
+            HStack(spacing: 12) {
+                if let setCode, let set = scryfallCatalogs.sets?[setCode] {
+                    SetIconView(setCode: setCode, size: 20)
+                        .foregroundStyle(.primary)
+                    Text(set.name)
+                        .foregroundStyle(.primary)
+                    Spacer()
+                    Button {
+                        self.setCode = nil
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                } else {
+                    Text("No set selected")
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                }
+                Image(systemName: "chevron.right")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(.tertiary)
+            }
+            .contentShape(Rectangle())
+            .onTapGesture {
+                showingSetPicker = true
+            }
+            .selectionDisabled()
+        } header: {
+            Text("Set")
+        } footer: {
+            Text("If set, only show cards from this set.")
+        }
+    }
+}
+
+// MARK: - Set Picker
+
+private struct SetPickerView: View {
+    private let ignoredSetTypes: Set<MTGSet.Kind> = [
+        .token,
+        .promo,
+        .memorabilia,
+        .minigame,
+        .duelDeck,
+    ]
+
+    @Environment(ScryfallCatalogs.self) private var scryfallCatalogs
+    @Environment(\.dismiss) private var dismiss
+    @Binding var setCode: SetCode?
+
+    private enum SortOrder {
+        case byReleaseDate, alphabetical
+    }
+
+    @State private var sortOrder: SortOrder = .byReleaseDate
+
+    private var sortedSets: [MTGSet] {
+        let sets = Array((scryfallCatalogs.sets ?? [:]).values)
+            .filter { !ignoredSetTypes.contains($0.setType) }
+
+        return switch sortOrder {
+        case .byReleaseDate:
+            sets.sorted {
+                ($0.releasedAtAsDate ?? .distantPast) > ($1.releasedAtAsDate ?? .distantPast)
+            }
+        case .alphabetical:
+            sets.sorted { $0.name < $1.name }
+        }
+    }
+
+    var body: some View {
+        List {
+            ForEach(sortedSets, id: \.code) { set in
+                Button {
+                    setCode = SetCode(set.code)
+                    dismiss()
+                } label: {
+                    HStack(spacing: 12) {
+                        SetIconView(setCode: SetCode(set.code), size: 32)
+                        Text(set.name)
+                            .foregroundStyle(.primary)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .listStyle(.plain)
+        .navigationTitle("Set")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                Picker("Sort", selection: $sortOrder) {
+                    Text("Release Date").tag(SortOrder.byReleaseDate)
+                    Text("Name").tag(SortOrder.alphabetical)
+                }
+                .pickerStyle(.segmented)
+            }
+        }
+    }
+}
+
 // MARK: - Format Section
 
 private struct FormatFilterSection: View {
@@ -326,9 +448,10 @@ private struct ResetFilterSection: View {
     @Binding var useColorIdentity: Bool
     @Binding var legendary: Bool
     @Binding var enumerations: Set<FlattenedEnumerationFilter>
+    @Binding var setCode: SetCode?
 
     private var areFiltersDefault: Bool {
-        colors.isEmpty && useColorIdentity == false && legendary == false && enumerations.isEmpty
+        colors.isEmpty && useColorIdentity == false && legendary == false && enumerations.isEmpty && setCode == nil
     }
 
     var body: some View {
@@ -341,6 +464,7 @@ private struct ResetFilterSection: View {
                 useColorIdentity = false
                 legendary = false
                 enumerations = []
+                setCode = nil
             } label: {
                 HStack {
                     Image(systemName: "arrow.counterclockwise")

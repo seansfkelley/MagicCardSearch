@@ -11,6 +11,7 @@ struct RandomCardFilters: Equatable, Codable {
     var legendary: Bool = false
     var rarities: Set<Card.Rarity> = []
     var games: Set<Game> = []
+    var setCode: SetCode?
 
     var queryString: String? {
         var clauses: [String] = ["language:en"]
@@ -49,6 +50,10 @@ struct RandomCardFilters: Equatable, Codable {
         if !games.isEmpty {
             let clause = games.map { "game:\($0.rawValue)" }.joined(separator: " OR ")
             clauses.append("(\(clause))")
+        }
+
+        if let setCode {
+            clauses.append("s:\(setCode.rawValue.lowercased())")
         }
 
         return clauses.joined(separator: " ")
