@@ -43,7 +43,7 @@ struct SpoilersFilterBarView: View {
                             selectedColors.insert(color)
                         }
                     } label: {
-                        SymbolView(SymbolCode(color.rawValue), size: imageSize)
+                        SymbolView(SymbolCode(color.rawValue), size: imageSize, showDropShadow: true)
                             .opacity(isSelected ? 1.0 : 0.35)
                     }
                     .buttonStyle(.plain)

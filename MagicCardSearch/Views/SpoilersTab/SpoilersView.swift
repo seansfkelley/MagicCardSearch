@@ -152,6 +152,17 @@ struct SpoilersView: View {
                             }
                         }
                         .padding(.horizontal, spacing / 2)
+                        .overlay(alignment: .bottomTrailing) {
+                            if let date = card.preview?.previewedAtAsDate {
+                                Text(date.relativeLabel)
+                                    .font(.caption2)
+                                    .fontWeight(.medium)
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 4)
+                                    .background(.thinMaterial, in: Capsule())
+                                    .padding(6)
+                            }
+                        }
                     }
                 }
 
@@ -231,6 +242,22 @@ struct SpoilersView: View {
         Self.objectListCache.setObject(newObjectList, forKey: cacheKey)
         currentSearchResults = newObjectList
         currentSearchResults.loadNextPage()
+    }
+}
+
+private extension Date {
+    var relativeLabel: String {
+        let calendar = Calendar.current
+        let days = calendar.dateComponents(
+            [.day],
+            from: calendar.startOfDay(for: self),
+            to: calendar.startOfDay(for: .now)
+        ).day ?? 0
+        switch days {
+        case 0: return "today"
+        case 1: return "yesterday"
+        default: return "\(days) days ago"
+        }
     }
 }
 
