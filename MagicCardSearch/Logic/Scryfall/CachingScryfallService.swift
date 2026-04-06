@@ -23,9 +23,55 @@ protocol RulingsService {
     func rulings(forScryfallId id: UUID) async throws -> [Card.Ruling]
 }
 
+@MainActor
+protocol CardSearchService {
+    func searchCards(
+        query: String,
+        unique: UniqueMode,
+        order: SortMode?,
+        sortDirection: SortDirection,
+        page: Int,
+    ) async throws -> ObjectList<Card>
+}
+
+extension CardSearchService {
+    func searchCards(
+        filters: [String],
+        unique: UniqueMode,
+        order: SortMode?,
+        sortDirection: SortDirection,
+        page: Int,
+    ) async throws -> ObjectList<Card> {
+        try await searchCards(
+            query: filters.joined(separator: " "),
+            unique: unique,
+            order: order,
+            sortDirection: sortDirection,
+            page: page,
+        )
+    }
+
+    func searchCards(
+        filters: [FilterQuery<FilterTerm>],
+        unique: UniqueMode,
+        order: SortMode?,
+        sortDirection: SortDirection,
+        page: Int,
+    ) async throws -> ObjectList<Card> {
+        try await searchCards(
+            query: filters.map { $0.description }.joined(separator: " "),
+            unique: unique,
+            order: order,
+            sortDirection: sortDirection,
+            page: page,
+        )
+    }
+}
+
 extension CachingScryfallService: FetchCardService {}
 extension CachingScryfallService: TagsService {}
 extension CachingScryfallService: RulingsService {}
+extension CachingScryfallService: CardSearchService {}
 
 @MainActor
 class CachingScryfallService {
@@ -46,6 +92,11 @@ class CachingScryfallService {
     private let cardCache: any StorageAware<String, Card> = bestEffortCache(
         memory: .init(expiry: .days(30), countLimit: 500),
         disk: .init(name: "cards", expiry: .days(7)),
+    )
+
+    private let cardSearchCache: any StorageAware<String, ObjectList<Card>> = bestEffortCache(
+        memory: .init(expiry: .days(1), countLimit: 100),
+        disk: .init(name: "cardSearch", expiry: .days(1)),
     )
 
     func rulings(forScryfallId id: UUID) async throws -> [Card.Ruling] {
@@ -168,5 +219,26 @@ class CachingScryfallService {
         }
 
         return card
+    }
+
+    func searchCards(query: String, unique: UniqueMode, order: SortMode?, sortDirection: SortDirection, page: Int) async throws -> ObjectList<Card> {
+        let orderString = order.map { "\($0)" } ?? ""
+        let cacheKey = "\(query)|\(unique)|\(orderString)|\(sortDirection)|\(page)"
+
+        if let cached = try? cardSearchCache.entry(forKey: cacheKey) {
+            logger.debug("hit card search cache for query=\(query) page=\(page)")
+            return cached.object
+        }
+
+        let results = try await client.searchCards(query: query, unique: unique, order: order, sortDirection: sortDirection, page: page)
+
+        do {
+            try cardSearchCache.setObject(results, forKey: cacheKey, expiry: nil)
+            logger.debug("stored card search cache value for query=\(query) page=\(page)")
+        } catch {
+            logger.error("error while setting cache for search query=\(query) page=\(page) error=\(error)")
+        }
+
+        return results
     }
 }
