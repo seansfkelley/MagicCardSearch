@@ -27,73 +27,69 @@ struct RulingsCardSection<DividerContent: View>: View {
 
     var body: some View {
         Group {
-            if case .loaded(let rulings, _) = rulings, rulings.isEmpty {
+            switch rulings {
+            case .unloaded, .loading:
                 EmptyView()
-            } else {
-                if case .unloaded = rulings {
-                    // nop
-                } else {
-                    divider()
-                }
-                VStack(alignment: .leading, spacing: 12) {
-                    Label("Rulings", systemImage: "book.and.wrench")
-                        .labelReservedIconWidth(iconWidth)
-                        .font(.headline)
-                        // pixel-push to make it line up with the adjacent DisclosureGroup
-                        .padding(.vertical, 3)
+            case .loaded(let rulings, _) where rulings.isEmpty:
+                EmptyView()
+            case .loaded(let rulings, _):
+                layout {
+                    let builder = TextWithSymbolsBuilder(
+                        fontSize: 17, // Seems to be the default? I dunno.
+                        colorScheme: colorScheme,
+                        scryfallCatalogs: scryfallCatalogs
+                    )
 
                     VStack(alignment: .leading, spacing: 16) {
-                        switch rulings {
-                        case .unloaded, .loading:
-                            ContentUnavailableView {
-                                ProgressView()
-                            } description: {
-                                Text("Loading rulings...")
-                                    .padding(.top)
-                            }
-                            .padding(.vertical)
-                            .frame(maxWidth: .infinity, alignment: .center)
-                        case .loaded(let rulings, _):
-                            let builder = TextWithSymbolsBuilder(
-                                fontSize: 17, // Seems to be the default? I dunno.
-                                colorScheme: colorScheme,
-                                scryfallCatalogs: scryfallCatalogs
-                            )
+                        ForEach(rulings) { ruling in
+                            VStack(alignment: .leading, spacing: 6) {
+                                builder.buildText(ruling.comment)
+                                    .fixedSize(horizontal: false, vertical: true)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .textSelection(.enabled)
 
-                            ForEach(rulings) { ruling in
-                                VStack(alignment: .leading, spacing: 6) {
-                                    builder.buildText(ruling.comment)
-                                        .fixedSize(horizontal: false, vertical: true)
-                                        .frame(maxWidth: .infinity, alignment: .leading)
-                                        .textSelection(.enabled)
-
-                                    if let date = ruling.publishedAtAsDate {
-                                        Text(date, format: .dateTime.year().month().day())
-                                            .font(.caption2)
-                                            .foregroundStyle(.tertiary)
-                                    }
+                                if let date = ruling.publishedAtAsDate {
+                                    Text(date, format: .dateTime.year().month().day())
+                                        .font(.caption2)
+                                        .foregroundStyle(.tertiary)
                                 }
-                            }
-                        case .errored(_, let error):
-                            ContentUnavailableView {
-                                Label("Failed to Load Rulings", systemImage: "exclamationmark.triangle")
-                            } description: {
-                                Text(error.localizedDescription)
-                            } actions: {
-                                Button("Try Again", action: fetch)
-                                    .buttonStyle(.borderedProminent)
-                                    .tint(.blue)
                             }
                         }
                     }
                 }
-                .tint(.primary)
-                .padding()
+            case .errored(_, let error):
+                layout {
+                    ContentUnavailableView {
+                        Label("Failed to Load Rulings", systemImage: "exclamationmark.triangle")
+                    } description: {
+                        Text(error.localizedDescription)
+                    } actions: {
+                        Button("Try Again", action: fetch)
+                            .buttonStyle(.borderedProminent)
+                            .tint(.blue)
+                    }
+                }
             }
         }
         .onChange(of: scryfallId, initial: true) {
             fetch()
         }
+    }
+
+    @ViewBuilder
+    private func layout<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        divider()
+        VStack(alignment: .leading, spacing: 12) {
+            Label("Rulings", systemImage: "book.and.wrench")
+                .labelReservedIconWidth(iconWidth)
+                .font(.headline)
+                // pixel-push to make it line up with the adjacent DisclosureGroup
+                .padding(.vertical, 3)
+
+            content()
+        }
+        .tint(.primary)
+        .padding()
     }
 
     @MainActor
