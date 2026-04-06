@@ -6,6 +6,7 @@ struct SpoilersFilterBarView: View {
 
     @Binding var sortOrder: SpoilersSortOrder
     @Binding var selectedColors: Set<Card.Color>
+    @Binding var showUniquePrints: Bool
 
     var body: some View {
         HStack(spacing: 0) {
@@ -22,6 +23,10 @@ struct SpoilersFilterBarView: View {
                     }
                 }
                 .pickerStyle(.inline)
+
+                Divider()
+
+                Toggle("Show Unique Prints", isOn: $showUniquePrints)
             } label: {
                 Image(systemName: "arrow.up.arrow.down.circle")
                     .resizable()

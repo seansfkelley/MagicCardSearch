@@ -17,6 +17,7 @@ struct SpoilersView: View {
         let setCode: SetCode
         let sortOrder: SpoilersSortOrder
         let colors: Set<Card.Color>
+        let showUniquePrints: Bool
     }
 
     @State private var selectedCardIndex: Int?
@@ -27,11 +28,12 @@ struct SpoilersView: View {
     @AppStorage("spoilersSelectedSetCode") private var selectedSetCode: SetCode = allSetsSentinel
     @AppStorage("spoilersSortOrder") private var sortOrder: SpoilersSortOrder = .spoiled
     @AppStorage("spoilersColorFilter") private var selectedColors: Set<Card.Color> = []
+    @AppStorage("spoilersShowUniquePrints") private var showUniquePrints: Bool = true
 
     @Environment(ScryfallCatalogs.self) private var scryfallCatalogs
 
     private var currentCacheKey: CacheKey {
-        .init(setCode: selectedSetCode, sortOrder: sortOrder, colors: selectedColors)
+        .init(setCode: selectedSetCode, sortOrder: sortOrder, colors: selectedColors, showUniquePrints: showUniquePrints)
     }
 
     private static let client = ScryfallClient(logger: logger)
@@ -85,7 +87,7 @@ struct SpoilersView: View {
             VStack(spacing: 0) {
                 SpoilersSetSelectorView(spoilingSets: orderedSelectableSets, selectedSetCode: $selectedSetCode)
                 Divider()
-                SpoilersFilterBarView(sortOrder: $sortOrder, selectedColors: $selectedColors)
+                SpoilersFilterBarView(sortOrder: $sortOrder, selectedColors: $selectedColors, showUniquePrints: $showUniquePrints)
             }
             .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 20))
             .clipShape(RoundedRectangle(cornerRadius: 20))
@@ -235,7 +237,7 @@ struct SpoilersView: View {
         let newObjectList = ScryfallObjectList<Card> { page in
             try await Self.client.searchCards(
                 query: query,
-                unique: .prints,
+                unique: showUniquePrints ? .prints : .cards,
                 order: sortOrder.scryfallSortMode,
                 sortDirection: .desc,
                 page: page,
