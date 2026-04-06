@@ -25,7 +25,7 @@ private enum LoadError: Error, LocalizedError {
 struct SetIconView: View {
     @Environment(ScryfallCatalogs.self) private var scryfallCatalogs
 
-    private struct RenderedImageCacheKey: Hashable, CustomStringConvertible {
+    private struct RenderedImageCacheKey: Equatable, Hashable, CustomStringConvertible {
         let setCode: SetCode
         let size: CGFloat
 
@@ -67,7 +67,7 @@ struct SetIconView: View {
                     .foregroundStyle(.secondary)
             }
         }
-        .onFirstAppear {
+        .onChange(of: renderedImageCacheKey, initial: true) {
             Task {
                 await loadAndRender()
             }
@@ -75,10 +75,6 @@ struct SetIconView: View {
     }
     
     private func loadAndRender() async {
-        guard case .unloaded = imageResult else {
-            return
-        }
-        
         if let renderedImage = try? Self.renderedImageCache.entry(forKey: renderedImageCacheKey) {
             logger.trace("hit cache for rendered SVG icon for key=\(renderedImageCacheKey)")
             self.imageResult = .loaded(renderedImage.object, nil)
