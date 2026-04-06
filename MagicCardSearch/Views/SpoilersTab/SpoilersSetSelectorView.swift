@@ -5,33 +5,44 @@ struct SpoilersSetSelectorView: View {
     let spoilingSets: [MTGSet]
     @Binding var selectedSetCode: SetCode
 
-    var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                SetSelectorCapsule(
-                    icon: Image("allSetsIcon").renderingMode(.template).resizable().aspectRatio(contentMode: .fit),
-                    label: "All Unreleased",
-                    sublabel: nil,
-                    isSelected: selectedSetCode == allSetsSentinel
-                ) {
-                    selectedSetCode = allSetsSentinel
-                }
+    @State private var hasScrolledInitially = false
 
-                ForEach(spoilingSets, id: \.code) { set in
+    var body: some View {
+        ScrollViewReader { proxy in
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
                     SetSelectorCapsule(
-                        icon: SetIconView(setCode: SetCode(set.code), size: 32),
-                        label: set.name,
-                        sublabel: [
-                            set.code.uppercased(),
-                            set.releasedAtAsDate.map { $0.formatted(.dateTime.month(.abbreviated).day()) },
-                        ].compactMap(\.self).joined(separator: " • "),
-                        isSelected: selectedSetCode == SetCode(set.code)
+                        icon: Image("allSetsIcon").renderingMode(.template).resizable().aspectRatio(contentMode: .fit),
+                        label: "All Unreleased",
+                        sublabel: nil,
+                        isSelected: selectedSetCode == allSetsSentinel
                     ) {
-                        selectedSetCode = SetCode(set.code)
+                        selectedSetCode = allSetsSentinel
+                    }
+                    .id(allSetsSentinel)
+
+                    ForEach(spoilingSets, id: \.code) { set in
+                        SetSelectorCapsule(
+                            icon: SetIconView(setCode: SetCode(set.code), size: 32),
+                            label: set.name,
+                            sublabel: [
+                                set.code.uppercased(),
+                                set.releasedAtAsDate.map { $0.formatted(.dateTime.month(.abbreviated).day()) },
+                            ].compactMap(\.self).joined(separator: " • "),
+                            isSelected: selectedSetCode == SetCode(set.code)
+                        ) {
+                            selectedSetCode = SetCode(set.code)
+                        }
+                        .id(SetCode(set.code))
                     }
                 }
+                .padding(8)
             }
-            .padding(8)
+            .onChange(of: spoilingSets) {
+                guard !hasScrolledInitially, !spoilingSets.isEmpty else { return }
+                hasScrolledInitially = true
+                proxy.scrollTo(selectedSetCode, anchor: .center)
+            }
         }
     }
 }
