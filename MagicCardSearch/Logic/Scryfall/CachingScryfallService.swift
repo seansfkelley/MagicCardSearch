@@ -6,6 +6,19 @@ import Observation
 private let logger = Logger(subsystem: "MagicCardSearch", category: "CachingScryfallService")
 
 @MainActor
+protocol TagsService {
+    func tags(forCollectorNumber collectorNumber: String, inSet setCode: String) async throws -> TaggerCard?
+}
+
+@MainActor
+protocol RulingsService {
+    func rulings(forScryfallId id: UUID) async throws -> [Card.Ruling]
+}
+
+extension CachingScryfallService: TagsService {}
+extension CachingScryfallService: RulingsService {}
+
+@MainActor
 class CachingScryfallService {
     static let shared = CachingScryfallService()
 

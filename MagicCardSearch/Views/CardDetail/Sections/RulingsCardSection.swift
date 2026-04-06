@@ -1,13 +1,6 @@
 import SwiftUI
 import ScryfallKit
 
-@MainActor
-protocol RulingsService {
-    func rulings(forScryfallId id: UUID) async throws -> [Card.Ruling]
-}
-
-extension CachingScryfallService: RulingsService {}
-
 struct RulingsCardSection<DividerContent: View>: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(ScryfallCatalogs.self) private var scryfallCatalogs

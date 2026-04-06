@@ -7,13 +7,6 @@ private let logger = Logger(subsystem: "MagicCardSearch", category: "CardTagsSec
 
 private let tagIconWidth = 24.0
 
-@MainActor
-protocol TagsService {
-    func tags(forCollectorNumber collectorNumber: String, inSet setCode: String) async throws -> TaggerCard?
-}
-
-extension CachingScryfallService: TagsService {}
-
 struct ScryfallTagsCardSection: View {
     @ScaledMetric private var iconWidth = CardDetailConstants.defaultSectionIconWidth
 
