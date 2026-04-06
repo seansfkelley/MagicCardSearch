@@ -1,19 +1,11 @@
 import SwiftUI
-
-private let colorFilterOptions: [(letter: String, symbol: String)] = [
-    ("W", "{W}"),
-    ("U", "{U}"),
-    ("B", "{B}"),
-    ("R", "{R}"),
-    ("G", "{G}"),
-    ("C", "{C}"),
-]
+import ScryfallKit
 
 struct SpoilersFilterBarView: View {
     private let imageSize: CGFloat = 36
 
     @Binding var sortOrder: SpoilersSortOrder
-    @Binding var selectedColors: Set<String>
+    @Binding var selectedColors: Set<Card.Color>
 
     var body: some View {
         HStack(spacing: 0) {
@@ -42,16 +34,16 @@ struct SpoilersFilterBarView: View {
             Spacer()
 
             HStack(spacing: 8) {
-                ForEach(colorFilterOptions, id: \.letter) { option in
-                    let isSelected = selectedColors.contains(option.letter)
+                ForEach(Card.Color.allCases, id: \.self) { color in
+                    let isSelected = selectedColors.contains(color)
                     Button {
                         if isSelected {
-                            selectedColors.remove(option.letter)
+                            selectedColors.remove(color)
                         } else {
-                            selectedColors.insert(option.letter)
+                            selectedColors.insert(color)
                         }
                     } label: {
-                        SymbolView(SymbolCode(option.symbol), size: imageSize)
+                        SymbolView(SymbolCode(color.rawValue), size: imageSize)
                             .opacity(isSelected ? 1.0 : 0.35)
                     }
                     .buttonStyle(.plain)
@@ -70,7 +62,6 @@ struct SpoilersFilterBarView: View {
                 .buttonStyle(.plain)
             }
         }
-        .padding(6)
-        .animation(.default, value: selectedColors.isEmpty)
+        .padding(8)
     }
 }

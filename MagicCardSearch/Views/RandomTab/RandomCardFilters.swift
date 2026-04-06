@@ -13,39 +13,44 @@ struct RandomCardFilters: Equatable, Codable {
     var games: Set<Game> = []
 
     var queryString: String? {
-        var groups: [String] = ["language:en"]
+        var clauses: [String] = ["language:en"]
 
         if !colors.isEmpty {
             let key = useColorIdentity ? "id" : "color"
+
             let orClauses = colors.map { "\(key):\($0.rawValue.lowercased())" }.joined(separator: " OR ")
-            let combinedColorClause = "\(key)<=\(colors.map { $0.rawValue.lowercased() }.joined())"
-            groups.append("(\(orClauses)) \(combinedColorClause)")
+            clauses.append("(\(orClauses)")
+
+            let nonColorless = colors.subtracting([.C])
+            if !nonColorless.isEmpty {
+                clauses.append("\(key)<=\(nonColorless.map { $0.rawValue.lowercased() }.joined())")
+            }
         }
 
         if !formats.isEmpty {
             let clause = formats.map { "format:\($0.rawValue)" }.joined(separator: " OR ")
-            groups.append("(\(clause))")
+            clauses.append("(\(clause))")
         }
 
         if !types.isEmpty {
             let clause = types.map { "type:\($0.lowercased())" }.joined(separator: " OR ")
-            groups.append("(\(clause))")
+            clauses.append("(\(clause))")
         }
 
         if legendary {
-            groups.append("type:legendary")
+            clauses.append("type:legendary")
         }
 
         if !rarities.isEmpty {
             let clause = rarities.map { "rarity:\($0.rawValue)" }.joined(separator: " OR ")
-            groups.append("(\(clause))")
+            clauses.append("(\(clause))")
         }
 
         if !games.isEmpty {
             let clause = games.map { "game:\($0.rawValue)" }.joined(separator: " OR ")
-            groups.append("(\(clause))")
+            clauses.append("(\(clause))")
         }
 
-        return groups.joined(separator: " ")
+        return clauses.joined(separator: " ")
     }
 }

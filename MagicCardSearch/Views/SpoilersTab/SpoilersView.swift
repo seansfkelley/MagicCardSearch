@@ -12,28 +12,29 @@ private let ignoredSetTypes: Set<MTGSet.Kind> = [
 
 private let logger = Logger(subsystem: "MagicCardSearch", category: "SpoilersView")
 
-private let canonicalColorOrder = ["W", "U", "B", "R", "G", "C"]
-
 struct SpoilersView: View {
+    private struct CacheKey: Hashable {
+        let setCode: SetCode
+        let sortOrder: SpoilersSortOrder
+        let colors: Set<Card.Color>
+    }
+
     @State private var selectedCardIndex: Int?
     @State private var cardFlipStates: [UUID: Bool] = [:]
     @State private var orderedSelectableSets: [MTGSet] = []
     @State private var currentSearchResults: ScryfallObjectList<Card> = .empty()
-    @State private var selectedColors: Set<String> = []
 
     @AppStorage("spoilersSelectedSetCode") private var selectedSetCode: SetCode = allSetsSentinel
     @AppStorage("spoilersSortOrder") private var sortOrder: SpoilersSortOrder = .spoiled
-    @AppStorage("spoilersColorFilter") private var colorFilterStorage: String = ""
+    @AppStorage("spoilersColorFilter") private var selectedColors: Set<Card.Color> = []
 
     @Environment(ScryfallCatalogs.self) private var scryfallCatalogs
 
-    private static let client = ScryfallClient(logger: logger)
-
-    private struct CacheKey: Hashable {
-        let setCode: SetCode
-        let sortOrder: SpoilersSortOrder
-        let colorFilter: String
+    private var currentCacheKey: CacheKey {
+        .init(setCode: selectedSetCode, sortOrder: sortOrder, colors: selectedColors)
     }
+
+    private static let client = ScryfallClient(logger: logger)
 
     private static let objectListCache = StrongMemoryStorage<CacheKey, ScryfallObjectList<Card>>(
         config: .init(expiry: .hours(1), countLimit: 50)
@@ -95,25 +96,15 @@ struct SpoilersView: View {
             if isRunningTests() {
                 logger.info("skipping spoilers load in test environment")
             } else {
-                selectedColors = parseColorFilter(colorFilterStorage)
                 recomputeSpoilingSets()
-                reloadSpoilers()
+                loadFilteredSpoilers()
             }
         }
         .onChange(of: scryfallCatalogs.catalogChangeNonce) {
-            Self.objectListCache.removeAll()
             recomputeSpoilingSets()
-            reloadSpoilers()
         }
-        .onChange(of: selectedSetCode) {
-            reloadSpoilers()
-        }
-        .onChange(of: sortOrder) {
-            reloadSpoilers()
-        }
-        .onChange(of: selectedColors) {
-            colorFilterStorage = serializeColorFilter(selectedColors)
-            reloadSpoilers()
+        .onChange(of: currentCacheKey) {
+            loadFilteredSpoilers()
         }
         .sheet(
             item: Binding(
@@ -192,11 +183,10 @@ struct SpoilersView: View {
         }
     }
 
-    private func reloadSpoilers() {
+    private func loadFilteredSpoilers() {
         guard !orderedSelectableSets.isEmpty else { return }
 
-        let canonicalColorFilter = serializeColorFilter(selectedColors)
-        let cacheKey = CacheKey(setCode: selectedSetCode, sortOrder: sortOrder, colorFilter: canonicalColorFilter)
+        let cacheKey = currentCacheKey
 
         if let cached = try? Self.objectListCache.entry(forKey: cacheKey) {
             currentSearchResults = cached.object
@@ -211,8 +201,14 @@ struct SpoilersView: View {
             queryParts.append("set:\(selectedSetCode.rawValue.lowercased())")
         }
 
-        if let colorClause = buildColorClause(from: selectedColors) {
-            queryParts.append(colorClause)
+        if !selectedColors.isEmpty {
+            let orClauses = selectedColors.map { "color:\($0.rawValue.lowercased())" }.joined(separator: " OR ")
+            queryParts.append("(\(orClauses))")
+
+            let nonColorless = selectedColors.subtracting([.C])
+            if !nonColorless.isEmpty {
+                queryParts.append("color<=\(nonColorless.map { $0.rawValue.lowercased() }.joined())")
+            }
         }
 
         let query = queryParts.joined(separator: " ")
@@ -230,31 +226,6 @@ struct SpoilersView: View {
         Self.objectListCache.setObject(newObjectList, forKey: cacheKey)
         currentSearchResults = newObjectList
         currentSearchResults.loadNextPage()
-    }
-
-    private func buildColorClause(from colors: Set<String>) -> String? {
-        guard !colors.isEmpty else { return nil }
-
-        let hasColorless = colors.contains("C")
-        let chromatic = colors.subtracting(["C"])
-
-        if !hasColorless {
-            let colorString = canonicalColorOrder.filter { chromatic.contains($0) }.joined()
-            return "color<=\(colorString)"
-        } else if chromatic.isEmpty {
-            return "color:C"
-        } else {
-            let colorString = canonicalColorOrder.filter { chromatic.contains($0) }.joined()
-            return "(color:C OR color<=\(colorString))"
-        }
-    }
-
-    private func serializeColorFilter(_ colors: Set<String>) -> String {
-        canonicalColorOrder.filter { colors.contains($0) }.joined(separator: ",")
-    }
-
-    private func parseColorFilter(_ storage: String) -> Set<String> {
-        Set(storage.split(separator: ",").map(String.init))
     }
 }
 
