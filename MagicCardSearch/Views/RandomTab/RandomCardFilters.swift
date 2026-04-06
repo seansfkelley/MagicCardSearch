@@ -1,8 +1,6 @@
 import ScryfallKit
 import Foundation
 
-extension Format: @retroactive Codable {}
-
 struct RandomCardFilters: Equatable, Codable {
     var colors: Set<Card.Color> = []
     var useColorIdentity: Bool = false
