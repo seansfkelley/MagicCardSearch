@@ -359,6 +359,16 @@ private struct SetPickerView: View {
         List {
             ForEach(sections) { section in
                 Section {
+                    // Header is not a true header because the stickiness that you apparently cannot
+                    // disable is more confusing than helpful. This design follows that of the Music
+                    // app.
+                    Text(section.fullSectionName)
+                        .fontWeight(.bold)
+                        .foregroundStyle(.secondary)
+                        .listRowSeparator(.hidden)
+                        .listRowInsets(EdgeInsets())
+                        .padding(.horizontal)
+
                     ForEach(section.sets, id: \.code) { set in
                         Button {
                             setCode = SetCode(set.code)
@@ -374,8 +384,6 @@ private struct SetPickerView: View {
                         }
                         .buttonStyle(.plain)
                     }
-                } header: {
-                    Text(section.fullSectionName)
                 }
                 .sectionIndexLabel(section.shortSectionName)
             }
