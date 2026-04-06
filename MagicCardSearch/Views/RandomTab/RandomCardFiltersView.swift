@@ -358,11 +358,16 @@ private struct SetPickerView: View {
                 }
             }
             ForEach(alphabeticalSections) { section in
-                makeSection(section.letter, sets: section.sets) { set in
-                    Text(set.name)
-                        .foregroundStyle(.primary)
+                if section.sets.isEmpty {
+                    Section {}
+                        .sectionIndexLabel(section.letter)
+                } else {
+                    makeSection(section.letter, sets: section.sets) { set in
+                        Text(set.name)
+                            .foregroundStyle(.primary)
+                    }
+                    .sectionIndexLabel(section.letter)
                 }
-                .sectionIndexLabel(section.letter)
             }
         }
         .listStyle(.plain)
@@ -413,17 +418,15 @@ private struct SetPickerView: View {
             .filter { ($0.releasedAt ?? "1900-01-01") >= recencyCutoff }
             .sorted { ($0.releasedAt ?? "1900-01-01") > ($1.releasedAt ?? "1900-01-01") }
 
-        let sorted = allSets.sorted { $0.name < $1.name }
-        let grouped = Dictionary(grouping: sorted) { set -> String in
+        let grouped = Dictionary(grouping: allSets.sorted { $0.name < $1.name }) { set -> String in
             if let first = set.name.first, first.isASCII && first.isLetter {
                 return String(first).uppercased()
             }
             return "#"
         }
-        var result = grouped.keys
-            .filter { $0 != "#" }
-            .sorted()
-            .map { AlphabeticalSection(letter: $0, sets: grouped[$0]!) }
+        var result = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".map {
+            AlphabeticalSection(letter: String($0), sets: grouped[String($0)] ?? [])
+        }
         if let hashSets = grouped["#"] {
             result.append(AlphabeticalSection(letter: "#", sets: hashSets))
         }
