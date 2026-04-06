@@ -3,6 +3,9 @@ import ScryfallKit
 import OSLog
 import Cache
 
+// Exists because apparently @AppStorage cannot deal with nil, which is pretty amateur-level shit.
+let allSetsSentinel = SetCode("sentinel")
+
 private let logger = Logger(subsystem: "MagicCardSearch", category: "SpoilersView")
 
 struct SpoilersView: View {
@@ -11,11 +14,11 @@ struct SpoilersView: View {
     @State private var spoilingSets: [MTGSet] = []
     @State private var objectList: ScryfallObjectList<Card> = .empty()
 
-    @AppStorage("spoilersSelectedSetCode") private var selectedSetCode: String = ""
+    @AppStorage("spoilersSelectedSetCode") private var selectedSetCode: SetCode = allSetsSentinel
 
     @Environment(ScryfallCatalogs.self) private var scryfallCatalogs
 
-    private static let objectListCache = StrongMemoryStorage<String, ScryfallObjectList<Card>>(
+    private static let objectListCache = StrongMemoryStorage<SetCode, ScryfallObjectList<Card>>(
         config: .init(expiry: .hours(1), countLimit: 50)
     )
 
@@ -60,12 +63,17 @@ struct SpoilersView: View {
                 }
             }
         }
+        .safeAreaInset(edge: .top) {
+            SpoilersSetSelectorView(spoilingSets: spoilingSets, selectedSetCode: $selectedSetCode)
+                .padding(.horizontal, 8)
+        }
         .toolbar(.hidden, for: .navigationBar)
         .task {
             if isRunningTests() {
                 logger.info("skipping spoilers load in test environment")
             } else {
                 recomputeSpoilingSets()
+                reloadSpoilers()
             }
         }
         .onChange(of: scryfallCatalogs.catalogChangeNonce) {
@@ -126,13 +134,6 @@ struct SpoilersView: View {
             .padding(.horizontal, spacing / 2)
             .padding(.vertical)
         }
-        .safeAreaInset(edge: .top) {
-            VStack(spacing: 0) {
-                SpoilersSetSelectorView(spoilingSets: spoilingSets, selectedSetCode: $selectedSetCode)
-                Divider()
-            }
-            .background(Color(uiColor: .systemBackground))
-        }
     }
 
     private func recomputeSpoilingSets() {
@@ -141,16 +142,10 @@ struct SpoilersView: View {
             .filter { ($0.releasedAtAsDate ?? .distantPast) >= twoWeeksAgo }
             .sorted { ($0.releasedAtAsDate ?? .distantPast) > ($1.releasedAtAsDate ?? .distantPast) } ?? []
 
-        if !selectedSetCode.isEmpty && !newSets.contains(where: { $0.code == selectedSetCode }) {
-            selectedSetCode = ""
-        }
-
-        if newSets.map(\.code) != spoilingSets.map(\.code) {
-            Self.objectListCache.removeAll()
-        }
-
         spoilingSets = newSets
-        reloadSpoilers()
+        if selectedSetCode != allSetsSentinel && !newSets.contains(where: { SetCode($0.code) == selectedSetCode }) {
+            selectedSetCode = allSetsSentinel
+        }
     }
 
     private func reloadSpoilers() {
@@ -162,11 +157,11 @@ struct SpoilersView: View {
         }
 
         let query: String
-        if selectedSetCode.isEmpty {
+        if selectedSetCode != allSetsSentinel {
+            query = "set:\(selectedSetCode.rawValue.lowercased())"
+        } else {
             let codes = spoilingSets.map { "set:\($0.code)" }.joined(separator: " OR ")
             query = "(\(codes))"
-        } else {
-            query = "set:\(selectedSetCode)"
         }
 
         let client = ScryfallClient(logger: logger)
