@@ -26,13 +26,14 @@ struct FixedListCardDetailNavigatorView<C: CardDisplayable & Identifiable<UUID>>
     @Environment(BookmarkedCardsStore.self) private var bookmarkedCardsStore
     @Environment(\.dismiss) private var dismiss
 
-    private let cardSearchService = CardSearchService()
+    let fetchCardService: FetchCardService
 
-    init(cards: [C], initialIndex: Int, searchState: Binding<SearchState>?, showCount: Bool = true) {
+    init(cards: [C], initialIndex: Int, searchState: Binding<SearchState>?, showCount: Bool = true, fetchCardService: FetchCardService? = nil) {
         self.cards = cards
         self.searchState = searchState
         self._scrollIndex = State(initialValue: initialIndex)
         self.showCount = showCount
+        self.fetchCardService = fetchCardService ?? CachingScryfallService.shared
     }
 
     var body: some View {
@@ -155,7 +156,7 @@ struct FixedListCardDetailNavigatorView<C: CardDisplayable & Identifiable<UUID>>
         let task = Task {
             do {
                 logger.info("fetching card id=\(card.id)")
-                let loaded = try await cardSearchService.fetchCard(byScryfallId: card.id)
+                let loaded = try await fetchCardService.fetchCard(byScryfallId: card.id)
                 guard !Task.isCancelled else { return }
                 await MainActor.run { loadedCards[card.id] = .loaded(loaded) }
             } catch is CancellationError {

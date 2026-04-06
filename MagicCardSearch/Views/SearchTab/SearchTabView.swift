@@ -41,12 +41,10 @@ struct SearchTabView: View {
 
                 ToolbarItem(placement: .topBarTrailing) {
                     ShareLink(
-                        item: CardSearchService
-                            .buildSearchURL(
-                                filters: searchState.filters,
-                                config: searchState.configuration,
-                                forAPI: false
-                            ) ?? URL(string: "https://scryfall.com")!
+                        item: scryfallSearchUrl(
+                            forFilters: searchState.filters,
+                            config: searchState.configuration
+                        ) ?? URL(string: "https://scryfall.com")!
                     ) {
                         Image(systemName: "square.and.arrow.up")
                     }

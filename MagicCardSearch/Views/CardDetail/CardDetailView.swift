@@ -63,10 +63,17 @@ struct CardDetailView: View {
     let card: Card
     @Binding var isFlipped: Bool
     var searchState: Binding<SearchState>?
+    let fetchCardService: FetchCardService
 
     @State private var relatedCardToShow: Card?
     @State private var isLoadingRelatedCard = false
-    private let cardSearchService = CardSearchService()
+
+    init(card: Card, isFlipped: Binding<Bool>, searchState: Binding<SearchState>? = nil, fetchCardService: FetchCardService? = nil) {
+        self.card = card
+        self._isFlipped = isFlipped
+        self.searchState = searchState
+        self.fetchCardService = fetchCardService ?? CachingScryfallService.shared
+    }
 
     var body: some View {
         ScrollView {
@@ -293,7 +300,7 @@ struct CardDetailView: View {
         defer { isLoadingRelatedCard = false }
 
         do {
-            let card = try await cardSearchService.fetchCard(byScryfallId: id)
+            let card = try await fetchCardService.fetchCard(byScryfallId: id)
             relatedCardToShow = card
         } catch {
             // TODO: Handle error appropriately (e.g., show alert)
@@ -317,7 +324,7 @@ struct CardDetailView: View {
     } else {
         ProgressView()
             .task {
-                card = try? await CardSearchService().fetchCard(byScryfallId: id)
+                card = try? await CachingScryfallService.shared.fetchCard(byScryfallId: id)
             }
     }
 }

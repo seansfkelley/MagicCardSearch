@@ -14,24 +14,26 @@ struct ScryfallTagsCardSection: View {
     let collectorNumber: String
     var searchState: Binding<SearchState>?
     let tagsService: TagsService
+    let fetchCardService: FetchCardService
 
     @State private var isExpanded = false
     @State private var card: LoadableResult<TaggerCard?, Error> = .unloaded
     @State private var relatedCardToShow: Card?
     @State private var loadingRelationshipId: UUID?
-    private let cardSearchService = CardSearchService()
 
     init(
         setCode: String,
         collectorNumber: String,
         searchState: Binding<SearchState>? = nil,
         tagsService: TagsService? = nil,
+        fetchCardService: FetchCardService? = nil,
         initiallyExpanded: Bool = false
     ) {
         self.setCode = setCode
         self.collectorNumber = collectorNumber
         self.searchState = searchState
         self.tagsService = tagsService ?? CachingScryfallService.shared
+        self.fetchCardService = fetchCardService ?? CachingScryfallService.shared
         self._isExpanded = State(initialValue: initiallyExpanded)
     }
 
@@ -139,11 +141,11 @@ struct ScryfallTagsCardSection: View {
             // Search for a card by the appropriate foreign key
             let fetchedCard: Card? = switch foreignKey {
             case .oracleId:
-                try await cardSearchService.fetchCard(byOracleId: foreignKeyId)
+                try await fetchCardService.fetchCard(byOracleId: foreignKeyId)
             case .illustrationId:
-                try await cardSearchService.fetchCard(byIllustrationId: foreignKeyId)
+                try await fetchCardService.fetchCard(byIllustrationId: foreignKeyId)
             case .printingId:
-                try await cardSearchService.fetchCard(byPrintingId: foreignKeyId)
+                try await fetchCardService.fetchCard(byPrintingId: foreignKeyId)
             case .unknown:
                 nil
             }
