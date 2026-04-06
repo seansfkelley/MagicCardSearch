@@ -8,7 +8,7 @@ private let logger = Logger(subsystem: "MagicCardSearch", category: "ScryfallObj
 @MainActor
 @Observable
 class ScryfallObjectList<T: Codable & Sendable> {
-    public private(set) var value: LoadableResult<ObjectList<T>, SearchErrorState> = .unloaded
+    public private(set) var value: LoadableResult<ObjectList<T>, SearchError> = .unloaded
 
     private let searchUuid = UUID()
     private let fetcher: @Sendable (Int) async throws -> ObjectList<T>
@@ -84,13 +84,13 @@ class ScryfallObjectList<T: Codable & Sendable> {
                     self.value = .loaded(Self.append(self.value.latestValue, .empty(), postProcess), nil)
                 } else {
                     logger.error("error fetching page=\(self.nextPage) uuid=\(self.searchUuid) error=\(error)")
-                    self.value = .errored(self.value.latestValue, SearchErrorState(from: error))
+                    self.value = .errored(self.value.latestValue, SearchError(from: error))
                 }
             } catch {
                 guard !Task.isCancelled else { return }
                 
                 logger.error("error fetching page=\(self.nextPage) uuid=\(self.searchUuid) error=\(error)")
-                self.value = .errored(self.value.latestValue, SearchErrorState(from: error))
+                self.value = .errored(self.value.latestValue, SearchError(from: error))
             }
         }
 
@@ -132,7 +132,7 @@ class ScryfallObjectList<T: Codable & Sendable> {
                 } catch {
                     logger.error("error fetching page=\(page), stopping uuid=\(self.searchUuid) error=\(error)")
                     self.nextPage = page
-                    self.value = .errored(data, SearchErrorState(from: error))
+                    self.value = .errored(data, SearchError(from: error))
                     return
                 }
             }

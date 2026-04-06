@@ -64,22 +64,3 @@ class CardSearchService {
         return components.url
     }
 }
-
-// MARK: - Search Errors
-
-enum SearchError: LocalizedError {
-    case invalidURL
-    case invalidResponse
-    case httpError(statusCode: Int)
-    
-    var errorDescription: String? {
-        switch self {
-        case .invalidURL:
-            return "Invalid search URL"
-        case .invalidResponse:
-            return "Invalid response from server"
-        case .httpError(let statusCode):
-            return "Server error: \(statusCode)"
-        }
-    }
-}

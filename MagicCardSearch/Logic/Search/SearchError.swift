@@ -1,7 +1,7 @@
 import SwiftUI
 import ScryfallKit
 
-enum SearchErrorState: Error {
+enum SearchError: Error {
     case clientError // 4xx errors (excluding 404 from searches)
     case serverError // 5xx errors
     case networkError // Connection issues
@@ -17,19 +17,6 @@ enum SearchErrorState: Error {
                 self = .serverError
             } else {
                 self = .networkError
-            }
-        } else if let searchError = error as? SearchError {
-            switch searchError {
-            case .httpError(let statusCode):
-                if (400..<500).contains(statusCode) {
-                    self = .clientError
-                } else if (500..<600).contains(statusCode) {
-                    self = .serverError
-                } else {
-                    self = .networkError
-                }
-            case .invalidURL, .invalidResponse:
-                self = .clientError
             }
         } else {
             self = .networkError
