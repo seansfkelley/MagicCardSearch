@@ -322,6 +322,20 @@ private struct SetFilterSection: View {
 // MARK: - Set Picker
 
 private struct SetPickerView: View {
+    private struct SetSection: Identifiable {
+        let fullSectionName: String
+        let shortSectionName: String
+        let sets: [MTGSet]
+
+        var id: String { fullSectionName }
+
+        init(_ fullSectionName: String, shortSectionName: String? = nil, sets: [MTGSet]) {
+            self.fullSectionName = fullSectionName
+            self.shortSectionName = shortSectionName ?? fullSectionName
+            self.sets = sets
+        }
+    }
+
     private let ignoredSetTypes: Set<MTGSet.Kind> = [
         .token,
         .promo,
@@ -339,37 +353,29 @@ private struct SetPickerView: View {
     }
 
     @State private var sortOrder: SortOrder = .byReleaseDate
-
-    private var sortedSets: [MTGSet] {
-        let sets = Array((scryfallCatalogs.sets ?? [:]).values)
-            .filter { !ignoredSetTypes.contains($0.setType) }
-
-        return switch sortOrder {
-        case .byReleaseDate:
-            sets.sorted {
-                ($0.releasedAtAsDate ?? .distantPast) > ($1.releasedAtAsDate ?? .distantPast)
-            }
-        case .alphabetical:
-            sets.sorted { $0.name < $1.name }
-        }
-    }
+    @State private var sections: [SetSection] = []
 
     var body: some View {
         List {
-            ForEach(sortedSets, id: \.code) { set in
-                Button {
-                    setCode = SetCode(set.code)
-                    dismiss()
-                } label: {
-                    HStack(spacing: 12) {
-                        SetIconView(setCode: SetCode(set.code), size: 32)
-                        Text(set.name)
-                            .foregroundStyle(.primary)
+            ForEach(sections) { section in
+                Section {
+                    ForEach(section.sets, id: \.code) { set in
+                        Button {
+                            setCode = SetCode(set.code)
+                            dismiss()
+                        } label: {
+                            HStack(spacing: 12) {
+                                SetIconView(setCode: SetCode(set.code), size: 32)
+                                Text(set.name)
+                                    .foregroundStyle(.primary)
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
+                .sectionIndexLabel(section.shortSectionName)
             }
         }
         .listStyle(.plain)
@@ -384,6 +390,55 @@ private struct SetPickerView: View {
                 .pickerStyle(.segmented)
             }
         }
+        .task(id: sortOrder) {
+            sections = buildSections(sortOrder: sortOrder)
+        }
+    }
+
+    private func buildSections(sortOrder: SortOrder) -> [SetSection] {
+        let all = Array((scryfallCatalogs.sets ?? [:]).values)
+            .filter { !ignoredSetTypes.contains($0.setType) }
+
+        return switch sortOrder {
+        case .byReleaseDate: dateSections(from: all)
+        case .alphabetical: alphabetSections(from: all)
+        }
+    }
+
+    private func dateSections(from sets: [MTGSet]) -> [SetSection] {
+        let sorted = sets.sorted {
+            ($0.releasedAtAsDate ?? .distantPast) > ($1.releasedAtAsDate ?? .distantPast)
+        }
+        let grouped = Dictionary(grouping: sorted) { set -> String in
+            if let date = set.releasedAtAsDate {
+                return String(Calendar.current.component(.year, from: date))
+            }
+            return "—"
+        }
+        let keys = grouped.keys.sorted { lhs, rhs in
+            if lhs == "—" { return false }
+            if rhs == "—" { return true }
+            return lhs > rhs
+        }
+        return keys.map { SetSection($0, shortSectionName: "'\($0.suffix(2))", sets: grouped[$0]!) }
+    }
+
+    private func alphabetSections(from sets: [MTGSet]) -> [SetSection] {
+        let sorted = sets.sorted { $0.name < $1.name }
+        let grouped = Dictionary(grouping: sorted) { set -> String in
+            if let first = set.name.first, first.isASCII && first.isLetter {
+                return String(first).uppercased()
+            }
+            return "#"
+        }
+        var result = grouped.keys
+            .filter { $0 != "#" }
+            .sorted()
+            .map { SetSection($0, sets: grouped[$0]!) }
+        if let hashSets = grouped["#"] {
+            result.append(SetSection("#", sets: hashSets))
+        }
+        return result
     }
 }
 
