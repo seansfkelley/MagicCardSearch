@@ -322,6 +322,8 @@ private struct SetFilterSection: View {
 // MARK: - Set Picker
 
 private struct SetPickerView: View {
+    static let isoDateFormat = Date.ISO8601FormatStyle.iso8601.year().month().day().dateSeparator(.dash)
+
     private struct AlphabeticalSection: Identifiable {
         let letter: String
         let sets: [MTGSet]
@@ -341,13 +343,25 @@ private struct SetPickerView: View {
     @Environment(\.dismiss) private var dismiss
     @Binding var setCode: SetCode?
 
-    @State private var recentSets: [MTGSet] = []
+    @State private var unreleasedSets: [MTGSet] = []
+    @State private var recentlyReleasedSets: [MTGSet] = []
     @State private var alphabeticalSections: [AlphabeticalSection] = []
 
     var body: some View {
         List {
-            if !recentSets.isEmpty {
-                makeSection("Recent Sets", sets: recentSets) { set in
+            if !unreleasedSets.isEmpty {
+                makeSection("Unreleased Sets", sets: unreleasedSets) { set in
+                    Text(set.name)
+                        .foregroundStyle(.primary)
+                    if let date = set.releasedAtAsDate {
+                        Text("Coming \(date.formatted(date: .long, time: .omitted))")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+            if !recentlyReleasedSets.isEmpty {
+                makeSection("Recent Sets", sets: recentlyReleasedSets) { set in
                     Text(set.name)
                         .foregroundStyle(.primary)
                     if let date = set.releasedAtAsDate {
@@ -409,14 +423,18 @@ private struct SetPickerView: View {
 
     private func buildSections() {
         let allSets = Array((scryfallCatalogs.sets ?? [:]).values)
-            .filter { !ignoredSetTypes.contains($0.setType) }
+            .filter { !ignoredSetTypes.contains($0.setType) && $0.cardCount > 0 }
 
         // Exploit ISO8601-style date formats to avoid ever having to parse the date.
-        let recencyCutoff = Calendar.current.date(byAdding: .year, value: -1, to: .now)?
-            .ISO8601Format(.iso8601.year().month().day().dateSeparator(.dash)) ?? "1900-01-01"
-        recentSets = allSets
-            .filter { ($0.releasedAt ?? "1900-01-01") >= recencyCutoff }
-            .sorted { ($0.releasedAt ?? "1900-01-01") > ($1.releasedAt ?? "1900-01-01") }
+        let today = Date.now.ISO8601Format(Self.isoDateFormat)
+        unreleasedSets = allSets
+            .filter { ($0.releasedAt ?? "1900-01-01") > today }
+            .sorted { $0.unreleasedSetPickerSortKey < $1.unreleasedSetPickerSortKey }
+
+        let recencyCutoff = Calendar.current.date(byAdding: .year, value: -1, to: .now)?.ISO8601Format(Self.isoDateFormat) ?? "1900-01-01"
+        recentlyReleasedSets = allSets
+            .filter { ($0.releasedAt ?? "1900-01-01") >= recencyCutoff && ($0.releasedAt ?? "1900-01-01") <= today }
+            .sorted { $0.recentlyReleasedSetPickerSortKey > $1.recentlyReleasedSetPickerSortKey }
 
         let grouped = Dictionary(grouping: allSets.sorted { $0.name < $1.name }) { set -> String in
             if let first = set.name.first, first.isASCII && first.isLetter {
@@ -431,6 +449,24 @@ private struct SetPickerView: View {
             result.append(AlphabeticalSection(letter: "#", sets: hashSets))
         }
         alphabeticalSections = result
+    }
+}
+
+private extension MTGSet {
+    var unreleasedSetPickerSortKey: (String, Int, String) {
+        (
+            releasedAt ?? "1900-01-01",
+            parentSetCode == nil ? 0 : 1,
+            name,
+        )
+    }
+
+    var recentlyReleasedSetPickerSortKey: (String, Int, String) {
+        (
+            releasedAt ?? "1900-01-01",
+            parentSetCode == nil ? 1 : 0,
+            name,
+        )
     }
 }
 

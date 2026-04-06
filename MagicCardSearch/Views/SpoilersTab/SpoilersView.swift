@@ -184,14 +184,17 @@ struct SpoilersView: View {
     }
 
     private func recomputeSpoilingSets() {
-        let twoWeeksAgo = Calendar.current.date(byAdding: .weekOfYear, value: -2, to: .now)!
+        // Exploit ISO8601-style date formats to avoid ever having to parse the date.
+        let recencyCutoff = Calendar.current.date(byAdding: .weekOfYear, value: -2, to: .now)?
+            .ISO8601Format(.iso8601.year().month().day().dateSeparator(.dash)) ?? "1900-01-01"
+
         let newSets = scryfallCatalogs.sets?.values
             .filter {
-                ($0.releasedAtAsDate ?? .distantPast) >= twoWeeksAgo &&
+                ($0.releasedAt ?? "1900-01-01") >= recencyCutoff &&
                 $0.cardCount > 0 &&
                 !ignoredSetTypes.contains($0.setType)
             }
-            .sorted { $0.spoilerOrderingKey < $1.spoilerOrderingKey } ?? []
+            .sorted { $0.spoilerSortKey < $1.spoilerSortKey } ?? []
 
         orderedSelectableSets = newSets
         if selectedSetCode != allSetsSentinel && !newSets.contains(where: { SetCode($0.code) == selectedSetCode }) {
@@ -257,7 +260,7 @@ private extension PlainDate {
 }
 
 private extension MTGSet {
-    var spoilerOrderingKey: (Date, Int, String) {
+    var spoilerSortKey: (Date, Int, String) {
         (
             releasedAtAsDate ?? .distantPast,
             parentSetCode == nil ? 0 : 1,
