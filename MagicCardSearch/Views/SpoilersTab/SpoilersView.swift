@@ -20,10 +20,10 @@ struct SpoilersView: View {
         let showUniquePrints: Bool
     }
 
-    @State private var selectedCardIndex: Int?
     @State private var cardFlipStates: [UUID: Bool] = [:]
     @State private var orderedSelectableSets: [MTGSet] = []
     @State private var currentSearchResults: ScryfallObjectList<Card> = .empty()
+    @State private var selectedCardIndex: IdentifiableInt?
 
     @AppStorage("spoilersSelectedSetCode") private var selectedSetCode: SetCode = allSetsSentinel
     @AppStorage("spoilersSortOrder") private var sortOrder: SpoilersSortOrder = .spoiled
@@ -108,16 +108,11 @@ struct SpoilersView: View {
         .onChange(of: currentCacheKey) {
             loadFilteredSpoilers()
         }
-        .sheet(
-            item: Binding(
-                get: { selectedCardIndex.map { IdentifiableIndex(index: $0) } },
-                set: { selectedCardIndex = $0?.index }
-            )
-        ) { identifier in
+        .sheet(item: $selectedCardIndex) { index in
             NavigationStack {
                 LazyPagingCardDetailNavigatorView(
                     list: currentSearchResults,
-                    initialIndex: identifier.index,
+                    initialIndex: index.value,
                     cardFlipStates: $cardFlipStates,
                     searchState: nil,
                 )
@@ -146,7 +141,7 @@ struct SpoilersView: View {
                             zoomGestureBasisAdjustment: 3.0,
                         )
                         .onTapGesture {
-                            selectedCardIndex = index
+                            selectedCardIndex = .init(index)
                         }
                         .onAppear {
                             if index == results.data.count - 4 {

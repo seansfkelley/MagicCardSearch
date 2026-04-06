@@ -16,7 +16,12 @@ struct LazyPagingCardDetailNavigatorView: View {
 
     private let pagePreloadDistance = 3
 
-    init(list: ScryfallObjectList<Card>, initialIndex: Int, cardFlipStates: Binding<[UUID: Bool]>, searchState: Binding<SearchState>?) {
+    init(
+        list: ScryfallObjectList<Card>,
+        initialIndex: Int,
+        cardFlipStates: Binding<[UUID: Bool]>,
+        searchState: Binding<SearchState>?,
+    ) {
         self.list = list
         self._cardFlipStates = cardFlipStates
         self.searchState = searchState

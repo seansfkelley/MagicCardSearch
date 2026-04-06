@@ -5,9 +5,9 @@ struct SearchResultsGridView: View {
     let list: ScryfallObjectList<Card>
     @Binding var searchState: SearchState
     
-    @State private var selectedCardIndex: Int?
     @State private var cardFlipStates: [UUID: Bool] = [:]
     @State private var showSyntaxReference = false
+    @State private var selectedCardIndex: IdentifiableInt?
 
     private let spacing: CGFloat = 4
 
@@ -67,7 +67,7 @@ struct SearchResultsGridView: View {
                                     zoomGestureBasisAdjustment: 3.0,
                                 )
                                 .onTapGesture {
-                                    selectedCardIndex = index
+                                    selectedCardIndex = .init(index)
                                 }
                                 .onAppear {
                                     if index == results.data.count - 4 {
@@ -112,16 +112,11 @@ struct SearchResultsGridView: View {
                 SyntaxReferenceView()
             }
         }
-        .sheet(
-            item: Binding(
-                get: { selectedCardIndex.map { IdentifiableIndex(index: $0) } },
-                set: { selectedCardIndex = $0?.index }
-            )
-        ) { identifier in
+        .sheet(item: $selectedCardIndex) { index in
             NavigationStack {
                 LazyPagingCardDetailNavigatorView(
                     list: list,
-                    initialIndex: identifier.index,
+                    initialIndex: index.value,
                     cardFlipStates: $cardFlipStates,
                     searchState: $searchState,
                 )
