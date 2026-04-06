@@ -323,17 +323,11 @@ private struct SetFilterSection: View {
 
 private struct SetPickerView: View {
     private struct SetSection: Identifiable {
-        let fullSectionName: String
-        let shortSectionName: String
+        let name: String
         let sets: [MTGSet]
+        let indexLabel: String?
 
-        var id: String { fullSectionName }
-
-        init(_ fullSectionName: String, shortSectionName: String? = nil, sets: [MTGSet]) {
-            self.fullSectionName = fullSectionName
-            self.shortSectionName = shortSectionName ?? fullSectionName
-            self.sets = sets
-        }
+        var id: String { name }
     }
 
     private let ignoredSetTypes: Set<MTGSet.Kind> = [
@@ -348,99 +342,77 @@ private struct SetPickerView: View {
     @Environment(\.dismiss) private var dismiss
     @Binding var setCode: SetCode?
 
-    private enum SortOrder {
-        case byReleaseDate, alphabetical
-    }
-
-    @State private var sortOrder: SortOrder = .byReleaseDate
-    @State private var sections: [SetSection] = []
+    @State private var recentSection: SetSection?
+    @State private var alphabeticalSections: [SetSection] = []
 
     var body: some View {
         List {
-            ForEach(sections) { section in
-                Section {
-                    // Header is not a true header because the stickiness that you apparently cannot
-                    // disable is more confusing than helpful. This design follows that of the Music
-                    // app.
-                    Text(section.fullSectionName)
-                        .fontWeight(.bold)
-                        .foregroundStyle(.secondary)
-                        .listRowSeparator(.hidden)
-                        .listRowInsets(EdgeInsets())
-                        .padding(.horizontal)
-
-                    ForEach(section.sets, id: \.code) { set in
-                        Button {
-                            setCode = SetCode(set.code)
-                            dismiss()
-                        } label: {
-                            HStack(spacing: 12) {
-                                SetIconView(setCode: SetCode(set.code), size: 32)
-                                Text(set.name)
-                                    .foregroundStyle(.primary)
-                            }
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-                .sectionIndexLabel(section.shortSectionName)
+            if let recentSection {
+                makeSection(recentSection)
+            }
+            ForEach(alphabeticalSections) { section in
+                makeSection(section)
             }
         }
         .listStyle(.plain)
         .navigationTitle("Set")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .principal) {
-                Picker("Sort", selection: $sortOrder) {
-                    Text("Release Date").tag(SortOrder.byReleaseDate)
-                    Text("Name").tag(SortOrder.alphabetical)
-                }
-                .pickerStyle(.segmented)
-            }
-        }
-        .task(id: sortOrder) {
-            sections = buildSections(sortOrder: sortOrder)
+        .task {
+            buildSections()
         }
     }
 
-    private func buildSections(sortOrder: SortOrder) -> [SetSection] {
-        let all = Array((scryfallCatalogs.sets ?? [:]).values)
+    @ViewBuilder
+    private func makeSection(_ section: SetSection) -> some View {
+        Section {
+            Text(section.name)
+                .fontWeight(.bold)
+                .foregroundStyle(.secondary)
+                .listRowSeparator(.hidden)
+                .listRowInsets(EdgeInsets())
+                .padding(.horizontal)
+
+            ForEach(section.sets, id: \.code) { set in
+                Button {
+                    setCode = SetCode(set.code)
+                    dismiss()
+                } label: {
+                    HStack(spacing: 12) {
+                        SetIconView(setCode: SetCode(set.code), size: 32)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(set.name)
+                                .foregroundStyle(.primary)
+                            if let releasedAt = set.releasedAtAsDate {
+                                Text(releasedAt.formatted(date: .long, time: .omitted))
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .if(section.indexLabel) { view, label in
+            view.sectionIndexLabel(label)
+        }
+    }
+
+    private func buildSections() {
+        let allSets = Array((scryfallCatalogs.sets ?? [:]).values)
             .filter { !ignoredSetTypes.contains($0.setType) }
 
-        return switch sortOrder {
-        case .byReleaseDate: dateSections(from: all)
-        case .alphabetical: alphabetSections(from: all)
-        }
-    }
+        // Exploit ISO8601-style date formats to avoid ever having to parse the date.
+        let recencyCutoff = Calendar.current.date(byAdding: .year, value: -1, to: .now)?
+            .ISO8601Format(.iso8601.year().month().day().dateSeparator(.dash)) ?? "1900-01-01"
+        let recentSets = allSets
+            .filter { ($0.releasedAt ?? "1900-01-01") >= recencyCutoff }
+            .sorted { ($0.releasedAt ?? "1900-01-01") > ($1.releasedAt ?? "1900-01-01") }
+        recentSection = recentSets.isEmpty ? nil : SetSection(name: "Recent Sets", sets: recentSets, indexLabel: nil)
 
-    private func dateSections(from sets: [MTGSet]) -> [SetSection] {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withFullDate]
-        let withDates = sets.map { set -> (MTGSet, Date?) in
-            let date = set.releasedAt.flatMap { formatter.date(from: $0) }
-            return (set, date)
-        }
-        let sorted = withDates.sorted {
-            ($0.1 ?? .distantPast) > ($1.1 ?? .distantPast)
-        }
-        let grouped = Dictionary(grouping: sorted) { pair -> String in
-            if let date = pair.1 {
-                return String(Calendar.current.component(.year, from: date))
-            }
-            return "—"
-        }
-        let keys = grouped.keys.sorted { lhs, rhs in
-            if lhs == "—" { return false }
-            if rhs == "—" { return true }
-            return lhs > rhs
-        }
-        return keys.map { SetSection($0, shortSectionName: "'\($0.suffix(2))", sets: grouped[$0]!.map(\.0)) }
-    }
-
-    private func alphabetSections(from sets: [MTGSet]) -> [SetSection] {
-        let sorted = sets.sorted { $0.name < $1.name }
+        let sorted = allSets.sorted { $0.name < $1.name }
         let grouped = Dictionary(grouping: sorted) { set -> String in
             if let first = set.name.first, first.isASCII && first.isLetter {
                 return String(first).uppercased()
@@ -450,11 +422,11 @@ private struct SetPickerView: View {
         var result = grouped.keys
             .filter { $0 != "#" }
             .sorted()
-            .map { SetSection($0, sets: grouped[$0]!) }
+            .map { SetSection(name: $0, sets: grouped[$0]!, indexLabel: $0) }
         if let hashSets = grouped["#"] {
-            result.append(SetSection("#", sets: hashSets))
+            result.append(SetSection(name: "#", sets: hashSets, indexLabel: "#"))
         }
-        return result
+        alphabeticalSections = result
     }
 }
 
