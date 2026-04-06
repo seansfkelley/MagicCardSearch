@@ -39,33 +39,33 @@ enum SearchErrorState: Error {
     var title: String {
         switch self {
         case .clientError:
-            return "Search Error"
+            "Search Error"
         case .serverError:
-            return "Scryfall is Unavailable"
+            "Scryfall is Unavailable"
         case .networkError:
-            return "Connection Error"
+            "Connection Error"
         }
     }
     
     var description: String {
         switch self {
         case .clientError:
-            return "There was a problem with your search. Please check your filters and try again."
+            "There was a problem with your search. Please check your filters and try again."
         case .serverError:
-            return "Scryfall is experiencing issues. Please try again in a moment."
+            "Scryfall is experiencing issues. Please try again in a moment."
         case .networkError:
-            return "Unable to connect to Scryfall. Please check your internet connection and try again."
+            "Unable to connect to Scryfall. Please check your internet connection and try again."
         }
     }
     
     var iconName: String {
         switch self {
         case .clientError:
-            return "exclamationmark.magnifyingglass"
+            "exclamationmark.magnifyingglass"
         case .serverError:
-            return "server.rack"
+            "server.rack"
         case .networkError:
-            return "wifi.slash"
+            "wifi.slash"
         }
     }
 }

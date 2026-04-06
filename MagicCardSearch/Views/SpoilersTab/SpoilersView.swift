@@ -6,17 +6,23 @@ import Cache
 // Exists because apparently @AppStorage cannot deal with nil, which is pretty amateur-level shit.
 let allSetsSentinel = SetCode("sentinel")
 
+private let ignoredSetTypes: Set<MTGSet.Kind> = [
+    .token,
+]
+
 private let logger = Logger(subsystem: "MagicCardSearch", category: "SpoilersView")
 
 struct SpoilersView: View {
     @State private var selectedCardIndex: Int?
     @State private var cardFlipStates: [UUID: Bool] = [:]
-    @State private var spoilingSets: [MTGSet] = []
-    @State private var objectList: ScryfallObjectList<Card> = .empty()
+    @State private var orderedSelectableSets: [MTGSet] = []
+    @State private var currentSearchResults: ScryfallObjectList<Card> = .empty()
 
     @AppStorage("spoilersSelectedSetCode") private var selectedSetCode: SetCode = allSetsSentinel
 
     @Environment(ScryfallCatalogs.self) private var scryfallCatalogs
+
+    private static let client = ScryfallClient(logger: logger)
 
     private static let objectListCache = StrongMemoryStorage<SetCode, ScryfallObjectList<Card>>(
         config: .init(expiry: .hours(1), countLimit: 50)
@@ -34,11 +40,11 @@ struct SpoilersView: View {
             Color(uiColor: .systemBackground)
                 .ignoresSafeArea()
 
-            if spoilingSets.isEmpty {
+            if orderedSelectableSets.isEmpty {
                 ProgressView()
                     .scaleEffect(1.5)
             } else {
-                switch objectList.value {
+                switch currentSearchResults.value {
                 case .loading(nil, _), .unloaded:
                     ProgressView()
                         .scaleEffect(1.5)
@@ -64,7 +70,7 @@ struct SpoilersView: View {
             }
         }
         .safeAreaInset(edge: .top) {
-            SpoilersSetSelectorView(spoilingSets: spoilingSets, selectedSetCode: $selectedSetCode)
+            SpoilersSetSelectorView(spoilingSets: orderedSelectableSets, selectedSetCode: $selectedSetCode)
                 .padding(.horizontal, 8)
         }
         .toolbar(.hidden, for: .navigationBar)
@@ -90,7 +96,7 @@ struct SpoilersView: View {
         ) { identifier in
             NavigationStack {
                 LazyPagingCardDetailNavigatorView(
-                    list: objectList,
+                    list: currentSearchResults,
                     initialIndex: identifier.index,
                     cardFlipStates: $cardFlipStates,
                     searchState: nil,
@@ -102,71 +108,80 @@ struct SpoilersView: View {
     @ViewBuilder
     private func spoilersGrid(results: ObjectList<Card>) -> some View {
         ScrollView {
-            LazyVGrid(columns: columns, spacing: spacing) {
-                ForEach(Array(results.data.enumerated()), id: \.element.id) { index, card in
-                    CardView(
-                        card: card,
-                        quality: .normal,
-                        isFlipped: $cardFlipStates.for(card.id),
-                        cornerRadius: 10,
-                        enableCopyActions: true,
-                        enableZoomGestures: .pinchOnly,
-                        zoomGestureBasisAdjustment: 3.0,
-                    )
-                    .onTapGesture {
-                        selectedCardIndex = index
-                    }
-                    .onAppear {
-                        if index == results.data.count - 4 {
-                            objectList.loadNextPage()
-                        }
-                    }
-                    .padding(.horizontal, spacing / 2)
-                }
+            VStack(spacing: 0) {
+                Text("^[\(results.totalCards ?? 0) spoiler](inflect: true)")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .padding(.vertical, 8)
 
-                if (results.hasMore ?? false) || objectList.value.isLoadingNextPage {
-                    ProgressView()
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 20)
-                        .gridCellColumns(2)
+                LazyVGrid(columns: columns, spacing: spacing) {
+                    ForEach(Array(results.data.enumerated()), id: \.element.id) { index, card in
+                        CardView(
+                            card: card,
+                            quality: .normal,
+                            isFlipped: $cardFlipStates.for(card.id),
+                            cornerRadius: 10,
+                            enableCopyActions: true,
+                            enableZoomGestures: .pinchOnly,
+                            zoomGestureBasisAdjustment: 3.0,
+                        )
+                        .onTapGesture {
+                            selectedCardIndex = index
+                        }
+                        .onAppear {
+                            if index == results.data.count - 4 {
+                                currentSearchResults.loadNextPage()
+                            }
+                        }
+                        .padding(.horizontal, spacing / 2)
+                    }
+
+                    if (results.hasMore ?? false) || currentSearchResults.value.isLoadingNextPage {
+                        ProgressView()
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 20)
+                            .gridCellColumns(2)
+                    }
                 }
+                .padding(.horizontal, spacing / 2)
+                .padding(.vertical)
             }
-            .padding(.horizontal, spacing / 2)
-            .padding(.vertical)
         }
     }
 
     private func recomputeSpoilingSets() {
         let twoWeeksAgo = Calendar.current.date(byAdding: .weekOfYear, value: -2, to: .now)!
         let newSets = scryfallCatalogs.sets?.values
-            .filter { ($0.releasedAtAsDate ?? .distantPast) >= twoWeeksAgo }
-            .sorted { ($0.releasedAtAsDate ?? .distantPast) > ($1.releasedAtAsDate ?? .distantPast) } ?? []
+            .filter {
+                ($0.releasedAtAsDate ?? .distantPast) >= twoWeeksAgo &&
+                $0.cardCount > 0 &&
+                !ignoredSetTypes.contains($0.setType)
+            }
+            .sorted { $0.spoilerOrderingKey < $1.spoilerOrderingKey } ?? []
 
-        spoilingSets = newSets
+        orderedSelectableSets = newSets
         if selectedSetCode != allSetsSentinel && !newSets.contains(where: { SetCode($0.code) == selectedSetCode }) {
             selectedSetCode = allSetsSentinel
         }
     }
 
     private func reloadSpoilers() {
-        guard !spoilingSets.isEmpty else { return }
+        guard !orderedSelectableSets.isEmpty else { return }
 
         if let cached = try? Self.objectListCache.entry(forKey: selectedSetCode) {
-            objectList = cached.object
+            currentSearchResults = cached.object
             return
         }
 
         let query: String
-        if selectedSetCode != allSetsSentinel {
-            query = "set:\(selectedSetCode.rawValue.lowercased())"
+        if selectedSetCode == allSetsSentinel {
+            query = "date>=today"
         } else {
-            let codes = spoilingSets.map { "set:\($0.code)" }.joined(separator: " OR ")
-            query = "(\(codes))"
+            query = "set:\(selectedSetCode.rawValue.lowercased())"
         }
 
-        let client = ScryfallClient(logger: logger)
         let newObjectList = ScryfallObjectList<Card> { page in
-            try await client.searchCards(
+            try await Self.client.searchCards(
                 query: query,
                 unique: .prints,
                 order: .spoiled,
@@ -176,7 +191,17 @@ struct SpoilersView: View {
         }
 
         Self.objectListCache.setObject(newObjectList, forKey: selectedSetCode)
-        objectList = newObjectList
-        objectList.loadNextPage()
+        currentSearchResults = newObjectList
+        currentSearchResults.loadNextPage()
+    }
+}
+
+private extension MTGSet {
+    var spoilerOrderingKey: (Date, Int, String) {
+        (
+            releasedAtAsDate ?? .distantPast,
+            parentSetCode == nil ? 0 : 1,
+            name,
+        )
     }
 }

@@ -10,7 +10,7 @@ struct SpoilersSetSelectorView: View {
             HStack(spacing: 8) {
                 SetSelectorCapsule(
                     icon: Image("allSetsIcon").renderingMode(.template).resizable().aspectRatio(contentMode: .fit),
-                    label: "All Sets",
+                    label: "All Unreleased",
                     sublabel: nil,
                     isSelected: selectedSetCode == allSetsSentinel
                 ) {
@@ -31,9 +31,10 @@ struct SpoilersSetSelectorView: View {
                     }
                 }
             }
+            .padding(6)
         }
-        .padding(6)
         .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 30))
+        .clipShape(Capsule())
     }
 }
 
