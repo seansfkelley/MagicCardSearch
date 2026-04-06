@@ -82,6 +82,12 @@ struct SearchResultsGridView: View {
                             paginationStatusView
                                 .padding(.horizontal)
                                 .padding(.vertical, 20)
+                        } else {
+                            Text("Fin.")
+                                .fontDesign(.serif)
+                                .italic()
+                                .foregroundStyle(.secondary)
+                                .padding(.top)
                         }
                     }
                     .padding(.horizontal, spacing / 2)

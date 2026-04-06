@@ -130,7 +130,7 @@ struct SpoilersView: View {
                 Text("^[\(results.totalCards ?? 0) spoiler](inflect: true)")
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                    .padding(.vertical, 8)
+                    .padding(.bottom)
 
                 LazyVGrid(columns: columns, spacing: spacing) {
                     ForEach(Array(results.data.enumerated()), id: \.element.id) { index, card in
@@ -153,17 +153,22 @@ struct SpoilersView: View {
                         }
                         .padding(.horizontal, spacing / 2)
                     }
-
-                    if (results.hasMore ?? false) || currentSearchResults.value.isLoadingNextPage {
-                        ProgressView()
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 20)
-                            .gridCellColumns(2)
-                    }
                 }
-                .padding(.horizontal, spacing / 2)
-                .padding(.vertical)
+
+                if (results.hasMore ?? false) || currentSearchResults.value.isLoadingNextPage {
+                    ProgressView()
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 20)
+                } else {
+                    Text("Fin.")
+                        .fontDesign(.serif)
+                        .italic()
+                        .foregroundStyle(.secondary)
+                        .padding(.top)
+                }
             }
+            .padding(.horizontal, spacing / 2)
+            .padding(.vertical)
         }
     }
 
