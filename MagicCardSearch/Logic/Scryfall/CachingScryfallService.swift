@@ -73,6 +73,16 @@ extension CachingScryfallService: TagsService {}
 extension CachingScryfallService: RulingsService {}
 extension CachingScryfallService: CardSearchService {}
 
+private struct SearchCacheKey: Hashable {
+    // n.b. we cannot make this [String] and then sort it to canonicalize the cache key -- ordering
+    // matters for multiply-specified singleton filters like `prefer`.
+    let query: String
+    let unique: UniqueMode
+    let order: SortMode?
+    let sortDirection: SortDirection
+    let page: Int
+}
+
 @MainActor
 class CachingScryfallService {
     static let shared = CachingScryfallService()
@@ -80,21 +90,26 @@ class CachingScryfallService {
     private let client = ScryfallClient(logger: logger)
 
     private let rulingsCache: any StorageAware<UUID, [Card.Ruling]> = bestEffortCache(
+        // 30 days: rulings basically never change.
         memory: .init(expiry: .days(30), countLimit: 500),
         disk: .init(name: "rulings", expiry: .days(30)),
     )
 
     private let tagsCache: any StorageAware<String, TaggerCard> = bestEffortCache(
-        memory: .init(expiry: .days(30), countLimit: 500),
+        // 7 days: tags rarely change, but are user-editable, so this is an acceptable delay.
+        memory: .init(expiry: .days(7), countLimit: 500),
         disk: .init(name: "tags", expiry: .days(7)),
     )
 
     private let cardCache: any StorageAware<String, Card> = bestEffortCache(
+        // 30 days: cards basically never change.
         memory: .init(expiry: .days(30), countLimit: 500),
         disk: .init(name: "cards", expiry: .days(7)),
     )
 
-    private let cardSearchCache: any StorageAware<String, ObjectList<Card>> = bestEffortCache(
+    private let cardSearchCache: any StorageAware<SearchCacheKey, ObjectList<Card>> = bestEffortCache(
+        // 1 day: spoilers may change which cards turn up in any given search, but spoilers only
+        // cycle around once per day during spoiler seasons.
         memory: .init(expiry: .days(1), countLimit: 100),
         disk: .init(name: "cardSearch", expiry: .days(1)),
     )
@@ -222,15 +237,26 @@ class CachingScryfallService {
     }
 
     func searchCards(query: String, unique: UniqueMode, order: SortMode?, sortDirection: SortDirection, page: Int) async throws -> ObjectList<Card> {
-        let orderString = order.map { "\($0)" } ?? ""
-        let cacheKey = "\(query)|\(unique)|\(orderString)|\(sortDirection)|\(page)"
+        let cacheKey = SearchCacheKey(
+            query: query,
+            unique: unique,
+            order: order,
+            sortDirection: sortDirection,
+            page: page,
+        )
 
         if let cached = try? cardSearchCache.entry(forKey: cacheKey) {
             logger.debug("hit card search cache for query=\(query) page=\(page)")
             return cached.object
         }
 
-        let results = try await client.searchCards(query: query, unique: unique, order: order, sortDirection: sortDirection, page: page)
+        let results = try await client.searchCards(
+            query: query,
+            unique: unique,
+            order: order,
+            sortDirection: sortDirection,
+            page: page,
+        )
 
         do {
             try cardSearchCache.setObject(results, forKey: cacheKey, expiry: nil)
