@@ -19,12 +19,17 @@ class SearchState {
     public private(set) var didAutomaticallyIncludeExtras: Bool?
 
     private let suggestionProvider: AutocompleteSuggestionProvider
-    private let scryfall = ScryfallClient(logger: logger)
+    private let cardSearchService: CardSearchService
     private let historyAndPinnedStore: HistoryAndPinnedStore
 
-    public init(historyAndPinnedStore: HistoryAndPinnedStore, scryfallCatalogs: ScryfallCatalogs) {
+    public init(
+        historyAndPinnedStore: HistoryAndPinnedStore,
+        scryfallCatalogs: ScryfallCatalogs,
+        cardSearchService: CardSearchService? = nil,
+    ) {
         self.historyAndPinnedStore = historyAndPinnedStore
         self.suggestionProvider = AutocompleteSuggestionProvider(scryfallCatalogs: scryfallCatalogs)
+        self.cardSearchService = cardSearchService ?? CachingScryfallService.shared
     }
 
     public func makeEditingState() -> SearchEditingState {
@@ -86,10 +91,10 @@ class SearchState {
 
         let query = mutableQuery // appease concurrency checker.
 
-        let thisSearch = ScryfallObjectList<Card>({ [weak self] page async throws in
+        let thisSearch = ScryfallObjectList<Card>({ @MainActor [weak self] page async throws in
             guard let self else { return .empty() }
 
-            return try await scryfall.searchCards(
+            return try await cardSearchService.searchCards(
                 query: query,
                 unique: instancedConfiguration.uniqueMode.toScryfallKitUniqueMode(),
                 order: instancedConfiguration.sortField.toScryfallKitSortMode(),

@@ -38,6 +38,13 @@ struct AllPrintsView: View {
 
     let oracleId: String
     let initialCardId: UUID
+    let cardSearchService: CardSearchService
+
+    init(oracleId: String, initialCardId: UUID, cardSearchService: CardSearchService? = nil) {
+        self.oracleId = oracleId
+        self.initialCardId = initialCardId
+        self.cardSearchService = cardSearchService ?? CachingScryfallService.shared
+    }
 
     @State private var objectList: ScryfallObjectList<Card> = .empty()
     @State private var currentCardId: UUID?
@@ -227,10 +234,12 @@ struct AllPrintsView: View {
             reindexAndScrollTo(targetCardId)
         } else {
             let searchQuery = printFilterSettings.toQueryFor(oracleId: oracleId)
-            let client = ScryfallClient(logger: logger)
-            let currentObjectList = ScryfallObjectList { page in
-                try await client.searchCards(
+            let currentObjectList = ScryfallObjectList { @MainActor [cardSearchService] page in
+                try await cardSearchService.searchCards(
                     query: searchQuery,
+                    unique: .prints,
+                    order: nil,
+                    sortDirection: .auto,
                     page: page,
                 )
             } postProcess: { self.printFilterSettings.sort($0) }

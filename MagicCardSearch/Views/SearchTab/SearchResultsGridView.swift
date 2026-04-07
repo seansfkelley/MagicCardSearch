@@ -184,7 +184,7 @@ struct SearchResultsGridView: View {
 
 #Preview {
     let list = ScryfallObjectList<Card> { page in
-        try await ScryfallClient().searchCards(query: "color:izzet t:instant order:edhrec mv>=4", page: page)
+        try await CachingScryfallService.shared.searchCards(query: "color:izzet t:instant order:edhrec mv>=4", unique: .cards, order: nil, sortDirection: .auto, page: page)
     }
     PreviewContainer { searchState in
         SearchResultsGridView(list: list, searchState: searchState)

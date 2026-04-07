@@ -36,7 +36,7 @@ struct SpoilersView: View {
         .init(setCode: selectedSetCode, sortOrder: sortOrder, colors: selectedColors, showUniquePrints: showUniquePrints)
     }
 
-    private static let client = ScryfallClient(logger: logger)
+    let cardSearchService: CardSearchService
 
     private static let objectListCache = StrongMemoryStorage<CacheKey, ScryfallObjectList<Card>>(
         config: .init(expiry: .hours(1), countLimit: 50)
@@ -48,6 +48,10 @@ struct SpoilersView: View {
     ]
 
     private let spacing: CGFloat = 4
+
+    init(cardSearchService: CardSearchService? = nil) {
+        self.cardSearchService = cardSearchService ?? CachingScryfallService.shared
+    }
 
     var body: some View {
         ZStack {
@@ -229,8 +233,8 @@ struct SpoilersView: View {
 
         let query = queryParts.joined(separator: " ")
 
-        let newObjectList = ScryfallObjectList<Card> { page in
-            try await Self.client.searchCards(
+        let newObjectList = ScryfallObjectList<Card> { @MainActor [cardSearchService] page in
+            try await cardSearchService.searchCards(
                 query: query,
                 unique: showUniquePrints ? .prints : .cards,
                 order: sortOrder.scryfallSortMode,
