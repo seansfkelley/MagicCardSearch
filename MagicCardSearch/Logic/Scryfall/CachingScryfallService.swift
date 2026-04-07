@@ -24,6 +24,11 @@ protocol RulingsService {
 }
 
 @MainActor
+protocol RandomCardService {
+    func randomCard(query: String?) async throws -> Card
+}
+
+@MainActor
 protocol CardSearchService {
     func searchCards(
         query: String,
@@ -72,6 +77,7 @@ extension CachingScryfallService: FetchCardService {}
 extension CachingScryfallService: TagsService {}
 extension CachingScryfallService: RulingsService {}
 extension CachingScryfallService: CardSearchService {}
+extension CachingScryfallService: RandomCardService {}
 
 private struct SearchCacheKey: Hashable {
     // n.b. we cannot make this [String] and then sort it to canonicalize the cache key -- ordering
@@ -234,6 +240,10 @@ class CachingScryfallService {
         }
 
         return card
+    }
+
+    func randomCard(query: String?) async throws -> Card {
+        try await client.getRandomCard(query: query)
     }
 
     func searchCards(query: String, unique: UniqueMode, order: SortMode?, sortDirection: SortDirection, page: Int) async throws -> ObjectList<Card> {

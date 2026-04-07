@@ -55,7 +55,12 @@ struct RandomCardView: View {
     @Environment(RecentlyViewedCardsStore.self) private var recentlyViewedCardsStore
     @FetchAll private var bookmarks: [BookmarkedCard]
 
-    private let client = ScryfallClient(logger: logger)
+    let randomCardService: RandomCardService
+
+    init(advanceCard: Binding<Bool>, randomCardService: RandomCardService? = nil) {
+        _advanceCard = advanceCard
+        self.randomCardService = randomCardService ?? CachingScryfallService.shared
+    }
 
     private var currentCard: Card? {
         guard case .entry(_, let index) = scrollPosition else { return nil }
@@ -257,7 +262,7 @@ struct RandomCardView: View {
         fetchTask = Task {
             let entry: HistoryEntry
             do {
-                let card = try await client.getRandomCard(query: filters.queryString)
+                let card = try await randomCardService.randomCard(query: filters.queryString)
                 entry = HistoryEntry(content: .card(card))
             } catch let error as ScryfallKitError {
                 guard !Task.isCancelled else { return }
