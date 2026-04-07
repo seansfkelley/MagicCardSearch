@@ -153,7 +153,7 @@ struct SpoilersView: View {
                             }
                         }
                         .padding(.horizontal, spacing / 2)
-                        .overlay(alignment: .bottomTrailing) {
+                        .overlay(alignment: .bottom) {
                             if let previewedAt = card.preview?.previewedAt, let date = PlainDate(from: previewedAt) {
                                 Text(date.relativeLabel)
                                     .font(.caption2)
