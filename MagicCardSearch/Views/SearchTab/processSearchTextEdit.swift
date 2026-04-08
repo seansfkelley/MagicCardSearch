@@ -163,10 +163,10 @@ func quoteAdjacentBareWords(in string: String, withLastEditAt range: Range<Strin
         return nil
     }
 
-    let quoted = "\"" + bareWords.joined(separator: " ") + "\""
+    let quoted = "\"" + bareWords.joined(separator: " ")
     var result = string
     result.replaceSubrange(adjacentWordsStartIndex..<string.endIndex, with: quoted)
 
-    let newCursor = result.index(adjacentWordsStartIndex, offsetBy: quoted.count - 1)
+    let newCursor = result.index(adjacentWordsStartIndex, offsetBy: quoted.count)
     return (nil, result, newCursor..<newCursor)
 }

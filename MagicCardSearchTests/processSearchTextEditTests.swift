@@ -32,7 +32,7 @@ struct ProcessSearchTextEditTests {
             // Multi-char path via elideExtraneousWhitespace
             ("color:", " red", 6..<6, (nil, "color:red", 6..<9)),
             // Multi-char path via quoteAdjacentBareWords
-            ("lightning", " bolt", 9..<9, (nil, "\"lightning bolt\"", 15..<15)),
+            ("lightning", " bolt", 9..<9, (nil, "\"lightning bolt", 15..<15)),
         ],
     )
     func returnsNonNil(
@@ -43,11 +43,11 @@ struct ProcessSearchTextEditTests {
     ) throws {
         let range = try #require(insertionRange.toStringIndices(in: textBefore))
         let result = try #require(processSearchTextEdit(textBefore, inserting: inserted, inRange: range))
-        #expect(result == (
-            expected.0,
-            expected.1,
-            try expected.2.map { try #require($0.toStringIndices(in: result.1)) },
-        ))
+        #expect(result.filter == expected.filter)
+        #expect(result.newText == expected.newText)
+        // n.b. not flatMap on purpose; if we have a non-nil expectation we expect a non-nil conversion.
+        let expectedSelection = try expected.newSelection.map { try #require($0.toStringIndices(in: result.newText)) }
+        #expect(result.newSelection == expectedSelection)
     }
 }
 
@@ -128,11 +128,11 @@ struct InferIntentFromAppendingOneCharacterTests {
     func returnsNonNil(candidate: String, expected: IntSearchTextEdit) throws {
         let range = candidate.index(before: candidate.endIndex)..<candidate.endIndex
         let result = try #require(inferIntentFromAppendingOneCharacter(in: candidate, withLastEditAt: range))
-        #expect(result == (
-            expected.0,
-            expected.1,
-            try expected.2.map { try #require($0.toStringIndices(in: result.1)) },
-        ))
+        #expect(result.filter == expected.filter)
+        #expect(result.newText == expected.newText)
+        // n.b. not flatMap on purpose; if we have a non-nil expectation we expect a non-nil conversion.
+        let expectedSelection = try expected.newSelection.map { try #require($0.toStringIndices(in: result.newText)) }
+        #expect(result.newSelection == expectedSelection)
     }
 }
 
@@ -222,22 +222,21 @@ struct QuoteAdjacentBareWordsTests {
 
     @Test("returns non-nil", arguments: [
         // Two bare words
-        ("lightning bolt", 9..<14, " bolt", "\"lightning bolt\"", 15..<15),
+        ("lightning bolt", 9..<14, " bolt", "\"lightning bolt", 15..<15),
         // Three bare words
-        ("dark confidant soul", 14..<19, " soul", "\"dark confidant soul\"", 20..<20),
+        ("dark confidant soul", 14..<19, " soul", "\"dark confidant soul", 20..<20),
         // Bare words following a filter
-        ("color:red lightning bolt", 19..<24, " bolt", "color:red \"lightning bolt\"", 25..<25),
+        ("color:red lightning bolt", 19..<24, " bolt", "color:red \"lightning bolt", 25..<25),
         // Word with apostrophe
-        ("urza's tower", 6..<12, " tower", "\"urza's tower\"", 13..<13),
+        ("urza's tower", 6..<12, " tower", "\"urza's tower", 13..<13),
     ])
     func returnsNonNil(string: String, editRange: Range<Int>, checkString: String, expectedString: String, expectedRange: Range<Int>) throws {
         let indexRange = try #require(editRange.toStringIndices(in: string))
         try #require(string[indexRange] == checkString)
         let result = try #require(quoteAdjacentBareWords(in: string, withLastEditAt: indexRange))
-        #expect(result == (
-            nil,
-            expectedString,
-            try #require(expectedRange.toStringIndices(in: result.newText)),
-        ))
+        #expect(result.filter == nil)
+        #expect(result.newText == expectedString)
+        let expectedSelection = try #require(expectedRange.toStringIndices(in: result.newText))
+        #expect(result.newSelection == expectedSelection)
     }
 }
