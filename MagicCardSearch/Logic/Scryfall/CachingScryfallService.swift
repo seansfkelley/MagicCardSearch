@@ -136,7 +136,12 @@ class CachingScryfallService {
         }
 
         try await fetchLimiter.waitForSlot()
-        let rulings = try await client.getRulings(.scryfallID(id: id.uuidString))
+        let rulings: ObjectList<Card.Ruling>
+        do {
+            let networkState = signposter.beginInterval("network", id: signpostID)
+            defer { signposter.endInterval("network", networkState) }
+            rulings = try await client.getRulings(.scryfallID(id: id.uuidString))
+        }
         if rulings.hasMore ?? false {
             logger.warning("card with scryfall ID=\(id) has more than one page of rulings; ignoring")
         }
@@ -164,9 +169,13 @@ class CachingScryfallService {
         }
 
         try await fetchLimiter.waitForSlot()
-        guard let card = try await TaggerCard.fetch(setCode: setCode, collectorNumber: collectorNumber) else {
-            return nil
+        let fetched: TaggerCard?
+        do {
+            let networkState = signposter.beginInterval("network", id: signpostID)
+            defer { signposter.endInterval("network", networkState) }
+            fetched = try await TaggerCard.fetch(setCode: setCode, collectorNumber: collectorNumber)
         }
+        guard let card = fetched else { return nil }
 
         do {
             try tagsCache.setObject(card, forKey: cacheKey, expiry: nil)
@@ -190,7 +199,12 @@ class CachingScryfallService {
         }
 
         try await fetchLimiter.waitForSlot()
-        let card = try await client.getCard(identifier: .scryfallID(id: id.uuidString))
+        let card: Card
+        do {
+            let networkState = signposter.beginInterval("network", id: signpostID)
+            defer { signposter.endInterval("network", networkState) }
+            card = try await client.getCard(identifier: .scryfallID(id: id.uuidString))
+        }
 
         do {
             try cardCache.setObject(card, forKey: cacheKey, expiry: nil)
@@ -214,7 +228,12 @@ class CachingScryfallService {
         }
 
         try await searchLimiter.waitForSlot()
-        let results = try await client.searchCards(query: "oracleId:\(id.uuidString)")
+        let results: ObjectList<Card>
+        do {
+            let networkState = signposter.beginInterval("network", id: signpostID)
+            defer { signposter.endInterval("network", networkState) }
+            results = try await client.searchCards(query: "oracleId:\(id.uuidString)")
+        }
         guard let card = results.data.first else { return nil }
 
         do {
@@ -239,7 +258,12 @@ class CachingScryfallService {
         }
 
         try await searchLimiter.waitForSlot()
-        let results = try await client.searchCards(query: "illustrationId:\(id.uuidString)")
+        let results: ObjectList<Card>
+        do {
+            let networkState = signposter.beginInterval("network", id: signpostID)
+            defer { signposter.endInterval("network", networkState) }
+            results = try await client.searchCards(query: "illustrationId:\(id.uuidString)")
+        }
         guard let card = results.data.first else { return nil }
 
         do {
@@ -264,7 +288,12 @@ class CachingScryfallService {
         }
 
         try await searchLimiter.waitForSlot()
-        let results = try await client.searchCards(query: "printingId:\(id.uuidString)")
+        let results: ObjectList<Card>
+        do {
+            let networkState = signposter.beginInterval("network", id: signpostID)
+            defer { signposter.endInterval("network", networkState) }
+            results = try await client.searchCards(query: "printingId:\(id.uuidString)")
+        }
         guard let card = results.data.first else { return nil }
 
         do {
@@ -283,6 +312,8 @@ class CachingScryfallService {
         defer { signposter.endInterval("randomCard", state) }
 
         try await searchLimiter.waitForSlot()
+        let networkState = signposter.beginInterval("network", id: signpostID)
+        defer { signposter.endInterval("network", networkState) }
         return try await client.getRandomCard(query: query)
     }
 
@@ -305,13 +336,18 @@ class CachingScryfallService {
         }
 
         try await searchLimiter.waitForSlot()
-        let results = try await client.searchCards(
-            query: query,
-            unique: unique,
-            order: order,
-            sortDirection: sortDirection,
-            page: page,
-        )
+        let results: ObjectList<Card>
+        do {
+            let networkState = signposter.beginInterval("network", id: signpostID)
+            defer { signposter.endInterval("network", networkState) }
+            results = try await client.searchCards(
+                query: query,
+                unique: unique,
+                order: order,
+                sortDirection: sortDirection,
+                page: page,
+            )
+        }
 
         do {
             try cardSearchCache.setObject(results, forKey: cacheKey, expiry: nil)
