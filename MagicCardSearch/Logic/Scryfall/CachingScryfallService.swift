@@ -96,8 +96,8 @@ class CachingScryfallService {
     private let client = ScryfallClient(logger: logger)
 
     // Sliding window rate limiters per Scryfall's two-tier limits.
-    private let searchLimiter = RateLimiter(maxRequests: 2)   // /cards/search, /cards/random
-    private let fetchLimiter  = RateLimiter(maxRequests: 10)  // /cards/{id}, /cards/{id}/rulings
+    private let searchLimiter = RateLimiter("2/s", requests: 2, per: .seconds(1))   // /cards/search, /cards/random
+    private let fetchLimiter = RateLimiter("10/s", requests: 10, per: .seconds(1))  // /cards/{id}, /cards/{id}/rulings
 
     private let rulingsCache: any StorageAware<UUID, [Card.Ruling]> = bestEffortCache(
         // 30 days: rulings basically never change.

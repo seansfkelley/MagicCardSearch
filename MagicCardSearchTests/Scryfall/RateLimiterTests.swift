@@ -8,7 +8,7 @@ struct RateLimiterTests {
     @Test func immediateUnderLimit() async throws {
         try await withTimeout(.milliseconds(100)) {
             let clock = TestClock<Duration>()
-            let limiter = RateLimiter(maxRequests: 3, windowDuration: .seconds(1), clock: clock)
+            let limiter = RateLimiter(requests: 3, per: .seconds(1), using: clock)
             try await limiter.waitForSlot()
             try await limiter.waitForSlot()
             try await limiter.waitForSlot()
@@ -20,7 +20,7 @@ struct RateLimiterTests {
         do {
             try await withTimeout(.milliseconds(100)) {
                 let clock = TestClock<Duration>()
-                let limiter = RateLimiter(maxRequests: 1, windowDuration: .seconds(60), clock: clock)
+                let limiter = RateLimiter(requests: 1, per: .seconds(60), using: clock)
                 try await limiter.waitForSlot()  // fill the window
                 try await limiter.waitForSlot()  // blocks forever; clock never advanced so the slot never opens up
             }
@@ -35,7 +35,7 @@ struct RateLimiterTests {
     @Test func blocksWhenWindowFull() async throws {
         try await withTimeout(.milliseconds(100)) {
             let clock = TestClock<Duration>()
-            let limiter = RateLimiter(maxRequests: 2, windowDuration: .seconds(1), clock: clock)
+            let limiter = RateLimiter(requests: 2, per: .seconds(1), using: clock)
             try await limiter.waitForSlot()
             try await limiter.waitForSlot()
             async let waiting = limiter.waitForSlot()
@@ -49,7 +49,7 @@ struct RateLimiterTests {
     @Test func windowRenews() async throws {
         try await withTimeout(.milliseconds(100)) {
             let clock = TestClock<Duration>()
-            let limiter = RateLimiter(maxRequests: 1, windowDuration: .seconds(1), clock: clock)
+            let limiter = RateLimiter(requests: 1, per: .seconds(1), using: clock)
             try await limiter.waitForSlot()  // slot consumed at t=0
 
             async let second = limiter.waitForSlot()
@@ -72,7 +72,7 @@ struct RateLimiterTests {
         do {
             try await withTimeout(.milliseconds(100)) {
                 let clock = TestClock<Duration>()
-                let limiter = RateLimiter(maxRequests: 2, windowDuration: .seconds(1), clock: clock)
+                let limiter = RateLimiter(requests: 2, per: .seconds(1), using: clock)
 
                 try await limiter.waitForSlot()
                 await clock.advance(by: .milliseconds(500))
@@ -92,7 +92,7 @@ struct RateLimiterTests {
         // until t~1500ms.
         try await withTimeout(.milliseconds(100)) {
             let clock = TestClock<Duration>()
-            let limiter = RateLimiter(maxRequests: 2, windowDuration: .seconds(1), clock: clock)
+            let limiter = RateLimiter(requests: 2, per: .seconds(1), using: clock)
 
             try await limiter.waitForSlot()
             await clock.advance(by: .milliseconds(500))
@@ -110,7 +110,7 @@ struct RateLimiterTests {
         // task completes before cancellation would be relevant/propagate.
         try await withTimeout(.milliseconds(100)) {
             let clock = TestClock<Duration>()
-            let limiter = RateLimiter(maxRequests: 1, windowDuration: .seconds(1), clock: clock)
+            let limiter = RateLimiter(requests: 1, per: .seconds(1), using: clock)
 
             let waiter = Task { try await limiter.waitForSlot() }
             await Task.yield()  // give waiter a chance to reach Task.sleep
@@ -123,7 +123,7 @@ struct RateLimiterTests {
         // Now run the real test.
         try await withTimeout(.milliseconds(100)) {
             let clock = TestClock<Duration>()
-            let limiter = RateLimiter(maxRequests: 1, windowDuration: .seconds(1), clock: clock)
+            let limiter = RateLimiter(requests: 1, per: .seconds(1), using: clock)
             try await limiter.waitForSlot()  // fill the window
 
             let waiter = Task { try await limiter.waitForSlot() }

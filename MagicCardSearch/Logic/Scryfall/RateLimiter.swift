@@ -1,10 +1,16 @@
+import OSLog
+
+private let logger = Logger(subsystem: "MagicCardSearch", category: "RateLimiter")
+
 actor RateLimiter<C: Clock> where C.Duration == Duration {
+    let name: String?
     private let maxRequests: Int
     private let windowDuration: Duration
     private let clock: C
-    private var log: [C.Instant] = []
+    private var slots: [C.Instant] = []
 
-    init(maxRequests: Int, windowDuration: Duration = .seconds(1), clock: C) {
+    init(_ name: String? = nil, requests maxRequests: Int, per windowDuration: Duration, using clock: C) {
+        self.name = name
         self.maxRequests = maxRequests
         self.windowDuration = windowDuration
         self.clock = clock
@@ -13,25 +19,29 @@ actor RateLimiter<C: Clock> where C.Duration == Duration {
     func waitForSlot() async throws {
         while true {
             let now = clock.now
-            log.removeAll { $0.duration(to: now) >= windowDuration }
+            slots.removeAll { $0.duration(to: now) >= windowDuration }
 
-            if log.count < maxRequests {
-                log.append(now)
+            if slots.count < maxRequests {
+                logger.debug("\(self.tag)slot available")
+                slots.append(now)
                 return
             }
 
             // Sleep until the oldest entry exits the window, plus a small margin
             // for ContinuousClock precision. The loop re-evaluates after waking,
             // which correctly handles concurrent waiters that also woke up.
-            let sleepUntil = log[0].advanced(by: windowDuration + .milliseconds(5))
+            let sleepUntil = slots[0].advanced(by: windowDuration + .milliseconds(5))
+            logger.debug("\(self.tag)slot unavailable; sleeping for \(now.duration(to: sleepUntil))")
             try await Task.sleep(until: sleepUntil, clock: clock)
         }
     }
+
+    private var tag: String { name.map { "[\($0)] " } ?? "" }
 }
 
 extension RateLimiter where C == ContinuousClock {
-    init(maxRequests: Int, windowDuration: Duration = .seconds(1)) {
-        self.init(maxRequests: maxRequests, windowDuration: windowDuration, clock: ContinuousClock())
+    init(_ name: String? = nil, requests: Int, per: Duration) {
+        self.init(name, requests: requests, per: per, using: ContinuousClock())
     }
 }
 
