@@ -34,7 +34,10 @@ struct SearchConfigurationView: View {
 
                 Toggle("Show Sort Value Labels", isOn: $workingConfig.showSortLabels)
             } footer: {
-                Text("Use the `order:` and/or `dir:` filters to temporarily override these for one search.")
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Use the `order:` and/or `dir:` filters to temporarily override these for one search.")
+                    Text("Sort value labels appear at bottom of a card only for some sort types.")
+                }
             }
 
             Section {
