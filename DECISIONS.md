@@ -67,3 +67,9 @@ Separating the parsing of the boolean expression query structure from the filter
 - requires less recursion and type-juggling when pattern-matching to inspect a parsed query.
 - permits aggressive flattening of redundant nesting, even down to a single term, which aids database inspection and debugging.
 - simplifies the common case of wrapping single-term autocomplete suggestions into a valid query component.
+
+## RateLimiter
+
+Scryfall has [rate limits](https://scryfall.com/docs/api/rate-limits). Stated in requests/second, the simplest implementation is to just have a sliding window implementing with blocking sleeps. Batching is not available and there is no sense delaying request bursts with a "leaky bucket" approach.
+
+I'm unsure how aggressively Scryfall enforces rate limits. I have been rate-limited before, but I'm unsure of how many sustained requests/second I was making before that started happening.
