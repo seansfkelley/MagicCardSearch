@@ -1,6 +1,7 @@
 import OSLog
 
 private let logger = Logger(subsystem: "MagicCardSearch", category: "RateLimiter")
+private let signposter = OSSignposter(logger: logger)
 
 actor RateLimiter<C: Clock> where C.Duration == Duration {
     let name: String?
@@ -17,6 +18,10 @@ actor RateLimiter<C: Clock> where C.Duration == Duration {
     }
 
     func waitForSlot() async throws {
+        let signpostID = signposter.makeSignpostID()
+        let state = signposter.beginInterval("waitForSlot", id: signpostID, "\(self.tag)slots \(self.slots.count)/\(self.maxRequests)")
+        defer { signposter.endInterval("waitForSlot", state) }
+
         while true {
             let now = clock.now
             slots.removeAll { $0.duration(to: now) >= windowDuration }
@@ -44,4 +49,3 @@ extension RateLimiter where C == ContinuousClock {
         self.init(name, requests: requests, per: per, using: ContinuousClock())
     }
 }
-

@@ -4,6 +4,7 @@ import Cache
 import Observation
 
 private let logger = Logger(subsystem: "MagicCardSearch", category: "CachingScryfallService")
+private let signposter = OSSignposter(logger: logger)
 
 @MainActor
 protocol FetchCardService {
@@ -125,6 +126,10 @@ class CachingScryfallService {
     )
 
     func rulings(forScryfallId id: UUID) async throws -> [Card.Ruling] {
+        let signpostID = signposter.makeSignpostID()
+        let state = signposter.beginInterval("rulings", id: signpostID, "scryfallId: \(id.uuidString)")
+        defer { signposter.endInterval("rulings", state) }
+
         if let cached = try? rulingsCache.entry(forKey: id) {
             logger.debug("hit rulings cache for scryfall ID=\(id)")
             return cached.object
@@ -147,6 +152,10 @@ class CachingScryfallService {
     }
 
     func tags(forCollectorNumber collectorNumber: String, inSet setCode: String) async throws -> TaggerCard? {
+        let signpostID = signposter.makeSignpostID()
+        let state = signposter.beginInterval("tags", id: signpostID, "\(setCode)/\(collectorNumber)")
+        defer { signposter.endInterval("tags", state) }
+
         let cacheKey = "\(setCode)/\(collectorNumber)"
 
         if let cached = try? tagsCache.entry(forKey: cacheKey) {
@@ -170,6 +179,10 @@ class CachingScryfallService {
     }
 
     func fetchCard(byScryfallId id: UUID) async throws -> Card {
+        let signpostID = signposter.makeSignpostID()
+        let state = signposter.beginInterval("fetchCard", id: signpostID, "scryfallId: \(id.uuidString)")
+        defer { signposter.endInterval("fetchCard", state) }
+
         let cacheKey = "scryfall/\(id.uuidString)"
         if let cached = try? cardCache.entry(forKey: cacheKey) {
             logger.debug("hit card cache for scryfall ID=\(id)")
@@ -190,6 +203,10 @@ class CachingScryfallService {
     }
 
     func fetchCard(byOracleId id: UUID) async throws -> Card? {
+        let signpostID = signposter.makeSignpostID()
+        let state = signposter.beginInterval("fetchCard", id: signpostID, "oracleId: \(id.uuidString)")
+        defer { signposter.endInterval("fetchCard", state) }
+
         let cacheKey = "oracle/\(id.uuidString)"
         if let cached = try? cardCache.entry(forKey: cacheKey) {
             logger.debug("hit card cache for oracle ID=\(id)")
@@ -211,6 +228,10 @@ class CachingScryfallService {
     }
 
     func fetchCard(byIllustrationId id: UUID) async throws -> Card? {
+        let signpostID = signposter.makeSignpostID()
+        let state = signposter.beginInterval("fetchCard", id: signpostID, "illustrationId: \(id.uuidString)")
+        defer { signposter.endInterval("fetchCard", state) }
+
         let cacheKey = "illustration/\(id.uuidString)"
         if let cached = try? cardCache.entry(forKey: cacheKey) {
             logger.debug("hit card cache for illustration ID=\(id)")
@@ -232,6 +253,10 @@ class CachingScryfallService {
     }
 
     func fetchCard(byPrintingId id: UUID) async throws -> Card? {
+        let signpostID = signposter.makeSignpostID()
+        let state = signposter.beginInterval("fetchCard", id: signpostID, "printingId: \(id.uuidString)")
+        defer { signposter.endInterval("fetchCard", state) }
+
         let cacheKey = "printing/\(id.uuidString)"
         if let cached = try? cardCache.entry(forKey: cacheKey) {
             logger.debug("hit card cache for printing ID=\(id)")
@@ -253,11 +278,19 @@ class CachingScryfallService {
     }
 
     func randomCard(query: String?) async throws -> Card {
+        let signpostID = signposter.makeSignpostID()
+        let state = signposter.beginInterval("randomCard", id: signpostID, "query: \(query ?? "none")")
+        defer { signposter.endInterval("randomCard", state) }
+
         try await searchLimiter.waitForSlot()
         return try await client.getRandomCard(query: query)
     }
 
     func searchCards(query: String, unique: UniqueMode, order: SortMode?, sortDirection: SortDirection, page: Int) async throws -> ObjectList<Card> {
+        let signpostID = signposter.makeSignpostID()
+        let state = signposter.beginInterval("searchCards", id: signpostID, "query: \(query) page: \(page)")
+        defer { signposter.endInterval("searchCards", state) }
+
         let cacheKey = SearchCacheKey(
             query: query,
             unique: unique,
