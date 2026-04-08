@@ -3,9 +3,12 @@ import Foundation
 extension String {
     func attributed(
         in ranges: [Range<String.Index>],
-        with style: (inout AttributeContainer) -> Void = { $0.font = .body.bold() }
+        with style: (inout AttributeContainer) -> Void,
     ) -> AttributedString {
         var attributed = AttributedString(self)
+
+        guard !ranges.isEmpty else { return attributed }
+
         var container = AttributeContainer()
         style(&container)
 

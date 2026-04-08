@@ -20,10 +20,13 @@ struct FilterRowView: View {
                         .frame(width: iconWidth)
 
                     DebuggableScorableView(scorable: suggestion) {
-                        Text(match.string.attributed(in: match.highlights))
-                            .lineLimit(2)
-                            .truncationMode(.middle)
-                            .foregroundStyle(.primary)
+                        Text(match.string.attributed(in: match.highlights) {
+                            $0.font = .body.bold()
+                            $0.foregroundColor = .primary
+                        })
+                        .foregroundStyle(match.highlights.isEmpty ? .primary : .secondary)
+                        .truncationMode(.middle)
+                        .lineLimit(2)
                     }
 
                     Spacer(minLength: 0)

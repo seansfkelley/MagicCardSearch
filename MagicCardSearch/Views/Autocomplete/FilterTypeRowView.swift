@@ -59,20 +59,26 @@ private struct HorizontallyScrollablePillSelector<T: PillSelectorOption>: View {
 
     var body: some View {
         ZStack(alignment: .leading) {
-            Text(label.attributed(in: labelRanges))
-                .lineLimit(1)
-                .truncationMode(.tail)
-                .foregroundStyle(.primary)
-                .padding(.trailing, 8)
+            Text(label.attributed(in: labelRanges) {
+                $0.font = .body.bold()
+                $0.foregroundColor = .primary
+            })
+            .foregroundStyle(labelRanges.isEmpty ? .primary : .secondary)
+            .truncationMode(.tail)
+            .lineLimit(1)
+            .padding(.trailing, 8)
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
-                    Text(label.attributed(in: labelRanges))
-                        .lineLimit(1)
-                        .truncationMode(.tail)
-                        .foregroundStyle(.primary)
-                        .padding(.trailing, 8)
-                        .hidden()
+                    Text(label.attributed(in: labelRanges) {
+                        $0.font = .body.bold()
+                        $0.foregroundColor = .primary
+                    })
+                    .foregroundStyle(labelRanges.isEmpty ? .primary : .secondary)
+                    .truncationMode(.tail)
+                    .lineLimit(1)
+                    .padding(.trailing, 8)
+                    .hidden()
 
                     ForEach(options, id: \.value) { option in
                         Button {
