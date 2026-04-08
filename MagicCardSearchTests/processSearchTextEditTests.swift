@@ -225,6 +225,8 @@ struct QuoteAdjacentBareWordsTests {
     @Test("returns non-nil", arguments: [
         // One bare word with trailing additional space (some keyboards do this)
         ("lightning ", 0..<10, "lightning ", "\"lightning ", 11..<11),
+        // Two bare words with trailing additional space
+        ("lightning bolt ", 10..<15, "bolt ", "\"lightning bolt ", 16..<16),
         // Two bare words with the second bringing two spaces
         ("lightning bolt ", 9..<15, " bolt ", "\"lightning bolt ", 16..<16),
         // Two bare words with leading additional space (stock iOS keyboard does this)
@@ -235,6 +237,8 @@ struct QuoteAdjacentBareWordsTests {
         ("color:red lightning bolt", 19..<24, " bolt", "color:red \"lightning bolt", 25..<25),
         // Word with apostrophe
         ("urza's tower", 6..<12, " tower", "\"urza's tower", 13..<13),
+        // Bare words with lots of extra space are collapsed
+        ("lightning  bolt  ", 9..<17, "  bolt  ", "\"lightning bolt ", 16..<16),
     ])
     func returnsNonNil(string: String, editRange: Range<Int>, checkString: String, expectedString: String, expectedRange: Range<Int>) throws {
         let indexRange = try #require(editRange.toStringIndices(in: string))

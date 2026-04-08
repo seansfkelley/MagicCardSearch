@@ -137,11 +137,25 @@ func elideExtraneousWhitespace(in string: String, withLastEditAt range: Range<St
 }
 
 func quoteAdjacentBareWords(in string: String, withLastEditAt range: Range<String.Index>) -> SearchTextEdit? {
-    guard range.lowerBound != range.upperBound,
-          string[range.lowerBound].isWhitespace,
-          !string[string.index(before: range.upperBound)].isWhitespace,
+    guard !string.isEmpty,
+          !string[range].trimmingCharacters(in: .whitespaces).isEmpty,
+          range.lowerBound != range.upperBound,
           range.upperBound == string.endIndex,
           let tokens = try? lexPartialFilterQuery(string) else {
+        return nil
+    }
+
+    let isPrefixedByWhitespace = string[range.lowerBound].isWhitespace
+    let isSuffixedByWhitespace = string[string.index(before: range.upperBound)].isWhitespace
+
+    guard isPrefixedByWhitespace || (
+        isSuffixedByWhitespace && (
+            // Whitespace prefix is trivially a new word. Whitespace suffix has to make sure the
+            // edit is a single separated new word.
+            range.lowerBound == string.startIndex ||
+            string[string.index(before: range.lowerBound)].isWhitespace
+        )
+    ) else {
         return nil
     }
 
@@ -154,16 +168,30 @@ func quoteAdjacentBareWords(in string: String, withLastEditAt range: Range<Strin
            case .bare(let word) = term {
             bareWords.insert(word, at: 0)
             adjacentWordsStartIndex = token.range.lowerBound
-        } else if code != .And || bareWords.isEmpty {
+        } else if code == .And {
+            // continue
+        } else {
             break
         }
     }
 
-    guard let adjacentWordsStartIndex, bareWords.count >= 2 else {
+    guard let adjacentWordsStartIndex, !bareWords.isEmpty else {
         return nil
     }
 
-    let quoted = "\"" + bareWords.joined(separator: " ")
+    // The stock iOS keyboard prepends spaces when swipe-typing later words. This is represented by
+    // the first branch here, and we don't want to put in quotes until the user has typed a second
+    // word in the phrase, because otherwise we would unnecessarily quote single words all the time.
+    //
+    // Other keyboards will append whitespace immediately after a first word. This is represented by
+    // the second branch here, and we want to eagerly put it in quotes since we have to capture the
+    // whitespace both for UX clarity and because it allows the which-filter-is-the-cursor-in-now
+    // behavior of autocomplete suggestions to correctly scan backwards to find the word just typed.
+    guard (isPrefixedByWhitespace && bareWords.count >= 2) || isSuffixedByWhitespace else {
+        return nil
+    }
+
+    let quoted = "\"" + bareWords.joined(separator: " ") + (isSuffixedByWhitespace ? " " : "")
     var result = string
     result.replaceSubrange(adjacentWordsStartIndex..<string.endIndex, with: quoted)
 
