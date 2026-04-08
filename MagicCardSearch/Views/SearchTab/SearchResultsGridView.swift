@@ -26,12 +26,24 @@ struct SearchResultsGridView: View {
                     Label(error.title, systemImage: error.iconName)
                 } description: {
                     Text(error.description)
+                } actions: {
+                    Button("Retry") {
+                        searchState.retry()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.regular)
                 }
             } else if case .errored(nil, let error) = list.value {
                 ContentUnavailableView {
                     Label(error.title, systemImage: error.iconName)
                 } description: {
                     Text(error.description)
+                } actions: {
+                    Button("Retry") {
+                        searchState.retry()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.regular)
                 }
             } else if case .loaded(let results, _) = list.value, results.data.isEmpty {
                 ContentUnavailableView {

@@ -81,6 +81,21 @@ class SearchState {
         doSearch(withFilters: filters, withConfiguration: configuration)
     }
 
+    public func retry() {
+        didAutomaticallyIncludeExtras = false
+
+        effectiveSortField = filters.flatMap(\.orderTermValues).last
+            .flatMap(SearchConfiguration.SortField.fromApiValue) ?? configuration.sortField
+
+        guard !filters.isEmpty else {
+            logger.info("no search filters; skipping to empty result")
+            results = .empty()
+            return
+        }
+
+        doSearch(withFilters: filters, withConfiguration: configuration)
+    }
+
     private func doSearch(
         withFilters instancedFilters: [FilterQuery<FilterTerm>],
         withConfiguration instancedConfiguration: SearchConfiguration,
