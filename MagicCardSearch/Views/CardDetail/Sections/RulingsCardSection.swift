@@ -22,9 +22,11 @@ struct RulingsCardSection<DividerContent: View>: View {
         Group {
             switch rulings {
             case .unloaded, .loading:
-                EmptyView()
+                // Cannot use EmptyView, which is _completely_ inert to the point that onChanges
+                // won't even fire on it. This thing can, at least, "appear".
+                Color.clear.frame(width: 0, height: 0).allowsHitTesting(false)
             case .loaded(let rulings, _) where rulings.isEmpty:
-                EmptyView()
+                Color.clear.frame(width: 0, height: 0).allowsHitTesting(false)
             case .loaded(let rulings, _):
                 layout {
                     let builder = TextWithSymbolsBuilder(
