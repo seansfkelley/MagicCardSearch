@@ -95,6 +95,10 @@ class CachingScryfallService {
 
     private let client = ScryfallClient(logger: logger)
 
+    // Sliding window rate limiters per Scryfall's two-tier limits.
+    private let searchLimiter = RateLimiter(maxRequests: 2)   // /cards/search, /cards/random
+    private let fetchLimiter  = RateLimiter(maxRequests: 10)  // /cards/{id}, /cards/{id}/rulings
+
     private let rulingsCache: any StorageAware<UUID, [Card.Ruling]> = bestEffortCache(
         // 30 days: rulings basically never change.
         memory: .init(expiry: .days(30), countLimit: 500),
@@ -126,6 +130,7 @@ class CachingScryfallService {
             return cached.object
         }
 
+        try await fetchLimiter.waitForSlot()
         let rulings = try await client.getRulings(.scryfallID(id: id.uuidString))
         if rulings.hasMore ?? false {
             logger.warning("card with scryfall ID=\(id) has more than one page of rulings; ignoring")
@@ -149,6 +154,7 @@ class CachingScryfallService {
             return cached.object
         }
 
+        try await fetchLimiter.waitForSlot()
         guard let card = try await TaggerCard.fetch(setCode: setCode, collectorNumber: collectorNumber) else {
             return nil
         }
@@ -170,6 +176,7 @@ class CachingScryfallService {
             return cached.object
         }
 
+        try await fetchLimiter.waitForSlot()
         let card = try await client.getCard(identifier: .scryfallID(id: id.uuidString))
 
         do {
@@ -189,6 +196,7 @@ class CachingScryfallService {
             return cached.object
         }
 
+        try await searchLimiter.waitForSlot()
         let results = try await client.searchCards(query: "oracleId:\(id.uuidString)")
         guard let card = results.data.first else { return nil }
 
@@ -209,6 +217,7 @@ class CachingScryfallService {
             return cached.object
         }
 
+        try await searchLimiter.waitForSlot()
         let results = try await client.searchCards(query: "illustrationId:\(id.uuidString)")
         guard let card = results.data.first else { return nil }
 
@@ -229,6 +238,7 @@ class CachingScryfallService {
             return cached.object
         }
 
+        try await searchLimiter.waitForSlot()
         let results = try await client.searchCards(query: "printingId:\(id.uuidString)")
         guard let card = results.data.first else { return nil }
 
@@ -243,7 +253,8 @@ class CachingScryfallService {
     }
 
     func randomCard(query: String?) async throws -> Card {
-        try await client.getRandomCard(query: query)
+        try await searchLimiter.waitForSlot()
+        return try await client.getRandomCard(query: query)
     }
 
     func searchCards(query: String, unique: UniqueMode, order: SortMode?, sortDirection: SortDirection, page: Int) async throws -> ObjectList<Card> {
@@ -260,6 +271,7 @@ class CachingScryfallService {
             return cached.object
         }
 
+        try await searchLimiter.waitForSlot()
         let results = try await client.searchCards(
             query: query,
             unique: unique,
