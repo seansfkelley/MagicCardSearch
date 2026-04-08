@@ -88,6 +88,17 @@ extension PlainDate: Hashable {
     }
 }
 
+extension PlainDate {
+    var relativeLabel: String {
+        switch distance(to: .now) {
+        case -1: "tomorrow"
+        case 0: "today"
+        case 1: "yesterday"
+        case let days: days < 0 ? "in \(days) days" : "\(days) days ago"
+        }
+    }
+}
+
 extension PlainDate: Strideable {
     public func distance(to other: PlainDate) -> Int {
         let timeInterval = date.distance(to: other.date)

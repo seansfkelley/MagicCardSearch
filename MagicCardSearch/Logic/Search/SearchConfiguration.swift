@@ -7,9 +7,10 @@ struct SearchConfiguration: Equatable, Codable, CustomStringConvertible {
     var sortOrder: SortOrder = .auto
     var preferredPrint: PreferredPrint = .newest
     var automaticallyIncludeExtras = true
+    var showSortLabels = true
 
     public var description: String {
-        "uniqueMode: \(uniqueMode.apiValue), sortField: \(sortField.apiValue), sortOrder: \(sortOrder.apiValue), preferredPrint: \(preferredPrint.apiValue), automaticallyIncludeExtras: \(automaticallyIncludeExtras)"
+        "uniqueMode: \(uniqueMode.apiValue), sortField: \(sortField.apiValue), sortOrder: \(sortOrder.apiValue), preferredPrint: \(preferredPrint.apiValue), automaticallyIncludeExtras: \(automaticallyIncludeExtras), showSortLabels: \(showSortLabels)"
     }
 
     static let defaultConfig = SearchConfiguration()
@@ -20,6 +21,7 @@ struct SearchConfiguration: Equatable, Codable, CustomStringConvertible {
         sortOrder = .auto
         preferredPrint = .newest
         automaticallyIncludeExtras = true
+        showSortLabels = true
     }
     
     // MARK: - Enums
@@ -144,18 +146,18 @@ struct SearchConfiguration: Equatable, Codable, CustomStringConvertible {
     }
     
     // MARK: - Persistence
-    
+
     private enum CodingKeys: String, CodingKey {
-        case uniqueMode, sortField, sortOrder, preferredPrint, automaticallyIncludeExtras
+        case uniqueMode, sortField, sortOrder, preferredPrint, automaticallyIncludeExtras, showSortLabels
     }
-    
+
     // Save to UserDefaults
     func save() {
         if let encoded = try? JSONEncoder().encode(self) {
             UserDefaults.standard.set(encoded, forKey: "searchConfiguration")
         }
     }
-    
+
     // Load from UserDefaults
     static func load() -> SearchConfiguration {
         guard let data = UserDefaults.standard.data(forKey: "searchConfiguration"),
@@ -163,5 +165,17 @@ struct SearchConfiguration: Equatable, Codable, CustomStringConvertible {
             return SearchConfiguration() // Return default if not found
         }
         return config
+    }
+}
+
+extension SearchConfiguration {
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        uniqueMode = try container.decode(UniqueMode.self, forKey: .uniqueMode)
+        sortField = try container.decode(SortField.self, forKey: .sortField)
+        sortOrder = try container.decode(SortOrder.self, forKey: .sortOrder)
+        preferredPrint = try container.decode(PreferredPrint.self, forKey: .preferredPrint)
+        automaticallyIncludeExtras = try container.decode(Bool.self, forKey: .automaticallyIncludeExtras)
+        showSortLabels = try container.decodeIfPresent(Bool.self, forKey: .showSortLabels) ?? true
     }
 }

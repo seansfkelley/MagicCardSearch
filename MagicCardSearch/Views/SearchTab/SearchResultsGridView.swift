@@ -75,6 +75,23 @@ struct SearchResultsGridView: View {
                                     }
                                 }
                                 .padding(.horizontal, spacing / 2)
+                                .overlay(alignment: .bottom) {
+                                    if searchState.configuration.showSortLabels,
+                                       let info = card.sortOverlayInfo(for: searchState.configuration.sortField) {
+                                        HStack(spacing: 3) {
+                                            if let icon = info.foilKind?.image {
+                                                icon
+                                            }
+                                            Text(info.label)
+                                        }
+                                        .font(.caption2)
+                                        .fontWeight(.medium)
+                                        .padding(.horizontal, 8)
+                                        .padding(.vertical, 4)
+                                        .background(.thinMaterial, in: Capsule())
+                                        .padding(6)
+                                    }
+                                }
                             }
                         }
 
@@ -178,6 +195,54 @@ struct SearchResultsGridView: View {
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 30)
             }
+        }
+    }
+}
+
+private enum SubtitleIcon {
+    case foil, etched
+
+    var image: Image {
+        switch self {
+        case .foil: Image(systemName: "sparkles")
+        case .etched: Image("custom.sparkle.rectangle")
+        }
+    }
+}
+
+private extension Card {
+    // swiftlint:disable:next cyclomatic_complexity
+    func overlaySortLabel(for sortField: SearchConfiguration.SortField) -> (String, SubtitleIcon?)? {
+        switch sortField {
+        case .usd:
+            let candidates: [(String?, SubtitleIcon?)] = [(prices.usd, nil), (prices.usdFoil, .foil), (prices.usdEtched, .etched)]
+            guard let (price, kind) = candidates
+                .compactMap({ (str, kind) in str.flatMap(Double.init).map { ($0, kind) } })
+                .min(by: { $0.0 < $1.0 })
+            else { return nil }
+            return (String(format: "$%.2f", price), kind)
+        case .eur:
+            let candidates: [(String?, SubtitleIcon?)] = [(prices.eur, nil), (prices.eurFoil, .foil), (prices.eurEtched, .etched)]
+            guard let (price, kind) = candidates
+                .compactMap({ (str, kind) in str.flatMap(Double.init).map { ($0, kind) } })
+                .min(by: { $0.0 < $1.0 })
+            else { return nil }
+            return (String(format: "€%.2f", price), kind)
+        case .tix:
+            guard let tix = prices.tix else { return nil }
+            return ("\(tix) TIX", nil)
+        case .edhrec:
+            guard let edhrecRank else { return nil }
+            return ("#\(edhrecRank)", nil)
+        case .released:
+            guard let label = PlainDate(from: releasedAt)?.formatted() else { return nil }
+            return (label, nil)
+        case .spoiled:
+            guard let previewedAt = preview?.previewedAt,
+                  let label = PlainDate(from: previewedAt)?.relativeLabel else { return nil }
+            return (label, nil)
+        case .name, .color, .set, .artist, .rarity, .power, .toughness, .cmc:
+            return nil
         }
     }
 }

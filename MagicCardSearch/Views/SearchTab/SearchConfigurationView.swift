@@ -23,7 +23,7 @@ struct SearchConfigurationView: View {
                         Text(field.rawValue).tag(field)
                     }
                 }
-                
+
                 Picker("Sort Order", selection: $workingConfig.sortOrder) {
                     ForEach(SearchConfiguration.SortOrder.allCases, id: \.self) { order in
                         Text(order.rawValue).tag(order)
@@ -31,6 +31,8 @@ struct SearchConfigurationView: View {
                 }
                 .pickerStyle(.segmented)
                 .labelsHidden()
+
+                Toggle("Show Sort Value Labels", isOn: $workingConfig.showSortLabels)
             } footer: {
                 Text("Use the `order:` and/or `dir:` filters to temporarily override these for one search.")
             }
