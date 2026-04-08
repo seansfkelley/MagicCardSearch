@@ -13,6 +13,7 @@
 		210E245C2F0858DC008C05C1 /* DependenciesTestSupport in Frameworks */ = {isa = PBXBuildFile; productRef = 210E245B2F0858DC008C05C1 /* DependenciesTestSupport */; };
 		21332B992EF5D04100C80208 /* Algorithms in Frameworks */ = {isa = PBXBuildFile; productRef = 21332B982EF5D04100C80208 /* Algorithms */; };
 		213F299A2EE9285400E058DB /* SVGKitSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 213F29992EE9285400E058DB /* SVGKitSwift */; };
+		214C3E9C2F85D41A00304C1D /* THROTTLING_DESIGN.md in Resources */ = {isa = PBXBuildFile; fileRef = 214C3E9B2F85D41A00304C1D /* THROTTLING_DESIGN.md */; };
 		21874B3A2F07045300E07D9A /* SQLiteData in Frameworks */ = {isa = PBXBuildFile; productRef = 21874B392F07045300E07D9A /* SQLiteData */; };
 		218E3DEC2F5A0C7D00AA066E /* Cache in Frameworks */ = {isa = PBXBuildFile; productRef = 218E3DEB2F5A0C7D00AA066E /* Cache */; };
 		21A856BD2EE3AAE400E72541 /* ScryfallKit in Frameworks */ = {isa = PBXBuildFile; productRef = 21A856BC2EE3AAE400E72541 /* ScryfallKit */; };
@@ -49,6 +50,7 @@
 		2137B5AD2EE139C60066BF7E /* MagicCardSearch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MagicCardSearch.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		2137B5BA2EE139C70066BF7E /* MagicCardSearchTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MagicCardSearchTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		2137B5C42EE139C70066BF7E /* MagicCardSearchUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MagicCardSearchUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		214C3E9B2F85D41A00304C1D /* THROTTLING_DESIGN.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = THROTTLING_DESIGN.md; sourceTree = "<group>"; };
 		21A5FC512EE9E76E0034E695 /* .swiftlint.yml */ = {isa = PBXFileReference; lastKnownFileType = text.yaml; path = .swiftlint.yml; sourceTree = "<group>"; };
 		21AAC6562F75D1C500BBADD9 /* MANUAL_TESTS.md */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MANUAL_TESTS.md; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.markdown; };
 		21B334112F0C53C50048627E /* CARD_EXAMPLES.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = CARD_EXAMPLES.md; sourceTree = "<group>"; };
@@ -169,6 +171,7 @@
 				21B726BD2F0AFCDA00D2F951 /* DECISIONS.md */,
 				211396112EE9E39500093873 /* CLAUDE.md */,
 				21B334112F0C53C50048627E /* CARD_EXAMPLES.md */,
+				214C3E9B2F85D41A00304C1D /* THROTTLING_DESIGN.md */,
 				21A5FC512EE9E76E0034E695 /* .swiftlint.yml */,
 				2118A06C2EECD0580009FA33 /* ImageResources */,
 				21D397682EE232F0008B3EFD /* Citron */,
@@ -372,6 +375,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				214C3E9C2F85D41A00304C1D /* THROTTLING_DESIGN.md in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
