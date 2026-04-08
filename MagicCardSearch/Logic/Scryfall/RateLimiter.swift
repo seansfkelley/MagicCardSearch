@@ -23,7 +23,7 @@ actor RateLimiter<C: Clock> where C.Duration == Duration {
             // Sleep until the oldest entry exits the window, plus a small margin
             // for ContinuousClock precision. The loop re-evaluates after waking,
             // which correctly handles concurrent waiters that also woke up.
-            let sleepUntil = log[0].advanced(by: windowDuration + .milliseconds(1))
+            let sleepUntil = log[0].advanced(by: windowDuration + .milliseconds(5))
             try await Task.sleep(until: sleepUntil, clock: clock)
         }
     }
@@ -34,3 +34,4 @@ extension RateLimiter where C == ContinuousClock {
         self.init(maxRequests: maxRequests, windowDuration: windowDuration, clock: ContinuousClock())
     }
 }
+
