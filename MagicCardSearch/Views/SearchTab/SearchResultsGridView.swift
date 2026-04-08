@@ -245,9 +245,6 @@ private extension Card {
         case .tix:
             guard let tix = prices.tix else { return nil }
             return ("\(tix) TIX", nil)
-        case .edhrec:
-            guard let edhrecRank else { return nil }
-            return ("#\(edhrecRank)", nil)
         case .released:
             guard let label = PlainDate(from: releasedAt)?.formatted() else { return nil }
             return (label, nil)
@@ -255,7 +252,7 @@ private extension Card {
             guard let previewedAt = preview?.previewedAt,
                   let label = PlainDate(from: previewedAt)?.relativeLabel else { return nil }
             return (label, nil)
-        case .name, .color, .set, .artist, .rarity, .power, .toughness, .cmc:
+        case .name, .color, .set, .artist, .rarity, .power, .toughness, .cmc, .edhrec:
             return nil
         }
     }
