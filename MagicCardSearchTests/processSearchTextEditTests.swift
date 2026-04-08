@@ -205,14 +205,16 @@ struct QuoteAdjacentBareWordsTests {
         (" lightning", 0..<10, " lightning"),
         // Not a separate word
         ("lightningbolt", 9..<13, "bolt"),
-        // Ends with whitespace (unclear if desired, but current behavior)
-        ("lightning bolt ", 9..<15, " bolt "),
         // Does not retroactively repair adjacent bare words if append isn't a bare word
         ("lightning bolt color:red", 14..<24, " color:red"),
         // Does not quote if the edit was prefix
         ("lightning bolt foo", 0..<10, "lightning "),
         // Does not quote if the edit was in the middle
         ("lightning bolt foo", 9..<14, " bolt"),
+        // Does nothing if it's a zero-length edit
+        ("lightning bolt", 14..<14, ""),
+        // Does nothing if separating two words with a space
+        ("lightning bolt", 9..<10, " "),
     ])
     func returnsNil(string: String, editRange: Range<Int>, checkString: String) throws {
         let indexRange = try #require(editRange.toStringIndices(in: string))
@@ -221,7 +223,11 @@ struct QuoteAdjacentBareWordsTests {
     }
 
     @Test("returns non-nil", arguments: [
-        // Two bare words
+        // One bare word with trailing additional space (some keyboards do this)
+        ("lightning ", 0..<10, "lightning ", "\"lightning ", 11..<11),
+        // Two bare words with the second bringing two spaces
+        ("lightning bolt ", 9..<15, " bolt ", "\"lightning bolt ", 16..<16),
+        // Two bare words with leading additional space (stock iOS keyboard does this)
         ("lightning bolt", 9..<14, " bolt", "\"lightning bolt", 15..<15),
         // Three bare words
         ("dark confidant soul", 14..<19, " soul", "\"dark confidant soul", 20..<20),
