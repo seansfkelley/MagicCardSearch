@@ -18,7 +18,10 @@ struct PricesCardSection<DividerContent: View>: View {
         if !prices.isEmpty {
             divider()
             HStack {
-                Label("Buy It", systemImage: "dollarsign")
+                // Phrasing is important; this used to be "Buy It" but this didn't call attention to
+                // the fact that you might have defaulted to a print of the card that was not
+                // purchaseable, at least, not with your chosen currency.
+                Label("Buy This Print", systemImage: "dollarsign")
                     .labelReservedIconWidth(iconWidth)
                     .font(.headline)
                     .padding(.trailing, 8)
