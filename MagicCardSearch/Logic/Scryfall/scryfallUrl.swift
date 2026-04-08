@@ -16,12 +16,14 @@ func scryfallSearchUrl(forFilters filters: [FilterQuery<FilterTerm>], config: Se
     }
 
     var components = URLComponents(string: "https://scryfall.com/search")!
-    components.queryItems = [
-        URLQueryItem(name: "q", value: queryString),
-        URLQueryItem(name: "unique", value: config.uniqueMode.apiValue),
-        URLQueryItem(name: "order", value: config.sortField.apiValue),
-        URLQueryItem(name: "dir", value: config.sortOrder.apiValue),
-    ]
+    components.percentEncodedQueryItems = [
+        ("q", queryString),
+        ("unique", config.uniqueMode.apiValue),
+        ("order", config.sortField.apiValue),
+        ("dir", config.sortOrder.apiValue),
+    ].map {
+        URLQueryItem(name: $0, value: $1.addingPercentEncoding(withAllowedCharacters: .alphanumerics))
+    }
 
     return components.url
 }
