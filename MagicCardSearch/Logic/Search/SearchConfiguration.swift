@@ -99,6 +99,10 @@ struct SearchConfiguration: Equatable, Codable, CustomStringConvertible {
             String(describing: self)
         }
 
+        static func fromApiValue(_ value: String) -> SortField? {
+            allCases.first { $0.apiValue == value }
+        }
+
         // This is the dumbest function.
         // swiftlint:disable:next cyclomatic_complexity
         func toScryfallKitSortMode() -> ScryfallKit.SortMode? {

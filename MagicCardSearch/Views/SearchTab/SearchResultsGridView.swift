@@ -75,23 +75,7 @@ struct SearchResultsGridView: View {
                                     }
                                 }
                                 .padding(.horizontal, spacing / 2)
-                                .overlay(alignment: .bottom) {
-                                    if searchState.configuration.showSortLabels,
-                                       let info = card.sortOverlayInfo(for: searchState.configuration.sortField) {
-                                        HStack(spacing: 3) {
-                                            if let icon = info.foilKind?.image {
-                                                icon
-                                            }
-                                            Text(info.label)
-                                        }
-                                        .font(.caption2)
-                                        .fontWeight(.medium)
-                                        .padding(.horizontal, 8)
-                                        .padding(.vertical, 4)
-                                        .background(.thinMaterial, in: Capsule())
-                                        .padding(6)
-                                    }
-                                }
+                                .overlay(alignment: .bottom) { overlaySortLabel(for: card) }
                             }
                         }
 
@@ -157,6 +141,24 @@ struct SearchResultsGridView: View {
             if newValue.count == 1 {
                 selectedCardIndex = 0
             }
+        }
+    }
+
+    @ViewBuilder private func overlaySortLabel(for card: Card) -> some View {
+        if searchState.configuration.showSortLabels,
+           let (label, subtitleIcon) = card.overlaySortLabel(for: searchState.effectiveSortField) {
+            HStack(spacing: 3) {
+                if let icon = subtitleIcon?.image {
+                    icon
+                }
+                Text(label)
+            }
+            .font(.caption2)
+            .fontWeight(.medium)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(.thinMaterial, in: Capsule())
+            .padding(6)
         }
     }
 

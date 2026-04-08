@@ -15,6 +15,7 @@ class SearchState {
             configuration.save()
         }
     }
+    public private(set) var effectiveSortField: SearchConfiguration.SortField = SearchConfiguration.load().sortField
     public private(set) var results: ScryfallObjectList<Card>?
     public private(set) var didAutomaticallyIncludeExtras: Bool?
 
@@ -40,6 +41,7 @@ class SearchState {
         filters = []
         results = nil
         didAutomaticallyIncludeExtras = nil
+        effectiveSortField = configuration.sortField
     }
 
     public func search(
@@ -61,9 +63,12 @@ class SearchState {
         didAutomaticallyIncludeExtras = false
 
         guard shouldSearch else {
-            logger.debug("early-aborting search because filters and configuration are the same")
+            logger.debug("early-aborting search because filters and configuration did not change")
             return
         }
+
+        effectiveSortField = filters.flatMap(\.orderTermValues).last
+            .flatMap(SearchConfiguration.SortField.fromApiValue) ?? configuration.sortField
 
         guard !filters.isEmpty else {
             logger.info("no search filters; skipping to empty result")
@@ -119,6 +124,18 @@ class SearchState {
                     withConfiguration: instancedConfiguration,
                 )
             }
+        }
+    }
+}
+
+private extension FilterQuery where Term == FilterTerm {
+    var orderTermValues: [String] {
+        switch self {
+        case .term(let term):
+            if case .basic(_, "order", .including, let value) = term { return [value] }
+            return []
+        case .and(_, let children), .or(_, let children):
+            return children.flatMap(\.orderTermValues)
         }
     }
 }
