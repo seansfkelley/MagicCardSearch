@@ -57,12 +57,13 @@ struct FilterTermTests {
         #expect(!filter.isProbablyWellFormedFilter)
     }
 
-    @Test<[(FilterTerm, String, String)]>(
-        "description and suggestedEditingRange",
+    @Test<[(FilterTerm, String, String, String)]>(
+        "description and index ranges",
         arguments: [
             // Simple name without spaces
             (
                 FilterTerm.name(.positive, false, "lightning"),
+                "lightning",
                 "lightning",
                 "lightning",
             ),
@@ -71,11 +72,13 @@ struct FilterTermTests {
                 FilterTerm.name(.positive, false, "lightning bolt"),
                 "\"lightning bolt\"",
                 "lightning bolt",
+                "\"lightning bolt\"",
             ),
             // Exact name without spaces
             (
                 FilterTerm.name(.positive, true, "lightning"),
                 "!lightning",
+                "lightning",
                 "lightning",
             ),
             // Exact name with spaces (quoted)
@@ -83,11 +86,13 @@ struct FilterTermTests {
                 FilterTerm.name(.positive, true, "lightning bolt"),
                 "!\"lightning bolt\"",
                 "lightning bolt",
+                "\"lightning bolt\"",
             ),
             // Negated simple name
             (
                 FilterTerm.name(.negative, false, "lightning"),
                 "-lightning",
+                "lightning",
                 "lightning",
             ),
             // Negated name with spaces
@@ -95,11 +100,13 @@ struct FilterTermTests {
                 FilterTerm.name(.negative, false, "lightning bolt"),
                 "-\"lightning bolt\"",
                 "lightning bolt",
+                "\"lightning bolt\"",
             ),
             // Negated exact name
             (
                 FilterTerm.name(.negative, true, "lightning"),
                 "-!lightning",
+                "lightning",
                 "lightning",
             ),
             // Key-value without spaces
@@ -107,17 +114,20 @@ struct FilterTermTests {
                 FilterTerm.basic(.positive, "color", .equal, "red"),
                 "color=red",
                 "red",
+                "red",
             ),
             // Key-value with spaces (quoted)
             (
                 FilterTerm.basic(.positive, "type", .including, "legendary creature"),
                 "type:\"legendary creature\"",
                 "legendary creature",
+                "\"legendary creature\"",
             ),
             // Key-value with different comparison
             (
                 FilterTerm.basic(.positive, "power", .greaterThan, "5"),
                 "power>5",
+                "5",
                 "5",
             ),
             // Negated key-value
@@ -125,42 +135,45 @@ struct FilterTermTests {
                 FilterTerm.basic(.negative, "color", .equal, "red"),
                 "-color=red",
                 "red",
+                "red",
             ),
             (
                 FilterTerm.basic(.negative, "type", .including, "legendary creature"),
                 "-type:\"legendary creature\"",
                 "legendary creature",
+                "\"legendary creature\"",
             ),
             // Regex filters
             (
                 FilterTerm.regex(.positive, "oracle", .including, "flying"),
                 "oracle:/flying/",
                 "flying",
+                "/flying/",
             ),
             (
                 FilterTerm.regex(.positive, "name", .equal, "^lightning"),
                 "name=/^lightning/",
                 "^lightning",
+                "/^lightning/",
             ),
             // Negated regex
             (
                 FilterTerm.regex(.negative, "oracle", .including, "flying"),
                 "-oracle:/flying/",
                 "flying",
+                "/flying/",
             ),
         ]
     )
     func descriptionAndSuggestedEditingRange(
         filter: FilterTerm,
         expectedDescription: String,
-        expectedEditingContent: String
+        expectedEditingContent: String,
+        expectedValueEditingContent: String
     ) {
-        #expect(filter.description == expectedDescription)
-
         let description = filter.description
-        let editingRange = filter.suggestedEditingRange
-        let extractedContent = String(description[editingRange])
-
-        #expect(extractedContent == expectedEditingContent)
+        #expect(description == expectedDescription)
+        #expect(String(description[filter.suggestedEditingRange]) == expectedEditingContent)
+        #expect(String(description[filter.valueEditingRange]) == expectedValueEditingContent)
     }
 }

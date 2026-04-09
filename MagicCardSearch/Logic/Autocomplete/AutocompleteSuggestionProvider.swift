@@ -418,7 +418,14 @@ func fullTextSuggestion(for partial: PartialFilterTerm) -> some Sequence<Autocom
 
     let bareTerm = partialValue.incompleteContent
 
-    guard bareTerm.count > 3 && bareTerm.contains(" ") else {
+    // 6 is _completely_ arbitrary, but I chose it because it would catch "target".
+    // Whitespace is a good indicator that is likely to be oracle text. Either that, or a name.
+    guard bareTerm.count >= 6 || (bareTerm.count > 3 && bareTerm.contains(" ")) else {
+        return AnySequence([])
+    }
+
+    // Looks like a regex; let the regex suggestion handle it.
+    guard (bareTerm.first ?? "/") != "/" else {
         return AnySequence([])
     }
 
@@ -430,7 +437,7 @@ func fullTextSuggestion(for partial: PartialFilterTerm) -> some Sequence<Autocom
                 .init(
                     value: .term(filter),
                     string: filter.description,
-                    highlights: [filter.suggestedEditingRange],  // this is a wee hack
+                    highlights: [filter.valueEditingRange],
                 ),
             ),
             rawScore: $1, // ???
@@ -486,7 +493,7 @@ func regexSuggestion(for partial: PartialFilterTerm) -> some Sequence<Autocomple
                 .init(
                     value: .term(filter),
                     string: filter.description,
-                    highlights: [filter.suggestedEditingRange],  // this is a wee hack
+                    highlights: [filter.valueEditingRange],
                 ),
             ),
             rawScore: $1, // ???

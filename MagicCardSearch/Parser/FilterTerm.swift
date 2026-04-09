@@ -60,6 +60,27 @@ public enum FilterTerm: FilterQueryLeaf, EditableFilter {
         }
     }
 
+    var valueEditingRange: Range<String.Index> {
+        let string = description
+        switch self {
+        case .name(let polarity, let isExact, _):
+            return string.range.inset(
+                with: string,
+                left: (polarity == .negative ? 1 : 0) + (isExact ? 1 : 0),
+            )
+        case .basic(let polarity, let filter, let comparison, _):
+            return string.range.inset(
+                with: string,
+                left: (polarity == .negative ? 1 : 0) + filter.count + comparison.description.count,
+            )
+        case .regex(let polarity, let filter, let comparison, _):
+            return string.range.inset(
+                with: string,
+                left: (polarity == .negative ? 1 : 0) + filter.count + comparison.description.count,
+            )
+        }
+    }
+
     var isProbablyWellFormedFilter: Bool {
         switch self {
         case .name:
