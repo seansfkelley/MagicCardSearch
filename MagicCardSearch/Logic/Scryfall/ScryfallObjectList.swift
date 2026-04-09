@@ -68,7 +68,7 @@ class ScryfallObjectList<T: Codable & Sendable> {
                 let result = try await self.fetcher(self.nextPage)
                 guard !Task.isCancelled else { return }
 
-                logger.debug("successfully fetched page=\(self.nextPage) with count=\(result.data.count) items uuid=\(self.searchUuid)")
+                logger.info("successfully fetched page=\(self.nextPage) with count=\(result.data.count) items uuid=\(self.searchUuid)")
                 self.nextPage += 1
                 self.value = .loaded(Self.append(self.value.latestValue, result, postProcess), nil)
             } catch let error as ScryfallKitError {
@@ -79,7 +79,7 @@ class ScryfallObjectList<T: Codable & Sendable> {
                 // be fine since we only use a small number of fixed URLs, but of course it's not
                 // foolproof if Scryfall makes breaking changes.
                 if case .scryfallError(let error) = error, error.status == 404 {
-                    logger.debug("intercepted Scryfall 404 and set to empty instead uuid=\(self.searchUuid)")
+                    logger.info("intercepted Scryfall 404 and set to empty instead uuid=\(self.searchUuid)")
                     // Appending empty is another way of saying to mark is as having no more pages, etc.
                     self.value = .loaded(Self.append(self.value.latestValue, .empty(), postProcess), nil)
                 } else {

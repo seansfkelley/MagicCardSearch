@@ -18,8 +18,8 @@ actor RateLimiter<C: Clock> where C.Duration == Duration {
     }
 
     func waitForSlot() async throws {
-        let signpostID = signposter.makeSignpostID()
-        let state = signposter.beginInterval("waitForSlot", id: signpostID, "\(self.tag)slots \(self.slots.count)/\(self.maxRequests)")
+        let signpostId = signposter.makeSignpostID()
+        let state = signposter.beginInterval("waitForSlot", id: signpostId, "\(self.name ?? "")")
         defer { signposter.endInterval("waitForSlot", state) }
 
         while true {
@@ -35,8 +35,10 @@ actor RateLimiter<C: Clock> where C.Duration == Duration {
             // Sleep until the oldest entry exits the window, plus a small margin
             // for ContinuousClock precision. The loop re-evaluates after waking,
             // which correctly handles concurrent waiters that also woke up.
-            let sleepUntil = slots[0].advanced(by: windowDuration + .milliseconds(5))
-            logger.debug("\(self.tag)slot unavailable; sleeping for \(now.duration(to: sleepUntil))")
+            let jitter = Duration.milliseconds(Int.random(in: 5...50))
+            let sleepUntil = slots[0].advanced(by: windowDuration + jitter)
+            logger.debug("\(self.tag)slot unavailable; sleep=\(now.duration(to: sleepUntil)) jitter=\(jitter)")
+            signposter.emitEvent("waitForSlot", id: signpostId, "sleep=\(now.duration(to: sleepUntil)) jitter=\(jitter)")
             try await Task.sleep(until: sleepUntil, clock: clock)
         }
     }
