@@ -5,6 +5,7 @@ import SwiftSoup
 import Cache
 
 private let logger = Logger(subsystem: "MagicCardSearch", category: "ScryfallCatalogs")
+private let signposter = OSSignposter(logger: logger)
 
 private let jsonDecoder: JSONDecoder = {
     var decoder = JSONDecoder()
@@ -291,6 +292,10 @@ class ScryfallCatalogs {
     private func fetch<T: Codable>(_ key: String, expiry: Expiry? = nil, using fetcher: () async throws -> T) async {
         guard let cache else { return }
 
+        let signpostID = signposter.makeSignpostID()
+        let state = signposter.beginInterval("fetch", id: signpostID, "key: \(key)")
+        defer { signposter.endInterval("fetch", state) }
+
         // Cache.object(forKey:) throws StorageError.notFound or .expired if unavailable.
         if let existing = try? cache.object(forKey: key) {
             if (try? jsonDecoder.decode(T.self, from: existing)) != nil {
@@ -310,6 +315,8 @@ class ScryfallCatalogs {
 
         let result: T
         do {
+            let networkState = signposter.beginInterval("fetch", id: signpostID, "fetch source for key: \(key)")
+            defer { signposter.endInterval("fetch", networkState) }
             result = try await fetcher()
         } catch {
             logger.error("error fetching data for key=\(key) from Scryfall; will continue without it error=\(error)")
