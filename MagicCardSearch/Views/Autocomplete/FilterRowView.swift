@@ -8,8 +8,7 @@ struct FilterRowView: View {
     let onTap: (FilterQuery<FilterTerm>) -> Void
 
     var body: some View {
-        switch suggestion.content {
-        case .filter(let match):
+        if case .filter(let match) = suggestion.content {
             Button {
                 onTap(match.value)
             } label: {
@@ -41,7 +40,7 @@ struct FilterRowView: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-        default:
+        } else {
             EmptyView()
         }
     }

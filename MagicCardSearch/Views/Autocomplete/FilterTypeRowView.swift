@@ -9,8 +9,7 @@ struct FilterTypeRowView: View {
     let onSelect: (String) -> Void
 
     var body: some View {
-        switch suggestion.content {
-        case .filterType(let match):
+        if case .filterType(let match) = suggestion.content {
             HStack(spacing: 12) {
                 suggestion.icon
                     .foregroundStyle(.secondary)
@@ -29,7 +28,7 @@ struct FilterTypeRowView: View {
                     }
                 }
             }
-        default:
+        } else {
             EmptyView()
         }
     }

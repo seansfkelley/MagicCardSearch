@@ -9,8 +9,7 @@ struct FilterPartsRowView: View {
     @State private var showingPopover = false
 
     var body: some View {
-        switch suggestion.content {
-        case .filterParts(let polarity, let filterType, let match):
+        if case .filterParts(let polarity, let filterType, let match) = suggestion.content {
             Button {
                 onSelect(.basic(polarity, filterType.canonicalName, .including, match.value))
             } label: {
@@ -24,15 +23,15 @@ struct FilterPartsRowView: View {
                         HStack(spacing: 4) {
                             Text("\(polarity.description)\(filterType.canonicalName)")
                                 .foregroundStyle(.primary)
-                            
+
                             Button {
                                 showingPopover = true
                             } label: {
                                 Text(":")
                                     .foregroundStyle(.primary)
-                                
+
                                 Divider()
-                                
+
                                 Image(systemName: "chevron.up.chevron.down")
                                     .imageScale(.small)
                                     .foregroundStyle(.secondary)
@@ -47,7 +46,7 @@ struct FilterPartsRowView: View {
                                 }
                                 .presentationCompactAdaptation(.popover)
                             }
-                            
+
                             Text(match.string.attributed(in: match.highlights) {
                                 $0.font = .body.bold()
                                 $0.foregroundColor = .primary
@@ -63,7 +62,7 @@ struct FilterPartsRowView: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-        default:
+        } else {
             EmptyView()
         }
     }
