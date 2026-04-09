@@ -49,7 +49,7 @@ struct FilterPopoverView: View {
             }
 
             Button {
-                filterSettings.reset()
+                filterSettings = .init()
             } label: {
                 HStack {
                     Image(systemName: "arrow.counterclockwise")

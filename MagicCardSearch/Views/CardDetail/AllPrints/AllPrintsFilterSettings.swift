@@ -41,13 +41,6 @@ struct AllPrintsFilterSettings: Equatable, Hashable, CustomStringConvertible {
         isDefaultFilterSettings && sort == .releaseDate
     }
 
-    mutating func reset() {
-        frame = .any
-        text = .any
-        game = .any
-        sort = .releaseDate
-    }
-
     var description: String {
         "AllPrintsFilterSettings(frame: .\(frame), text: .\(text), game: .\(game), sort: .\(sort))"
     }
@@ -63,39 +56,43 @@ struct AllPrintsFilterSettings: Equatable, Hashable, CustomStringConvertible {
         let game: GameFilter
     }
 
-    func toQueryFor(oracleId: String) -> String {
-        var query = "oracleid:\(oracleId) include:extras unique:prints"
+    func toFiltersFor(oracleId: String) -> [FilterTerm] {
+        var filters: [FilterTerm] = [
+            .basic(.positive, "oracleid", .including, oracleId),
+            .basic(.positive, "include", .including, "extras"),
+            .basic(.positive, "unique", .including, "prints"),
+        ]
 
         switch frame {
         case .any:
             break
         case .retro:
-            query += " frame:old"
+            filters.append(.basic(.positive, "frame", .including, "old"))
         case .modern:
-            query += " frame:new"
+            filters.append(.basic(.positive, "frame", .including, "new"))
         }
 
         switch text {
         case .any:
             break
         case .normal:
-            query += " -is:full"
+            filters.append(.basic(.negative, "is", .including, "full"))
         case .fullArt:
-            query += " is:full"
+            filters.append(.basic(.positive, "is", .including, "full"))
         }
 
         switch game {
         case .any:
             break
         case .paper:
-            query += " game:paper"
+            filters.append(.basic(.positive, "game", .including, "paper"))
         case .arena:
-            query += " game:arena"
+            filters.append(.basic(.positive, "game", .including, "arena"))
         case .mtgo:
-            query += " game:mtgo"
+            filters.append(.basic(.positive, "game", .including, "mtgo"))
         }
 
-        return query
+        return filters
     }
 
     func sort(_ cards: [Card]) -> [Card] {

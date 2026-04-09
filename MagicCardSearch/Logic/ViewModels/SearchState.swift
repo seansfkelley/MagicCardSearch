@@ -107,7 +107,7 @@ class SearchState {
 
         logger.info("starting new search filters=\(instancedFilters) configuration=\(instancedConfiguration)")
 
-        let preferredPrintFilter = instancedConfiguration.preferredPrint.toStringFilter()
+        let preferredPrintFilter = instancedConfiguration.preferredPrint.toFilterTerm()
 
         if instancedFilters.count == 1,
             let filter = instancedFilters.first,
@@ -144,19 +144,19 @@ class SearchState {
             return
         }
 
-        var mutableQuery = instancedFilters.map { $0.description }.joined(separator: " ")
-        if let preferredPrintFilter {
-            // Scryfall will silently pick the last prefer: clause, so prepend it in case the user
-            // has written one by hand in there somewhere.
-            mutableQuery = "\(preferredPrintFilter) \(mutableQuery)"
+        // Scryfall will silently pick the last prefer: clause, so prepend it in case the user
+        // has written one by hand in there somewhere.
+        let filters = if let preferredPrintFilter {
+            [.term(preferredPrintFilter)] + instancedFilters
+        } else {
+            instancedFilters
         }
 
-        let query = mutableQuery // appease concurrency checker.
         let thisResults = ScryfallObjectList<Card>({ @MainActor [weak self] page async throws in
             guard let self else { return .empty() }
 
             return try await cardSearchService.searchCards(
-                query: query,
+                filters: filters,
                 unique: instancedConfiguration.uniqueMode.toScryfallKitUniqueMode(),
                 order: instancedConfiguration.sortField.toScryfallKitSortMode(),
                 sortDirection: instancedConfiguration.sortOrder.toScryfallKitSortDirection(),

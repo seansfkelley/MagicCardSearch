@@ -4,6 +4,10 @@ import OSLog
 import SQLiteData
 
 private let logger = Logger(subsystem: "MagicCardSearch", category: "AllPrintsView")
+private let shareLinkOrderFilters: [FilterQuery<FilterTerm>] = [
+    .basic(.positive, "order", .including, "released"),
+    .basic(.positive, "dir", .including, "desc"),
+].map { .term($0) }
 
 struct AllPrintsView: View {
     let oracleId: String
@@ -25,19 +29,6 @@ struct AllPrintsView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(BookmarkedCardsStore.self) private var bookmarkedCardsStore
     @FetchAll private var bookmarks: [BookmarkedCard]
-
-    // MARK: - Filter Settings
-
-    private var scryfallSearchUrl: URL? {
-        let baseURL = "https://scryfall.com/search"
-        var components = URLComponents(string: baseURL)
-        components?.queryItems = [
-            URLQueryItem(name: "q", value: printFilterSettings.toQueryFor(oracleId: oracleId)),
-            URLQueryItem(name: "order", value: "released"),
-            URLQueryItem(name: "dir", value: "asc"),
-        ]
-        return components?.url
-    }
 
     var body: some View {
         // This is a ZStack for identity stability. If it were a Group, the toolbars would be
@@ -77,7 +68,7 @@ struct AllPrintsView: View {
                             Text("Widen your filters to see more results.")
                         } actions: {
                             Button {
-                                printFilterSettings.reset()
+                                printFilterSettings = .init()
                             } label: {
                                 HStack {
                                     Image(systemName: "arrow.counterclockwise")
@@ -162,7 +153,9 @@ struct AllPrintsView: View {
                 }
             }
 
-            if let url = scryfallSearchUrl {
+            if let url = scryfallSearchUrl(
+                forFilters: printFilterSettings.toFiltersFor(oracleId: oracleId).map { .term($0) } + shareLinkOrderFilters
+            ) {
                 ToolbarItem(placement: .topBarTrailing) {
                     ShareLink(item: url)
                 }
@@ -197,13 +190,13 @@ struct AllPrintsView: View {
     private func reloadAllPrints(andScrollTo targetCardId: UUID?) async {
         objectList.destroy()
 
-        let searchQuery = printFilterSettings.toQueryFor(oracleId: oracleId)
+        let filters = printFilterSettings.toFiltersFor(oracleId: oracleId).map { FilterQuery.term($0) }
         let thisObjectList = ScryfallObjectList { @MainActor [cardSearchService] page in
             try await cardSearchService.searchCards(
-                query: searchQuery,
-                unique: .prints,
+                filters: filters,
+                unique: nil,
                 order: nil,
-                sortDirection: .auto,
+                sortDirection: nil,
                 page: page,
             )
         } postProcess: { self.printFilterSettings.sort($0) }

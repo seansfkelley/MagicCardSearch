@@ -39,9 +39,9 @@ protocol RandomCardService {
 protocol CardSearchService {
     func searchCards(
         query: String,
-        unique: UniqueMode,
+        unique: UniqueMode?,
         order: SortMode?,
-        sortDirection: SortDirection,
+        sortDirection: SortDirection?,
         page: Int,
     ) async throws -> ObjectList<Card>
 }
@@ -49,9 +49,9 @@ protocol CardSearchService {
 extension CardSearchService {
     func searchCards(
         filters: [String],
-        unique: UniqueMode,
+        unique: UniqueMode?,
         order: SortMode?,
-        sortDirection: SortDirection,
+        sortDirection: SortDirection?,
         page: Int,
     ) async throws -> ObjectList<Card> {
         try await searchCards(
@@ -65,9 +65,9 @@ extension CardSearchService {
 
     func searchCards(
         filters: [FilterQuery<FilterTerm>],
-        unique: UniqueMode,
+        unique: UniqueMode?,
         order: SortMode?,
-        sortDirection: SortDirection,
+        sortDirection: SortDirection?,
         page: Int,
     ) async throws -> ObjectList<Card> {
         try await searchCards(
@@ -100,9 +100,9 @@ private struct SearchCacheKey: Hashable {
     // n.b. we cannot make this [String] and then sort it to canonicalize the cache key -- ordering
     // matters for multiply-specified singleton filters like `prefer`.
     let query: String
-    let unique: UniqueMode
+    let unique: UniqueMode?
     let order: SortMode?
-    let sortDirection: SortDirection
+    let sortDirection: SortDirection?
     let page: Int
 }
 
@@ -484,7 +484,7 @@ class CachingScryfallService {
         return try await client.getRandomCard(query: query)
     }
 
-    func searchCards(query: String, unique: UniqueMode, order: SortMode?, sortDirection: SortDirection, page: Int) async throws -> ObjectList<Card> {
+    func searchCards(query: String, unique: UniqueMode?, order: SortMode?, sortDirection: SortDirection?, page: Int) async throws -> ObjectList<Card> {
         let signpostID = signposter.makeSignpostID()
         let state = signposter.beginInterval("searchCards", id: signpostID, "query: \(query) page: \(page)")
         defer { signposter.endInterval("searchCards", state) }
@@ -498,7 +498,7 @@ class CachingScryfallService {
         )
 
         if let cached = try? cardSearchCache.object(forKey: cacheKey) {
-            logger.debug("hit card search cache for query=\(query) unique=\(unique) order=\(order.map(\.description) ?? "<default>") dir=\(sortDirection) page=\(page)")
+            logger.debug("hit card search cache for search query=\(query) unique=\(unique.map(\.description) ?? "<default>") order=\(order.map(\.description) ?? "<default>") dir=\(sortDirection.map(\.description) ?? "<default>") page=\(page)")
             return cached
         }
 
@@ -523,9 +523,9 @@ class CachingScryfallService {
 
         do {
             try cardSearchCache.setObject(results, forKey: cacheKey, expiry: nil)
-            logger.debug("stored card search cache value for query=\(query) unique=\(unique) order=\(order.map(\.description) ?? "<default>") dir=\(sortDirection) page=\(page)")
+            logger.debug("stored card search cache value for query=\(query) unique=\(unique.map(\.description) ?? "<default>") order=\(order.map(\.description) ?? "<default>") dir=\(sortDirection.map(\.description) ?? "<default>") page=\(page)")
         } catch {
-            logger.error("error while setting cache for search query=\(query) unique=\(unique) order=\(order.map(\.description) ?? "<default>") dir=\(sortDirection) page=\(page) error=\(error)")
+            logger.error("error while setting cache for search query=\(query) unique=\(unique.map(\.description) ?? "<default>") order=\(order.map(\.description) ?? "<default>") dir=\(sortDirection.map(\.description) ?? "<default>") page=\(page) error=\(error)")
         }
 
         return results

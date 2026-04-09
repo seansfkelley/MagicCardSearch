@@ -202,35 +202,33 @@ struct SpoilersView: View {
 
         currentSearchResults.destroy()
 
-        var queryParts: [String] = []
+        var filters: [String] = []
 
         if selectedSetCode == allSetsSentinel {
-            queryParts.append("date>today")
+            filters.append("date>today")
         } else {
-            queryParts.append("set:\(selectedSetCode.rawValue.lowercased())")
+            filters.append("set:\(selectedSetCode.rawValue.lowercased())")
         }
 
         if !selectedColors.isEmpty {
             let orClauses = selectedColors.map { "color:\($0.rawValue.lowercased())" }.joined(separator: " OR ")
-            queryParts.append("(\(orClauses))")
+            filters.append("(\(orClauses))")
 
             let nonColorless = selectedColors.subtracting([.C])
             if !nonColorless.isEmpty {
-                queryParts.append("color<=\(nonColorless.map { $0.rawValue.lowercased() }.joined())")
+                filters.append("color<=\(nonColorless.map { $0.rawValue.lowercased() }.joined())")
             }
         }
 
         if !showUniquePrints {
             // Not required for correctness but if you're not interested in seeing every print you
             // are probably interested in seeing the most-readable print. So, not Japanese.
-            queryParts.append("prefer:default")
+            filters.append("prefer:default")
         }
-
-        let query = queryParts.joined(separator: " ")
 
         currentSearchResults = ScryfallObjectList<Card> { @MainActor [cardSearchService] page in
             try await cardSearchService.searchCards(
-                query: query,
+                filters: filters,
                 unique: showUniquePrints ? .prints : .cards,
                 order: sortOrder.scryfallSortMode,
                 sortDirection: .desc,

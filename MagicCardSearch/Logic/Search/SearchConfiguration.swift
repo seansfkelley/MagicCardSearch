@@ -59,10 +59,10 @@ struct SearchConfiguration: Equatable, Codable, CustomStringConvertible {
         // Because this can clutter up the main query string instead of just the URL parameters, try
         // to avoid including it unless we need to. This makes shared URLs reflect what you actually
         // wrote more often.
-        func toStringFilter() -> String? {
+        func toFilterTerm() -> FilterTerm? {
             switch self {
             case .default: nil
-            default: "prefer:\(self.apiValue)"
+            default: .basic(.positive, "prefer", .including, self.apiValue)
             }
         }
     }
