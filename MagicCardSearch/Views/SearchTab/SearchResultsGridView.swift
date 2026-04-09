@@ -20,11 +20,8 @@ struct SearchResultsGridView: View {
         ZStack {
             // TODO: Clean this up.
             if case .unloaded = list.value {
-                ContentUnavailableView {
-                    Text("Not Loading")
-                } description: {
-                    Text("Nothing triggered the search to load. This is a bug.")
-                }
+                // EmptyView would not push the search bar down where it belongs.
+                Color.clear
             } else if case .errored(let results, let error) = list.value, results?.data.isEmpty ?? true {
                 ContentUnavailableView {
                     Label(error.title, systemImage: error.iconName)
@@ -112,7 +109,8 @@ struct SearchResultsGridView: View {
                 }
             }
 
-            if list.value.isInitiallyLoading {
+            let showLoadingOverlay = if case .unloaded = list.value { true } else { list.value.isInitiallyLoading }
+            if showLoadingOverlay {
                 Color.black.opacity(0.3)
                     .ignoresSafeArea()
                     .transition(.opacity)
