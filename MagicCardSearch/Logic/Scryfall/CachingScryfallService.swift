@@ -162,13 +162,13 @@ class CachingScryfallService {
 
     @discardableResult
     func dumpCaches() -> Bool {
-        func dump(_ cache: any StorageAware, _ named: String) -> Bool {
+        func dump(_ cache: any StorageAware, _ name: String) -> Bool {
             do {
                 try cache.removeAll()
-                logger.info("successfully dumped all caches")
+                logger.info("successfully dumped cache with name=\(name)")
                 return true
             } catch {
-                logger.error("failed to dump cache named=\(named) with error=\(error)")
+                logger.error("failed to dump cache with name=\(name) with error=\(error)")
                 return false
             }
         }
