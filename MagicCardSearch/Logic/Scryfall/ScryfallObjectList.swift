@@ -46,6 +46,10 @@ class ScryfallObjectList<T: Codable & Sendable> {
         value = value.map(value: { Self.append(nil, $0, postProcess) })
     }
 
+    func cancel() {
+        task?.cancel()
+    }
+
     @discardableResult
     func loadNextPage() -> Task<Void, Never> {
         if case .loading = value {
@@ -66,12 +70,20 @@ class ScryfallObjectList<T: Codable & Sendable> {
         task = Task {
             do {
                 let result = try await self.fetcher(self.nextPage)
+                // A possible optimization is that, since we already did the hard work of fetching
+                // and waiting, we could ignore cancellation and just append the results. That work
+                // is trivial and since these list objects are often cached, it could save us work
+                // later if this list is used again. However, this interacts badly with any
+                // concurrent loads or load-alls that might be requested by the caller -- we don't
+                // know what order they'll come back so we might end up appending all kinds of
+                // nonsense or losing track of which page we're on.
                 guard !Task.isCancelled else { return }
 
                 logger.info("successfully fetched page=\(self.nextPage) with count=\(result.data.count) items uuid=\(self.searchUuid)")
                 self.nextPage += 1
                 self.value = .loaded(Self.append(self.value.latestValue, result, postProcess), nil)
             } catch let error as ScryfallKitError {
+                // See above for why we must respect cancellation.
                 guard !Task.isCancelled else { return }
 
                 // When searching for cards, a 404 means "no results found", not an actual error.
@@ -87,6 +99,7 @@ class ScryfallObjectList<T: Codable & Sendable> {
                     self.value = .errored(self.value.latestValue, SearchError(from: error))
                 }
             } catch {
+                // See above for why we must respect cancellation.
                 guard !Task.isCancelled else { return }
                 
                 logger.error("error fetching page=\(self.nextPage) uuid=\(self.searchUuid) error=\(error)")
@@ -122,6 +135,7 @@ class ScryfallObjectList<T: Codable & Sendable> {
             while shouldContinue && !Task.isCancelled {
                 do {
                     let result = try await self.fetcher(page)
+                    // See above for why we must respect cancellation.
                     guard !Task.isCancelled else { return }
 
                     logger.debug("successfully fetched page=\(page) with count=\(result.data.count) items uuid=\(self.searchUuid)")
@@ -130,6 +144,9 @@ class ScryfallObjectList<T: Codable & Sendable> {
                     page += 1
                     shouldContinue = result.hasMore ?? false
                 } catch {
+                    // See above for why we must respect cancellation.
+                    guard !Task.isCancelled else { return }
+
                     logger.error("error fetching page=\(page), stopping uuid=\(self.searchUuid) error=\(error)")
                     self.nextPage = page
                     self.value = .errored(data, SearchError(from: error))
@@ -137,6 +154,7 @@ class ScryfallObjectList<T: Codable & Sendable> {
                 }
             }
 
+            // See above for why we must respect cancellation.
             if !Task.isCancelled {
                 logger.info("successfully loaded all remaining pages uuid=\(self.searchUuid)")
                 self.nextPage = page

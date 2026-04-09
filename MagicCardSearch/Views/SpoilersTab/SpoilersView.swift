@@ -213,6 +213,8 @@ struct SpoilersView: View {
             return
         }
 
+        currentSearchResults.cancel()
+
         var queryParts: [String] = []
 
         if selectedSetCode == allSetsSentinel {

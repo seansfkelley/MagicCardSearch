@@ -17,6 +17,7 @@ actor RateLimiter<C: Clock> where C.Duration == Duration {
         self.clock = clock
     }
 
+    /// Throws on task cancellation.
     func waitForSlot() async throws {
         let signpostId = signposter.makeSignpostID()
         let state = signposter.beginInterval("waitForSlot", id: signpostId, "\(self.name ?? "")")

@@ -100,6 +100,8 @@ class SearchState {
         withFilters instancedFilters: [FilterQuery<FilterTerm>],
         withConfiguration instancedConfiguration: SearchConfiguration,
     ) {
+        results?.cancel()
+
         logger.info("starting new search filters=\(instancedFilters) configuration=\(instancedConfiguration)")
 
         var mutableQuery = instancedFilters.map { $0.description }.joined(separator: " ")
