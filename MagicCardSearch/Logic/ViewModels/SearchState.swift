@@ -139,6 +139,7 @@ class SearchState {
                     }
                 }
             })
+            results!.loadNextPage()
 
             return
         }
