@@ -100,7 +100,7 @@ class SearchState {
         withFilters instancedFilters: [FilterQuery<FilterTerm>],
         withConfiguration instancedConfiguration: SearchConfiguration,
     ) {
-        results?.cancel()
+        results?.destroy()
 
         logger.info("starting new search filters=\(instancedFilters) configuration=\(instancedConfiguration)")
 
@@ -112,8 +112,7 @@ class SearchState {
         }
 
         let query = mutableQuery // appease concurrency checker.
-
-        let thisSearch = ScryfallObjectList<Card>({ @MainActor [weak self] page async throws in
+        let thisResults = ScryfallObjectList<Card>({ @MainActor [weak self] page async throws in
             guard let self else { return .empty() }
 
             return try await cardSearchService.searchCards(
@@ -124,23 +123,22 @@ class SearchState {
                 page: page,
             )
         })
-
-        results = thisSearch
+        results = thisResults
 
         Task {
             do {
-                try await thisSearch.loadNextPage().value
+                try await thisResults.loadNextPage().value
             } catch {
                 // Swallow the error; the logger in ScryfallObjectList will log it.
                 return
             }
 
-            if case .loaded = thisSearch.value,
+            if case .loaded = thisResults.value,
                // The === check is belt-and-suspenders for cancellation, which should hit the early
                // return in the catch block immediately above.
-               (results === thisSearch
+               (results === thisResults
                 && instancedConfiguration.automaticallyIncludeExtras
-                && thisSearch.value.latestValue?.data.isEmpty ?? false)
+                && thisResults.value.latestValue?.data.isEmpty ?? false)
                 && !(didAutomaticallyIncludeExtras ?? true) // err on the side of not doing extra work
             {
                 didAutomaticallyIncludeExtras = true

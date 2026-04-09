@@ -73,3 +73,15 @@ Separating the parsing of the boolean expression query structure from the filter
 Scryfall has [rate limits](https://scryfall.com/docs/api/rate-limits). Stated in requests/second, the simplest implementation is to just have a sliding window implementing with blocking sleeps. Batching is not available and there is no sense delaying request bursts with a "leaky bucket" approach.
 
 I'm unsure how aggressively Scryfall enforces rate limits. I have been rate-limited before, but I'm unsure of how many sustained requests/second I was making before that started happening.
+
+## Disposable, Stateful `ScryfallObjectList`
+
+A stateful object is the best way I've determined to have the grid views and detail navigators share resources, such that paging to the end of the navigator will trigger a single load that is also reused by the grid view that opened the navigator.
+
+### Caching and the Tiny State Machine
+
+An earlier implementation of the app cached these mutable objects in a couple places so that if you flipped between filters quickly you'd grab the already-loaded in-memory list. It also allowed any list to freely flip between loading one page at a time or loading all remaining pages.
+
+This proved to be more trouble than it's worth. It was difficult to reconcile the desire to cancel a load request when the list became irrelevant but then restart it later: how could you differentiate a cancel because the consumer wanted to cancel versus a cancel because another load took precedence? With the desire to roll back load state on cancel so it could be tried again later, how could you know if a load taking precedence had already overwritten the shared state such that you shouldn't overwrite it again?
+
+It turned out that no part of the app ever used both the per-page or all-pages paths at the same time. CachingScryfallService also came along with its aggressive caching behavior. So cached mutable objects were thrown out and instead they gained a tiny state machine so that we knew that cancellations were either "destroy irrecoverably" or "I've already overwritten the loading state" so that rollbacks were not necessary. Caching now relies on CachingScryfallService and ScryfallObjectList is only used to manage load state.

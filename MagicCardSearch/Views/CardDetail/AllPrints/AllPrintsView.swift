@@ -7,35 +7,6 @@ import SQLiteData
 private let logger = Logger(subsystem: "MagicCardSearch", category: "AllPrintsView")
 
 struct AllPrintsView: View {
-    struct CacheKey: Hashable, CustomStringConvertible {
-        let oracleId: String
-        let fetchKey: AllPrintsFilterSettings.FetchKey
-
-        var description: String {
-            "CacheKey(oracleId: \(oracleId), fetchKey: \(fetchKey))"
-        }
-
-        init(_ oracleId: String, _ settings: AllPrintsFilterSettings) {
-            self.oracleId = oracleId
-            self.fetchKey = settings.fetchKey
-        }
-    }
-
-    // This was initially put in because of my inability to figure out proper request lifecycling,
-    // but I eventually decided that it's probably a good idea regardless.
-    //
-    // The problem with lifecycling was that I cannot figure out how, for a view like this deeply
-    // nested in the view hierarchy, how to ensure it only makes the request only if something
-    // actually changed. I started trying task/onAppear/onFirstAppear and while each one was better
-    // than the last, I still had issues where returning to the home screen would trigger the view
-    // to be rebuilt (?!) and sometimes it would happen _again_ on reentry or for no discernible
-    // reason. Sprinkling in Self._printChanges() indicated that the @identity of the view was
-    // changing and presumably the culprit, but in most of those cases the parent views reported no
-    // changes at all! So why did this one change identity? Something to do with being in a sheet?
-    private static let objectListCache = StrongMemoryStorage<CacheKey, ScryfallObjectList<Card>>(
-        config: .init(expiry: .days(1), countLimit: 20),
-    )
-
     let oracleId: String
     let initialCardId: UUID
     let cardSearchService: CardSearchService
@@ -225,34 +196,22 @@ struct AllPrintsView: View {
     }
 
     private func reloadAllPrints(andScrollTo targetCardId: UUID?) async {
-        let cacheKey = CacheKey(oracleId, printFilterSettings)
+        objectList.destroy()
 
-        objectList.cancel()
-
-        let currentObjectList: ScryfallObjectList<Card>
-        if let cachedList = try? Self.objectListCache.entry(forKey: cacheKey) {
-            currentObjectList = cachedList.object
-            logger.debug("hit cache for object list key=\(cacheKey)")
-        } else {
-            let searchQuery = printFilterSettings.toQueryFor(oracleId: oracleId)
-            currentObjectList = ScryfallObjectList { @MainActor [cardSearchService] page in
-                try await cardSearchService.searchCards(
-                    query: searchQuery,
-                    unique: .prints,
-                    order: nil,
-                    sortDirection: .auto,
-                    page: page,
-                )
-            } postProcess: { self.printFilterSettings.sort($0) }
-
-            Self.objectListCache.setObject(currentObjectList, forKey: cacheKey)
-            logger.debug("set cache for object list key=\(cacheKey)")
-        }
-
-        objectList = currentObjectList
+        let searchQuery = printFilterSettings.toQueryFor(oracleId: oracleId)
+        let thisObjectList = ScryfallObjectList { @MainActor [cardSearchService] page in
+            try await cardSearchService.searchCards(
+                query: searchQuery,
+                unique: .prints,
+                order: nil,
+                sortDirection: .auto,
+                page: page,
+            )
+        } postProcess: { self.printFilterSettings.sort($0) }
+        objectList = thisObjectList
 
         do {
-            try await objectList.loadAllRemainingPages().value
+            try await objectList.loadAllPages().value
         } catch {
             // Swallow the error; the logger in ScryfallObjectList will log it.
             return
@@ -260,7 +219,7 @@ struct AllPrintsView: View {
         
         // The === check is belt-and-suspenders for cancellation, which should hit the early
         // return in the catch block immediately above.
-        guard objectList === currentObjectList else { return }
+        guard objectList === thisObjectList else { return }
 
         objectList.reprocess { self.printFilterSettings.sort($0) }
         reindexAndScrollTo(targetCardId)

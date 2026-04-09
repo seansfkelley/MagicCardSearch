@@ -115,13 +115,13 @@ class CachingScryfallService {
     private let cardCache: any StorageAware<String, Card> = bestEffortCache(
         // 30 days: cards basically never change.
         memory: .init(expiry: .days(30), countLimit: 500),
-        disk: .init(name: "cards", expiry: .days(7)),
+        disk: .init(name: "cards", expiry: .days(30)),
     )
 
     private let cardSearchCache: any StorageAware<SearchCacheKey, ObjectList<Card>> = bestEffortCache(
         // 1 day: spoilers may change which cards turn up in any given search, but spoilers only
         // cycle around once per day during spoiler seasons.
-        memory: .init(expiry: .days(1), countLimit: 100),
+        memory: .init(expiry: .days(1), countLimit: 200),
         disk: .init(name: "cardSearch", expiry: .days(1)),
     )
 

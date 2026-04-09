@@ -8,8 +8,15 @@ private let logger = Logger(subsystem: "MagicCardSearch", category: "ScryfallObj
 @MainActor
 @Observable
 class ScryfallObjectList<T: Codable & Sendable> {
+    struct InvalidStateError: Error {}
+
+    private enum State {
+        case indeterminate, page, allPages, destroyed
+    }
+
     public private(set) var value: LoadableResult<ObjectList<T>, SearchError> = .unloaded
 
+    private var state: State = .indeterminate
     private let searchUuid = UUID()
     private let fetcher: @Sendable (Int) async throws -> ObjectList<T>
     private var postProcess: ([T]) -> [T]
@@ -46,26 +53,24 @@ class ScryfallObjectList<T: Codable & Sendable> {
         value = value.map(value: { Self.append(nil, $0, postProcess) })
     }
 
-    func cancel() {
+    func destroy() {
+        state = .destroyed
         task?.cancel()
     }
 
     @discardableResult
-    func loadFirstPage() -> Task<Void, any Error> {
-        // Ensure the first page is loaded. Used when the list object is cached and reused, and it
-        // may have been cancelled before the first page successfully loaded. Contrast loadNextPage,
-        // which will always load the next page even if we only wanted the first (in the example
-        // given).
-        if nextPage == 1 {
-            return loadNextPage()
-        } else {
-            logger.debug("declining to load first page: already loaded uuid=\(self.searchUuid)")
-            return Task {}
-        }
-    }
-
-    @discardableResult
     func loadNextPage() -> Task<Void, any Error> {
+        switch state {
+        case .allPages, .destroyed:
+            return Task<Void, any Error> {
+                throw InvalidStateError()
+            }
+        case .indeterminate:
+            state = .page
+        case .page:
+            break
+        }
+
         if case .loading = value {
             logger.debug("declining to load next page: already loading uuid=\(self.searchUuid)")
             return Task<Void, any Error> {}
@@ -78,7 +83,7 @@ class ScryfallObjectList<T: Codable & Sendable> {
 
         logger.info("loading page=\(self.nextPage) uuid=\(self.searchUuid)")
 
-        task?.cancel()
+        task?.cancel() // Belt-and-suspenders; we should early-abort up there ^ if this task didn't complete.
         value = .loading(value.latestValue, nil)
 
         task = Task {
@@ -97,7 +102,7 @@ class ScryfallObjectList<T: Codable & Sendable> {
                 nextPage += 1
                 value = .loaded(Self.append(value.latestValue, result, postProcess), nil)
             } catch let error as CancellationError {
-                logger.info("cancelled while fetching page=\(self.nextPage)  uuid=\(self.searchUuid)")
+                logger.info("cancelled while fetching page=\(self.nextPage) uuid=\(self.searchUuid)")
                 throw error
             } catch let error as ScryfallKitError {
                 // When searching for cards, a 404 means "no results found", not an actual error.
@@ -106,7 +111,7 @@ class ScryfallObjectList<T: Codable & Sendable> {
                 // foolproof if Scryfall makes breaking changes.
                 if case .scryfallError(let error) = error, error.status == 404 {
                     logger.info("intercepted Scryfall 404 and set to empty instead uuid=\(self.searchUuid)")
-                    // Appending empty is another way of saying to mark is as having no more pages, etc.
+                    // Appending empty is another way of saying to mark it as having no more pages, etc.
                     value = .loaded(Self.append(value.latestValue, .empty(), postProcess), nil)
                 } else {
                     logger.error("error fetching page=\(self.nextPage) uuid=\(self.searchUuid) error=\(error)")
@@ -122,9 +127,20 @@ class ScryfallObjectList<T: Codable & Sendable> {
     }
 
     @discardableResult
-    func loadAllRemainingPages() -> Task<Void, any Error> {
+    func loadAllPages() -> Task<Void, any Error> {
+        switch state {
+        case .page, .destroyed:
+            return Task<Void, any Error> {
+                throw InvalidStateError()
+            }
+        case .indeterminate:
+            state = .allPages
+        case .allPages:
+            break
+        }
+
         if case .loading = value {
-            logger.debug("declining to load all remaining pages: already loading uuid=\(self.searchUuid)")
+            logger.debug("declining to load all pages: already loading uuid=\(self.searchUuid)")
             return Task<Void, any Error> {}
         }
 
@@ -133,9 +149,9 @@ class ScryfallObjectList<T: Codable & Sendable> {
             return Task<Void, any Error> {}
         }
 
-        logger.info("loading all remaining pages from page=\(self.nextPage) uuid=\(self.searchUuid)")
+        logger.info("loading all pages from page=\(self.nextPage) uuid=\(self.searchUuid)")
 
-        task?.cancel()
+        task?.cancel() // Belt-and-suspenders; we should early-abort up there ^ if this task didn't complete.
         value = .loading(value.latestValue, nil)
         var page = self.nextPage
 

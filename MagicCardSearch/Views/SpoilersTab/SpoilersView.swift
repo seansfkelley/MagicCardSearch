@@ -13,13 +13,6 @@ private let ignoredSetTypes: Set<MTGSet.Kind> = [
 private let logger = Logger(subsystem: "MagicCardSearch", category: "SpoilersView")
 
 struct SpoilersView: View {
-    private struct CacheKey: Hashable {
-        let setCode: SetCode
-        let sortOrder: SpoilersSortOrder
-        let colors: Set<Card.Color>
-        let showUniquePrints: Bool
-    }
-
     @State private var cardFlipStates: [UUID: Bool] = [:]
     @State private var orderedSelectableSets: [MTGSet] = []
     @State private var currentSearchResults: ScryfallObjectList<Card> = .empty()
@@ -32,15 +25,7 @@ struct SpoilersView: View {
 
     @Environment(ScryfallCatalogs.self) private var scryfallCatalogs
 
-    private var currentCacheKey: CacheKey {
-        .init(setCode: selectedSetCode, sortOrder: sortOrder, colors: selectedColors, showUniquePrints: showUniquePrints)
-    }
-
     let cardSearchService: CardSearchService
-
-    private static let objectListCache = StrongMemoryStorage<CacheKey, ScryfallObjectList<Card>>(
-        config: .init(expiry: .hours(1), countLimit: 50)
-    )
 
     private let columns = [
         GridItem(.flexible(), spacing: 0),
@@ -109,7 +94,16 @@ struct SpoilersView: View {
         .onChange(of: scryfallCatalogs.catalogChangeNonce) {
             recomputeSpoilingSets()
         }
-        .onChange(of: currentCacheKey) {
+        .onChange(of: selectedSetCode) {
+            loadFilteredSpoilers()
+        }
+        .onChange(of: sortOrder) {
+            loadFilteredSpoilers()
+        }
+        .onChange(of: selectedColors) {
+            loadFilteredSpoilers()
+        }
+        .onChange(of: showUniquePrints) {
             loadFilteredSpoilers()
         }
         .sheet(item: $selectedCardIndex) { index in
@@ -206,15 +200,7 @@ struct SpoilersView: View {
     private func loadFilteredSpoilers() {
         guard !orderedSelectableSets.isEmpty else { return }
 
-        let cacheKey = currentCacheKey
-
-        if let cached = try? Self.objectListCache.entry(forKey: cacheKey) {
-            currentSearchResults = cached.object
-            currentSearchResults.loadFirstPage()
-            return
-        }
-
-        currentSearchResults.cancel()
+        currentSearchResults.destroy()
 
         var queryParts: [String] = []
 
@@ -236,7 +222,7 @@ struct SpoilersView: View {
 
         let query = queryParts.joined(separator: " ")
 
-        let newObjectList = ScryfallObjectList<Card> { @MainActor [cardSearchService] page in
+        currentSearchResults = ScryfallObjectList<Card> { @MainActor [cardSearchService] page in
             try await cardSearchService.searchCards(
                 query: query,
                 unique: showUniquePrints ? .prints : .cards,
@@ -245,10 +231,7 @@ struct SpoilersView: View {
                 page: page,
             )
         }
-
-        Self.objectListCache.setObject(newObjectList, forKey: cacheKey)
-        currentSearchResults = newObjectList
-        currentSearchResults.loadFirstPage()
+        currentSearchResults.loadNextPage()
     }
 }
 
