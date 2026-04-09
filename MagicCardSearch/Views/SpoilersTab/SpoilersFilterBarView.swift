@@ -26,7 +26,7 @@ struct SpoilersFilterBarView: View {
 
                 Divider()
 
-                Toggle("Show Unique Prints", isOn: $showUniquePrints)
+                Toggle("Show Alternative Prints", isOn: $showUniquePrints)
             } label: {
                 Image(systemName: "arrow.up.arrow.down.circle")
                     .resizable()
