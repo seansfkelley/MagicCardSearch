@@ -157,12 +157,17 @@ struct FixedListCardDetailNavigatorView<C: CardDisplayable & Identifiable<UUID>>
             do {
                 logger.info("fetching card id=\(card.id)")
                 let loaded = try await fetchCardService.fetchCard(byScryfallId: card.id)
-                guard !Task.isCancelled else { return }
-                await MainActor.run { loadedCards[card.id] = .loaded(loaded) }
+                try Task.checkCancellation()
+
+                await MainActor.run {
+                    loadedCards[card.id] = .loaded(loaded)
+                }
             } catch is CancellationError {
                 // nop
             } catch {
-                await MainActor.run { loadedCards[card.id] = .failed(error) }
+                await MainActor.run {
+                    loadedCards[card.id] = .failed(SearchError(from: error))
+                }
             }
         }
 
