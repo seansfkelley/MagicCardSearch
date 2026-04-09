@@ -50,7 +50,7 @@ struct SetIconView: View {
     }
     
     @State private var imageResult: LoadableResult<UIImage, Error> = .unloaded
-    
+
     var body: some View {
         Group {
             if let image = imageResult.latestValue {

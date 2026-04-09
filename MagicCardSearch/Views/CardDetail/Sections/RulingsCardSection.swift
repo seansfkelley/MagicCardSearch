@@ -10,7 +10,7 @@ struct RulingsCardSection<DividerContent: View>: View {
     let scryfallId: UUID
     let scryfallService: RulingsService
     @ViewBuilder let divider: () -> DividerContent
-    @State private var rulings: LoadableResult<[Card.Ruling], any Error> = .unloaded
+    @State private var rulings: LoadableResult<[Card.Ruling], UserFacingError> = .unloaded
 
     init(scryfallId: UUID, scryfallService: RulingsService? = nil, @ViewBuilder divider: @escaping () -> DividerContent = { EmptyView() }) {
         self.scryfallId = scryfallId
@@ -90,7 +90,9 @@ struct RulingsCardSection<DividerContent: View>: View {
     @MainActor
     private func fetch() {
         Task {
-            await LoadableResult<[Card.Ruling], any Error>.load({ rulings = $0 }) {
+            await LoadableResult<[Card.Ruling], UserFacingError>.load({
+                rulings = $0.map(error: { UserFacingError(from: $0) })
+            }) {
                 try await scryfallService.rulings(forScryfallId: scryfallId)
             }
         }

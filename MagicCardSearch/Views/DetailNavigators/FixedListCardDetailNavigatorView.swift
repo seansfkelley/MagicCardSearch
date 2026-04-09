@@ -11,7 +11,7 @@ struct FixedListCardDetailNavigatorView<C: CardDisplayable & Identifiable<UUID>>
     private enum LoadingState {
         case loading(Task<Void, Never>)
         case loaded(Card)
-        case failed(Error)
+        case failed(UserFacingError)
     }
 
     let cards: [C]
@@ -166,7 +166,7 @@ struct FixedListCardDetailNavigatorView<C: CardDisplayable & Identifiable<UUID>>
                 // nop
             } catch {
                 await MainActor.run {
-                    loadedCards[card.id] = .failed(SearchError(from: error))
+                    loadedCards[card.id] = .failed(UserFacingError(from: error))
                 }
             }
         }

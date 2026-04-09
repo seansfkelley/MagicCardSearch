@@ -1,7 +1,7 @@
 import SwiftUI
 import ScryfallKit
 
-enum SearchError: Error {
+enum UserFacingError: Error {
     case rateLimited
     case clientError
     case serverError

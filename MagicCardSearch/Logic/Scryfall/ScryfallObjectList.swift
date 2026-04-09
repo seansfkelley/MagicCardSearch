@@ -14,7 +14,7 @@ class ScryfallObjectList<T: Codable & Sendable> {
         case indeterminate, page, allPages, destroyed
     }
 
-    public private(set) var value: LoadableResult<ObjectList<T>, SearchError> = .unloaded
+    public private(set) var value: LoadableResult<ObjectList<T>, UserFacingError> = .unloaded
 
     private var state: State = .indeterminate
     private let searchUuid = UUID()
@@ -115,11 +115,11 @@ class ScryfallObjectList<T: Codable & Sendable> {
                     value = .loaded(Self.append(value.latestValue, .empty(), postProcess), nil)
                 } else {
                     logger.error("error fetching page=\(self.nextPage) uuid=\(self.searchUuid) error=\(error)")
-                    value = .errored(value.latestValue, SearchError(from: error))
+                    value = .errored(value.latestValue, UserFacingError(from: error))
                 }
             } catch {
                 logger.error("error fetching page=\(self.nextPage) uuid=\(self.searchUuid) error=\(error)")
-                value = .errored(self.value.latestValue, SearchError(from: error))
+                value = .errored(self.value.latestValue, UserFacingError(from: error))
             }
         }
 
@@ -176,7 +176,7 @@ class ScryfallObjectList<T: Codable & Sendable> {
                 } catch {
                     logger.error("error fetching page=\(page), stopping uuid=\(self.searchUuid) error=\(error)")
                     nextPage = page
-                    value = .errored(data, SearchError(from: error))
+                    value = .errored(data, UserFacingError(from: error))
                     return
                 }
             }

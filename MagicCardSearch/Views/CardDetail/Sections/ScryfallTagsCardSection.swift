@@ -17,7 +17,7 @@ struct ScryfallTagsCardSection: View {
     let fetchCardService: FetchCardService
 
     @State private var isExpanded = false
-    @State private var card: LoadableResult<TaggerCard?, Error> = .unloaded
+    @State private var card: LoadableResult<TaggerCard?, UserFacingError> = .unloaded
     @State private var relatedCardToShow: Card?
     @State private var loadingRelationshipId: UUID?
 
@@ -127,7 +127,9 @@ struct ScryfallTagsCardSection: View {
 
     private func loadTags() {
         Task {
-            await LoadableResult<TaggerCard?, any Error>.load({ card = $0 }) {
+            await LoadableResult<TaggerCard?, UserFacingError>.load({
+                card = $0.map(error: { UserFacingError(from: $0) })
+            }) {
                 try await tagsService.tags(forCollectorNumber: collectorNumber, inSet: setCode)
             }
         }
