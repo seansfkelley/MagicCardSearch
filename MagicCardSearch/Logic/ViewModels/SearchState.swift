@@ -21,16 +21,19 @@ class SearchState {
 
     private let suggestionProvider: AutocompleteSuggestionProvider
     private let cardSearchService: CardSearchService
+    private let namedCardService: NamedCardService
     private let historyAndPinnedStore: HistoryAndPinnedStore
 
     public init(
         historyAndPinnedStore: HistoryAndPinnedStore,
         scryfallCatalogs: ScryfallCatalogs,
         cardSearchService: CardSearchService? = nil,
+        namedCardService: NamedCardService? = nil,
     ) {
         self.historyAndPinnedStore = historyAndPinnedStore
         self.suggestionProvider = AutocompleteSuggestionProvider(scryfallCatalogs: scryfallCatalogs)
         self.cardSearchService = cardSearchService ?? CachingScryfallService.shared
+        self.namedCardService = namedCardService ?? CachingScryfallService.shared
     }
 
     public func makeEditingState() -> SearchEditingState {
@@ -104,11 +107,47 @@ class SearchState {
 
         logger.info("starting new search filters=\(instancedFilters) configuration=\(instancedConfiguration)")
 
+        let preferredPrintFilter = instancedConfiguration.preferredPrint.toStringFilter()
+
+        if instancedFilters.count == 1,
+            let filter = instancedFilters.first,
+            case .term(let term) = filter,
+            case .name(let polarity, let isExact, let name) = term,
+           polarity == .positive && isExact,
+           preferredPrintFilter == nil
+        {
+            logger.info("filters are a single positive exact name match; using fast path for finding name=\(name)")
+            results = ScryfallObjectList<Card>({ @MainActor [weak self] page async throws in
+                guard let self else { return .empty() }
+
+                do {
+                    let card = try await namedCardService.fetchCard(byExactName: name, set: nil)
+                    return ObjectList(data: [card], hasMore: false, totalCards: 1)
+                } catch let error as ScryfallKitError {
+                    try Task.checkCancellation()
+
+                    // When searching for cards, a 404 means "no results found", not an actual error.
+                    // Note that this condition assumes that we will never get legit 404s. This should
+                    // be fine since we only use a small number of fixed URLs, but of course it's not
+                    // foolproof if Scryfall makes breaking changes.
+                    if case .scryfallError(let scryfallError) = error, scryfallError.status == 404 {
+                        logger.debug("intercepted Scryfall 404 and set to empty instead")
+                        return .empty()
+                    } else {
+                        logger.error("failed to load card with name=\(name) error=\(error)")
+                        throw error
+                    }
+                }
+            })
+
+            return
+        }
+
         var mutableQuery = instancedFilters.map { $0.description }.joined(separator: " ")
-        if let preferClause = instancedConfiguration.preferredPrint.toStringFilter() {
+        if let preferredPrintFilter {
             // Scryfall will silently pick the last prefer: clause, so prepend it in case the user
             // has written one by hand in there somewhere.
-            mutableQuery = "\(preferClause) \(mutableQuery)"
+            mutableQuery = "\(preferredPrintFilter) \(mutableQuery)"
         }
 
         let query = mutableQuery // appease concurrency checker.

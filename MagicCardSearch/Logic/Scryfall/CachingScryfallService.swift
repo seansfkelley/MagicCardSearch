@@ -25,6 +25,12 @@ protocol RulingsService {
 }
 
 @MainActor
+protocol NamedCardService {
+    func fetchCard(byExactName name: String, set: String?) async throws -> Card
+    func fetchCard(byFuzzyName name: String, set: String?) async throws -> Card
+}
+
+@MainActor
 protocol RandomCardService {
     func randomCard(query: String?) async throws -> Card
 }
@@ -79,6 +85,7 @@ extension CachingScryfallService: TagsService {}
 extension CachingScryfallService: RulingsService {}
 extension CachingScryfallService: CardSearchService {}
 extension CachingScryfallService: RandomCardService {}
+extension CachingScryfallService: NamedCardService {}
 
 private struct SearchCacheKey: Hashable {
     // n.b. we cannot make this [String] and then sort it to canonicalize the cache key -- ordering
@@ -357,6 +364,76 @@ class CachingScryfallService {
             logger.debug("stored card cache value for printing ID=\(id)")
         } catch {
             logger.error("error while setting cache for card with printing ID=\(id) error=\(error)")
+        }
+
+        return card
+    }
+
+    func fetchCard(byExactName name: String, set: String?) async throws -> Card {
+        let signpostID = signposter.makeSignpostID()
+        let state = signposter.beginInterval("fetchCard", id: signpostID, "exactName: \(name)")
+        defer { signposter.endInterval("fetchCard", state) }
+
+        let cacheKey = set.map { "named/exact/\(name):\($0)" } ?? "named/exact/\(name)"
+
+        if let cached = try? cardCache.object(forKey: cacheKey) {
+            logger.debug("hit card cache for exact name=\(name)")
+            return cached
+        }
+
+        do {
+            let waitState = signposter.beginInterval("fetchCard", id: signpostID, "waitForSlot")
+            defer { signposter.endInterval("fetchCard", waitState) }
+            try await searchLimiter.waitForSlot()
+        }
+
+        let card: Card
+        do {
+            let networkState = signposter.beginInterval("fetchCard", id: signpostID, "network")
+            defer { signposter.endInterval("fetchCard", networkState) }
+            card = try await client.getCardByName(exact: name, set: set)
+        }
+
+        do {
+            try cardCache.setObject(card, forKey: cacheKey, expiry: nil)
+            logger.debug("stored card cache value for exact name=\(name)")
+        } catch {
+            logger.error("error while setting cache for card with exact name=\(name) error=\(error)")
+        }
+
+        return card
+    }
+
+    func fetchCard(byFuzzyName name: String, set: String?) async throws -> Card {
+        let signpostID = signposter.makeSignpostID()
+        let state = signposter.beginInterval("fetchCard", id: signpostID, "fuzzyName: \(name)")
+        defer { signposter.endInterval("fetchCard", state) }
+
+        let cacheKey = set.map { "named/fuzzy/\(name):\($0)" } ?? "named/fuzzy/\(name)"
+
+        if let cached = try? cardCache.object(forKey: cacheKey) {
+            logger.debug("hit card cache for fuzzy name=\(name)")
+            return cached
+        }
+
+        do {
+            let waitState = signposter.beginInterval("fetchCard", id: signpostID, "waitForSlot")
+            defer { signposter.endInterval("fetchCard", waitState) }
+            try await searchLimiter.waitForSlot()
+        }
+
+        let card: Card
+        do {
+            let networkState = signposter.beginInterval("fetchCard", id: signpostID, "network")
+            defer { signposter.endInterval("fetchCard", networkState) }
+            card = try await client.getCardByName(fuzzy: name, set: set)
+        }
+
+        do {
+            try cardCache.setObject(card, forKey: cacheKey, expiry: nil)
+            logger.debug("stored card cache value for fuzzy name=\(name)")
+        } catch {
+            logger.error("error while setting cache for card with fuzzy name=\(name) error=\(error)")
         }
 
         return card
