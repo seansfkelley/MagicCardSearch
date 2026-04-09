@@ -128,9 +128,17 @@ class SearchState {
         results = thisSearch
 
         Task {
-            await thisSearch.loadNextPage().value
+            do {
+                try await thisSearch.loadNextPage().value
+            } catch {
+                // Swallow the error; the logger in ScryfallObjectList will log it.
+                return
+            }
 
-            if (results === thisSearch
+            if case .loaded = thisSearch.value,
+               // The === check is belt-and-suspenders for cancellation, which should hit the early
+               // return in the catch block immediately above.
+               (results === thisSearch
                 && instancedConfiguration.automaticallyIncludeExtras
                 && thisSearch.value.latestValue?.data.isEmpty ?? false)
                 && !(didAutomaticallyIncludeExtras ?? true) // err on the side of not doing extra work

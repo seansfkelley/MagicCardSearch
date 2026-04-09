@@ -15,7 +15,7 @@ class ScryfallObjectList<T: Codable & Sendable> {
     private var postProcess: ([T]) -> [T]
     private var nextPage = 1
     // Ignore the compiler warning here: if I don't have nonisolated(unsafe), it doesn't compile.
-    nonisolated(unsafe) private var task: Task<Void, Never>?
+    nonisolated(unsafe) private var task: Task<Void, any Error>?
 
     init(
         _ fetcher: @escaping @Sendable (Int) async throws -> ObjectList<T>,
@@ -51,7 +51,7 @@ class ScryfallObjectList<T: Codable & Sendable> {
     }
 
     @discardableResult
-    func loadFirstPage() -> Task<Void, Never> {
+    func loadFirstPage() -> Task<Void, any Error> {
         // Ensure the first page is loaded. Used when the list object is cached and reused, and it
         // may have been cancelled before the first page successfully loaded. Contrast loadNextPage,
         // which will always load the next page even if we only wanted the first (in the example
@@ -65,15 +65,15 @@ class ScryfallObjectList<T: Codable & Sendable> {
     }
 
     @discardableResult
-    func loadNextPage() -> Task<Void, Never> {
+    func loadNextPage() -> Task<Void, any Error> {
         if case .loading = value {
             logger.debug("declining to load next page: already loading uuid=\(self.searchUuid)")
-            return Task {}
+            return Task<Void, any Error> {}
         }
 
         if case .loaded(let list, _) = value, list.nextPage == nil {
             logger.debug("declining to load next page: already at the end of the list uuid=\(self.searchUuid)")
-            return Task {}
+            return Task<Void, any Error> {}
         }
 
         logger.info("loading page=\(self.nextPage) uuid=\(self.searchUuid)")
@@ -83,7 +83,7 @@ class ScryfallObjectList<T: Codable & Sendable> {
 
         task = Task {
             do {
-                let result = try await self.fetcher(self.nextPage)
+                let result = try await fetcher(nextPage)
                 // A possible optimization is that, since we already did the hard work of fetching
                 // and waiting, we could ignore cancellation and just append the results. That work
                 // is trivial and since these list objects are often cached, it could save us work
@@ -91,15 +91,15 @@ class ScryfallObjectList<T: Codable & Sendable> {
                 // concurrent loads or load-alls that might be requested by the caller -- we don't
                 // know what order they'll come back so we might end up appending all kinds of
                 // nonsense or losing track of which page we're on.
-                guard !Task.isCancelled else { return }
+                try Task.checkCancellation()
 
                 logger.info("successfully fetched page=\(self.nextPage) with count=\(result.data.count) items uuid=\(self.searchUuid)")
-                self.nextPage += 1
-                self.value = .loaded(Self.append(self.value.latestValue, result, postProcess), nil)
+                nextPage += 1
+                value = .loaded(Self.append(value.latestValue, result, postProcess), nil)
+            } catch let error as CancellationError {
+                logger.info("cancelled while fetching page=\(self.nextPage)  uuid=\(self.searchUuid)")
+                throw error
             } catch let error as ScryfallKitError {
-                // See above for why we must respect cancellation.
-                guard !Task.isCancelled else { return }
-
                 // When searching for cards, a 404 means "no results found", not an actual error.
                 // Note that this condition assumes that we will never get legit 404s. This should
                 // be fine since we only use a small number of fixed URLs, but of course it's not
@@ -107,17 +107,14 @@ class ScryfallObjectList<T: Codable & Sendable> {
                 if case .scryfallError(let error) = error, error.status == 404 {
                     logger.info("intercepted Scryfall 404 and set to empty instead uuid=\(self.searchUuid)")
                     // Appending empty is another way of saying to mark is as having no more pages, etc.
-                    self.value = .loaded(Self.append(self.value.latestValue, .empty(), postProcess), nil)
+                    value = .loaded(Self.append(value.latestValue, .empty(), postProcess), nil)
                 } else {
                     logger.error("error fetching page=\(self.nextPage) uuid=\(self.searchUuid) error=\(error)")
-                    self.value = .errored(self.value.latestValue, SearchError(from: error))
+                    value = .errored(value.latestValue, SearchError(from: error))
                 }
             } catch {
-                // See above for why we must respect cancellation.
-                guard !Task.isCancelled else { return }
-                
                 logger.error("error fetching page=\(self.nextPage) uuid=\(self.searchUuid) error=\(error)")
-                self.value = .errored(self.value.latestValue, SearchError(from: error))
+                value = .errored(self.value.latestValue, SearchError(from: error))
             }
         }
 
@@ -125,15 +122,15 @@ class ScryfallObjectList<T: Codable & Sendable> {
     }
 
     @discardableResult
-    func loadAllRemainingPages() -> Task<Void, Never> {
+    func loadAllRemainingPages() -> Task<Void, any Error> {
         if case .loading = value {
             logger.debug("declining to load all remaining pages: already loading uuid=\(self.searchUuid)")
-            return Task {}
+            return Task<Void, any Error> {}
         }
 
         if case .loaded(let list, _) = value, list.nextPage == nil {
             logger.debug("declining to load all remaining pages: already at the end of the list uuid=\(self.searchUuid)")
-            return Task {}
+            return Task<Void, any Error> {}
         }
 
         logger.info("loading all remaining pages from page=\(self.nextPage) uuid=\(self.searchUuid)")
@@ -144,36 +141,33 @@ class ScryfallObjectList<T: Codable & Sendable> {
 
         task = Task {
             var data = self.value.latestValue ?? .empty()
-            var shouldContinue = true
+            var hasMorePages = true
 
-            while shouldContinue && !Task.isCancelled {
+            while hasMorePages {
                 do {
-                    let result = try await self.fetcher(page)
+                    let result = try await fetcher(page)
                     // See above for why we must respect cancellation.
-                    guard !Task.isCancelled else { return }
+                    try Task.checkCancellation()
 
                     logger.debug("successfully fetched page=\(page) with count=\(result.data.count) items uuid=\(self.searchUuid)")
 
                     data = Self.append(data, result, postProcess)
                     page += 1
-                    shouldContinue = result.hasMore ?? false
+                    hasMorePages = result.hasMore ?? false
+                } catch let error as CancellationError {
+                    logger.info("cancelled while fetching page=\(page), stopping uuid=\(self.searchUuid)")
+                    throw error
                 } catch {
-                    // See above for why we must respect cancellation.
-                    guard !Task.isCancelled else { return }
-
                     logger.error("error fetching page=\(page), stopping uuid=\(self.searchUuid) error=\(error)")
-                    self.nextPage = page
-                    self.value = .errored(data, SearchError(from: error))
+                    nextPage = page
+                    value = .errored(data, SearchError(from: error))
                     return
                 }
             }
 
-            // See above for why we must respect cancellation.
-            if !Task.isCancelled {
-                logger.info("successfully loaded all remaining pages uuid=\(self.searchUuid)")
-                self.nextPage = page
-                self.value = .loaded(data, nil)
-            }
+            logger.info("successfully loaded all remaining pages uuid=\(self.searchUuid)")
+            nextPage = page
+            value = .loaded(data, nil)
         }
 
         return task!

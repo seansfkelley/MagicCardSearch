@@ -251,8 +251,15 @@ struct AllPrintsView: View {
 
         objectList = currentObjectList
 
-        await objectList.loadAllRemainingPages().value
-        // Kinda jank. Never hit this branch either, to my knowledge.
+        do {
+            try await objectList.loadAllRemainingPages().value
+        } catch {
+            // Swallow the error; the logger in ScryfallObjectList will log it.
+            return
+        }
+        
+        // The === check is belt-and-suspenders for cancellation, which should hit the early
+        // return in the catch block immediately above.
         guard objectList === currentObjectList else { return }
 
         objectList.reprocess { self.printFilterSettings.sort($0) }
