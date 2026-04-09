@@ -260,18 +260,22 @@ class ScryfallCatalogs {
         }
 
         let client = ScryfallClient(logger: logger)
+        let limiter = RateLimiter("catalogs 10/s", requests: 10, per: .seconds(1))
 
         for type in CatalogType.allCases {
             await fetch(type.rawValue, expiry: type == .cardNames ? .days(2) : nil) {
-                try await client.getCatalog(catalogType: type).data
+                try await limiter.waitForSlot()
+                return try await client.getCatalog(catalogType: type).data
             }
         }
 
         await fetch("sets") {
+            try await limiter.waitForSlot()
             let sets = try await client.getSets().data
             return Dictionary(uniqueKeysWithValues: sets.map { (SetCode($0.code), $0) })
         }
         await fetch("symbology") {
+            try await limiter.waitForSlot()
             let symbols = try await client.getSymbology().data
             return Dictionary(uniqueKeysWithValues: symbols.map { (SymbolCode($0.symbol), $0) })
         }
