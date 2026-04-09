@@ -205,7 +205,7 @@ struct SpoilersView: View {
         var queryParts: [String] = []
 
         if selectedSetCode == allSetsSentinel {
-            queryParts.append("date>=today")
+            queryParts.append("date>today")
         } else {
             queryParts.append("set:\(selectedSetCode.rawValue.lowercased())")
         }
