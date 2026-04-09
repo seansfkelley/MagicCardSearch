@@ -1,14 +1,12 @@
 import SwiftUI
 
+private let defaultConfiguration = SearchConfiguration()
+
 struct SearchConfigurationView: View {
     @Environment(\.dismiss) private var dismiss
     let onCommit: (SearchConfiguration) -> Void
 
     @State private var workingConfig: SearchConfiguration
-
-    private var hasNonDefaultSettings: Bool {
-        workingConfig != SearchConfiguration.defaultConfig
-    }
 
     init(initialSearchConfig: SearchConfiguration, onCommit: @escaping (SearchConfiguration) -> Void) {
         self._workingConfig = State(wrappedValue: initialSearchConfig)
@@ -65,17 +63,19 @@ struct SearchConfigurationView: View {
             }
 
             Section {
+                let areSettingsDefault = workingConfig != defaultConfiguration
+
                 Button {
-                    workingConfig.resetToDefaults()
+                    workingConfig = SearchConfiguration()
                 } label: {
                     HStack {
                         Image(systemName: "arrow.counterclockwise")
                         Text("Reset to Defaults")
                     }
                     .frame(maxWidth: .infinity)
-                    .foregroundStyle(hasNonDefaultSettings ? .red : .gray)
+                    .foregroundStyle(areSettingsDefault ? .gray : .red)
                 }
-                .disabled(!hasNonDefaultSettings)
+                .disabled(areSettingsDefault)
             }
         }
         .navigationTitle("Display & Sort")

@@ -5,7 +5,7 @@ struct SearchConfiguration: Equatable, Codable, CustomStringConvertible {
     var uniqueMode: UniqueMode = .cards
     var sortField: SortField = .name
     var sortOrder: SortOrder = .auto
-    var preferredPrint: PreferredPrint = .newest
+    var preferredPrint: PreferredPrint = .default
     var automaticallyIncludeExtras = true
     var showSortLabels = true
 
@@ -13,17 +13,6 @@ struct SearchConfiguration: Equatable, Codable, CustomStringConvertible {
         "uniqueMode: \(uniqueMode.apiValue), sortField: \(sortField.apiValue), sortOrder: \(sortOrder.apiValue), preferredPrint: \(preferredPrint.apiValue), automaticallyIncludeExtras: \(automaticallyIncludeExtras), showSortLabels: \(showSortLabels)"
     }
 
-    static let defaultConfig = SearchConfiguration()
-    
-    mutating func resetToDefaults() {
-        uniqueMode = .cards
-        sortField = .name
-        sortOrder = .auto
-        preferredPrint = .newest
-        automaticallyIncludeExtras = true
-        showSortLabels = true
-    }
-    
     // MARK: - Enums
 
     // Cases ordered by how they appear in the Scryfall UI.
@@ -72,7 +61,7 @@ struct SearchConfiguration: Equatable, Codable, CustomStringConvertible {
         // wrote more often.
         func toStringFilter() -> String? {
             switch self {
-            case .newest: nil
+            case .default: nil
             default: "prefer:\(self.apiValue)"
             }
         }
