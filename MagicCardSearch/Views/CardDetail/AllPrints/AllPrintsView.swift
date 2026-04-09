@@ -227,14 +227,15 @@ struct AllPrintsView: View {
     private func reloadAllPrints(andScrollTo targetCardId: UUID?) async {
         let cacheKey = CacheKey(oracleId, printFilterSettings)
 
+        objectList.cancel()
+
+        let currentObjectList: ScryfallObjectList<Card>
         if let cachedList = try? Self.objectListCache.entry(forKey: cacheKey) {
-            logger.trace("hit cache for object list key=\(cacheKey)")
-            objectList = cachedList.object
-            objectList.reprocess { self.printFilterSettings.sort($0) }
-            reindexAndScrollTo(targetCardId)
+            currentObjectList = cachedList.object
+            logger.debug("hit cache for object list key=\(cacheKey)")
         } else {
             let searchQuery = printFilterSettings.toQueryFor(oracleId: oracleId)
-            let currentObjectList = ScryfallObjectList { @MainActor [cardSearchService] page in
+            currentObjectList = ScryfallObjectList { @MainActor [cardSearchService] page in
                 try await cardSearchService.searchCards(
                     query: searchQuery,
                     unique: .prints,
@@ -245,16 +246,16 @@ struct AllPrintsView: View {
             } postProcess: { self.printFilterSettings.sort($0) }
 
             Self.objectListCache.setObject(currentObjectList, forKey: cacheKey)
-            logger.trace("set cache for object list key=\(cacheKey)")
-
-            objectList = currentObjectList
-
-            await objectList.loadAllRemainingPages().value
-            // Kinda jank. Never hit this branch either, to my knowledge.
-            guard objectList === currentObjectList else { return }
-
-            objectList.reprocess { self.printFilterSettings.sort($0) }
-            reindexAndScrollTo(targetCardId)
+            logger.debug("set cache for object list key=\(cacheKey)")
         }
+
+        objectList = currentObjectList
+
+        await objectList.loadAllRemainingPages().value
+        // Kinda jank. Never hit this branch either, to my knowledge.
+        guard objectList === currentObjectList else { return }
+
+        objectList.reprocess { self.printFilterSettings.sort($0) }
+        reindexAndScrollTo(targetCardId)
     }
 }

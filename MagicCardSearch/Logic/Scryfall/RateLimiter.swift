@@ -40,7 +40,12 @@ actor RateLimiter<C: Clock> where C.Duration == Duration {
             let sleepUntil = slots[0].advanced(by: windowDuration + jitter)
             logger.debug("\(self.tag)slot unavailable; sleep=\(now.duration(to: sleepUntil)) jitter=\(jitter)")
             signposter.emitEvent("waitForSlot", id: signpostId, "sleep=\(now.duration(to: sleepUntil)) jitter=\(jitter)")
-            try await Task.sleep(until: sleepUntil, clock: clock)
+            do {
+                try await Task.sleep(until: sleepUntil, clock: clock)
+            } catch let error as CancellationError {
+                signposter.emitEvent("waitForSlot", id: signpostId, "cancelled while sleeping")
+                throw error
+            }
         }
     }
 

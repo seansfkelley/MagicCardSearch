@@ -51,6 +51,20 @@ class ScryfallObjectList<T: Codable & Sendable> {
     }
 
     @discardableResult
+    func loadFirstPage() -> Task<Void, Never> {
+        // Ensure the first page is loaded. Used when the list object is cached and reused, and it
+        // may have been cancelled before the first page successfully loaded. Contrast loadNextPage,
+        // which will always load the next page even if we only wanted the first (in the example
+        // given).
+        if nextPage == 1 {
+            return loadNextPage()
+        } else {
+            logger.debug("declining to load first page: already loaded uuid=\(self.searchUuid)")
+            return Task {}
+        }
+    }
+
+    @discardableResult
     func loadNextPage() -> Task<Void, Never> {
         if case .loading = value {
             logger.debug("declining to load next page: already loading uuid=\(self.searchUuid)")

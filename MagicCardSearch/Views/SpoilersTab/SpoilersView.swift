@@ -210,6 +210,7 @@ struct SpoilersView: View {
 
         if let cached = try? Self.objectListCache.entry(forKey: cacheKey) {
             currentSearchResults = cached.object
+            currentSearchResults.loadFirstPage()
             return
         }
 
@@ -247,7 +248,7 @@ struct SpoilersView: View {
 
         Self.objectListCache.setObject(newObjectList, forKey: cacheKey)
         currentSearchResults = newObjectList
-        currentSearchResults.loadNextPage()
+        currentSearchResults.loadFirstPage()
     }
 }
 
