@@ -1,7 +1,6 @@
 import ScryfallKit
 import SwiftUI
 import OSLog
-import Cache
 import SQLiteData
 
 private let logger = Logger(subsystem: "MagicCardSearch", category: "AllPrintsView")

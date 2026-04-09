@@ -113,6 +113,9 @@ private struct TagsCacheKey: Hashable {
 
 @MainActor
 class CachingScryfallService {
+    private static let cacheBustingVersion = 1
+    private static let cacheBustingVersionKey = "CachingScryfallService.cacheBustingVersion"
+
     static let shared = CachingScryfallService()
 
     private let client = ScryfallClient(logger: logger)
@@ -146,11 +149,23 @@ class CachingScryfallService {
         disk: .init(name: "cardSearch", expiry: .hours(1)),
     )
 
+    init() {
+        let stored = UserDefaults.standard.integer(forKey: Self.cacheBustingVersionKey)
+        if stored != Self.cacheBustingVersion {
+            logger.info("\(Self.cacheBustingVersionKey) changed (\(stored) → \(Self.cacheBustingVersion)); dumping all caches")
+            dumpCaches()
+            UserDefaults.standard.set(Self.cacheBustingVersion, forKey: Self.cacheBustingVersionKey)
+        } else {
+            logger.info("\(Self.cacheBustingVersionKey) changed; will not dump caches")
+        }
+    }
+
     @discardableResult
     func dumpCaches() -> Bool {
         func dump(_ cache: any StorageAware, _ named: String) -> Bool {
             do {
                 try cache.removeAll()
+                logger.info("successfully dumped all caches")
                 return true
             } catch {
                 logger.error("failed to dump cache named=\(named) with error=\(error)")
