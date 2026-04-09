@@ -2,7 +2,7 @@ import SwiftUI
 import SwiftUIIntrospect
 
 enum Tab: String {
-    case spoilers, bookmarks, random, search
+    case spoilers, bookmarks, random, search, debug
 }
 
 struct ContentView: View {
@@ -55,8 +55,22 @@ struct ContentView: View {
                     SearchTabView(searchState: $searchState, showSearchSheet: $showSearchSheet)
                 }
             }
+
+            #if DEBUG
+            SwiftUI.Tab("Debug", systemImage: "ladybug.slash", value: Tab.debug) {
+                NavigationStack {
+                    DebugTabView(scryfallCatalogs: scryfallCatalogs)
+                }
+            }
+            #endif
         }
         .onAppear {
+            #if !DEBUG
+            if selectedTab == .debug {
+                selectedTab = .search
+            }
+            #endif
+
             tabDelegate.onSearchTabTapped = { showSearchSheet = true }
             tabDelegate.onRandomTabTapped = { advanceRandomCard = true }
         }

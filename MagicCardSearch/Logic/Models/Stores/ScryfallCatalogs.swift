@@ -211,6 +211,17 @@ class ScryfallCatalogs {
 
     private var didHydrate = false
 
+    @discardableResult
+    public func dumpCaches() -> Bool {
+        do {
+            try cache?.removeAll()
+            return true
+        } catch {
+            logger.error("failed to dump cache with error=\(error)")
+            return false
+        }
+    }
+
     public func hydrate() async {
         guard !isRunningTests() else {
             logger.warning("skipping ScryfallCatalogs initialization in test environment")

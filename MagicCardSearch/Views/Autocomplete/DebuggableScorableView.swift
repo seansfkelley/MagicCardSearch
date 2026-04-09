@@ -16,13 +16,18 @@ extension AutocompleteSuggestion: DebuggableScorable {}
 struct DebuggableScorableView<Content: View>: View {
     let scorable: DebuggableScorable
     @ViewBuilder let content: () -> Content
+    @AppStorage("debugShowScores") private var showScores = true
 
     var body: some View {
-        VStack(alignment: .leading) {
+        if showScores {
+            VStack(alignment: .leading) {
+                content()
+                Text("score: \(scorable.biasedScore, specifier: "%.4f") (raw: \(scorable.rawScore, specifier: "%.4f"))")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        } else {
             content()
-            Text("score: \(scorable.biasedScore, specifier: "%.4f") (raw: \(scorable.rawScore, specifier: "%.4f"))")
-                .font(.caption)
-                .foregroundStyle(.secondary)
         }
     }
 }

@@ -125,6 +125,27 @@ class CachingScryfallService {
         disk: .init(name: "cardSearch", expiry: .hours(6)),
     )
 
+    @discardableResult
+    func dumpCaches() -> Bool {
+        func dump(_ cache: any StorageAware, _ named: String) -> Bool {
+            do {
+                try cache.removeAll()
+                return true
+            } catch {
+                logger.error("failed to dump cache named=\(named) with error=\(error)")
+                return false
+            }
+        }
+
+        var success = true
+        // n.b. ordering matters to avoid short-circuiting
+        success = dump(rulingsCache, "rulings") && success
+        success = dump(tagsCache, "tags") && success
+        success = dump(cardCache, "card") && success
+        success = dump(cardSearchCache, "searches") && success
+        return success
+    }
+
     func rulings(forScryfallId id: UUID) async throws -> [Card.Ruling] {
         let signpostID = signposter.makeSignpostID()
         let state = signposter.beginInterval("rulings", id: signpostID, "scryfallId: \(id.uuidString)")
