@@ -220,6 +220,12 @@ struct SpoilersView: View {
             }
         }
 
+        if !showUniquePrints {
+            // Not required for correctness but if you're not interested in seeing every print you
+            // are probably interested in seeing the most-readable print. So, not Japanese.
+            queryParts.append("prefer:default")
+        }
+
         let query = queryParts.joined(separator: " ")
 
         currentSearchResults = ScryfallObjectList<Card> { @MainActor [cardSearchService] page in
