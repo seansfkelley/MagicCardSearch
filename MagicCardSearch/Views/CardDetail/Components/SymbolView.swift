@@ -86,9 +86,9 @@ struct SymbolView: View {
     }
     
     private func renderImage() -> UIImage? {
-        if let renderedImage = try? Self.renderedImageCache.entry(forKey: renderedImageCacheKey) {
+        if let renderedImage = try? Self.renderedImageCache.object(forKey: renderedImageCacheKey) {
             logger.trace("hit cache for rendered symbol for key=\(renderedImageCacheKey)")
-            return renderedImage.object
+            return renderedImage
         }
 
         guard let svgData = scryfallCatalogs.symbolSvgs?[symbol] else {

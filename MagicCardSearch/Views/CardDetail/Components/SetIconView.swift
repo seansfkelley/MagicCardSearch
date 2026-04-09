@@ -75,9 +75,9 @@ struct SetIconView: View {
     }
     
     private func loadAndRender() async {
-        if let renderedImage = try? Self.renderedImageCache.entry(forKey: renderedImageCacheKey) {
+        if let renderedImage = try? Self.renderedImageCache.object(forKey: renderedImageCacheKey) {
             logger.trace("hit cache for rendered SVG icon for key=\(renderedImageCacheKey)")
-            self.imageResult = .loaded(renderedImage.object, nil)
+            self.imageResult = .loaded(renderedImage, nil)
             return
         }
 
@@ -124,7 +124,7 @@ struct SetIconView: View {
             throw LoadError.missingSetMetadata
         }
 
-        if let cachedData = (try? Self.svgDataCache.entry(forKey: setCode))?.object {
+        if let cachedData = try? Self.svgDataCache.object(forKey: setCode) {
             logger.trace("hit cache for SVG data for icon with set=\(setCode.rawValue)")
 
             // This is a sentinel value. Don't remove it from the cache.

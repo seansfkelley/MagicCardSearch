@@ -119,10 +119,10 @@ class CachingScryfallService {
     )
 
     private let cardSearchCache: any StorageAware<SearchCacheKey, ObjectList<Card>> = bestEffortCache(
-        // 1 day: spoilers may change which cards turn up in any given search, but spoilers only
-        // cycle around once per day during spoiler seasons.
-        memory: .init(expiry: .days(1), countLimit: 200),
-        disk: .init(name: "cardSearch", expiry: .days(1)),
+        // 6 hours: spoilers may change which cards turn up in any given search, but spoilers only
+        // cycle around once per day during spoiler seasons. How far behind do we want to be?
+        memory: .init(expiry: .hours(6), countLimit: 200),
+        disk: .init(name: "cardSearch", expiry: .hours(6)),
     )
 
     func rulings(forScryfallId id: UUID) async throws -> [Card.Ruling] {
@@ -130,9 +130,9 @@ class CachingScryfallService {
         let state = signposter.beginInterval("rulings", id: signpostID, "scryfallId: \(id.uuidString)")
         defer { signposter.endInterval("rulings", state) }
 
-        if let cached = try? rulingsCache.entry(forKey: id) {
+        if let cached = try? rulingsCache.object(forKey: id) {
             logger.debug("hit rulings cache for scryfall ID=\(id)")
-            return cached.object
+            return cached
         }
 
         do {
@@ -169,9 +169,9 @@ class CachingScryfallService {
 
         let cacheKey = "\(setCode)/\(collectorNumber)"
 
-        if let cached = try? tagsCache.entry(forKey: cacheKey) {
+        if let cached = try? tagsCache.object(forKey: cacheKey) {
             logger.debug("hit tags cache for set=\(setCode) collectorNumber=\(collectorNumber)")
-            return cached.object
+            return cached
         }
 
         do {
@@ -205,9 +205,9 @@ class CachingScryfallService {
 
         let cacheKey = "scryfall/\(id.uuidString)"
 
-        if let cached = try? cardCache.entry(forKey: cacheKey) {
+        if let cached = try? cardCache.object(forKey: cacheKey) {
             logger.debug("hit card cache for scryfall ID=\(id)")
-            return cached.object
+            return cached
         }
 
         do {
@@ -240,9 +240,9 @@ class CachingScryfallService {
 
         let cacheKey = "oracle/\(id.uuidString)"
 
-        if let cached = try? cardCache.entry(forKey: cacheKey) {
+        if let cached = try? cardCache.object(forKey: cacheKey) {
             logger.debug("hit card cache for oracle ID=\(id)")
-            return cached.object
+            return cached
         }
 
         do {
@@ -276,9 +276,9 @@ class CachingScryfallService {
 
         let cacheKey = "illustration/\(id.uuidString)"
 
-        if let cached = try? cardCache.entry(forKey: cacheKey) {
+        if let cached = try? cardCache.object(forKey: cacheKey) {
             logger.debug("hit card cache for illustration ID=\(id)")
-            return cached.object
+            return cached
         }
 
         do {
@@ -312,9 +312,9 @@ class CachingScryfallService {
 
         let cacheKey = "printing/\(id.uuidString)"
 
-        if let cached = try? cardCache.entry(forKey: cacheKey) {
+        if let cached = try? cardCache.object(forKey: cacheKey) {
             logger.debug("hit card cache for printing ID=\(id)")
-            return cached.object
+            return cached
         }
 
         do {
@@ -370,9 +370,9 @@ class CachingScryfallService {
             page: page,
         )
 
-        if let cached = try? cardSearchCache.entry(forKey: cacheKey) {
-            logger.debug("hit card search cache for query=\(query) page=\(page)")
-            return cached.object
+        if let cached = try? cardSearchCache.object(forKey: cacheKey) {
+            logger.debug("hit card search cache for query=\(query) unique=\(unique) order=\(order.map(\.description) ?? "<default>") dir=\(sortDirection) page=\(page)")
+            return cached
         }
 
         do {
@@ -396,11 +396,23 @@ class CachingScryfallService {
 
         do {
             try cardSearchCache.setObject(results, forKey: cacheKey, expiry: nil)
-            logger.debug("stored card search cache value for query=\(query) page=\(page)")
+            logger.debug("stored card search cache value for query=\(query) unique=\(unique) order=\(order.map(\.description) ?? "<default>") dir=\(sortDirection) page=\(page)")
         } catch {
-            logger.error("error while setting cache for search query=\(query) page=\(page) error=\(error)")
+            logger.error("error while setting cache for search query=\(query) unique=\(unique) order=\(order.map(\.description) ?? "<default>") dir=\(sortDirection) page=\(page) error=\(error)")
         }
 
         return results
     }
+}
+
+extension UniqueMode: @retroactive CustomStringConvertible {
+    public var description: String { rawValue }
+}
+
+extension SortMode: @retroactive CustomStringConvertible {
+    public var description: String { rawValue }
+}
+
+extension SortDirection: @retroactive CustomStringConvertible {
+    public var description: String { rawValue }
 }

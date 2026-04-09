@@ -9,14 +9,14 @@ struct StrongMemoryStorageTests {
         let storage = StrongMemoryStorage<String, Int>(config: .init())
         storage.setObject(42, forKey: "answer")
 
-        let entry = try storage.entry(forKey: "answer")
-        #expect(entry.object == 42)
+        let entry = try storage.object(forKey: "answer")
+        #expect(entry == 42)
     }
 
     @Test func entryForMissingKeyThrows() {
         let storage = StrongMemoryStorage<String, Int>(config: .init())
         #expect(throws: StorageError.notFound) {
-            try storage.entry(forKey: "missing")
+            try storage.object(forKey: "missing")
         }
     }
 
@@ -26,7 +26,7 @@ struct StrongMemoryStorageTests {
         storage.removeObject(forKey: "a")
 
         #expect(throws: StorageError.notFound) {
-            try storage.entry(forKey: "a")
+            try storage.object(forKey: "a")
         }
     }
 
@@ -54,8 +54,8 @@ struct StrongMemoryStorageTests {
         storage.setObject(1, forKey: "a")
         storage.setObject(2, forKey: "a")
 
-        let entry = try storage.entry(forKey: "a")
-        #expect(entry.object == 2)
+        let object = try storage.object(forKey: "a")
+        #expect(object == 2)
         #expect(storage.allKeys.count == 1)
     }
 
@@ -66,7 +66,7 @@ struct StrongMemoryStorageTests {
         storage.removeExpiredObjects()
 
         #expect(throws: StorageError.notFound) {
-            try storage.entry(forKey: "a")
+            try storage.object(forKey: "a")
         }
     }
 
@@ -76,8 +76,8 @@ struct StrongMemoryStorageTests {
 
         storage.removeExpiredObjects()
 
-        let entry = try storage.entry(forKey: "a")
-        #expect(entry.object == 1)
+        let object = try storage.object(forKey: "a")
+        #expect(object == 1)
     }
 
     @Test func defaultExpiryFromConfig() throws {
@@ -89,7 +89,7 @@ struct StrongMemoryStorageTests {
         storage.removeExpiredObjects()
 
         #expect(throws: StorageError.notFound) {
-            try storage.entry(forKey: "a")
+            try storage.object(forKey: "a")
         }
     }
 
@@ -101,8 +101,8 @@ struct StrongMemoryStorageTests {
 
         storage.removeExpiredObjects()
 
-        let entry = try storage.entry(forKey: "a")
-        #expect(entry.object == 1)
+        let object = try storage.object(forKey: "a")
+        #expect(object == 1)
     }
 
     @Test func countLimitEvicts() {
@@ -142,7 +142,7 @@ struct StrongMemoryStorageTests {
         try storage.removeInMemoryObject(forKey: "a")
 
         #expect(throws: StorageError.notFound) {
-            try storage.entry(forKey: "a")
+            try storage.object(forKey: "a")
         }
     }
 }
