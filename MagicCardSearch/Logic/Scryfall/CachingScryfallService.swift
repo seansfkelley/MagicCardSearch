@@ -140,10 +140,10 @@ class CachingScryfallService {
     )
 
     private let cardSearchCache: any StorageAware<SearchCacheKey, ObjectList<Card>> = bestEffortCache(
-        // 6 hours: spoilers may change which cards turn up in any given search, but spoilers only
-        // cycle around once per day during spoiler seasons. How far behind do we want to be?
-        memory: .init(expiry: .hours(6), countLimit: 200),
-        disk: .init(name: "cardSearch", expiry: .hours(6)),
+        // 1 hour: spoilers may change which cards turn up in any given search, but spoilers cycle
+        // multiple times per day during the height of spoiler season. How far behind is okay?
+        memory: .init(expiry: .hours(1), countLimit: 200),
+        disk: .init(name: "cardSearch", expiry: .hours(1)),
     )
 
     @discardableResult
