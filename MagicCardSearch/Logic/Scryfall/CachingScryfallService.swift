@@ -87,6 +87,15 @@ extension CachingScryfallService: CardSearchService {}
 extension CachingScryfallService: RandomCardService {}
 extension CachingScryfallService: NamedCardService {}
 
+private enum CardCacheKey: Hashable {
+    case scryfallId(UUID)
+    case oracleId(UUID)
+    case illustrationId(UUID)
+    case printingId(UUID)
+    case exactName(String, set: String?)
+    case fuzzyName(String, set: String?)
+}
+
 private struct SearchCacheKey: Hashable {
     // n.b. we cannot make this [String] and then sort it to canonicalize the cache key -- ordering
     // matters for multiply-specified singleton filters like `prefer`.
@@ -95,6 +104,11 @@ private struct SearchCacheKey: Hashable {
     let order: SortMode?
     let sortDirection: SortDirection
     let page: Int
+}
+
+private struct TagsCacheKey: Hashable {
+    let collectorNumber: String
+    let setCode: String
 }
 
 @MainActor
@@ -113,13 +127,13 @@ class CachingScryfallService {
         disk: .init(name: "rulings", expiry: .days(30)),
     )
 
-    private let tagsCache: any StorageAware<String, TaggerCard> = bestEffortCache(
+    private let tagsCache: any StorageAware<TagsCacheKey, TaggerCard> = bestEffortCache(
         // 7 days: tags rarely change, but are user-editable, so this is an acceptable delay.
         memory: .init(expiry: .days(7), countLimit: 500),
         disk: .init(name: "tags", expiry: .days(7)),
     )
 
-    private let cardCache: any StorageAware<String, Card> = bestEffortCache(
+    private let cardCache: any StorageAware<CardCacheKey, Card> = bestEffortCache(
         // 30 days: cards basically never change.
         memory: .init(expiry: .days(30), countLimit: 500),
         disk: .init(name: "cards", expiry: .days(30)),
@@ -195,7 +209,7 @@ class CachingScryfallService {
         let state = signposter.beginInterval("tags", id: signpostID, "\(setCode)/\(collectorNumber)")
         defer { signposter.endInterval("tags", state) }
 
-        let cacheKey = "\(setCode)/\(collectorNumber)"
+        let cacheKey = TagsCacheKey(collectorNumber: collectorNumber, setCode: setCode)
 
         if let cached = try? tagsCache.object(forKey: cacheKey) {
             logger.debug("hit tags cache for set=\(setCode) collectorNumber=\(collectorNumber)")
@@ -231,7 +245,7 @@ class CachingScryfallService {
         let state = signposter.beginInterval("fetchCard", id: signpostID, "scryfallId: \(id.uuidString)")
         defer { signposter.endInterval("fetchCard", state) }
 
-        let cacheKey = "scryfall/\(id.uuidString)"
+        let cacheKey = CardCacheKey.scryfallId(id)
 
         if let cached = try? cardCache.object(forKey: cacheKey) {
             logger.debug("hit card cache for scryfall ID=\(id)")
@@ -266,7 +280,7 @@ class CachingScryfallService {
         let state = signposter.beginInterval("fetchCard", id: signpostID, "oracleId: \(id.uuidString)")
         defer { signposter.endInterval("fetchCard", state) }
 
-        let cacheKey = "oracle/\(id.uuidString)"
+        let cacheKey = CardCacheKey.oracleId(id)
 
         if let cached = try? cardCache.object(forKey: cacheKey) {
             logger.debug("hit card cache for oracle ID=\(id)")
@@ -302,7 +316,7 @@ class CachingScryfallService {
         let state = signposter.beginInterval("fetchCard", id: signpostID, "illustrationId: \(id.uuidString)")
         defer { signposter.endInterval("fetchCard", state) }
 
-        let cacheKey = "illustration/\(id.uuidString)"
+        let cacheKey = CardCacheKey.illustrationId(id)
 
         if let cached = try? cardCache.object(forKey: cacheKey) {
             logger.debug("hit card cache for illustration ID=\(id)")
@@ -338,7 +352,7 @@ class CachingScryfallService {
         let state = signposter.beginInterval("fetchCard", id: signpostID, "printingId: \(id.uuidString)")
         defer { signposter.endInterval("fetchCard", state) }
 
-        let cacheKey = "printing/\(id.uuidString)"
+        let cacheKey = CardCacheKey.printingId(id)
 
         if let cached = try? cardCache.object(forKey: cacheKey) {
             logger.debug("hit card cache for printing ID=\(id)")
@@ -374,7 +388,7 @@ class CachingScryfallService {
         let state = signposter.beginInterval("fetchCard", id: signpostID, "exactName: \(name)")
         defer { signposter.endInterval("fetchCard", state) }
 
-        let cacheKey = set.map { "named/exact/\(name):\($0)" } ?? "named/exact/\(name)"
+        let cacheKey = CardCacheKey.exactName(name, set: set)
 
         if let cached = try? cardCache.object(forKey: cacheKey) {
             logger.debug("hit card cache for exact name=\(name)")
@@ -409,7 +423,7 @@ class CachingScryfallService {
         let state = signposter.beginInterval("fetchCard", id: signpostID, "fuzzyName: \(name)")
         defer { signposter.endInterval("fetchCard", state) }
 
-        let cacheKey = set.map { "named/fuzzy/\(name):\($0)" } ?? "named/fuzzy/\(name)"
+        let cacheKey = CardCacheKey.fuzzyName(name, set: set)
 
         if let cached = try? cardCache.object(forKey: cacheKey) {
             logger.debug("hit card cache for fuzzy name=\(name)")
