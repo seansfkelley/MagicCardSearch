@@ -12,31 +12,36 @@ enum UserFacingError: Error {
         self = if let scryfallKitError = error as? ScryfallKitError {
             switch scryfallKitError {
             case .scryfallError(let scryfallError):
-                if (400..<500).contains(scryfallError.status) {
-                    .clientError
-                } else if (500..<600).contains(scryfallError.status) {
-                    .serverError
-                } else {
-                    .unknownError
-                }
+                Self.fromHttpStatus(scryfallError.status)
             case .httpError(let status, _):
-                if status == 429 {
-                    .rateLimited
-                } else if (400..<500).contains(status) {
-                    .clientError
-                } else if (500..<600).contains(status) {
-                    .serverError
-                } else {
-                    .unknownError
-                }
+                Self.fromHttpStatus(status)
             default:
                 .unknownError
+            }
+        } else if let urlError = error as? URLError {
+            // Best-effort list of the codes that we use in the application.
+            switch urlError.code {
+            case .notConnectedToInternet: .networkError
+            case .badServerResponse, .cannotDecodeContentData, .cannotParseResponse: .serverError
+            default: .unknownError
             }
         } else {
             .networkError
         }
     }
-    
+
+    private static func fromHttpStatus(_ status: Int) -> UserFacingError {
+        if status == 429 {
+            .rateLimited
+        } else if (400..<500).contains(status) {
+            .clientError
+        } else if (500..<600).contains(status) {
+            .serverError
+        } else {
+            .unknownError
+        }
+    }
+
     var title: String {
         switch self {
         case .rateLimited:
