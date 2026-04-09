@@ -10,7 +10,7 @@ struct DebugTabView: View {
     var body: some View {
         List {
             Section("Caches") {
-                CacheDumpButton("Dump All Scryfall Caches", result: $scryfallCachesResult) {
+                CacheDumpButton("Dump Search/Tag/Card Caches", result: $scryfallCachesResult) {
                     CachingScryfallService.shared.dumpCaches()
                 }
                 CacheDumpButton("Dump Catalog Caches", result: $catalogCachesResult) {
