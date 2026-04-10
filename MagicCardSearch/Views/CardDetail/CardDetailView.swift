@@ -261,7 +261,7 @@ struct CardDetailView: View {
             Divider().padding(.horizontal)
             VStack(alignment: .leading, spacing: 12) {
                 if !oracleText.isEmpty {
-                    OracleTextView(oracleText)
+                    SymbolizedTextView(oracleText)
                 }
 
                 if !flavorText.isEmpty {
