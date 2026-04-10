@@ -24,7 +24,7 @@ struct MagicCardSearchApp: App {
         recentlyViewedCardsStore = .init(database: database)
         scryfallCatalogs = .init()
 
-        #if DEBUG
+        #if DEBUG || PROFILE
         ImagePipeline.Configuration.isSignpostLoggingEnabled = true
         #endif
     }
