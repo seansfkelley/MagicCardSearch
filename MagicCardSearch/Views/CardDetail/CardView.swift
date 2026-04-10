@@ -4,6 +4,7 @@ import NukeUI
 
 extension Card {
     enum Orientation {
+        // either implies portrait default.
         case portrait, landscape, either, flip
     }
 }
@@ -93,6 +94,10 @@ enum CardImageQuality {
 
 enum CardFaceTransforms {
     case none, portrait, all
+}
+
+private enum CardTransform {
+    case upright, sideways, upsideDown
 }
 
 struct CardView: View {
@@ -264,7 +269,7 @@ struct CardView: View {
                     zoomGestureBasisAdjustment: zoomGestureBasisAdjustment,
                 )
             } else {
-                CardFaceView(
+                SingleFacedCardView(
                     face: card.frontFace,
                     orientation: card.frontFaceOrientation,
                     quality: quality,
@@ -280,7 +285,61 @@ struct CardView: View {
     }
 }
 
-private struct CardFaceView: View {
+private struct LazyCardImageView: View {
+    let face: CardFaceDisplayable
+    let quality: CardImageQuality
+    let cornerRadius: CGFloat
+    let enableCopyActions: Bool
+    let enableZoomGestures: ZoomOverlayInitationGestures?
+    let zoomGestureBasisAdjustment: CGFloat?
+
+    var body: some View {
+        if let imageUrlString = quality.uri(from: face.imageUris),
+           let url = URL(string: imageUrlString) {
+            LazyImage(url: url) { state in
+                if let image = state.image {
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+                        .if(enableZoomGestures) { view, gestures in
+                            view.zoomOverlay(
+                                for: state.imageContainer?.image,
+                                clippingTo: AnyShape(RoundedRectangle(cornerRadius: cornerRadius)),
+                                initatedWith: gestures,
+                                zoomBasisAdjustment: zoomGestureBasisAdjustment ?? 1.0,
+                            )
+                        }
+                        .if(enableCopyActions) { view in
+                            view.contextMenu {
+                                if let shareUrlString = CardImageQuality.bestQualityUri(from: face.imageUris),
+                                   let url = URL(string: shareUrlString) {
+                                    ShareLink(item: url, preview: SharePreview(face.name, image: image))
+                                }
+
+                                Button {
+                                    if let container = state.imageContainer {
+                                        UIPasteboard.general.image = container.image
+                                    }
+                                } label: {
+                                    Label("Copy", systemImage: "doc.on.doc")
+                                }
+                            }
+                        }
+                        .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+                } else if state.error != nil {
+                    CardView.Placeholder(name: face.name, cornerRadius: cornerRadius)
+                } else {
+                    CardView.Placeholder(name: face.name, cornerRadius: cornerRadius, with: .spinner)
+                }
+            }
+        } else {
+            CardView.Placeholder(name: face.name, cornerRadius: cornerRadius)
+        }
+    }
+}
+
+private struct SingleFacedCardView: View {
     let face: CardFaceDisplayable
     let orientation: Card.Orientation
     let quality: CardImageQuality
@@ -290,55 +349,14 @@ private struct CardFaceView: View {
     let zoomGestureBasisAdjustment: CGFloat?
 
     var body: some View {
-        ZStack {
-            CardView.Placeholder(name: "", cornerRadius: cornerRadius)
-                .hidden()
-
-            if let imageUrlString = quality.uri(from: face.imageUris),
-               let url = URL(string: imageUrlString) {
-                LazyImage(url: url) { state in
-                    if let image = state.image {
-                        image
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
-                            .if(enableZoomGestures) { view, gestures in
-                                view.zoomOverlay(
-                                    for: state.imageContainer?.image,
-                                    clippingTo: AnyShape(RoundedRectangle(cornerRadius: cornerRadius)),
-                                    initatedWith: gestures,
-                                    zoomBasisAdjustment: zoomGestureBasisAdjustment ?? 1.0,
-                                )
-                            }
-                            .if(enableCopyActions) { view in
-                                view.contextMenu {
-                                    if let shareUrlString = CardImageQuality.bestQualityUri(from: face.imageUris),
-                                       let url = URL(string: shareUrlString) {
-                                        ShareLink(item: url, preview: SharePreview(face.name, image: image))
-                                    }
-
-                                    Button {
-                                        if let container = state.imageContainer {
-                                            UIPasteboard.general.image = container.image
-                                        }
-                                    } label: {
-                                        Label("Copy", systemImage: "doc.on.doc")
-                                    }
-                                }
-                            }
-                            .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
-                            .rotationEffect(orientation == .landscape ? .degrees(90) : .zero)
-                            .scaleEffect(orientation == .portrait ? 1 : Card.aspectRatio)
-                    } else if state.error != nil {
-                        CardView.Placeholder(name: face.name, cornerRadius: cornerRadius)
-                    } else {
-                        CardView.Placeholder(name: face.name, cornerRadius: cornerRadius, with: .spinner)
-                    }
-                }
-            } else {
-                CardView.Placeholder(name: face.name, cornerRadius: cornerRadius)
-            }
-        }
+        LazyCardImageView(
+            face: face,
+            quality: quality,
+            cornerRadius: cornerRadius,
+            enableCopyActions: enableCopyActions,
+            enableZoomGestures: enableZoomGestures,
+            zoomGestureBasisAdjustment: zoomGestureBasisAdjustment,
+        )
     }
 }
 
@@ -378,9 +396,8 @@ private struct DoubleFacedCardView: View {
     var body: some View {
         ZStack(alignment: Alignment(horizontal: .trailing, vertical: .centeredOnArt)) {
             ZStack {
-                CardFaceView(
+                LazyCardImageView(
                     face: frontFace,
-                    orientation: frontFaceOrientation,
                     quality: quality,
                     cornerRadius: cornerRadius,
                     enableCopyActions: enableCopyActions,
@@ -393,9 +410,8 @@ private struct DoubleFacedCardView: View {
                     axis: rotationAxis,
                 )
 
-                CardFaceView(
+                LazyCardImageView(
                     face: backFace,
-                    orientation: backFaceOrientation,
                     quality: quality,
                     cornerRadius: cornerRadius,
                     enableCopyActions: enableCopyActions,
