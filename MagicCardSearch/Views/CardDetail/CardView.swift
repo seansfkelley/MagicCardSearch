@@ -286,46 +286,54 @@ private struct CardFaceView: View {
     let zoomGestureBasisAdjustment: CGFloat?
 
     var body: some View {
-        if let imageUrlString = quality.uri(from: face.imageUris),
-           let url = URL(string: imageUrlString) {
-            LazyImage(url: url) { state in
-                if let image = state.image {
-                    image
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
-                        .if(enableZoomGestures) { view, gestures in
-                            view.zoomOverlay(
-                                for: state.imageContainer?.image,
-                                clippingTo: AnyShape(RoundedRectangle(cornerRadius: cornerRadius)),
-                                initatedWith: gestures,
-                                zoomBasisAdjustment: zoomGestureBasisAdjustment ?? 1.0,
-                            )
-                        }
-                        .if(enableCopyActions) { view in
-                            view.contextMenu {
-                                if let shareUrlString = CardImageQuality.bestQualityUri(from: face.imageUris),
-                                   let url = URL(string: shareUrlString) {
-                                    ShareLink(item: url, preview: SharePreview(face.name, image: image))
-                                }
+        ZStack {
+            CardView.Placeholder(name: "", cornerRadius: cornerRadius)
+                .hidden()
 
-                                Button {
-                                    if let container = state.imageContainer {
-                                        UIPasteboard.general.image = container.image
+            if let imageUrlString = quality.uri(from: face.imageUris),
+               let url = URL(string: imageUrlString) {
+                LazyImage(url: url) { state in
+                    if let image = state.image {
+                        image
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+                            .if(enableZoomGestures) { view, gestures in
+                                view.zoomOverlay(
+                                    for: state.imageContainer?.image,
+                                    clippingTo: AnyShape(RoundedRectangle(cornerRadius: cornerRadius)),
+                                    initatedWith: gestures,
+                                    zoomBasisAdjustment: zoomGestureBasisAdjustment ?? 1.0,
+                                )
+                            }
+                            .if(enableCopyActions) { view in
+                                view.contextMenu {
+                                    if let shareUrlString = CardImageQuality.bestQualityUri(from: face.imageUris),
+                                       let url = URL(string: shareUrlString) {
+                                        ShareLink(item: url, preview: SharePreview(face.name, image: image))
                                     }
-                                } label: {
-                                    Label("Copy", systemImage: "doc.on.doc")
+
+                                    Button {
+                                        if let container = state.imageContainer {
+                                            UIPasteboard.general.image = container.image
+                                        }
+                                    } label: {
+                                        Label("Copy", systemImage: "doc.on.doc")
+                                    }
                                 }
                             }
-                        }
-                } else if state.error != nil {
-                    CardView.Placeholder(name: face.name, cornerRadius: cornerRadius)
-                } else {
-                    CardView.Placeholder(name: face.name, cornerRadius: cornerRadius, with: .spinner)
+                            .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+                            .rotationEffect(orientation == .landscape ? .degrees(90) : .zero)
+                            .scaleEffect(orientation == .portrait ? 1 : Card.aspectRatio)
+                    } else if state.error != nil {
+                        CardView.Placeholder(name: face.name, cornerRadius: cornerRadius)
+                    } else {
+                        CardView.Placeholder(name: face.name, cornerRadius: cornerRadius, with: .spinner)
+                    }
                 }
+            } else {
+                CardView.Placeholder(name: face.name, cornerRadius: cornerRadius)
             }
-        } else {
-            CardView.Placeholder(name: face.name, cornerRadius: cornerRadius)
         }
     }
 }
@@ -353,8 +361,14 @@ private struct FlippableCardFaceView: View {
     let enableZoomGestures: ZoomOverlayInitationGestures?
     let zoomGestureBasisAdjustment: CGFloat?
 
+    nonisolated(unsafe) private var currentOrientation: Card.Orientation {
+        isShowingBackFace ? backFaceOrientation : frontFaceOrientation
+    }
+
     private var rotationAxis: (x: CGFloat, y: CGFloat, z: CGFloat) {
-        (x: 0, y: 1, z: 0)
+        frontFaceOrientation == backFaceOrientation
+        ? (x: 0, y: 1, z: 0)
+        : (x: 1, y: -1, z: 0)
     }
 
     var body: some View {
