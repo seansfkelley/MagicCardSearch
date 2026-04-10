@@ -81,7 +81,17 @@ struct AutocompleteView: View {
                 .buttonStyle(.plain)
             }
 
-            ForEach(Array(suggestions.enumerated()), id: \.offset) { _, suggestion in
+            // The hash value is stable enough that the swipe-delete animations don't get horribly
+            // mangled. If you have a hash collision on the few-dozen items that exist in the list
+            // at any given time... I'm impressed.
+            //
+            // Note that the animations still look kinda weird because the new suggestions typically
+            // come in way before it's done so it jerks to an instantaneous completion partway
+            // through. Before this the implementation used to key by index, which caused all kinds
+            // of nonsense when the list got reordered. Another try I did had sync
+            // (i.e. faster-than-autocomplete) state tracking what was deleted and not rendering it,
+            // but that just guaranteed that the animation would be instantaneous.
+            ForEach(suggestions, id: \.hashValue) { suggestion in
                 suggestionRow(suggestion)
                     .listRowInsets(.vertical, 0)
             }

@@ -6,18 +6,18 @@ import OSLog
 
 private let logger = Logger(subsystem: "MagicCardSearch", category: "AutocompleteSuggestionProvider")
 
-struct AutocompleteSuggestion {
-    enum Source: Equatable {
+struct AutocompleteSuggestion: Hashable {
+    enum Source: Hashable, Equatable {
         case pinnedFilter, historyFilter, filterType, enumeration, reverseEnumeration, name, fullText, regex
     }
 
-    struct Match<T: Sendable>: Sendable {
+    struct Match<T: Sendable & Hashable>: Sendable, Hashable {
         let value: T
         let string: String
         let highlights: [Range<String.Index>]
     }
 
-    enum Content {
+    enum Content: Hashable {
         case filter(Match<FilterQuery<FilterTerm>>)
         case filterType(Match<FilterTypeSuggestion>)
         case filterParts(Polarity, ScryfallFilterType, Match<String>)
