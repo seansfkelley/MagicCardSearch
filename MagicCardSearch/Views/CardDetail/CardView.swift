@@ -253,35 +253,32 @@ struct CardView: View {
     }
 
     var body: some View {
-        Group {
-            if let backFace = card.backFace {
-                DoubleFacedCardView(
-                    frontFace: card.frontFace,
-                    backFace: backFace,
-                    frontFaceOrientation: card.frontFaceOrientation,
-                    backFaceOrientation: card.backFaceOrientation,
-                    quality: quality,
-                    isShowingBackFace: $isShowingBackFace,
-                    cornerRadius: cornerRadius,
-                    enableTransforms: enableTransforms,
-                    enableCopyActions: enableCopyActions,
-                    enableZoomGestures: enableZoomGestures,
-                    zoomGestureBasisAdjustment: zoomGestureBasisAdjustment,
-                )
-            } else {
-                SingleFacedCardView(
-                    face: card.frontFace,
-                    orientation: card.frontFaceOrientation,
-                    quality: quality,
-                    cornerRadius: cornerRadius,
-                    enableCopyActions: enableCopyActions,
-                    enableZoomGestures: enableZoomGestures,
-                    zoomGestureBasisAdjustment: zoomGestureBasisAdjustment,
-                )
-            }
+        if let backFace = card.backFace {
+            DoubleFacedCardView(
+                frontFace: card.frontFace,
+                backFace: backFace,
+                frontFaceOrientation: card.frontFaceOrientation,
+                backFaceOrientation: card.backFaceOrientation,
+                quality: quality,
+                isShowingBackFace: $isShowingBackFace,
+                cornerRadius: cornerRadius,
+                enableTransforms: enableTransforms,
+                enableCopyActions: enableCopyActions,
+                enableZoomGestures: enableZoomGestures,
+                zoomGestureBasisAdjustment: zoomGestureBasisAdjustment,
+            )
+        } else {
+            SingleFacedCardView(
+                face: card.frontFace,
+                orientation: card.frontFaceOrientation,
+                quality: quality,
+                cornerRadius: cornerRadius,
+                enableTransforms: enableTransforms,
+                enableCopyActions: enableCopyActions,
+                enableZoomGestures: enableZoomGestures,
+                zoomGestureBasisAdjustment: zoomGestureBasisAdjustment,
+            )
         }
-        .aspectRatio(Card.aspectRatio, contentMode: .fit)
-        .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
     }
 }
 
@@ -294,61 +291,137 @@ private struct LazyCardImageView: View {
     let zoomGestureBasisAdjustment: CGFloat?
 
     var body: some View {
-        if let imageUrlString = quality.uri(from: face.imageUris),
-           let url = URL(string: imageUrlString) {
-            LazyImage(url: url) { state in
-                if let image = state.image {
-                    image
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
-                        .if(enableZoomGestures) { view, gestures in
-                            view.zoomOverlay(
-                                for: state.imageContainer?.image,
-                                clippingTo: AnyShape(RoundedRectangle(cornerRadius: cornerRadius)),
-                                initatedWith: gestures,
-                                zoomBasisAdjustment: zoomGestureBasisAdjustment ?? 1.0,
-                            )
-                        }
-                        .if(enableCopyActions) { view in
-                            view.contextMenu {
-                                if let shareUrlString = CardImageQuality.bestQualityUri(from: face.imageUris),
-                                   let url = URL(string: shareUrlString) {
-                                    ShareLink(item: url, preview: SharePreview(face.name, image: image))
-                                }
-
-                                Button {
-                                    if let container = state.imageContainer {
-                                        UIPasteboard.general.image = container.image
+        Group {
+            if let imageUrlString = quality.uri(from: face.imageUris),
+               let url = URL(string: imageUrlString) {
+                LazyImage(url: url) { state in
+                    if let image = state.image {
+                        image
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+                            .if(enableZoomGestures) { view, gestures in
+                                view.zoomOverlay(
+                                    for: state.imageContainer?.image,
+                                    clippingTo: AnyShape(RoundedRectangle(cornerRadius: cornerRadius)),
+                                    initatedWith: gestures,
+                                    zoomBasisAdjustment: zoomGestureBasisAdjustment ?? 1.0,
+                                )
+                            }
+                            .if(enableCopyActions) { view in
+                                view.contextMenu {
+                                    if let shareUrlString = CardImageQuality.bestQualityUri(from: face.imageUris),
+                                       let url = URL(string: shareUrlString) {
+                                        ShareLink(item: url, preview: SharePreview(face.name, image: image))
                                     }
-                                } label: {
-                                    Label("Copy", systemImage: "doc.on.doc")
+
+                                    Button {
+                                        if let container = state.imageContainer {
+                                            UIPasteboard.general.image = container.image
+                                        }
+                                    } label: {
+                                        Label("Copy", systemImage: "doc.on.doc")
+                                    }
                                 }
                             }
-                        }
-                        .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
-                } else if state.error != nil {
-                    CardView.Placeholder(name: face.name, cornerRadius: cornerRadius)
-                } else {
-                    CardView.Placeholder(name: face.name, cornerRadius: cornerRadius, with: .spinner)
+                            .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+                    } else if state.error != nil {
+                        CardView.Placeholder(name: face.name, cornerRadius: cornerRadius)
+                    } else {
+                        CardView.Placeholder(name: face.name, cornerRadius: cornerRadius, with: .spinner)
+                    }
                 }
+            } else {
+                CardView.Placeholder(name: face.name, cornerRadius: cornerRadius)
             }
-        } else {
-            CardView.Placeholder(name: face.name, cornerRadius: cornerRadius)
         }
+        .aspectRatio(Card.aspectRatio, contentMode: .fit)
+        .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
     }
 }
 
 private struct SingleFacedCardView: View {
+    private enum Rotation {
+        case portrait, landscape, flipped
+
+        var angle: Angle {
+            switch self {
+            case .portrait: .degrees(0)
+            case .landscape: .degrees(90)
+            case .flipped: .degrees(180)
+            }
+        }
+
+        var scale: CGFloat {
+            switch self {
+            case .portrait, .flipped: 1
+            case .landscape: Card.aspectRatio
+            }
+        }
+    }
+
     let face: CardFaceDisplayable
     let orientation: Card.Orientation
     let quality: CardImageQuality
     let cornerRadius: CGFloat
+    let enableTransforms: CardFaceTransforms
     let enableCopyActions: Bool
     let enableZoomGestures: ZoomOverlayInitationGestures?
     let zoomGestureBasisAdjustment: CGFloat?
 
+    // TODO: Initialize based on face orientation.
+    @State private var rotation: Rotation = .portrait
+
     var body: some View {
+        Group {
+            switch orientation {
+            case .portrait:
+                image
+            case .landscape:
+                if enableTransforms == .all {
+                    VStack(spacing: 10) {
+                        image
+                        rotateButton(.portrait, .landscape)
+                    }
+                } else {
+                    image
+                }
+            case .either:
+                if enableTransforms == .all {
+                    VStack(spacing: 10) {
+                        image
+                        rotateButton(.portrait, .landscape)
+                    }
+                } else {
+                    image
+                }
+            case .flip:
+                if enableTransforms == .portrait || enableTransforms == .all {
+                    VStack(spacing: 10) {
+                        image
+                        rotateButton(.portrait, .flipped)
+                    }
+                } else {
+                    image
+                }
+            }
+        }
+        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: rotation)
+    }
+
+    @ViewBuilder
+    private func rotateButton(_ one: Rotation, _ two: Rotation) -> some View {
+        Button {
+            withAnimation {
+                rotation = rotation == one ? two : one
+            }
+        } label: {
+            Label("Rotate", systemImage: "arrow.trianglehead.2.clockwise.rotate.90")
+        }
+    }
+
+    @ViewBuilder
+    private var image: some View {
         LazyCardImageView(
             face: face,
             quality: quality,
@@ -357,6 +430,8 @@ private struct SingleFacedCardView: View {
             enableZoomGestures: enableZoomGestures,
             zoomGestureBasisAdjustment: zoomGestureBasisAdjustment,
         )
+        .rotationEffect(rotation.angle)
+        .scaleEffect(rotation.scale)
     }
 }
 
