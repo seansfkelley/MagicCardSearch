@@ -6,11 +6,15 @@ Cards that exemplify the different kinds of things that are possible for each fe
 
 - Bloodtithe Harvester (INR) -- has every section nonempty
 
-## Card Image
+## Card Layout
 
 - Manaweft Sliver (ACMM) -- art series: double-sided with no text and the "same" on both sides
 - Blood Crypt (ECL #349) -- same card on both sides, but differing art and flavor text
 - Curse of the Fire Penguin (UNH) -- flip card but with one side small and degenerate
+- Invasion of Alara (MOM) -- front is landscape, back is portrait
+- Life // Death (DMR) -- prefers landscape
+- Appeal // Authority (HOU) -- prefers portrait, can be landscape
+- Graf Rats (INR) -- front face of a meld
 
 ## Text Box/Symbols
 
