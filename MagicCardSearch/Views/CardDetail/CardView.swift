@@ -475,64 +475,121 @@ private struct DoubleFacedCardView: View {
     let enableZoomGestures: ZoomOverlayInitationGestures?
     let zoomGestureBasisAdjustment: CGFloat?
 
+    @State private var frontFaceRotation: Rotation = .zero
+    @State private var backFaceRotation: Rotation = .zero
+
     private var currentOrientation: Card.Orientation {
         isShowingBackFace ? backFaceOrientation : frontFaceOrientation
     }
 
     private var rotationAxis: (x: CGFloat, y: CGFloat, z: CGFloat) {
-        switch (frontFaceOrientation, backFaceOrientation) {
-        case (.portrait, .landscape), (.landscape, .portrait): (x: 1, y: -1, z: 0)
-        default: (x: 0, y: 1, z: 0)
+        switch enableTransforms {
+        case .none, .portrait:
+            (x: 0, y: 1, z: 0)
+        case .all:
+            switch (frontFaceOrientation, backFaceOrientation) {
+            case (.portrait, .landscape), (.landscape, .portrait): (x: 1, y: -1, z: 0)
+            default: (x: 0, y: 1, z: 0)
+            }
         }
     }
 
     var body: some View {
-        ZStack(alignment: Alignment(horizontal: .trailing, vertical: .centeredOnArt)) {
-            ZStack {
-                LazyCardImageView(
-                    face: frontFace,
-                    quality: quality,
-                    cornerRadius: cornerRadius,
-                    enableCopyActions: enableCopyActions,
-                    enableZoomGestures: enableZoomGestures,
-                    zoomGestureBasisAdjustment: zoomGestureBasisAdjustment,
-                )
-                .opacity(isShowingBackFace ? 0 : 1)
-                .rotation3DEffect(
-                    .degrees(isShowingBackFace ? 180 : 0),
-                    axis: rotationAxis,
-                )
+        VStack {
+            ZStack(alignment: Alignment(horizontal: .trailing, vertical: .centeredOnArt)) {
+                ZStack {
+                    LazyCardImageView(
+                        face: frontFace,
+                        quality: quality,
+                        cornerRadius: cornerRadius,
+                        enableCopyActions: enableCopyActions,
+                        enableZoomGestures: enableZoomGestures,
+                        zoomGestureBasisAdjustment: zoomGestureBasisAdjustment,
+                    )
+                    .rotationEffect(frontFaceRotation.angle)
+                    .scaleEffect(frontFaceRotation.scale)
+                    .opacity(isShowingBackFace ? 0 : 1)
+                    .rotation3DEffect(
+                        .degrees(isShowingBackFace ? 180 : 0),
+                        axis: rotationAxis,
+                    )
 
-                LazyCardImageView(
-                    face: backFace,
-                    quality: quality,
-                    cornerRadius: cornerRadius,
-                    enableCopyActions: enableCopyActions,
-                    enableZoomGestures: enableZoomGestures,
-                    zoomGestureBasisAdjustment: zoomGestureBasisAdjustment,
-                )
-                .opacity(isShowingBackFace ? 1 : 0)
-                .rotation3DEffect(
-                    .degrees(isShowingBackFace ? 0 : -180),
-                    axis: rotationAxis,
-                )
-            }
-            .animation(.spring(response: 0.4, dampingFraction: 0.8), value: isShowingBackFace)
-            .alignmentGuide(.centeredOnArt) { $0.height * 0.37 }
-
-            if enableTransforms != .none {
-                Button {
-                    isShowingBackFace.toggle()
-                } label: {
-                    Image(systemName: "arrow.triangle.2.circlepath")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(.primary)
-                        .padding(8)
+                    LazyCardImageView(
+                        face: backFace,
+                        quality: quality,
+                        cornerRadius: cornerRadius,
+                        enableCopyActions: enableCopyActions,
+                        enableZoomGestures: enableZoomGestures,
+                        zoomGestureBasisAdjustment: zoomGestureBasisAdjustment,
+                    )
+                    .rotationEffect(backFaceRotation.angle)
+                    .scaleEffect(backFaceRotation.scale)
+                    .opacity(isShowingBackFace ? 1 : 0)
+                    .rotation3DEffect(
+                        .degrees(isShowingBackFace ? 0 : -180),
+                        axis: rotationAxis,
+                    )
                 }
-                .buttonStyle(.glass)
-                .buttonBorderShape(.circle)
-                .shadow(color: .black.opacity(0.2), radius: 3, x: 0, y: 2)
+                .animation(.spring(response: 0.4, dampingFraction: 0.8), value: isShowingBackFace)
+                .alignmentGuide(.centeredOnArt) { $0.height * 0.37 }
+
+                if enableTransforms != .none {
+                    Button {
+                        isShowingBackFace.toggle()
+                    } label: {
+                        Image(systemName: "arrow.triangle.2.circlepath")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(.primary)
+                            .padding(8)
+                    }
+                    .buttonStyle(.glass)
+                    .buttonBorderShape(.circle)
+                    .shadow(color: .black.opacity(0.2), radius: 3, x: 0, y: 2)
+                }
             }
+        }
+        
+        if enableTransforms == .all {
+            ZStack {
+                Group {
+                    switch frontFaceOrientation {
+                    case .portrait:
+                        EmptyView()
+                    case .landscape(let direction):
+                        rotateButton($frontFaceRotation, .zero, direction.rotation)
+                    case .either(let direction):
+                        rotateButton($frontFaceRotation, .zero, direction.rotation)
+                    case .flip:
+                        rotateButton($frontFaceRotation, .zero, .upsideDown)
+                    }
+                }
+                .opacity(isShowingBackFace ? 0 : 1)
+
+                Group {
+                    switch backFaceOrientation {
+                    case .portrait:
+                        EmptyView()
+                    case .landscape(let direction):
+                        rotateButton($backFaceRotation, .zero, direction.rotation)
+                    case .either(let direction):
+                        rotateButton($backFaceRotation, .zero, direction.rotation)
+                    case .flip:
+                        rotateButton($backFaceRotation, .zero, .upsideDown)
+                    }
+                }
+                .opacity(isShowingBackFace ? 1 : 0)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func rotateButton(_ rotation: Binding<Rotation>, _ one: Rotation, _ two: Rotation) -> some View {
+        Button {
+            withAnimation {
+                rotation.wrappedValue = rotation.wrappedValue == one ? two : one
+            }
+        } label: {
+            Label("Rotate", systemImage: "arrow.trianglehead.2.clockwise.rotate.90")
         }
     }
 }
