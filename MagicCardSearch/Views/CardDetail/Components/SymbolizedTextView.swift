@@ -20,8 +20,17 @@ struct SymbolizedTextView: UIViewRepresentable {
         self.text = text
 
         let font = UIFont.systemFont(ofSize: fontSize)
-        baseAttributes = [.font: font, .foregroundColor: UIColor.label]
-        spacerAttributes = [.font: UIFont.systemFont(ofSize: fontSize * 0.3)]
+        baseAttributes = [
+            .font: font,
+            .foregroundColor: UIColor.label,
+        ]
+
+        do {
+            var attrs = baseAttributes
+            attrs[.font] = UIFont.systemFont(ofSize: fontSize * 0.3)
+            attrs[.isSpacer] = true
+            spacerAttributes = attrs
+        }
 
         if italicizeParentheticals,
            let descriptor = font.fontDescriptor.withDesign(.serif)?.withSymbolicTraits(.traitItalic) {
@@ -40,9 +49,9 @@ struct SymbolizedTextView: UIViewRepresentable {
     }
 
     func makeUIView(context: Context) -> UITextView {
-        let textView = SelectableTextView()
+        let textView = SymbolCopyableTextView()
         textView.isEditable = false
-        textView.isSelectable = true
+        textView.isSelectable = false
         textView.isScrollEnabled = false
         textView.backgroundColor = .clear
         textView.textContainerInset = .zero
@@ -100,8 +109,10 @@ struct SymbolizedTextView: UIViewRepresentable {
         for match in text.matches(of: symbolPattern) {
             if lastIndex < match.range.lowerBound {
                 result.append(NSAttributedString(string: String(text[lastIndex..<match.range.lowerBound]), attributes: attributes))
-            } else if lastIndex != text.startIndex {
-                // Spacers between symbols for when there is no intervening text to separate them.
+                lastIndex = match.range.lowerBound
+            }
+
+            if lastIndex != text.startIndex {
                 result.append(NSAttributedString(string: " ", attributes: spacerAttributes))
             }
 
@@ -120,8 +131,12 @@ struct SymbolizedTextView: UIViewRepresentable {
                     height: image.size.height,
                 )
                 let segment = NSMutableAttributedString(attachment: symbolAttachment)
+                // By basing it off of the given attributes, we get proper fallback behavior when
+                // the symbol is e.g. in reminder text and therefore should be italicized.
+                var symbolAttributes = attributes
+                symbolAttributes[.symbolText] = symbol.rawValue
                 segment.addAttributes(
-                    [.symbolText: symbol.rawValue],
+                    symbolAttributes,
                     range: NSRange(location: 0, length: segment.length),
                 )
                 result.append(segment)
@@ -152,62 +167,117 @@ struct SymbolizedTextView: UIViewRepresentable {
 
 private extension NSAttributedString.Key {
     static let symbolText = NSAttributedString.Key("symbolText")
+    static let isSpacer = NSAttributedString.Key("isSpacer")
 }
 
-private class SelectableTextView: UITextView {
-    // Reimplement the iOS-editable-text behavior whereby 2 taps _immediately_ selects the word
-    // under the cursor (without the gesture-diambiguation delay) and 3 does same for paragraphs.
-    // I would like this to also have 4 select the entire range, but at the time of writing this
-    // function is only being called with odd numbers of taps (?!), possibly because whatever is
-    // handling double taps is taking all even-numbered events. Removing the super call changes
-    // nothing.
-    override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
-        super.touchesEnded(touches, with: event)
-        guard let touch = touches.first, touch.tapCount >= 3 else { return }
-        let location = touch.location(in: self)
-        guard let position = closestPosition(to: location) else { return }
-        let charOffset = offset(from: beginningOfDocument, to: position)
-        let nsText = text as NSString
-        var range = nsText.paragraphRange(for: NSRange(location: charOffset, length: 0))
-        if range.length > 0,
-           nsText.substring(with: NSRange(location: NSMaxRange(range) - 1, length: 1)) == "\n" {
-            range.length -= 1
-        }
-        selectedRange = range
+// Reimplements the SwiftUI-style Copy/Share... button for a UITextView. I don't know if there's
+// a simpler way to bridge my desire for visually lightweight long-press-copy/share and elegant
+// fallback from images/format -> just format -> plain text. UITextView doesn't seem to support the
+// format and SwiftUI's Text doesn't seem to support the latter.
+private class SymbolCopyableTextView: UITextView, @preconcurrency UIEditMenuInteractionDelegate {
+    private var editMenuInteraction: UIEditMenuInteraction?
+
+    override init(frame: CGRect, textContainer: NSTextContainer?) {
+        super.init(frame: frame, textContainer: textContainer)
+
+        let interaction = UIEditMenuInteraction(delegate: self)
+        addInteraction(interaction)
+        editMenuInteraction = interaction
+
+        let longPress = UILongPressGestureRecognizer(target: self, action: #selector(handleLongPress))
+        addGestureRecognizer(longPress)
     }
 
-    override func copy(_ sender: Any?) {
-        let range = selectedRange
-        guard range.length > 0 else { return }
-        let selected = textStorage.attributedSubstring(from: range)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
 
-        // Rich version with symbol images intact (for RTFD targets like Notes/Pages/Mail).
-        // Strip only the private .symbolText attribute; leave NSTextAttachment as-is.
-        let richWithImages = NSMutableAttributedString(attributedString: selected)
-        richWithImages.removeAttribute(.symbolText, range: NSRange(location: 0, length: richWithImages.length))
+    @objc private func handleLongPress(_ recognizer: UILongPressGestureRecognizer) {
+        guard recognizer.state == .began else { return }
+        let config = UIEditMenuConfiguration(identifier: nil, sourcePoint: recognizer.location(in: self))
+        editMenuInteraction?.presentEditMenu(with: config)
+    }
 
-        // Text-only version: replace attachments with their symbol text, retaining font/color.
-        let richWithoutImages = NSMutableAttributedString()
-        selected.enumerateAttributes(in: NSRange(location: 0, length: selected.length), options: []) { attrs, attrRange, _ in
+    func editMenuInteraction(
+        _ interaction: UIEditMenuInteraction,
+        menuFor configuration: UIEditMenuConfiguration,
+        suggestedActions: [UIMenuElement]
+    ) -> UIMenu? {
+        let fullRange = NSRange(location: 0, length: textStorage.length)
+        return UIMenu(children: [
+            UIAction(title: "Copy") { [weak self] _ in
+                self?.copyAttributedRange(fullRange)
+            },
+            UIAction(title: "Share\u{2026}") { [weak self] _ in
+                guard let self else { return }
+                let rich = self.richWithoutImages(from: self.textStorage.attributedSubstring(from: fullRange))
+                let activityVC = UIActivityViewController(activityItems: [rich], applicationActivities: nil)
+                activityVC.popoverPresentationController?.sourceView = self
+                self.nearestViewController?.present(activityVC, animated: true)
+            },
+        ])
+    }
+
+    private var nearestViewController: UIViewController? {
+        var responder: UIResponder? = self
+        while let r = responder {
+            if let vc = r as? UIViewController { return vc }
+            responder = r.next
+        }
+        return nil
+    }
+
+    // Strips private attributes and spacer runs; leaves NSTextAttachment as-is.
+    private func richWithImages(from attributed: NSAttributedString) -> NSMutableAttributedString {
+        let result = NSMutableAttributedString()
+        attributed.enumerateAttributes(in: NSRange(location: 0, length: attributed.length), options: []) { attrs, attrRange, _ in
+            if let isSpacer = attrs[.isSpacer] as? Bool, isSpacer {
+                // do nothing
+            } else if let strRange = Range(attrRange, in: attributed.string) {
+                var cleanAttrs = attrs
+                cleanAttrs.removeValue(forKey: .symbolText)
+                result.append(NSAttributedString(string: String(attributed.string[strRange]), attributes: cleanAttrs))
+            }
+        }
+        return result
+    }
+
+    // Replaces symbol image attachments with their {X} text equivalents, retaining font/color.
+    private func richWithoutImages(from attributed: NSAttributedString) -> NSMutableAttributedString {
+        let result = NSMutableAttributedString()
+        attributed.enumerateAttributes(in: NSRange(location: 0, length: attributed.length), options: []) { attrs, attrRange, _ in
             if let symbolText = attrs[.symbolText] as? String {
                 var textAttrs = attrs
                 textAttrs.removeValue(forKey: .attachment)
                 textAttrs.removeValue(forKey: .symbolText)
-                richWithoutImages.append(NSAttributedString(string: symbolText, attributes: textAttrs))
-            } else if let strRange = Range(attrRange, in: selected.string) {
-                richWithoutImages.append(NSAttributedString(string: String(selected.string[strRange]), attributes: attrs))
+                result.append(NSAttributedString(string: symbolText, attributes: textAttrs))
+            } else if let isSpacer = attrs[.isSpacer] as? Bool, isSpacer {
+                // do nothing; it is useless without images
+            } else if let strRange = Range(attrRange, in: attributed.string) {
+                result.append(NSAttributedString(string: String(attributed.string[strRange]), attributes: attrs))
             }
         }
+        return result
+    }
+
+    private func copyAttributedRange(_ range: NSRange) {
+        let selected = textStorage.attributedSubstring(from: range)
+        let richWithImages = richWithImages(from: selected)
+        let richWithoutImages = richWithoutImages(from: selected)
 
         var pasteboardItem: [String: Any] = ["public.utf8-plain-text": richWithoutImages.string]
 
-        let imagesRange = NSRange(location: 0, length: richWithImages.length)
-        if let rtfdData = try? richWithImages.data(from: imagesRange, documentAttributes: [.documentType: NSAttributedString.DocumentType.rtfd]) {
+        if let rtfdData = try? richWithImages.data(
+            from: NSRange(location: 0, length: richWithImages.length),
+            documentAttributes: [.documentType: NSAttributedString.DocumentType.rtfd],
+        ) {
             pasteboardItem["com.apple.flat-rtfd"] = rtfdData
         }
 
-        let noImagesRange = NSRange(location: 0, length: richWithoutImages.length)
-        if let rtfData = try? richWithoutImages.data(from: noImagesRange, documentAttributes: [.documentType: NSAttributedString.DocumentType.rtf]) {
+        if let rtfData = try? richWithoutImages.data(
+            from: NSRange(location: 0, length: richWithoutImages.length),
+            documentAttributes: [.documentType: NSAttributedString.DocumentType.rtf],
+        ) {
             pasteboardItem["public.rtf"] = rtfData
         }
 
