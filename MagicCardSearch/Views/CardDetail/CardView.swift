@@ -22,15 +22,21 @@ protocol CardDisplayable {
 
 extension Card: CardDisplayable {
     var frontFace: CardFaceDisplayable {
-        if layout.isDoubleFaced, let faces = cardFaces, faces.count >= 1 {
-            faces[0]
+        // Instead of enumerating which layouts are double-faced, which can get out of date, just
+        // look at which faces actually have images to go with them. Physically single-sided cards
+        // have the image URIs on the Card, whereas physically double-sided cards have them on each
+        // face. This applies even for art series, ECL-style redundant-double-sided cards, and flip
+        // cards.
+        if let face = cardFaces?.first, face.imageUris != nil {
+            face
         } else {
             self
         }
     }
     var backFace: CardFaceDisplayable? {
-        if layout.isDoubleFaced, let faces = cardFaces, faces.count >= 2 {
-            faces[1]
+        // See above comment for logic.
+        if let face = cardFaces?.second, face.imageUris != nil {
+            face
         } else {
             nil
         }
