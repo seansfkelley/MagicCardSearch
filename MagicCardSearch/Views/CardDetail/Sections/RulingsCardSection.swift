@@ -2,9 +2,6 @@ import SwiftUI
 import ScryfallKit
 
 struct RulingsCardSection<DividerContent: View>: View {
-    @Environment(\.colorScheme) private var colorScheme
-    @Environment(ScryfallCatalogs.self) private var scryfallCatalogs
-
     @ScaledMetric private var iconWidth = CardDetailConstants.defaultSectionIconWidth
 
     let scryfallId: UUID
@@ -29,19 +26,10 @@ struct RulingsCardSection<DividerContent: View>: View {
                 Color.clear.frame(width: 0, height: 0).allowsHitTesting(false)
             case .loaded(let rulings, _):
                 layout {
-                    let builder = TextWithSymbolsBuilder(
-                        fontSize: 17, // Seems to be the default? I dunno.
-                        colorScheme: colorScheme,
-                        scryfallCatalogs: scryfallCatalogs
-                    )
-
                     VStack(alignment: .leading, spacing: 16) {
                         ForEach(rulings) { ruling in
                             VStack(alignment: .leading, spacing: 6) {
-                                builder.buildText(ruling.comment)
-                                    .fixedSize(horizontal: false, vertical: true)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .textSelection(.enabled)
+                                SymbolizedTextView(ruling.comment, fontSize: 17, italicizeParentheticals: false)
 
                                 if let date = ruling.publishedAtAsDate {
                                     Text(date, format: .dateTime.year().month().day())
