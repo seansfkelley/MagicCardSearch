@@ -231,7 +231,7 @@ struct SpoilersView: View {
                 filters: filters,
                 unique: showUniquePrints ? .prints : .cards,
                 order: sortOrder.scryfallSortMode,
-                sortDirection: .desc,
+                sortDirection: sortOrder.scryfallSortDirection,
                 page: page,
             )
         }
