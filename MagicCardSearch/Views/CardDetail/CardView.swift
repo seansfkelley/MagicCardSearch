@@ -17,6 +17,10 @@ extension Card {
 }
 
 private enum Rotation {
+    enum Axis {
+        case horizontal, vertical
+    }
+
     case zero, clockwise, counterclockwise, upsideDown
 
     var angle: Angle {
@@ -32,6 +36,13 @@ private enum Rotation {
         switch self {
         case .zero, .upsideDown: 1
         case .clockwise, .counterclockwise: Card.aspectRatio
+        }
+    }
+
+    var axis: Axis {
+        switch self {
+        case .zero, .upsideDown: .vertical
+        case .clockwise, .counterclockwise: .horizontal
         }
     }
 }
@@ -487,9 +498,10 @@ private struct DoubleFacedCardView: View {
         case .none, .portrait:
             (x: 0, y: 1, z: 0)
         case .all:
-            switch (frontFaceOrientation, backFaceOrientation) {
-            case (.portrait, .landscape), (.landscape, .portrait): (x: 1, y: -1, z: 0)
-            default: (x: 0, y: 1, z: 0)
+            if frontFaceRotation.axis == backFaceRotation.axis {
+                (x: 0, y: 1, z: 0)
+            } else {
+                (x: 1, y: -1, z: 0)
             }
         }
     }
@@ -548,7 +560,7 @@ private struct DoubleFacedCardView: View {
                 }
             }
         }
-        
+
         if enableTransforms == .all {
             ZStack {
                 Group {
