@@ -3,9 +3,45 @@ import ScryfallKit
 import NukeUI
 
 extension Card {
-    enum Orientation {
+    enum Orientation: Equatable {
+        enum LandscapeDirection: Equatable {
+            case clockwise, counterclockwise
+        }
+
+        case portrait
+        case landscape(LandscapeDirection)
         // either implies portrait default.
-        case portrait, landscape, either, flip
+        case either(LandscapeDirection)
+        case flip
+    }
+}
+
+private enum Rotation {
+    case zero, clockwise, counterclockwise, upsideDown
+
+    var angle: Angle {
+        switch self {
+        case .zero: .degrees(0)
+        case .clockwise: .degrees(90)
+        case .counterclockwise: .degrees(-90)
+        case .upsideDown: .degrees(180)
+        }
+    }
+
+    var scale: CGFloat {
+        switch self {
+        case .zero, .upsideDown: 1
+        case .clockwise, .counterclockwise: Card.aspectRatio
+        }
+    }
+}
+
+private extension Card.Orientation.LandscapeDirection {
+    var rotation: Rotation {
+        switch self {
+        case .clockwise: .clockwise
+        case .counterclockwise: .counterclockwise
+        }
     }
 }
 
@@ -46,12 +82,12 @@ extension Card: CardDisplayable {
             .flip
         } else if layout == .split {
             keywords.contains("Aftermath")
-            ? .either
-            : .landscape
+            ? .either(.counterclockwise)
+            : .landscape(.clockwise)
         } else if typeLine?.starts(with: "Battle ") ?? false {
             // While listed in the documentation, no cards actually have layout:battle, so we have
             // to inspect the type line instead.
-            .landscape
+            .landscape(.clockwise)
         } else {
             .portrait
         }
@@ -59,7 +95,7 @@ extension Card: CardDisplayable {
 
     var backFaceOrientation: Orientation {
         // I think this is it?
-        layout == .meld ? .landscape : .portrait
+        layout == .meld ? .landscape(.clockwise) : .portrait
     }
 }
 
@@ -341,25 +377,6 @@ private struct LazyCardImageView: View {
 }
 
 private struct SingleFacedCardView: View {
-    private enum Rotation {
-        case portrait, landscape, flipped
-
-        var angle: Angle {
-            switch self {
-            case .portrait: .degrees(0)
-            case .landscape: .degrees(90)
-            case .flipped: .degrees(180)
-            }
-        }
-
-        var scale: CGFloat {
-            switch self {
-            case .portrait, .flipped: 1
-            case .landscape: Card.aspectRatio
-            }
-        }
-    }
-
     let face: CardFaceDisplayable
     let orientation: Card.Orientation
     let quality: CardImageQuality
@@ -370,27 +387,27 @@ private struct SingleFacedCardView: View {
     let zoomGestureBasisAdjustment: CGFloat?
 
     // TODO: Initialize based on face orientation.
-    @State private var rotation: Rotation = .portrait
+    @State private var rotation: Rotation = .zero
 
     var body: some View {
         Group {
             switch orientation {
             case .portrait:
                 image
-            case .landscape:
+            case .landscape(let direction):
                 if enableTransforms == .all {
                     VStack(spacing: 10) {
                         image
-                        rotateButton(.portrait, .landscape)
+                        rotateButton(.zero, direction.rotation)
                     }
                 } else {
                     image
                 }
-            case .either:
+            case .either(let direction):
                 if enableTransforms == .all {
                     VStack(spacing: 10) {
                         image
-                        rotateButton(.portrait, .landscape)
+                        rotateButton(.zero, direction.rotation)
                     }
                 } else {
                     image
@@ -399,7 +416,7 @@ private struct SingleFacedCardView: View {
                 if enableTransforms == .portrait || enableTransforms == .all {
                     VStack(spacing: 10) {
                         image
-                        rotateButton(.portrait, .flipped)
+                        rotateButton(.zero, .upsideDown)
                     }
                 } else {
                     image
@@ -458,14 +475,15 @@ private struct DoubleFacedCardView: View {
     let enableZoomGestures: ZoomOverlayInitationGestures?
     let zoomGestureBasisAdjustment: CGFloat?
 
-    nonisolated(unsafe) private var currentOrientation: Card.Orientation {
+    private var currentOrientation: Card.Orientation {
         isShowingBackFace ? backFaceOrientation : frontFaceOrientation
     }
 
     private var rotationAxis: (x: CGFloat, y: CGFloat, z: CGFloat) {
-        frontFaceOrientation == backFaceOrientation
-        ? (x: 0, y: 1, z: 0)
-        : (x: 1, y: -1, z: 0)
+        switch (frontFaceOrientation, backFaceOrientation) {
+        case (.portrait, .landscape), (.landscape, .portrait): (x: 1, y: -1, z: 0)
+        default: (x: 0, y: 1, z: 0)
+        }
     }
 
     var body: some View {
@@ -577,7 +595,7 @@ private extension PreviewCard {
                 borderCrop: "https://cards.scryfall.io/border_crop/front/e/1/e16d52ca-f8de-4852-9bff-9d208e5f678f.jpg?1677291168"
             )
         ),
-        frontFaceOrientation: .landscape,
+        frontFaceOrientation: .landscape(.clockwise),
     )
 
     // Consign // Oblivion (split with Aftermath, either orientation)
@@ -593,7 +611,7 @@ private extension PreviewCard {
                 borderCrop: "https://cards.scryfall.io/border_crop/front/1/c/1c1ead90-10d8-4217-80e4-6f40320c5569.jpg?1710406499"
             )
         ),
-        frontFaceOrientation: .portrait, // .either,
+        frontFaceOrientation: .either(.counterclockwise),
     )
 
     // Liliana, Heretical Healer // Liliana, Defiant Necromancer (transform, creature to planeswalker)
@@ -646,7 +664,7 @@ private extension PreviewCard {
                 borderCrop: "https://cards.scryfall.io/border_crop/back/8/f/8fed056f-a8f5-41ec-a7d2-a80a238872d1.jpg?1739656250"
             )
         ),
-        frontFaceOrientation: .landscape,
+        frontFaceOrientation: .landscape(.clockwise),
     )
 
     // Invalid (no image URIs)
@@ -654,7 +672,6 @@ private extension PreviewCard {
         frontFace: PreviewCardFace(name: "Invalid Card", imageUris: nil)
     )
 }
-
 
 #Preview("Placeholders") {
     ScrollView {
