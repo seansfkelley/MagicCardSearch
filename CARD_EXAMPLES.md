@@ -16,7 +16,8 @@ Cards that exemplify the different kinds of things that are possible for each fe
 
 - Sphinx of the Revelation -- large variety of symbols plus some reminder text
 - Rage Extractor -- only usage of bare Phyrexian symbol in the entire game
-- Urza's Saga -- in rulings
+- Urza's Saga -- symbols in rulings
+- Lich's Mirror -- huge long rulings text include ones that should be multiline
 - Ajani, Sleeper Agent -- Phyrexian mana mixed with regular mana, also in reminder text; loyalty abilities
 
 ## All Prints
