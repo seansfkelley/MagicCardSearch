@@ -2,6 +2,7 @@ import SwiftUI
 import SwiftUIIntrospect
 import SQLiteData
 import OSLog
+import Nuke
 
 @main
 struct MagicCardSearchApp: App {
@@ -22,6 +23,10 @@ struct MagicCardSearchApp: App {
         historyAndPinnedStore = .init(database: database)
         recentlyViewedCardsStore = .init(database: database)
         scryfallCatalogs = .init()
+
+        #if DEBUG
+        ImagePipeline.Configuration.isSignpostLoggingEnabled = true
+        #endif
     }
     
     var body: some Scene {

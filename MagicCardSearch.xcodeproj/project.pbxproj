@@ -830,7 +830,7 @@
 			repositoryURL = "https://github.com/kean/Nuke";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 12.9.0;
+				minimumVersion = 13.0.1;
 			};
 		};
 		210E13A82EFC66C4009D9FE0 /* XCRemoteSwiftPackageReference "FocusOnAppear" */ = {
