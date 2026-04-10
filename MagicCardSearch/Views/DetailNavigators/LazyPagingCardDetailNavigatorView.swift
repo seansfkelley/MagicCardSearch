@@ -15,6 +15,7 @@ struct LazyPagingCardDetailNavigatorView: View {
     @State private var scrollIndex: Int?
 
     private let pagePreloadDistance = 3
+    private static let loadingPageId = -1
 
     init(
         list: ScryfallObjectList<Card>,
@@ -26,6 +27,19 @@ struct LazyPagingCardDetailNavigatorView: View {
         self._cardFlipStates = cardFlipStates
         self.searchState = searchState
         self._scrollIndex = State(initialValue: initialIndex)
+    }
+
+    private var humanReadableIndex: Int {
+        if let scrollIndex {
+            if scrollIndex == Self.loadingPageId {
+                // Loading page, if it exists, is guaranteed to be after the last loaded card.
+                (list.value.latestValue?.data.count ?? 0) + 1
+            } else {
+                scrollIndex + 1
+            }
+        } else {
+            1 // I dunno lol
+        }
     }
 
     var body: some View {
@@ -45,7 +59,7 @@ struct LazyPagingCardDetailNavigatorView: View {
                     }
 
                     if list.value.latestValue?.hasMore ?? false || list.value.isLoadingNextPage || list.value.nextPageError != nil {
-                        paginationStatusPage(geometry: geometry).id(items.count)
+                        loadingPage(geometry: geometry).id(Self.loadingPageId)
                     }
                 }
                 .scrollTargetLayout()
@@ -90,7 +104,7 @@ struct LazyPagingCardDetailNavigatorView: View {
             }
         }
         .safeAreaInset(edge: .bottom) {
-            Text("\((scrollIndex ?? 0) + 1) of \(list.value.latestValue?.totalCards ?? items.count)")
+            Text("\(humanReadableIndex) of \(list.value.latestValue?.totalCards ?? items.count)")
                 .font(.caption)
                 .foregroundStyle(.primary)
                 .padding(.horizontal, 16)
@@ -108,8 +122,13 @@ struct LazyPagingCardDetailNavigatorView: View {
                 }
             }
         }
-        .onChange(of: items.count) { _, newCount in
-            if let scrollIndex, scrollIndex > newCount {
+        .onChange(of: items.count) { oldCount, newCount in
+            guard let currentIndex = scrollIndex else { return }
+            if currentIndex == Self.loadingPageId, newCount > oldCount {
+                // We were looking at the loading page. That has now moved to the end, so teleport
+                // back to the first item of the new page.
+                self.scrollIndex = oldCount
+            } else if currentIndex > newCount {
                 self.scrollIndex = newCount
                 list.loadNextPage()
             }
@@ -117,7 +136,7 @@ struct LazyPagingCardDetailNavigatorView: View {
     }
 
     @ViewBuilder
-    private func paginationStatusPage(geometry: GeometryProxy) -> some View {
+    private func loadingPage(geometry: GeometryProxy) -> some View {
         VStack(spacing: 20) {
             if list.value.isLoadingNextPage {
                 VStack(spacing: 16) {
