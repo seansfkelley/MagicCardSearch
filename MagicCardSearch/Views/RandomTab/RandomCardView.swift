@@ -45,7 +45,7 @@ struct RandomCardView: View {
 
     @State private var history: [HistoryEntry] = []
     @State private var scrollPosition: ScrollItem?
-    @State private var cardFlipStates: [UUID: Bool] = [:]
+    @State private var cardsShowingBackFaces: [UUID: Bool] = [:]
     @State private var showingFilterSheet = false
     @State private var fetchTask: Task<Void, Never>?
     private let onboardingFadeWidthFraction: CGFloat = 0.4
@@ -93,7 +93,7 @@ struct RandomCardView: View {
                                 case .card(let card):
                                     CardDetailView(
                                         card: card,
-                                        isFlipped: $cardFlipStates.for(card.id),
+                                        isShowingBackFace: $cardsShowingBackFaces.for(card.id),
                                         searchState: nil,
                                     )
                                 case .error(let error):

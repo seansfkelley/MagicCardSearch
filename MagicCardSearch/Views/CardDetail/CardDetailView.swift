@@ -61,16 +61,16 @@ struct CardDetailView: View {
     }
 
     let card: Card
-    @Binding var isFlipped: Bool
+    @Binding var isShowingBackFace: Bool
     var searchState: Binding<SearchState>?
     let fetchCardService: FetchCardService
 
     @State private var relatedCardToShow: Card?
     @State private var isLoadingRelatedCard = false
 
-    init(card: Card, isFlipped: Binding<Bool>, searchState: Binding<SearchState>? = nil, fetchCardService: FetchCardService? = nil) {
+    init(card: Card, isShowingBackFace: Binding<Bool>, searchState: Binding<SearchState>? = nil, fetchCardService: FetchCardService? = nil) {
         self.card = card
-        self._isFlipped = isFlipped
+        self._isShowingBackFace = isShowingBackFace
         self.searchState = searchState
         self.fetchCardService = fetchCardService ?? CachingScryfallService.shared
     }
@@ -84,8 +84,9 @@ struct CardDetailView: View {
                 CardView(
                     card: card,
                     quality: .large,
-                    isFlipped: $isFlipped,
                     cornerRadius: 16,
+                    isShowingBackFace: $isShowingBackFace,
+                    enableTransforms: .all,
                     enableCopyActions: true,
                     enableZoomGestures: .tapAndPinch,
                 )
@@ -189,7 +190,7 @@ struct CardDetailView: View {
             NavigationStack {
                 CardDetailView(
                     card: relatedCard,
-                    isFlipped: $isFlipped,
+                    isShowingBackFace: $isShowingBackFace,
                     searchState: searchState,
                 )
                     .navigationTitle(relatedCard.name)
@@ -311,12 +312,12 @@ struct CardDetailView: View {
 
 #Preview("Lightning Bolt") {
     @Previewable @State var card: Card?
-    @Previewable @State var isFlipped = false
+    @Previewable @State var isShowingBackFace = false
     let id = UUID(uuidString: "f29ba16f-c8fb-42fe-aabf-87089cb214a7")!
 
     if let card {
         NavigationStack {
-            CardDetailView(card: card, isFlipped: $isFlipped)
+            CardDetailView(card: card, isShowingBackFace: $isShowingBackFace)
                 .navigationTitle(card.name)
                 .navigationBarTitleDisplayMode(.inline)
         }

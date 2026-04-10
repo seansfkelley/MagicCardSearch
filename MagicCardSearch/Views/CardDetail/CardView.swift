@@ -4,9 +4,7 @@ import NukeUI
 
 extension Card {
     enum Orientation {
-        case portrait, landscape
-        // TODO: When implemented, will require a lot of valid combinations for flippable faces.
-        // case either
+        case portrait, landscape, either, flip
     }
 }
 
@@ -43,9 +41,11 @@ extension Card: CardDisplayable {
     }
 
     var frontFaceOrientation: Orientation {
-        if layout == .split {
+        if layout == .flip {
+            .flip
+        } else if layout == .split {
             keywords.contains("Aftermath")
-            ? .portrait // .either
+            ? .either
             : .landscape
         } else if typeLine?.starts(with: "Battle ") ?? false {
             // While listed in the documentation, no cards actually have layout:battle, so we have
@@ -89,6 +89,10 @@ enum CardImageQuality {
     static func bestQualityUri(from uris: Card.ImageUris?) -> String? {
         uris?.large ?? uris?.normal ?? uris?.small
     }
+}
+
+enum CardFaceTransforms {
+    case none, portrait, all
 }
 
 struct CardView: View {
@@ -216,9 +220,9 @@ struct CardView: View {
 
     let card: CardDisplayable
     let quality: CardImageQuality
-    @Binding var isFlipped: Bool
     let cornerRadius: CGFloat
-    let showFlipButton: Bool
+    @Binding var isShowingBackFace: Bool
+    let enableTransforms: CardFaceTransforms
     let enableCopyActions: Bool
     let enableZoomGestures: ZoomOverlayInitationGestures?
     let zoomGestureBasisAdjustment: CGFloat?
@@ -226,18 +230,18 @@ struct CardView: View {
     init(
         card: CardDisplayable,
         quality: CardImageQuality,
-        isFlipped: Binding<Bool>,
         cornerRadius: CGFloat,
-        showFlipButton: Bool = true,
+        isShowingBackFace: Binding<Bool> = .constant(false),
+        enableTransforms: CardFaceTransforms = .none,
         enableCopyActions: Bool = false,
         enableZoomGestures: ZoomOverlayInitationGestures? = nil,
         zoomGestureBasisAdjustment: CGFloat? = nil,
     ) {
         self.card = card
         self.quality = quality
-        self._isFlipped = isFlipped
         self.cornerRadius = cornerRadius
-        self.showFlipButton = showFlipButton
+        self._isShowingBackFace = isShowingBackFace
+        self.enableTransforms = enableTransforms
         self.enableCopyActions = enableCopyActions
         self.enableZoomGestures = enableZoomGestures
         self.zoomGestureBasisAdjustment = zoomGestureBasisAdjustment
@@ -246,15 +250,15 @@ struct CardView: View {
     var body: some View {
         Group {
             if let backFace = card.backFace {
-                FlippableCardFaceView(
+                DoubleFacedCardView(
                     frontFace: card.frontFace,
                     backFace: backFace,
                     frontFaceOrientation: card.frontFaceOrientation,
                     backFaceOrientation: card.backFaceOrientation,
                     quality: quality,
-                    isShowingBackFace: $isFlipped,
+                    isShowingBackFace: $isShowingBackFace,
                     cornerRadius: cornerRadius,
-                    showFlipButton: showFlipButton,
+                    enableTransforms: enableTransforms,
                     enableCopyActions: enableCopyActions,
                     enableZoomGestures: enableZoomGestures,
                     zoomGestureBasisAdjustment: zoomGestureBasisAdjustment,
@@ -348,7 +352,7 @@ private extension VerticalAlignment {
     static let centeredOnArt = VerticalAlignment(CenteredOnArt.self)
 }
 
-private struct FlippableCardFaceView: View {
+private struct DoubleFacedCardView: View {
     let frontFace: CardFaceDisplayable
     let backFace: CardFaceDisplayable
     let frontFaceOrientation: Card.Orientation
@@ -356,7 +360,7 @@ private struct FlippableCardFaceView: View {
     let quality: CardImageQuality
     @Binding var isShowingBackFace: Bool
     let cornerRadius: CGFloat
-    let showFlipButton: Bool
+    let enableTransforms: CardFaceTransforms
     let enableCopyActions: Bool
     let enableZoomGestures: ZoomOverlayInitationGestures?
     let zoomGestureBasisAdjustment: CGFloat?
@@ -407,7 +411,7 @@ private struct FlippableCardFaceView: View {
             .animation(.spring(response: 0.4, dampingFraction: 0.8), value: isShowingBackFace)
             .alignmentGuide(.centeredOnArt) { $0.height * 0.37 }
 
-            if showFlipButton {
+            if enableTransforms != .none {
                 Button {
                     isShowingBackFace.toggle()
                 } label: {
@@ -599,43 +603,79 @@ private extension PreviewCard {
 }
 
 #Preview("Lightning Bolt") {
-    @Previewable @State var isFlipped = false
-    CardView(card: PreviewCard.lightningBolt, quality: .normal, isFlipped: $isFlipped, cornerRadius: 12)
+    @Previewable @State var isShowingBackFace = false
+    CardView(
+        card: PreviewCard.lightningBolt,
+        quality: .normal,
+        cornerRadius: 12,
+        isShowingBackFace: $isShowingBackFace,
+        enableTransforms: .all,
+    )
         .frame(width: 300)
         .padding()
 }
 
 #Preview("Life // Death") {
-    @Previewable @State var isFlipped = false
-    CardView(card: PreviewCard.lifeAndDeath, quality: .normal, isFlipped: $isFlipped, cornerRadius: 12)
+    @Previewable @State var isShowingBackFace = false
+    CardView(
+        card: PreviewCard.lifeAndDeath,
+        quality: .normal,
+        cornerRadius: 12,
+        isShowingBackFace: $isShowingBackFace,
+        enableTransforms: .all,
+    )
         .frame(width: 300)
         .padding()
 }
 
 #Preview("Consign // Oblivion") {
-    @Previewable @State var isFlipped = false
-    CardView(card: PreviewCard.consignAndOblivion, quality: .normal, isFlipped: $isFlipped, cornerRadius: 12)
+    @Previewable @State var isShowingBackFace = false
+    CardView(
+        card: PreviewCard.consignAndOblivion,
+        quality: .normal,
+        cornerRadius: 12,
+        isShowingBackFace: $isShowingBackFace,
+        enableTransforms: .all,
+    )
         .frame(width: 300)
         .padding()
 }
 
 #Preview("Liliana, Heretical Healer") {
-    @Previewable @State var isFlipped = false
-    CardView(card: PreviewCard.liliana, quality: .normal, isFlipped: $isFlipped, cornerRadius: 12)
+    @Previewable @State var isShowingBackFace = false
+    CardView(
+        card: PreviewCard.liliana,
+        quality: .normal,
+        cornerRadius: 12,
+        isShowingBackFace: $isShowingBackFace,
+        enableTransforms: .all,
+    )
         .frame(width: 300)
         .padding()
 }
 
 #Preview("Invasion of Zendikar") {
-    @Previewable @State var isFlipped = false
-    CardView(card: PreviewCard.invasionOfZendikar, quality: .normal, isFlipped: $isFlipped, cornerRadius: 12)
+    @Previewable @State var isShowingBackFace = false
+    CardView(
+        card: PreviewCard.invasionOfZendikar,
+        quality: .normal,
+        cornerRadius: 12,
+        isShowingBackFace: $isShowingBackFace,
+        enableTransforms: .all,
+    )
         .frame(width: 300)
         .padding()
 }
 
 #Preview("Invalid") {
-    @Previewable @State var isFlipped = false
-    CardView(card: PreviewCard.invalid, quality: .normal, isFlipped: $isFlipped, cornerRadius: 12)
+    @Previewable @State var isShowingBackFace = false
+    CardView(
+        card: PreviewCard.invalid,
+        quality: .normal,
+        cornerRadius: 12,
+        isShowingBackFace: $isShowingBackFace,
+        enableTransforms: .all,
+    )
         .frame(width: 300)
         .padding()
 }

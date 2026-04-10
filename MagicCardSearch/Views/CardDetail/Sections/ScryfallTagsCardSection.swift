@@ -107,7 +107,7 @@ struct ScryfallTagsCardSection: View {
             NavigationStack {
                 CardDetailView(
                     card: relatedCard,
-                    isFlipped: .constant(false),
+                    isShowingBackFace: .constant(false),
                     searchState: searchState,
                 )
                 .navigationTitle(relatedCard.name)

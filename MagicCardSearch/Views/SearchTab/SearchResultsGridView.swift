@@ -73,8 +73,9 @@ struct SearchResultsGridView: View {
                                 CardView(
                                     card: card,
                                     quality: .normal,
-                                    isFlipped: $cardFlipStates.for(card.id),
                                     cornerRadius: 10,
+                                    isShowingBackFace: $cardFlipStates.for(card.id),
+                                    enableTransforms: .portrait,
                                     enableCopyActions: true,
                                     enableZoomGestures: .pinchOnly,
                                     zoomGestureBasisAdjustment: 3.0,

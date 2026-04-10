@@ -116,7 +116,7 @@ struct FixedListCardDetailNavigatorView<C: CardDisplayable & Identifiable<UUID>>
         case .loaded(let fullCard):
             CardDetailView(
                 card: fullCard,
-                isFlipped: $cardFlipStates.for(card.id),
+                isShowingBackFace: $cardFlipStates.for(card.id),
                 searchState: searchState,
             )
         case .loading:

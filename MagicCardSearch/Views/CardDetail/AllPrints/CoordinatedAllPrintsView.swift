@@ -11,7 +11,7 @@ struct CoordinatedAllPrintsView: View {
     @State private var mainScrollPosition = ScrollPosition(idType: UUID.self)
     @State private var thumbnailScrollPosition = ScrollPosition(idType: UUID.self)
     @State private var partialScrollOffsetFraction: CGFloat = 0
-    @State private var isFlipped: Bool = false
+    @State private var isShowingBackFace: Bool = false
 
     var body: some View {
         GeometryReader { geometry in
@@ -21,7 +21,7 @@ struct CoordinatedAllPrintsView: View {
                     scrollPosition: $mainScrollPosition,
                     partialScrollOffsetFraction: $partialScrollOffsetFraction,
                     screenWidth: geometry.size.width,
-                    isFlipped: $isFlipped,
+                    isShowingBackFace: $isShowingBackFace,
                     filterSettings: filterSettings,
                 )
 
@@ -30,7 +30,7 @@ struct CoordinatedAllPrintsView: View {
                     scrollPosition: $thumbnailScrollPosition,
                     partialScrollOffsetFraction: partialScrollOffsetFraction,
                     screenWidth: geometry.size.width,
-                    isFlipped: isFlipped
+                    isShowingBackFace: isShowingBackFace
                 )
 
                 Spacer()
@@ -96,7 +96,7 @@ private struct PagingCardImageView: View {
     @Binding var scrollPosition: ScrollPosition
     @Binding var partialScrollOffsetFraction: CGFloat
     let screenWidth: CGFloat
-    @Binding var isFlipped: Bool
+    @Binding var isShowingBackFace: Bool
     let filterSettings: AllPrintsFilterSettings
 
     @State private var scrollPhase: ScrollPhase = .idle
@@ -113,8 +113,9 @@ private struct PagingCardImageView: View {
                             CardView(
                                 card: card,
                                 quality: .large,
-                                isFlipped: $isFlipped,
                                 cornerRadius: 16,
+                                isShowingBackFace: $isShowingBackFace,
+                                enableTransforms: .all,
                                 enableCopyActions: true,
                                 enableZoomGestures: .tapAndPinch,
                                 zoomGestureBasisAdjustment: 1.2,
@@ -216,7 +217,7 @@ private struct ThumbnailPreviewStrip: View {
     @Binding var scrollPosition: ScrollPosition
     var partialScrollOffsetFraction: CGFloat
     let screenWidth: CGFloat
-    var isFlipped: Bool
+    var isShowingBackFace: Bool
 
     private let thumbnailHeight: CGFloat = 100
     private let thumbnailSpacing: CGFloat = 8
@@ -232,9 +233,8 @@ private struct ThumbnailPreviewStrip: View {
                     CardView(
                         card: card,
                         quality: .small,
-                        isFlipped: .constant(isFlipped),
                         cornerRadius: 4,
-                        showFlipButton: false,
+                        isShowingBackFace: .constant(isShowingBackFace),
                     )
                     .scaleEffect(card.id == scrollPosition.viewID(type: UUID.self) ? 1.1 : 1.0)
                     // TODO: Enable this but only for the scale effect -- as written, it seems to animate the

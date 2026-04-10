@@ -5,14 +5,8 @@ struct BookmarkedCardRowView: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            CardView(
-                card: card,
-                quality: .small,
-                isFlipped: .constant(false),
-                cornerRadius: 6,
-                showFlipButton: false
-            )
-            .frame(width: 60)
+            CardView(card: card, quality: .small, cornerRadius: 6)
+                .frame(width: 60)
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(card.name)

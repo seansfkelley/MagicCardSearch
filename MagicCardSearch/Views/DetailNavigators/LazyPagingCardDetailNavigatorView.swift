@@ -50,7 +50,7 @@ struct LazyPagingCardDetailNavigatorView: View {
                     ForEach(Array(items.enumerated()), id: \.element.id) { index, card in
                         CardDetailView(
                             card: card,
-                            isFlipped: $cardFlipStates.for(card.id),
+                            isShowingBackFace: $cardFlipStates.for(card.id),
                             searchState: searchState,
                         )
                         .frame(width: geometry.size.width, height: geometry.size.height)

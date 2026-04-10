@@ -210,9 +210,7 @@ struct SearchLandingView: View {
                             CardView(
                                 card: card,
                                 quality: .normal,
-                                isFlipped: .constant(false),
                                 cornerRadius: 8,
-                                showFlipButton: false,
                             )
                             .frame(width: recentlyViewedCardWidth)
                             .onTapGesture {
