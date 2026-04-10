@@ -6,7 +6,7 @@ struct SymbolizedTextView: UIViewRepresentable {
     // This used to be a VStack of Texts, but that didn't support visible cursor highlighting,
     // cross-paragraph highlighting (at least, not while also supporting different line/paragraph
     // spacing) or including formatting/symbols in the copied text.
-    
+
     private let text: String
     private let baseAttributes: [NSAttributedString.Key: Any]
     private let parentheticalAttributes: [NSAttributedString.Key: Any]?
@@ -57,14 +57,28 @@ struct SymbolizedTextView: UIViewRepresentable {
     }
 
     private func buildAttributedString() -> NSAttributedString {
-        let result = NSMutableAttributedString()
-        let lines = text.split(separator: "\n", omittingEmptySubsequences: false)
+        var result: NSMutableAttributedString
 
-        for (index, line) in lines.enumerated() {
-            if index > 0 {
-                result.append(NSAttributedString(string: "\n", attributes: baseAttributes))
+        if let parentheticalAttributes {
+            let draft = NSMutableAttributedString()
+            let reminderPattern = #/\([^)]+\)/#
+            var lastIndex = text.startIndex
+
+            for match in text.matches(of: reminderPattern) {
+                if lastIndex < match.range.lowerBound {
+                    draft.append(buildSegment(String(text[lastIndex..<match.range.lowerBound]), withAttributes: baseAttributes))
+                }
+                draft.append(buildSegment(String(match.output), withAttributes: parentheticalAttributes))
+                lastIndex = match.range.upperBound
             }
-            result.append(buildLine(String(line)))
+
+            if lastIndex < text.endIndex {
+                draft.append(buildSegment(String(text[lastIndex...]), withAttributes: baseAttributes))
+            }
+
+            result = draft
+        } else {
+            result = buildSegment(text, withAttributes: baseAttributes)
         }
 
         let paragraphStyle = NSMutableParagraphStyle()
@@ -74,31 +88,7 @@ struct SymbolizedTextView: UIViewRepresentable {
         return result
     }
 
-    private func buildLine(_ line: String) -> NSAttributedString {
-        if let parentheticalAttributes {
-            let result = NSMutableAttributedString()
-            let reminderPattern = #/\([^)]+\)/#
-            var lastIndex = line.startIndex
-
-            for match in line.matches(of: reminderPattern) {
-                if lastIndex < match.range.lowerBound {
-                    result.append(buildSegment(String(line[lastIndex..<match.range.lowerBound]), attributes: baseAttributes))
-                }
-                result.append(buildSegment(String(match.output), attributes: parentheticalAttributes))
-                lastIndex = match.range.upperBound
-            }
-
-            if lastIndex < line.endIndex {
-                result.append(buildSegment(String(line[lastIndex...]), attributes: baseAttributes))
-            }
-
-            return result
-        } else {
-            return buildSegment(line, attributes: baseAttributes)
-        }
-    }
-
-    private func buildSegment(_ text: String, attributes: [NSAttributedString.Key: Any]) -> NSAttributedString {
+    private func buildSegment(_ text: String, withAttributes attributes: [NSAttributedString.Key: Any]) -> NSMutableAttributedString {
         let result = NSMutableAttributedString()
         let symbolPattern = #/\{[^}]+\}/#
         var lastIndex = text.startIndex
