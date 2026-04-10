@@ -5,6 +5,25 @@ private extension NSAttributedString.Key {
 }
 
 private class SelectableTextView: UITextView {
+    override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
+        super.touchesEnded(touches, with: event)
+        guard let touch = touches.first, touch.tapCount >= 3 else { return }
+        if touch.tapCount == 4 {
+            selectedRange = NSRange(location: 0, length: textStorage.length)
+            return
+        }
+        let location = touch.location(in: self)
+        guard let position = closestPosition(to: location) else { return }
+        let charOffset = offset(from: beginningOfDocument, to: position)
+        let nsText = text as NSString
+        var range = nsText.paragraphRange(for: NSRange(location: charOffset, length: 0))
+        if range.length > 0,
+           nsText.substring(with: NSRange(location: NSMaxRange(range) - 1, length: 1)) == "\n" {
+            range.length -= 1
+        }
+        selectedRange = range
+    }
+
     override func copy(_ sender: Any?) {
         let range = selectedRange
         guard range.length > 0 else { return }
