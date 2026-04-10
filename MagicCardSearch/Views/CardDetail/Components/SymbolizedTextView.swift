@@ -12,6 +12,7 @@ struct SymbolizedTextView: UIViewRepresentable {
     private let parentheticalAttributes: [NSAttributedString.Key: Any]?
     private let spacerAttributes: [NSAttributedString.Key: Any]
     private let symbolSize: CGFloat
+    private let symbolCenterLine: CGFloat
     @Environment(\.colorScheme) private var colorScheme
     @Environment(ScryfallCatalogs.self) private var scryfallCatalogs
 
@@ -30,7 +31,12 @@ struct SymbolizedTextView: UIViewRepresentable {
         } else {
             parentheticalAttributes = nil
         }
-        symbolSize = font.ascender // We want to match the height of the tall things.
+
+        // Below numbers chosen empirically. I tried to define something based on `font`'s various
+        // metrics like xHeight, but nothing looked good without pixel-pushing so I gave up all
+        // pretense and just picked some numbers.
+        symbolSize = fontSize * 0.9
+        symbolCenterLine = fontSize * 0.35
     }
 
     func makeUIView(context: Context) -> UITextView {
@@ -101,12 +107,15 @@ struct SymbolizedTextView: UIViewRepresentable {
 
             let symbol = SymbolCode(String(text[match.range]))
             if let image = renderSymbol(symbol) {
-                let symbolAttachment = NSTextAttachment(image: image)
+                let symbolAttachment = NSTextAttachment()
+                // Do not use the `image:` initializer; that sets the bounds and ignores the
+                // override below.
+                symbolAttachment.image = image
                 // Oversize symbols should stay oversize, so measure the actual size of the image
                 // and bound it to center itself vertically.
                 symbolAttachment.bounds = CGRect(
                     x: 0,
-                    y: (symbolSize - image.size.height) / 2,
+                    y: symbolCenterLine - (image.size.height / 2),
                     width: image.size.width,
                     height: image.size.height,
                 )
