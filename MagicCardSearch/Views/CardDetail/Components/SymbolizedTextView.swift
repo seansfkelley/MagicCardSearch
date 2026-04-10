@@ -2,11 +2,11 @@ import SwiftUI
 
 /// A view that understands MTG's {}-based syntax and renders inline symbols, while also supporting
 /// rich selection and copy interactions that feel native and preserve formatting where possible.
-//
-// This used to be a VStack of Texts, but that didn't support visible cursor highlighting,
-// cross-paragraph highlighting (at least, not while also supporting different line/paragraph
-// spacing) or including formatting/symbols in the copied text.
 struct SymbolizedTextView: UIViewRepresentable {
+    // This used to be a VStack of Texts, but that didn't support visible cursor highlighting,
+    // cross-paragraph highlighting (at least, not while also supporting different line/paragraph
+    // spacing) or including formatting/symbols in the copied text.
+    
     private let text: String
     private let baseAttributes: [NSAttributedString.Key: Any]
     private let parentheticalAttributes: [NSAttributedString.Key: Any]?
@@ -213,7 +213,7 @@ private class SelectableTextView: UITextView {
         if let rtfData = try? richWithoutImages.data(from: noImagesRange, documentAttributes: [.documentType: NSAttributedString.DocumentType.rtf]) {
             pasteboardItem["public.rtf"] = rtfData
         }
-        
+
         UIPasteboard.general.items = [pasteboardItem]
     }
 }
