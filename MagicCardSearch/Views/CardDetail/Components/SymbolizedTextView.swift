@@ -22,12 +22,10 @@ struct SymbolizedTextView: UIViewRepresentable {
         baseAttributes = [.font: font, .foregroundColor: UIColor.label]
         spacerAttributes = [.font: UIFont.systemFont(ofSize: fontSize * 0.3)]
 
-        if italicizeParentheticals {
+        if italicizeParentheticals,
+           let descriptor = font.fontDescriptor.withDesign(.serif)?.withSymbolicTraits(.traitItalic) {
             var attrs = baseAttributes
-            if let serifDescriptor = font.fontDescriptor.withDesign(.serif),
-               let italicDescriptor = serifDescriptor.withSymbolicTraits(.traitItalic) {
-                attrs[.font] = UIFont(descriptor: italicDescriptor, size: fontSize)
-            }
+            attrs[.font] = UIFont(descriptor: descriptor, size: fontSize)
             parentheticalAttributes = attrs
         } else {
             parentheticalAttributes = nil
