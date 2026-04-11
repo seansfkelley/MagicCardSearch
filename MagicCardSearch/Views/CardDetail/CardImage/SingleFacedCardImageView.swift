@@ -37,7 +37,7 @@ struct SingleFacedCardImageView: View {
     var body: some View {
         Group {
             if let target = orientation.allowedOtherRotation(for: enableTransforms) {
-                VStack(spacing: 10) {
+                VStack(spacing: 20) {
                     image
                     RotateButton(rotation: $rotation, nonZero: target)
                 }
@@ -60,20 +60,5 @@ struct SingleFacedCardImageView: View {
         )
         .rotationEffect(rotation.angle)
         .scaleEffect(rotation.scale)
-    }
-}
-
-struct RotateButton: View {
-    @Binding var rotation: Rotation
-    let nonZero: Rotation
-
-    var body: some View {
-        Button {
-            withAnimation {
-                rotation = rotation == .upright ? nonZero : .upright
-            }
-        } label: {
-            Label("Rotate", systemImage: "arrow.trianglehead.2.clockwise.rotate.90")
-        }
     }
 }

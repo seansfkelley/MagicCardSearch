@@ -73,7 +73,7 @@ struct DoubleFacedCardImageView: View {
     }
 
     var body: some View {
-        VStack {
+        VStack(spacing: 20) {
             ZStack(alignment: Alignment(horizontal: .trailing, vertical: .centeredOnArt)) {
                 ZStack {
                     LazyCardImageView(
@@ -109,13 +109,15 @@ struct DoubleFacedCardImageView: View {
                     )
                 }
                 .animation(.spring(response: 0.4, dampingFraction: 0.8), value: isShowingBackFace)
+                .animation(.spring(response: 0.4, dampingFraction: 0.8), value: frontFaceRotation)
+                .animation(.spring(response: 0.4, dampingFraction: 0.8), value: backFaceRotation)
                 .alignmentGuide(.centeredOnArt) { $0.height * 0.37 }
 
                 if enableTransforms != .none {
                     Button {
                         isShowingBackFace.toggle()
                     } label: {
-                        Image(systemName: "arrow.triangle.2.circlepath")
+                        Image(systemName: "arrow.left.arrow.right")
                             .font(.system(size: 16, weight: .semibold))
                             .foregroundStyle(.primary)
                             .padding(8)
