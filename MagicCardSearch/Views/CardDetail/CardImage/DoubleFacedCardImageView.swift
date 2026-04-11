@@ -24,11 +24,39 @@ struct DoubleFacedCardImageView: View {
     let enableZoomGestures: ZoomOverlayInitationGestures?
     let zoomGestureBasisAdjustment: CGFloat?
 
-    @State private var frontFaceRotation: Rotation = .upright
-    @State private var backFaceRotation: Rotation = .upright
+    @State private var frontFaceRotation: Rotation
+    @State private var backFaceRotation: Rotation
 
-    private var currentOrientation: Card.Orientation {
-        isShowingBackFace ? backFaceOrientation : frontFaceOrientation
+    init(
+        frontFace: CardFaceDisplayable,
+        backFace: CardFaceDisplayable,
+        frontFaceOrientation: Card.Orientation,
+        backFaceOrientation: Card.Orientation,
+        quality: CardImageQuality,
+        isShowingBackFace: Binding<Bool>,
+        cornerRadius: CGFloat,
+        enableTransforms: CardImageView.FaceTransforms,
+        enableCopyActions: Bool,
+        enableZoomGestures: ZoomOverlayInitationGestures?,
+        zoomGestureBasisAdjustment: CGFloat?
+    ) {
+        self.frontFace = frontFace
+        self.backFace = backFace
+        self.frontFaceOrientation = frontFaceOrientation
+        self.backFaceOrientation = backFaceOrientation
+        self.quality = quality
+        self._isShowingBackFace = isShowingBackFace
+        self.cornerRadius = cornerRadius
+        self.enableTransforms = enableTransforms
+        self.enableCopyActions = enableCopyActions
+        self.enableZoomGestures = enableZoomGestures
+        self.zoomGestureBasisAdjustment = zoomGestureBasisAdjustment
+        _frontFaceRotation = State(initialValue: frontFaceOrientation.initialRotation(for: enableTransforms))
+        _backFaceRotation = State(initialValue: backFaceOrientation.initialRotation(for: enableTransforms))
+    }
+
+    private var currentScale: CGFloat {
+        isShowingBackFace ? backFaceRotation.scale : frontFaceRotation.scale
     }
 
     private var rotationAxis: (x: CGFloat, y: CGFloat, z: CGFloat) {
@@ -57,7 +85,7 @@ struct DoubleFacedCardImageView: View {
                         zoomGestureBasisAdjustment: zoomGestureBasisAdjustment,
                     )
                     .rotationEffect(frontFaceRotation.angle)
-                    .scaleEffect(frontFaceRotation.scale)
+                    .scaleEffect(currentScale)
                     .opacity(isShowingBackFace ? 0 : 1)
                     .rotation3DEffect(
                         .degrees(isShowingBackFace ? 180 : 0),
@@ -73,7 +101,7 @@ struct DoubleFacedCardImageView: View {
                         zoomGestureBasisAdjustment: zoomGestureBasisAdjustment,
                     )
                     .rotationEffect(backFaceRotation.angle)
-                    .scaleEffect(backFaceRotation.scale)
+                    .scaleEffect(currentScale)
                     .opacity(isShowingBackFace ? 1 : 0)
                     .rotation3DEffect(
                         .degrees(isShowingBackFace ? 0 : -180),
@@ -110,6 +138,7 @@ struct DoubleFacedCardImageView: View {
                         .opacity(isShowingBackFace ? 1 : 0)
                 }
             }
+            .animation(.spring(response: 0.4, dampingFraction: 0.8), value: isShowingBackFace)
         }
     }
 }

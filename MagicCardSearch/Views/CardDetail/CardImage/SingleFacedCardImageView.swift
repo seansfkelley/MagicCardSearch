@@ -11,8 +11,28 @@ struct SingleFacedCardImageView: View {
     let enableZoomGestures: ZoomOverlayInitationGestures?
     let zoomGestureBasisAdjustment: CGFloat?
 
-    // TODO: Initialize based on face orientation.
-    @State private var rotation: Rotation = .upright
+    @State private var rotation: Rotation
+
+    init(
+        face: CardFaceDisplayable,
+        orientation: Card.Orientation,
+        quality: CardImageQuality,
+        cornerRadius: CGFloat,
+        enableTransforms: CardImageView.FaceTransforms,
+        enableCopyActions: Bool,
+        enableZoomGestures: ZoomOverlayInitationGestures?,
+        zoomGestureBasisAdjustment: CGFloat?
+    ) {
+        self.face = face
+        self.orientation = orientation
+        self.quality = quality
+        self.cornerRadius = cornerRadius
+        self.enableTransforms = enableTransforms
+        self.enableCopyActions = enableCopyActions
+        self.enableZoomGestures = enableZoomGestures
+        self.zoomGestureBasisAdjustment = zoomGestureBasisAdjustment
+        _rotation = State(initialValue: orientation.initialRotation(for: enableTransforms))
+    }
 
     var body: some View {
         Group {

@@ -33,6 +33,13 @@ enum Rotation {
 }
 
 extension Card.Orientation {
+    func initialRotation(for enableTransforms: CardImageView.FaceTransforms) -> Rotation {
+        switch self {
+        case .landscape(let direction): enableTransforms == .all ? direction.rotation : .upright
+        case .portrait, .either, .flip: .upright
+        }
+    }
+
     func allowedOtherRotation(for enableTransforms: CardImageView.FaceTransforms) -> Rotation? {
         switch self {
         case .portrait:
