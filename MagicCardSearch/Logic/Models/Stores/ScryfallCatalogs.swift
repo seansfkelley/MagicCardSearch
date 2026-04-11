@@ -191,7 +191,7 @@ class ScryfallCatalogs {
             dumpCaches()
             UserDefaults.standard.set(Self.cacheBustingVersion, forKey: Self.cacheBustingVersionKey)
         } else {
-            logger.info("\(Self.cacheBustingVersionKey) changed; will not dump caches")
+            logger.info("\(Self.cacheBustingVersionKey) unchanged; will not dump caches")
         }
     }
 
