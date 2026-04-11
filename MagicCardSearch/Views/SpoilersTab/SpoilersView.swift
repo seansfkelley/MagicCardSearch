@@ -78,8 +78,8 @@ struct SpoilersView: View {
                 Divider()
                 SpoilersFilterBarView(sortOrder: $sortOrder, selectedColors: $selectedColors, showUniquePrints: $showUniquePrints)
             }
-            .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 20))
             .clipShape(RoundedRectangle(cornerRadius: 20))
+            .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 20))
             .padding(.horizontal)
         }
         .toolbar(.hidden, for: .navigationBar)
