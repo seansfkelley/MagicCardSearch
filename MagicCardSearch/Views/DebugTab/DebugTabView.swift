@@ -82,7 +82,7 @@ private struct DebugButton: View {
         }
         .listRowBackground(
             ZStack {
-                Color.white
+                Color(uiColor: .secondarySystemGroupedBackground)
                 Color.green.opacity(result == true ? 1 : 0)
                 Color.red.opacity(result == false ? 1 : 0)
             }
