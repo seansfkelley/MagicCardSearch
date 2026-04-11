@@ -68,28 +68,56 @@ struct SearchResultsGridView: View {
                             .foregroundStyle(.secondary)
                             .padding(.bottom)
 
-                        LazyVGrid(columns: columns, spacing: spacing) {
-                            ForEach(Array(results.data.enumerated()), id: \.element.id) { index, card in
-                                CardImageView(
-                                    card: card,
-                                    quality: .normal,
-                                    cornerRadius: 10,
-                                    isShowingBackFace: $cardFlipStates.for(card.id),
-                                    enableTransforms: .portrait,
-                                    enableCopyActions: true,
-                                    enableZoomGestures: .pinchOnly,
-                                    zoomGestureBasisAdjustment: 3.0,
-                                )
-                                .onTapGesture {
-                                    selectedCardIndex = .init(index)
-                                }
-                                .onAppear {
-                                    if index == results.data.count - 4 {
-                                        list.loadNextPage()
+                        if results.data.count == 1, let card = results.data.first {
+                            Grid(horizontalSpacing: 0, verticalSpacing: 0) {
+                                GridRow {
+                                    Color.clear
+
+                                    CardImageView(
+                                        card: card,
+                                        quality: .normal,
+                                        cornerRadius: 10,
+                                        isShowingBackFace: $cardFlipStates.for(card.id),
+                                        enableTransforms: .portrait,
+                                        enableCopyActions: true,
+                                        enableZoomGestures: .pinchOnly,
+                                        zoomGestureBasisAdjustment: 3.0,
+                                    )
+                                    .onTapGesture {
+                                        selectedCardIndex = .init(0)
                                     }
+                                    .padding(.horizontal, spacing / 2)
+                                    .overlay(alignment: .bottom) { overlaySortLabel(for: card) }
+                                    .gridCellColumns(2)
+
+                                    Color.clear
                                 }
-                                .padding(.horizontal, spacing / 2)
-                                .overlay(alignment: .bottom) { overlaySortLabel(for: card) }
+                            }
+                            .frame(maxWidth: .infinity)
+                        } else {
+                            LazyVGrid(columns: columns, spacing: spacing) {
+                                ForEach(Array(results.data.enumerated()), id: \.element.id) { index, card in
+                                    CardImageView(
+                                        card: card,
+                                        quality: .normal,
+                                        cornerRadius: 10,
+                                        isShowingBackFace: $cardFlipStates.for(card.id),
+                                        enableTransforms: .portrait,
+                                        enableCopyActions: true,
+                                        enableZoomGestures: .pinchOnly,
+                                        zoomGestureBasisAdjustment: 3.0,
+                                    )
+                                    .onTapGesture {
+                                        selectedCardIndex = .init(index)
+                                    }
+                                    .onAppear {
+                                        if index == results.data.count - 4 {
+                                            list.loadNextPage()
+                                        }
+                                    }
+                                    .padding(.horizontal, spacing / 2)
+                                    .overlay(alignment: .bottom) { overlaySortLabel(for: card) }
+                                }
                             }
                         }
 
