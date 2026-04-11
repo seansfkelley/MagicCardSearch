@@ -110,14 +110,13 @@ struct DoubleFacedCardImageView: View {
                         axis: rotationAxis,
                     )
                 }
-                .animation(.spring(response: 0.4, dampingFraction: 0.8), value: isShowingBackFace)
-                .animation(.spring(response: 0.4, dampingFraction: 0.8), value: frontFaceRotation)
-                .animation(.spring(response: 0.4, dampingFraction: 0.8), value: backFaceRotation)
                 .alignmentGuide(.centeredOnArt) { $0.height * 0.37 }
 
                 if enableTransforms != .none {
                     Button {
-                        isShowingBackFace.toggle()
+                        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                            isShowingBackFace.toggle()
+                        }
                     } label: {
                         Image(systemName: "arrow.left.arrow.right")
                             .font(.system(size: 16, weight: .semibold))
@@ -133,19 +132,14 @@ struct DoubleFacedCardImageView: View {
             if enableTransforms == .all {
                 let frontTarget = frontFaceOrientation.allowedOtherRotation(for: .all)
                 let backTarget = backFaceOrientation.allowedOtherRotation(for: .all)
+                let currentTarget = isShowingBackFace ? backTarget : frontTarget
 
-                if frontTarget != nil || backTarget != nil {
-                    ZStack {
-                        if let frontTarget {
-                            RotateButton(rotation: $frontFaceRotation, nonZero: frontTarget)
-                                .opacity(isShowingBackFace ? 0 : 1)
-                        }
-                        if let backTarget {
-                            RotateButton(rotation: $backFaceRotation, nonZero: backTarget)
-                                .opacity(isShowingBackFace ? 1 : 0)
-                        }
-                    }
-                    .animation(.spring(response: 0.4, dampingFraction: 0.8), value: isShowingBackFace)
+                if let currentTarget {
+                    RotateButton(
+                        rotation: isShowingBackFace ? $backFaceRotation : $frontFaceRotation,
+                        nonZero: currentTarget
+                    )
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
             }
         }

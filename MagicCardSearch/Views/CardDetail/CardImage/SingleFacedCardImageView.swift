@@ -45,7 +45,6 @@ struct SingleFacedCardImageView: View {
                 image
             }
         }
-        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: rotation)
     }
 
     @ViewBuilder

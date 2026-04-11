@@ -6,7 +6,7 @@ struct RotateButton: View {
 
     var body: some View {
         Button {
-            withAnimation {
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
                 rotation = rotation == .upright ? nonZero : .upright
             }
         } label: {
