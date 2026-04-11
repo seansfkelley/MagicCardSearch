@@ -127,20 +127,25 @@ struct DoubleFacedCardImageView: View {
                     .shadow(color: .black.opacity(0.2), radius: 3, x: 0, y: 2)
                 }
             }
-        }
 
-        if enableTransforms == .all {
-            ZStack {
-                if let target = frontFaceOrientation.allowedOtherRotation(for: .all) {
-                    RotateButton(rotation: $frontFaceRotation, nonZero: target)
-                        .opacity(isShowingBackFace ? 0 : 1)
-                }
-                if let target = backFaceOrientation.allowedOtherRotation(for: .all) {
-                    RotateButton(rotation: $backFaceRotation, nonZero: target)
-                        .opacity(isShowingBackFace ? 1 : 0)
+            if enableTransforms == .all {
+                let frontTarget = frontFaceOrientation.allowedOtherRotation(for: .all)
+                let backTarget = backFaceOrientation.allowedOtherRotation(for: .all)
+
+                if frontTarget != nil || backTarget != nil {
+                    ZStack {
+                        if let frontTarget {
+                            RotateButton(rotation: $frontFaceRotation, nonZero: frontTarget)
+                                .opacity(isShowingBackFace ? 0 : 1)
+                        }
+                        if let backTarget {
+                            RotateButton(rotation: $backFaceRotation, nonZero: backTarget)
+                                .opacity(isShowingBackFace ? 1 : 0)
+                        }
+                    }
+                    .animation(.spring(response: 0.4, dampingFraction: 0.8), value: isShowingBackFace)
                 }
             }
-            .animation(.spring(response: 0.4, dampingFraction: 0.8), value: isShowingBackFace)
         }
     }
 }
