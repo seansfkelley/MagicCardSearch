@@ -52,6 +52,7 @@
 		21A5FC512EE9E76E0034E695 /* .swiftlint.yml */ = {isa = PBXFileReference; lastKnownFileType = text.yaml; path = .swiftlint.yml; sourceTree = "<group>"; };
 		21AAC6562F75D1C500BBADD9 /* MANUAL_TESTS.md */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MANUAL_TESTS.md; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.markdown; };
 		21B334112F0C53C50048627E /* CARD_EXAMPLES.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = CARD_EXAMPLES.md; sourceTree = "<group>"; };
+		21B6B3832F8B0270003EFABB /* CACHE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = CACHE.md; sourceTree = "<group>"; };
 		21B726BD2F0AFCDA00D2F951 /* DECISIONS.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = DECISIONS.md; sourceTree = "<group>"; };
 		21D3976C2EE23306008B3EFD /* README.md */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = README.md; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -164,6 +165,7 @@
 		2137B5A42EE139C60066BF7E = {
 			isa = PBXGroup;
 			children = (
+				21B6B3832F8B0270003EFABB /* CACHE.md */,
 				21AAC6562F75D1C500BBADD9 /* MANUAL_TESTS.md */,
 				21D3976C2EE23306008B3EFD /* README.md */,
 				21B726BD2F0AFCDA00D2F951 /* DECISIONS.md */,
