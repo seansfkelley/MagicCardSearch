@@ -207,7 +207,7 @@ struct SearchLandingView: View {
                 ScrollView(.horizontal) {
                     LazyHStack(spacing: 8) {
                         ForEach(Array(recentlyViewedCards.enumerated()), id: \.element.id) { index, card in
-                            CardView(
+                            CardImageView(
                                 card: card,
                                 quality: .normal,
                                 cornerRadius: 8,

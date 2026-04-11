@@ -42,9 +42,9 @@ struct CardDetailView: View {
     struct Placeholder: View {
         let name: String?
         let cornerRadius: CGFloat
-        let decoration: CardView.Placeholder.Decoration
+        let decoration: CardImageView.Placeholder.Decoration
 
-        init(name: String?, cornerRadius: CGFloat, with decoration: CardView.Placeholder.Decoration = .none) {
+        init(name: String?, cornerRadius: CGFloat, with decoration: CardImageView.Placeholder.Decoration = .none) {
             self.name = name
             self.cornerRadius = cornerRadius
             self.decoration = decoration
@@ -52,7 +52,7 @@ struct CardDetailView: View {
 
         var body: some View {
             VStack(spacing: 0) {
-                CardView.Placeholder(name: name, cornerRadius: cornerRadius, with: decoration)
+                CardImageView.Placeholder(name: name, cornerRadius: cornerRadius, with: decoration)
                     .padding(.horizontal)
                 Spacer()
             }
@@ -81,7 +81,7 @@ struct CardDetailView: View {
             // is (near) visible, which seems like all upside and helps avoid getting rate-limited
             // by Scryfall.
             LazyVStack(spacing: 0) {
-                CardView(
+                CardImageView(
                     card: card,
                     quality: .large,
                     cornerRadius: 16,

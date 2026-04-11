@@ -1,192 +1,11 @@
 import SwiftUI
 import ScryfallKit
-import NukeUI
 
-extension Card {
-    enum Orientation: Equatable {
-        enum LandscapeDirection: Equatable {
-            case clockwise, counterclockwise
-        }
-
-        case portrait
-        case landscape(LandscapeDirection)
-        // either implies portrait default.
-        case either(LandscapeDirection)
-        case flip
-    }
-}
-
-private enum Rotation {
-    enum Axis {
-        case horizontal, vertical
+struct CardImageView: View {
+    enum FaceTransforms {
+        case none, portrait, all
     }
 
-    case zero, clockwise, counterclockwise, upsideDown
-
-    var angle: Angle {
-        switch self {
-        case .zero: .degrees(0)
-        case .clockwise: .degrees(90)
-        case .counterclockwise: .degrees(-90)
-        case .upsideDown: .degrees(180)
-        }
-    }
-
-    var scale: CGFloat {
-        switch self {
-        case .zero, .upsideDown: 1
-        case .clockwise, .counterclockwise: Card.aspectRatio
-        }
-    }
-
-    var axis: Axis {
-        switch self {
-        case .zero, .upsideDown: .vertical
-        case .clockwise, .counterclockwise: .horizontal
-        }
-    }
-}
-
-private extension Card.Orientation.LandscapeDirection {
-    var rotation: Rotation {
-        switch self {
-        case .clockwise: .clockwise
-        case .counterclockwise: .counterclockwise
-        }
-    }
-}
-
-private extension Card.Orientation {
-    func allowedOtherRotation(for enableTransforms: CardFaceTransforms) -> Rotation? {
-        switch self {
-        case .portrait:
-            nil
-        case .landscape(let direction), .either(let direction):
-            enableTransforms == .all ? direction.rotation : nil
-        case .flip:
-            (enableTransforms == .portrait || enableTransforms == .all) ? .upsideDown : nil
-        }
-    }
-}
-
-protocol CardDisplayable {
-    var frontFace: CardFaceDisplayable { get }
-    var backFace: CardFaceDisplayable? { get }
-
-    // It's hard to thread the necessary data to the face itself without implementing wrapper types,
-    // so just keep it at the whole-card level.
-    var frontFaceOrientation: Card.Orientation { get }
-    var backFaceOrientation: Card.Orientation { get }
-}
-
-private struct MeldBackFace: CardFaceDisplayable {
-    let name: String
-    let imageUris: Card.ImageUris?
-
-    init(_ card: Card) {
-        self.name = card.allParts?.first(where: { $0.component == .meldResult })?.name ?? card.name
-        guard let backId = card.cardBackId else {
-            self.imageUris = nil
-            return
-        }
-        let uuidStr = backId.uuidString.lowercased()
-        let a = uuidStr.prefix(1)
-        let b = uuidStr.dropFirst().prefix(1)
-        self.imageUris = Card.ImageUris(
-            small: "https://backs.scryfall.io/small/\(a)/\(b)/\(uuidStr).jpg",
-            normal: "https://backs.scryfall.io/normal/\(a)/\(b)/\(uuidStr).jpg",
-            large: "https://backs.scryfall.io/large/\(a)/\(b)/\(uuidStr).jpg",
-            png: "https://backs.scryfall.io/png/\(a)/\(b)/\(uuidStr).png",
-            artCrop: "https://backs.scryfall.io/art_crop/\(a)/\(b)/\(uuidStr).jpg",
-            borderCrop: "https://backs.scryfall.io/border_crop/\(a)/\(b)/\(uuidStr).jpg",
-        )
-    }
-}
-
-extension Card: CardDisplayable {
-    var frontFace: CardFaceDisplayable {
-        // Instead of enumerating which layouts are double-faced, which can get out of date, just
-        // look at which faces actually have images to go with them. Physically single-sided cards
-        // have the image URIs on the Card, whereas physically double-sided cards have them on each
-        // face. This applies even for art series, ECL-style redundant-double-sided cards, and flip
-        // cards.
-        if let face = cardFaces?.first, face.imageUris != nil {
-            face
-        } else {
-            self
-        }
-    }
-    var backFace: CardFaceDisplayable? {
-        // See above comment for logic.
-        if let face = cardFaces?.second, face.imageUris != nil {
-            face
-        } else if layout == .meld {
-            MeldBackFace(self)
-        } else {
-            nil
-        }
-    }
-
-    var frontFaceOrientation: Orientation {
-        if layout == .flip {
-            .flip
-        } else if layout == .split {
-            keywords.contains("Aftermath")
-            ? .either(.counterclockwise)
-            : .landscape(.clockwise)
-        } else if typeLine?.starts(with: "Battle ") ?? false {
-            // While listed in the documentation, no cards actually have layout:battle, so we have
-            // to inspect the type line instead.
-            .landscape(.clockwise)
-        } else {
-            .portrait
-        }
-    }
-
-    var backFaceOrientation: Orientation {
-        // I think this is the only current case for a non-portrait back face.
-        layout == .meld ? .landscape(.counterclockwise) : .portrait
-    }
-}
-
-protocol CardFaceDisplayable {
-    var name: String { get }
-    var imageUris: Card.ImageUris? { get }
-}
-
-extension Card: CardFaceDisplayable {}
-extension Card.Face: CardFaceDisplayable {}
-extension BookmarkableCardFace: CardFaceDisplayable {}
-
-// MARK: - Image Quality
-
-enum CardImageQuality {
-    case small
-    case normal
-    case large
-    
-    func uri(from: Card.ImageUris?) -> String? {
-        switch self {
-        case .small: from?.small
-        case .normal: from?.normal
-        case .large: from?.large
-        }
-    }
-    
-    static func bestQualityUri(from uris: Card.ImageUris?) -> String? {
-        uris?.large ?? uris?.normal ?? uris?.small
-    }
-}
-
-enum CardFaceTransforms {
-    case none, portrait, all
-}
-
-private enum CardTransform {
-    case upright, sideways, upsideDown
-}
-
-struct CardView: View {
     struct Placeholder: View {
         enum Decoration {
             case none, spinner
@@ -313,7 +132,7 @@ struct CardView: View {
     let quality: CardImageQuality
     let cornerRadius: CGFloat
     @Binding var isShowingBackFace: Bool
-    let enableTransforms: CardFaceTransforms
+    let enableTransforms: FaceTransforms
     let enableCopyActions: Bool
     let enableZoomGestures: ZoomOverlayInitationGestures?
     let zoomGestureBasisAdjustment: CGFloat?
@@ -323,7 +142,7 @@ struct CardView: View {
         quality: CardImageQuality,
         cornerRadius: CGFloat,
         isShowingBackFace: Binding<Bool> = .constant(false),
-        enableTransforms: CardFaceTransforms = .none,
+        enableTransforms: FaceTransforms = .none,
         enableCopyActions: Bool = false,
         enableZoomGestures: ZoomOverlayInitationGestures? = nil,
         zoomGestureBasisAdjustment: CGFloat? = nil,
@@ -340,7 +159,7 @@ struct CardView: View {
 
     var body: some View {
         if let backFace = card.backFace {
-            DoubleFacedCardView(
+            DoubleFacedCardImageView(
                 frontFace: card.frontFace,
                 backFace: backFace,
                 frontFaceOrientation: card.frontFaceOrientation,
@@ -354,7 +173,7 @@ struct CardView: View {
                 zoomGestureBasisAdjustment: zoomGestureBasisAdjustment,
             )
         } else {
-            SingleFacedCardView(
+            SingleFacedCardImageView(
                 face: card.frontFace,
                 orientation: card.frontFaceOrientation,
                 quality: quality,
@@ -364,237 +183,6 @@ struct CardView: View {
                 enableZoomGestures: enableZoomGestures,
                 zoomGestureBasisAdjustment: zoomGestureBasisAdjustment,
             )
-        }
-    }
-}
-
-private struct LazyCardImageView: View {
-    let face: CardFaceDisplayable
-    let quality: CardImageQuality
-    let cornerRadius: CGFloat
-    let enableCopyActions: Bool
-    let enableZoomGestures: ZoomOverlayInitationGestures?
-    let zoomGestureBasisAdjustment: CGFloat?
-
-    var body: some View {
-        Group {
-            if let imageUrlString = quality.uri(from: face.imageUris),
-               let url = URL(string: imageUrlString) {
-                LazyImage(url: url) { state in
-                    if let image = state.image {
-                        image
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
-                            .if(enableZoomGestures) { view, gestures in
-                                view.zoomOverlay(
-                                    for: state.imageContainer?.image,
-                                    clippingTo: AnyShape(RoundedRectangle(cornerRadius: cornerRadius)),
-                                    initatedWith: gestures,
-                                    zoomBasisAdjustment: zoomGestureBasisAdjustment ?? 1.0,
-                                )
-                            }
-                            .if(enableCopyActions) { view in
-                                view.contextMenu {
-                                    if let shareUrlString = CardImageQuality.bestQualityUri(from: face.imageUris),
-                                       let url = URL(string: shareUrlString) {
-                                        ShareLink(item: url, preview: SharePreview(face.name, image: image))
-                                    }
-
-                                    Button {
-                                        if let container = state.imageContainer {
-                                            UIPasteboard.general.image = container.image
-                                        }
-                                    } label: {
-                                        Label("Copy", systemImage: "doc.on.doc")
-                                    }
-                                }
-                            }
-                            .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
-                    } else if state.error != nil {
-                        CardView.Placeholder(name: face.name, cornerRadius: cornerRadius)
-                    } else {
-                        CardView.Placeholder(name: face.name, cornerRadius: cornerRadius, with: .spinner)
-                    }
-                }
-            } else {
-                CardView.Placeholder(name: face.name, cornerRadius: cornerRadius)
-            }
-        }
-        .aspectRatio(Card.aspectRatio, contentMode: .fit)
-        .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
-    }
-}
-
-private struct SingleFacedCardView: View {
-    let face: CardFaceDisplayable
-    let orientation: Card.Orientation
-    let quality: CardImageQuality
-    let cornerRadius: CGFloat
-    let enableTransforms: CardFaceTransforms
-    let enableCopyActions: Bool
-    let enableZoomGestures: ZoomOverlayInitationGestures?
-    let zoomGestureBasisAdjustment: CGFloat?
-
-    // TODO: Initialize based on face orientation.
-    @State private var rotation: Rotation = .zero
-
-    var body: some View {
-        Group {
-            if let target = orientation.allowedOtherRotation(for: enableTransforms) {
-                VStack(spacing: 10) {
-                    image
-                    RotateButton(rotation: $rotation, nonZero: target)
-                }
-            } else {
-                image
-            }
-        }
-        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: rotation)
-    }
-
-
-
-    @ViewBuilder
-    private var image: some View {
-        LazyCardImageView(
-            face: face,
-            quality: quality,
-            cornerRadius: cornerRadius,
-            enableCopyActions: enableCopyActions,
-            enableZoomGestures: enableZoomGestures,
-            zoomGestureBasisAdjustment: zoomGestureBasisAdjustment,
-        )
-        .rotationEffect(rotation.angle)
-        .scaleEffect(rotation.scale)
-    }
-}
-
-private extension VerticalAlignment {
-    struct CenteredOnArt: AlignmentID {
-        static func defaultValue(in context: ViewDimensions) -> CGFloat {
-            context.height * 0.33 // empirical
-        }
-    }
-    
-    static let centeredOnArt = VerticalAlignment(CenteredOnArt.self)
-}
-
-private struct DoubleFacedCardView: View {
-    let frontFace: CardFaceDisplayable
-    let backFace: CardFaceDisplayable
-    let frontFaceOrientation: Card.Orientation
-    let backFaceOrientation: Card.Orientation
-    let quality: CardImageQuality
-    @Binding var isShowingBackFace: Bool
-    let cornerRadius: CGFloat
-    let enableTransforms: CardFaceTransforms
-    let enableCopyActions: Bool
-    let enableZoomGestures: ZoomOverlayInitationGestures?
-    let zoomGestureBasisAdjustment: CGFloat?
-
-    @State private var frontFaceRotation: Rotation = .zero
-    @State private var backFaceRotation: Rotation = .zero
-
-    private var currentOrientation: Card.Orientation {
-        isShowingBackFace ? backFaceOrientation : frontFaceOrientation
-    }
-
-    private var rotationAxis: (x: CGFloat, y: CGFloat, z: CGFloat) {
-        switch enableTransforms {
-        case .none, .portrait:
-            (x: 0, y: 1, z: 0)
-        case .all:
-            if frontFaceRotation.axis == backFaceRotation.axis {
-                (x: 0, y: 1, z: 0)
-            } else {
-                (x: 1, y: -1, z: 0)
-            }
-        }
-    }
-
-    var body: some View {
-        VStack {
-            ZStack(alignment: Alignment(horizontal: .trailing, vertical: .centeredOnArt)) {
-                ZStack {
-                    LazyCardImageView(
-                        face: frontFace,
-                        quality: quality,
-                        cornerRadius: cornerRadius,
-                        enableCopyActions: enableCopyActions,
-                        enableZoomGestures: enableZoomGestures,
-                        zoomGestureBasisAdjustment: zoomGestureBasisAdjustment,
-                    )
-                    .rotationEffect(frontFaceRotation.angle)
-                    .scaleEffect(frontFaceRotation.scale)
-                    .opacity(isShowingBackFace ? 0 : 1)
-                    .rotation3DEffect(
-                        .degrees(isShowingBackFace ? 180 : 0),
-                        axis: rotationAxis,
-                    )
-
-                    LazyCardImageView(
-                        face: backFace,
-                        quality: quality,
-                        cornerRadius: cornerRadius,
-                        enableCopyActions: enableCopyActions,
-                        enableZoomGestures: enableZoomGestures,
-                        zoomGestureBasisAdjustment: zoomGestureBasisAdjustment,
-                    )
-                    .rotationEffect(backFaceRotation.angle)
-                    .scaleEffect(backFaceRotation.scale)
-                    .opacity(isShowingBackFace ? 1 : 0)
-                    .rotation3DEffect(
-                        .degrees(isShowingBackFace ? 0 : -180),
-                        axis: rotationAxis,
-                    )
-                }
-                .animation(.spring(response: 0.4, dampingFraction: 0.8), value: isShowingBackFace)
-                .alignmentGuide(.centeredOnArt) { $0.height * 0.37 }
-
-                if enableTransforms != .none {
-                    Button {
-                        isShowingBackFace.toggle()
-                    } label: {
-                        Image(systemName: "arrow.triangle.2.circlepath")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundStyle(.primary)
-                            .padding(8)
-                    }
-                    .buttonStyle(.glass)
-                    .buttonBorderShape(.circle)
-                    .shadow(color: .black.opacity(0.2), radius: 3, x: 0, y: 2)
-                }
-            }
-        }
-
-        if enableTransforms == .all {
-            ZStack {
-                if let target = frontFaceOrientation.allowedOtherRotation(for: .all) {
-                    RotateButton(rotation: $frontFaceRotation, nonZero: target)
-                        .opacity(isShowingBackFace ? 0 : 1)
-                }
-                if let target = backFaceOrientation.allowedOtherRotation(for: .all) {
-                    RotateButton(rotation: $backFaceRotation, nonZero: target)
-                        .opacity(isShowingBackFace ? 1 : 0)
-                }
-            }
-        }
-    }
-
-}
-
-private struct RotateButton: View {
-    @Binding var rotation: Rotation
-    let nonZero: Rotation
-
-    var body: some View {
-        Button {
-            withAnimation {
-                rotation = rotation == .zero ? nonZero : .zero
-            }
-        } label: {
-            Label("Rotate", systemImage: "arrow.trianglehead.2.clockwise.rotate.90")
         }
     }
 }
@@ -738,27 +326,27 @@ private extension PreviewCard {
 #Preview("Placeholders") {
     ScrollView {
         VStack {
-            CardView.Placeholder(
+            CardImageView.Placeholder(
                 name: nil,
                 cornerRadius: 16,
                 with: .none,
             )
-            CardView.Placeholder(
+            CardImageView.Placeholder(
                 name: nil,
                 cornerRadius: 16,
                 with: .image("shuffle"),
             )
-            CardView.Placeholder(
+            CardImageView.Placeholder(
                 name: "Lightning Bolt",
                 cornerRadius: 16,
                 with: .spinner,
             )
-            CardView.Placeholder(
+            CardImageView.Placeholder(
                 name: "Lightning Bolt",
                 cornerRadius: 16,
                 with: .action("exclamationmark.triangle", "Could not connect to Scryfall.", nil),
             )
-            CardView.Placeholder(
+            CardImageView.Placeholder(
                 name: "Lightning Bolt",
                 cornerRadius: 16,
                 with: .action(
@@ -774,7 +362,7 @@ private extension PreviewCard {
 
 #Preview("Lightning Bolt") {
     @Previewable @State var isShowingBackFace = false
-    CardView(
+    CardImageView(
         card: PreviewCard.lightningBolt,
         quality: .normal,
         cornerRadius: 12,
@@ -787,7 +375,7 @@ private extension PreviewCard {
 
 #Preview("Life // Death") {
     @Previewable @State var isShowingBackFace = false
-    CardView(
+    CardImageView(
         card: PreviewCard.lifeAndDeath,
         quality: .normal,
         cornerRadius: 12,
@@ -800,7 +388,7 @@ private extension PreviewCard {
 
 #Preview("Consign // Oblivion") {
     @Previewable @State var isShowingBackFace = false
-    CardView(
+    CardImageView(
         card: PreviewCard.consignAndOblivion,
         quality: .normal,
         cornerRadius: 12,
@@ -813,7 +401,7 @@ private extension PreviewCard {
 
 #Preview("Liliana, Heretical Healer") {
     @Previewable @State var isShowingBackFace = false
-    CardView(
+    CardImageView(
         card: PreviewCard.liliana,
         quality: .normal,
         cornerRadius: 12,
@@ -826,7 +414,7 @@ private extension PreviewCard {
 
 #Preview("Invasion of Zendikar") {
     @Previewable @State var isShowingBackFace = false
-    CardView(
+    CardImageView(
         card: PreviewCard.invasionOfZendikar,
         quality: .normal,
         cornerRadius: 12,
@@ -839,7 +427,7 @@ private extension PreviewCard {
 
 #Preview("Invalid") {
     @Previewable @State var isShowingBackFace = false
-    CardView(
+    CardImageView(
         card: PreviewCard.invalid,
         quality: .normal,
         cornerRadius: 12,

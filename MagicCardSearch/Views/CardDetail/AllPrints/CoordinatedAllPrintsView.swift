@@ -110,7 +110,7 @@ private struct PagingCardImageView: View {
                         // ZStack exists just to separate the padding from the GeometryReader so it
                         // can accurately see how large the card itself is.
                         ZStack {
-                            CardView(
+                            CardImageView(
                                 card: card,
                                 quality: .large,
                                 cornerRadius: 16,
@@ -230,7 +230,7 @@ private struct ThumbnailPreviewStrip: View {
         ScrollView(.horizontal) {
             LazyHStack(spacing: thumbnailSpacing) {
                 ForEach(cards.items, id: \.id) { card in
-                    CardView(
+                    CardImageView(
                         card: card,
                         quality: .small,
                         cornerRadius: 4,

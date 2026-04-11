@@ -70,7 +70,7 @@ struct SearchResultsGridView: View {
 
                         LazyVGrid(columns: columns, spacing: spacing) {
                             ForEach(Array(results.data.enumerated()), id: \.element.id) { index, card in
-                                CardView(
+                                CardImageView(
                                     card: card,
                                     quality: .normal,
                                     cornerRadius: 10,
