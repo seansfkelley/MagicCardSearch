@@ -83,6 +83,7 @@ struct DoubleFacedCardImageView: View {
                         enableCopyActions: enableCopyActions,
                         enableZoomGestures: enableZoomGestures,
                         zoomGestureBasisAdjustment: zoomGestureBasisAdjustment,
+                        imageRotation: frontFaceRotation,
                     )
                     .rotationEffect(frontFaceRotation.angle)
                     .scaleEffect(currentScale)
@@ -99,6 +100,7 @@ struct DoubleFacedCardImageView: View {
                         enableCopyActions: enableCopyActions,
                         enableZoomGestures: enableZoomGestures,
                         zoomGestureBasisAdjustment: zoomGestureBasisAdjustment,
+                        imageRotation: backFaceRotation,
                     )
                     .rotationEffect(backFaceRotation.angle)
                     .scaleEffect(currentScale)

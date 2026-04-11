@@ -57,6 +57,7 @@ struct SingleFacedCardImageView: View {
             enableCopyActions: enableCopyActions,
             enableZoomGestures: enableZoomGestures,
             zoomGestureBasisAdjustment: zoomGestureBasisAdjustment,
+            imageRotation: rotation,
         )
         .rotationEffect(rotation.angle)
         .scaleEffect(rotation.scale)

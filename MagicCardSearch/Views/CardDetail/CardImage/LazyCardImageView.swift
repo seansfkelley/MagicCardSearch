@@ -9,6 +9,7 @@ struct LazyCardImageView: View {
     let enableCopyActions: Bool
     let enableZoomGestures: ZoomOverlayInitationGestures?
     let zoomGestureBasisAdjustment: CGFloat?
+    var imageRotation: Rotation
 
     var body: some View {
         Group {
@@ -22,7 +23,7 @@ struct LazyCardImageView: View {
                             .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
                             .if(enableZoomGestures) { view, gestures in
                                 view.zoomOverlay(
-                                    for: state.imageContainer?.image,
+                                    for: (state.imageContainer?.image).map { imageRotation.applied(to: $0) },
                                     clippingTo: AnyShape(RoundedRectangle(cornerRadius: cornerRadius)),
                                     initatedWith: gestures,
                                     zoomBasisAdjustment: zoomGestureBasisAdjustment ?? 1.0,
@@ -57,5 +58,21 @@ struct LazyCardImageView: View {
         }
         .aspectRatio(Card.aspectRatio, contentMode: .fit)
         .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
+    }
+}
+
+private extension Rotation {
+    /// Returns a UIImage with orientation metadata set to match this rotation.
+    /// Uses a metadata-only transform (no pixel copy) for efficiency.
+    /// The underlying CGImage is shared with the original, preserving identity for zoom overlay comparisons.
+    func applied(to image: UIImage) -> UIImage {
+        guard let cgImage = image.cgImage else { return image }
+        let orientation: UIImage.Orientation = switch self {
+        case .clockwise: .right
+        case .counterclockwise: .left
+        case .upsideDown: .down
+        case .upright: .up
+        }
+        return UIImage(cgImage: cgImage, scale: image.scale, orientation: orientation)
     }
 }

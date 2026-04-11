@@ -48,13 +48,18 @@ struct ZoomOverlayInitiatingGestureView: UIViewRepresentable {
         return view
     }
 
-    func updateUIView(_ uiView: UIView, context: Context) {}
+    func updateUIView(_ uiView: UIView, context: Context) {
+        // The image can change if it's been rotated. It might be most correct for all the fields to
+        // change, but that wasn't necessary to to fix the issue with rotatable images so I didn't
+        // bother testing.
+        context.coordinator.uiImage = uiImage
+    }
 
     // n.b. can't make this private and don't want to rename it, so can't pull it out to file scope
     // else it will collide with the other Coordinator and generally be vague.
     @MainActor
     final class Coordinator: NSObject, UIGestureRecognizerDelegate {
-        private let uiImage: UIImage
+        var uiImage: UIImage
         private let clipShape: AnyShape?
         private let initiatingGestures: ZoomOverlayInitationGestures
         private let zoomBasisAdjustment: CGFloat

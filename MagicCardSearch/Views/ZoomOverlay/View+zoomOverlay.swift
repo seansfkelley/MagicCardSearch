@@ -49,6 +49,6 @@ private struct ZoomOverlayModifier: ViewModifier {
 
     private var isOverlayActiveForThisImage: Bool {
         guard let uiImage, state.isVisible else { return false }
-        return state.image === uiImage
+        return state.image?.cgImage === uiImage.cgImage
     }
 }
