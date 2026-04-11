@@ -66,6 +66,11 @@ protocol CardDisplayable {
     var backFaceOrientation: Card.Orientation { get }
 }
 
+private struct SyntheticBackFace: CardFaceDisplayable {
+    let name: String
+    let imageUris: Card.ImageUris?
+}
+
 extension Card: CardDisplayable {
     var frontFace: CardFaceDisplayable {
         // Instead of enumerating which layouts are double-faced, which can get out of date, just
@@ -83,6 +88,18 @@ extension Card: CardDisplayable {
         // See above comment for logic.
         if let face = cardFaces?.second, face.imageUris != nil {
             face
+        } else if layout == .meld {
+            SyntheticBackFace(
+                name: name, // TODO
+                imageUris: Card.ImageUris(
+                    small: nil,
+                    normal: nil,
+                    large: "https://backs.scryfall.io/large/c/3/c3719a8e-3197-4862-8bbb-1c92160aff0c.jpg",
+                    png: nil,
+                    artCrop: nil,
+                    borderCrop: nil,
+                ),
+            )
         } else {
             nil
         }
@@ -105,8 +122,8 @@ extension Card: CardDisplayable {
     }
 
     var backFaceOrientation: Orientation {
-        // I think this is it?
-        layout == .meld ? .landscape(.clockwise) : .portrait
+        // I think this is the only current case for a non-portrait back face.
+        layout == .meld ? .landscape(.counterclockwise) : .portrait
     }
 }
 
