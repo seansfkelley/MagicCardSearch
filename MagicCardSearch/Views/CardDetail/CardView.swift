@@ -66,9 +66,28 @@ protocol CardDisplayable {
     var backFaceOrientation: Card.Orientation { get }
 }
 
-private struct SyntheticBackFace: CardFaceDisplayable {
+private struct MeldBackFace: CardFaceDisplayable {
     let name: String
     let imageUris: Card.ImageUris?
+
+    init(_ card: Card) {
+        self.name = card.allParts?.first(where: { $0.component == .meldResult })?.name ?? card.name
+        guard let backId = card.cardBackId else {
+            self.imageUris = nil
+            return
+        }
+        let uuidStr = backId.uuidString.lowercased()
+        let a = uuidStr.prefix(1)
+        let b = uuidStr.dropFirst().prefix(1)
+        self.imageUris = Card.ImageUris(
+            small: "https://backs.scryfall.io/small/\(a)/\(b)/\(uuidStr).jpg",
+            normal: "https://backs.scryfall.io/normal/\(a)/\(b)/\(uuidStr).jpg",
+            large: "https://backs.scryfall.io/large/\(a)/\(b)/\(uuidStr).jpg",
+            png: "https://backs.scryfall.io/png/\(a)/\(b)/\(uuidStr).png",
+            artCrop: "https://backs.scryfall.io/art_crop/\(a)/\(b)/\(uuidStr).jpg",
+            borderCrop: "https://backs.scryfall.io/border_crop/\(a)/\(b)/\(uuidStr).jpg",
+        )
+    }
 }
 
 extension Card: CardDisplayable {
@@ -89,17 +108,7 @@ extension Card: CardDisplayable {
         if let face = cardFaces?.second, face.imageUris != nil {
             face
         } else if layout == .meld {
-            SyntheticBackFace(
-                name: name, // TODO
-                imageUris: Card.ImageUris(
-                    small: nil,
-                    normal: nil,
-                    large: "https://backs.scryfall.io/large/c/3/c3719a8e-3197-4862-8bbb-1c92160aff0c.jpg",
-                    png: nil,
-                    artCrop: nil,
-                    borderCrop: nil,
-                ),
-            )
+            MeldBackFace(self)
         } else {
             nil
         }
