@@ -435,7 +435,7 @@ private struct SingleFacedCardView: View {
                 if enableTransforms == .all {
                     VStack(spacing: 10) {
                         image
-                        rotateButton(.zero, direction.rotation)
+                        RotateButton(rotation: $rotation, one: .zero, two: direction.rotation)
                     }
                 } else {
                     image
@@ -444,7 +444,7 @@ private struct SingleFacedCardView: View {
                 if enableTransforms == .all {
                     VStack(spacing: 10) {
                         image
-                        rotateButton(.zero, direction.rotation)
+                        RotateButton(rotation: $rotation, one: .zero, two: direction.rotation)
                     }
                 } else {
                     image
@@ -453,7 +453,7 @@ private struct SingleFacedCardView: View {
                 if enableTransforms == .portrait || enableTransforms == .all {
                     VStack(spacing: 10) {
                         image
-                        rotateButton(.zero, .upsideDown)
+                        RotateButton(rotation: $rotation, one: .zero, two: .upsideDown)
                     }
                 } else {
                     image
@@ -463,16 +463,7 @@ private struct SingleFacedCardView: View {
         .animation(.spring(response: 0.4, dampingFraction: 0.8), value: rotation)
     }
 
-    @ViewBuilder
-    private func rotateButton(_ one: Rotation, _ two: Rotation) -> some View {
-        Button {
-            withAnimation {
-                rotation = rotation == one ? two : one
-            }
-        } label: {
-            Label("Rotate", systemImage: "arrow.trianglehead.2.clockwise.rotate.90")
-        }
-    }
+
 
     @ViewBuilder
     private var image: some View {
@@ -594,11 +585,11 @@ private struct DoubleFacedCardView: View {
                     case .portrait:
                         EmptyView()
                     case .landscape(let direction):
-                        rotateButton($frontFaceRotation, .zero, direction.rotation)
+                        RotateButton(rotation: $frontFaceRotation, one: .zero, two: direction.rotation)
                     case .either(let direction):
-                        rotateButton($frontFaceRotation, .zero, direction.rotation)
+                        RotateButton(rotation: $frontFaceRotation, one: .zero, two: direction.rotation)
                     case .flip:
-                        rotateButton($frontFaceRotation, .zero, .upsideDown)
+                        RotateButton(rotation: $frontFaceRotation, one: .zero, two: .upsideDown)
                     }
                 }
                 .opacity(isShowingBackFace ? 0 : 1)
@@ -608,11 +599,11 @@ private struct DoubleFacedCardView: View {
                     case .portrait:
                         EmptyView()
                     case .landscape(let direction):
-                        rotateButton($backFaceRotation, .zero, direction.rotation)
+                        RotateButton(rotation: $backFaceRotation, one: .zero, two: direction.rotation)
                     case .either(let direction):
-                        rotateButton($backFaceRotation, .zero, direction.rotation)
+                        RotateButton(rotation: $backFaceRotation, one: .zero, two: direction.rotation)
                     case .flip:
-                        rotateButton($backFaceRotation, .zero, .upsideDown)
+                        RotateButton(rotation: $backFaceRotation, one: .zero, two: .upsideDown)
                     }
                 }
                 .opacity(isShowingBackFace ? 1 : 0)
@@ -620,11 +611,17 @@ private struct DoubleFacedCardView: View {
         }
     }
 
-    @ViewBuilder
-    private func rotateButton(_ rotation: Binding<Rotation>, _ one: Rotation, _ two: Rotation) -> some View {
+}
+
+private struct RotateButton: View {
+    @Binding var rotation: Rotation
+    let one: Rotation
+    let two: Rotation
+
+    var body: some View {
         Button {
             withAnimation {
-                rotation.wrappedValue = rotation.wrappedValue == one ? two : one
+                rotation = rotation == one ? two : one
             }
         } label: {
             Label("Rotate", systemImage: "arrow.trianglehead.2.clockwise.rotate.90")
