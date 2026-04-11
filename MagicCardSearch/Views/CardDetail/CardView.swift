@@ -56,6 +56,19 @@ private extension Card.Orientation.LandscapeDirection {
     }
 }
 
+private extension Card.Orientation {
+    func allowedOtherRotation(for enableTransforms: CardFaceTransforms) -> Rotation? {
+        switch self {
+        case .portrait:
+            nil
+        case .landscape(let direction), .either(let direction):
+            enableTransforms == .all ? direction.rotation : nil
+        case .flip:
+            (enableTransforms == .portrait || enableTransforms == .all) ? .upsideDown : nil
+        }
+    }
+}
+
 protocol CardDisplayable {
     var frontFace: CardFaceDisplayable { get }
     var backFace: CardFaceDisplayable? { get }
@@ -428,36 +441,13 @@ private struct SingleFacedCardView: View {
 
     var body: some View {
         Group {
-            switch orientation {
-            case .portrait:
+            if let target = orientation.allowedOtherRotation(for: enableTransforms) {
+                VStack(spacing: 10) {
+                    image
+                    RotateButton(rotation: $rotation, nonZero: target)
+                }
+            } else {
                 image
-            case .landscape(let direction):
-                if enableTransforms == .all {
-                    VStack(spacing: 10) {
-                        image
-                        RotateButton(rotation: $rotation, one: .zero, two: direction.rotation)
-                    }
-                } else {
-                    image
-                }
-            case .either(let direction):
-                if enableTransforms == .all {
-                    VStack(spacing: 10) {
-                        image
-                        RotateButton(rotation: $rotation, one: .zero, two: direction.rotation)
-                    }
-                } else {
-                    image
-                }
-            case .flip:
-                if enableTransforms == .portrait || enableTransforms == .all {
-                    VStack(spacing: 10) {
-                        image
-                        RotateButton(rotation: $rotation, one: .zero, two: .upsideDown)
-                    }
-                } else {
-                    image
-                }
             }
         }
         .animation(.spring(response: 0.4, dampingFraction: 0.8), value: rotation)
@@ -580,33 +570,14 @@ private struct DoubleFacedCardView: View {
 
         if enableTransforms == .all {
             ZStack {
-                Group {
-                    switch frontFaceOrientation {
-                    case .portrait:
-                        EmptyView()
-                    case .landscape(let direction):
-                        RotateButton(rotation: $frontFaceRotation, one: .zero, two: direction.rotation)
-                    case .either(let direction):
-                        RotateButton(rotation: $frontFaceRotation, one: .zero, two: direction.rotation)
-                    case .flip:
-                        RotateButton(rotation: $frontFaceRotation, one: .zero, two: .upsideDown)
-                    }
+                if let target = frontFaceOrientation.allowedOtherRotation(for: .all) {
+                    RotateButton(rotation: $frontFaceRotation, nonZero: target)
+                        .opacity(isShowingBackFace ? 0 : 1)
                 }
-                .opacity(isShowingBackFace ? 0 : 1)
-
-                Group {
-                    switch backFaceOrientation {
-                    case .portrait:
-                        EmptyView()
-                    case .landscape(let direction):
-                        RotateButton(rotation: $backFaceRotation, one: .zero, two: direction.rotation)
-                    case .either(let direction):
-                        RotateButton(rotation: $backFaceRotation, one: .zero, two: direction.rotation)
-                    case .flip:
-                        RotateButton(rotation: $backFaceRotation, one: .zero, two: .upsideDown)
-                    }
+                if let target = backFaceOrientation.allowedOtherRotation(for: .all) {
+                    RotateButton(rotation: $backFaceRotation, nonZero: target)
+                        .opacity(isShowingBackFace ? 1 : 0)
                 }
-                .opacity(isShowingBackFace ? 1 : 0)
             }
         }
     }
@@ -615,13 +586,12 @@ private struct DoubleFacedCardView: View {
 
 private struct RotateButton: View {
     @Binding var rotation: Rotation
-    let one: Rotation
-    let two: Rotation
+    let nonZero: Rotation
 
     var body: some View {
         Button {
             withAnimation {
-                rotation = rotation == one ? two : one
+                rotation = rotation == .zero ? nonZero : .zero
             }
         } label: {
             Label("Rotate", systemImage: "arrow.trianglehead.2.clockwise.rotate.90")
