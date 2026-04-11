@@ -317,6 +317,21 @@ private extension PreviewCard {
         frontFaceOrientation: .landscape(.clockwise),
     )
 
+    static let homuraHumanAscendant = PreviewCard(
+        frontFace: PreviewCardFace(
+            name: "Homura, Human Ascendant",
+            imageUris: .init(
+                small: "https://cards.scryfall.io/small/front/8/4/84920a21-ee2a-41ac-a369-347633d10371.jpg?1562494702",
+                normal: "https://cards.scryfall.io/normal/front/8/4/84920a21-ee2a-41ac-a369-347633d10371.jpg?1562494702",
+                large: "https://cards.scryfall.io/large/front/8/4/84920a21-ee2a-41ac-a369-347633d10371.jpg?1562494702",
+                png: "https://cards.scryfall.io/png/front/8/4/84920a21-ee2a-41ac-a369-347633d10371.png?1562494702",
+                artCrop: "https://cards.scryfall.io/art_crop/front/8/4/84920a21-ee2a-41ac-a369-347633d10371.jpg?1562494702",
+                borderCrop: "https://cards.scryfall.io/border_crop/front/8/4/84920a21-ee2a-41ac-a369-347633d10371.jpg?1562494702"
+            )
+        ),
+        frontFaceOrientation: .flip,
+    )
+
     // Invalid (no image URIs)
     static let invalid = PreviewCard(
         frontFace: PreviewCardFace(name: "Invalid Card", imageUris: nil)
