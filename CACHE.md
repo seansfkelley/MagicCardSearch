@@ -7,20 +7,6 @@ A replacement for the third-party `Cache` package. Motivation: testability (mock
 ## API
 
 ```swift
-struct CacheEntry<V> {
-    let value: V
-    let expiryDate: Date?  // nil means never expires
-}
-
-enum Expiry {
-    case never
-    case date(Date)
-    case seconds(Int)
-    case minutes(Int)
-    case hours(Int)
-    case days(Int)
-}
-
 protocol Cache<K, V> {
     func get(_ key: K) -> V?
     func getWithMetadata(_ key: K) -> CacheEntry<V>?
@@ -29,6 +15,7 @@ protocol Cache<K, V> {
     func put(_ key: K, _ value: V, expiry: Expiry?)
     func remove(_ key: K)
     func clear()
+    var statistics: CacheStatistics { get }
 }
 
 extension Cache {
@@ -43,6 +30,31 @@ extension Cache {
     func put(_ key: K, _ value: V) {
         put(key, value, expiry: nil)
     }
+}
+
+struct CacheEntry<V> {
+    let value: V
+    let expiryDate: Date?  // nil means never expires
+}
+
+enum Expiry {
+    case never
+    case date(Date)
+    case seconds(Int)
+    case minutes(Int)
+    case hours(Int)
+    case days(Int)
+}
+
+struct CacheStatistics {
+    var hits: Int = 0
+    var misses: Int = 0
+    var writes: Int = 0        // from puts as well as get-through
+    var removals: Int = 0      // total entries removed by remove() and clear(); incremented by the number of entries removed, not 1 per call
+    var expirations: Int = 0   // things removed because they expired, regardless of what process found them to be expired
+    var evictions: Int = 0     // non-expired removals not triggered by remove/clear but by hitting limits
+    var getErrors: Int = 0     // errors from get-through closures 
+    var storageErrors: Int = 0 // backing store failures (decode, I/O, SQLite)
 }
 
 class WeakMemoryStorage<K: Hashable, V>: Cache<K, V> {
@@ -71,7 +83,7 @@ class DiskStorage<K: Codable & Hashable, V>: Cache<K, V> {
         now: @escaping () -> Date = Date.init,
     )
 }
-// Convenience init for Codable values — synthesizes encode/decode via JSONEncoder/JSONDecoder.
+// Convenience init for Codable values — synthesizes encode/decode via a Data conversion.
 extension DiskStorage where V: Codable {
     convenience init?(
         name: String, expiry: 
@@ -83,12 +95,17 @@ extension DiskStorage where V: Codable {
 }
 class TieredStorage<K, V>: Cache<K, V> {
     init(delegates: [any Cache<K, V>])
+    var delegateStatistics: [CacheStatistics] { get }
 }
 ```
 
 The `expiry` parameter on `get(_:expiry:through:)` and `put(_:_:expiry:)` overrides the storage's default expiry for that specific entry. Passing `nil` uses the storage's configured default. The convenience extensions (`put(_:_:)` and the no-expiry `get(_:through:)` variants) both pass `nil`, so they consistently inherit the storage's default — the same semantics as explicitly passing the default.
 
 **Backing store errors are not surfaced.** A cache is never the source of truth, so a read error (disk I/O failure, decode failure, etc.) is semantically equivalent to a miss — callers cannot meaningfully handle it differently from a miss anyway. Read errors are logged internally and treated as misses; the `through` closure is called as normal. Write errors (`put`, backfill) are also logged and dropped — the caller already has the value and can use it regardless of whether it was cached. This keeps the entire protocol free of `throws`.
+
+**Statistics counting** has negligible overhead and is controlled by each implementation's existing synchronization mechanism. `StrongMemoryStorage` increments stats under its existing `NSLock` (already held for every storage operation — no extra cost). `WeakMemoryStorage` and `TieredStorage` each hold a dedicated `private let statsLock = NSLock()` solely for their `_statistics`. `DiskStorage` also uses a dedicated `NSLock` for stats rather than routing counter increments through `DatabaseQueue`, which would be disproportionately heavy for a simple integer write. No atomics, sampling, or feature flags are needed.
+
+**`TieredStorage.statistics` uses caller-centric semantics**, not a sum of delegate statistics. A read that misses on tiers 1 and 2 but hits on tier 3 counts as one hit — from the caller's perspective, `get` returned a value. The internal tier traversal is an implementation detail. Backfill writes are not counted as `writes` — they are triggered by a read, not by the caller calling `put`. `TieredStorage` maintains its own independent `_statistics` (protected by a dedicated `statsLock`) for this purpose. For per-tier visibility, `delegateStatistics` returns each delegate's `statistics` in order.
 
 ## Implementations
 
@@ -118,7 +135,7 @@ Failable init — returns `nil` if the SQLite database cannot be opened or creat
 
 Two `DiskStorage` instances with the same `name` point to the same SQLite file. SQLite serializes concurrent writes across connections at the file level, so this is safe — writes from one instance are visible to the other on the next read. Prefer reusing a single instance rather than creating multiples with the same name.
 
-**Count limit:** `countLimit` is a hint, not a hard cap. On write, if `count > countLimit * 2`, a cleanup runs: delete expired entries first, then the soonest-expiring entries until under `countLimit`. `Expiry.never` entries are last to be evicted. If `.never` entries must be evicted (i.e., all remaining entries have no expiry), which one is chosen is nondeterministic — this is an explicit limitation.
+**Count limit:** `countLimit` is a hint, not a hard cap. `DiskStorage` maintains an in-memory `_count: Int` (protected by `statsLock`) initialized from `SELECT COUNT(*) FROM entries` on init, then kept current: `+1` on every successful `put`, `-n` after a cleanup run (GRDB returns the affected row count). This avoids a per-write `SELECT COUNT(*)` query. On write, if `_count > countLimit * 2`, a cleanup runs: delete expired entries first, then the soonest-expiring entries until under `countLimit`. `Expiry.never` entries are last to be evicted. If `.never` entries must be evicted (i.e., all remaining entries have no expiry), which one is chosen is nondeterministic — this is an explicit limitation.
 
 **Key serialization:** `K: Codable`, encoded to `Data` and stored as a `BLOB`. The encoding **must be stable across app versions** — if the serialized form of a key changes, prior entries for that key become unreachable (treated as misses). This holds for `String`, `UUID`, `Int`, and synthesized `Codable` structs/enums with stable field names. Types whose serialized form is non-deterministic or whose `Codable` synthesis may change between builds should not be used as `DiskStorage` keys. If a row's key fails to decode (e.g. after a key type change), the row is deleted.
 
@@ -138,11 +155,21 @@ Wraps an ordered list of `Cache` delegates (fastest first, e.g. memory before di
 
 ## Logging
 
-All caches should include suitable debug/info/warn/error logging for hits and misses, as appropriate.
+Use `Logger` from the `OSLog` framework for text logging and `OSSignposter` for signpost logging. Each concrete type should declare a private static `logger` and `signposter` using the app's bundle identifier as the subsystem and the type name as the category (e.g. `"StrongMemoryStorage"`).
 
-They should also include signpost logging via OSSignposter around closure calls, coaelescing waits, and database read/writes.
+**Log levels:**
+- **debug:** cache hits, `through` closure invocations on miss, backfill writes in `TieredStorage`, GC sweeps (entry count before/after)
+- **info:** `CoalescingCache` coalescence events — when a caller joins an already in-flight request for the same key rather than starting a new one
+- **error:** backing store read/write failures (decode errors, disk I/O errors, SQLite errors)
+
+**Signpost intervals** (`OSSignposter.beginInterval`/`endInterval`) should wrap:
+- `through` closure calls in `get(_:expiry:through:)`
+- The coalescing wait in `CoalescingCache.get` (from when a second caller joins the in-flight task to when it resolves)
+- SQLite reads and writes in `DiskStorage`
 
 ## Expiry & Garbage Collection
+
+**Expiry resolution:** Relative cases (`.seconds`, `.minutes`, `.hours`, `.days`) resolve to `now() + duration` at the time the entry is inserted; `.never` stores `nil` as the expiry date.
 
 **On access:** All implementations check expiry on every `get` and `getWithMetadata`. If the retrieved entry is expired, it is deleted and `nil` is returned, regardless of whether periodic GC is enabled.
 
@@ -169,7 +196,7 @@ All implementations are safe to call concurrently — reads and writes will not 
 
 **`NSLock` is not re-entrant.** Implementations that use `NSLock` must never call a lock-acquiring method while already holding the lock. In practice: `get(_:expiry:through:)` acquires the lock to read, releases, calls `through`, then re-acquires to write — never holding the lock across the `through` call.
 - **`DiskStorage`:** GRDB's `DatabaseQueue` serializes all access internally.
-- **`TieredStorage`:** Thread safety is provided by each delegate; `TieredStorage` itself holds no mutable state.
+- **`TieredStorage`:** Thread safety for storage operations is provided by each delegate. `TieredStorage`'s own `_statistics` are protected by a dedicated `statsLock`.
 
 **Stampede protection is not provided.** Concurrent `get(_:through:)` calls with the same key on a cold cache may each independently invoke `through`. Callers that require the guarantee must use `CoalescingCache`.
 
@@ -199,11 +226,11 @@ Actor isolation makes the check-and-store of `inFlight` atomic across suspension
 
 ## Sendability
 
-The `Cache` protocol is not `Sendable` — caches are service-layer singletons, not values passed between actors.
+The concrete implementations are `@unchecked Sendable` for a narrow compiler reason: Swift 6 requires task closure captures to be `Sendable`, so `Task { [weak self] in ... }` in the GC task will not compile unless `self` is `Sendable`. This is a compiler requirement, not an architectural one. The `Cache` protocol and its `K`/`V` type parameters carry no `Sendable` constraints.
 
-The concrete implementations are `@unchecked Sendable` for a narrower reason: Swift 6 requires task closure captures to be `Sendable`, so `Task { [weak self] in ... }` in the GC task will not compile unless `self` is `Sendable`. This is a compiler requirement, not an architectural one. The `Cache` protocol and its `K`/`V` type parameters carry no `Sendable` constraints.
+The `Cache` protocol itself does not inherit `Sendable`. Requiring it would force all conformances — including test doubles like `SpyCache` — to claim `Sendable`, and would make `TieredStorage`'s delegate array `[any Cache<K, V> & Sendable]` everywhere. Since the concrete types already opt in individually via `@unchecked Sendable`, nothing is lost by leaving it off the protocol.
 
-`@unchecked Sendable` is a code-review guarantee. The safety invariant: every access to mutable backing state goes through the implementation's synchronization mechanism — `NSCache` + `NSLock` (WeakMemoryStorage), `NSLock` (StrongMemoryStorage), GRDB `DatabaseQueue` (DiskStorage). Keep all backing-store properties `private` and never access them outside the synchronization path.
+`@unchecked Sendable` is a code-review guarantee. The safety invariant: every access to mutable backing state goes through the implementation's synchronization mechanism — `NSCache` + `statsLock` (WeakMemoryStorage), `NSLock` (StrongMemoryStorage), GRDB `DatabaseQueue` + `statsLock` (DiskStorage), `statsLock` (TieredStorage). Keep all backing-store properties `private` and never access them outside the synchronization path.
 
 ## Test Plan
 
