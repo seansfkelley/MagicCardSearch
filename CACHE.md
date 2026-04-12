@@ -15,21 +15,27 @@ enum Expiry {
     case hours(Int)
     case days(Int)
 }
+// Sub-second resolution is not supported.
 
 protocol Cache<K, V> {
     func get(_ key: K) -> V?
     func get(_ key: K, expiry: Expiry?, through: () throws -> V) rethrows -> V
     func get(_ key: K, expiry: Expiry?, through: () async throws -> V) async rethrows -> V
-    func put(_ key: K, _ value: V) -> Void
-    func clear() -> Void
+    func put(_ key: K, _ value: V, expiry: Expiry?)
+    func clear()
 }
 
 extension Cache {
     func get(_ key: K, through: () throws -> V) rethrows -> V {
         try get(key, expiry: nil, through: through)
     }
+    
     func get(_ key: K, through: () async throws -> V) async rethrows -> V {
         try await get(key, expiry: nil, through: through)
+    }
+    
+    func put(_ key: K, _ value: V) {
+        put(key, value, expiry: nil)
     }
 }
 
@@ -39,7 +45,7 @@ class WeakMemoryStorage<K: Hashable, V>: Cache<K, V> {
 class StrongMemoryStorage<K: Hashable, V>: Cache<K, V> {
     init(expiry: Expiry?, countLimit: Int? = nil, gcInterval: Duration? = .seconds(300), clock: some Clock = ContinuousClock())
 }
-class DiskStorage<K: Codable, V: Codable>: Cache<K, V> {
+class DiskStorage<K: Codable & Hashable, V: Codable>: Cache<K, V> {
     init?(expiry: Expiry?, name: String, countLimit: Int? = nil, gcInterval: Duration? = .seconds(300), clock: some Clock = ContinuousClock())
 }
 class TieredStorage<K, V>: Cache<K, V> {
@@ -49,7 +55,7 @@ class TieredStorage<K, V>: Cache<K, V> {
 
 The `expiry` parameter on `get(_:expiry:through:)` overrides the storage's default expiry for that specific entry. Passing `nil` uses the storage's configured default.
 
-**Backing store errors are not surfaced.** A cache is never the source of truth, so a read error (disk I/O failure, decode failure, etc.) is semantically equivalent to a miss — callers cannot meaningfully handle it differently. Errors are logged internally and treated as misses; the `through` closure is called as normal. Write errors are similarly logged and dropped. This keeps the protocol free of `throws` on non-`through` methods.
+**Backing store errors are not surfaced.** A cache is never the source of truth, so a read error (disk I/O failure, decode failure, etc.) is semantically equivalent to a miss — callers cannot meaningfully handle it differently from a miss anyway. Read errors are logged internally and treated as misses; the `through` closure is called as normal. Write errors (`put`, backfill) are also logged and dropped — the caller already has the value and can use it regardless of whether it was cached. This keeps the entire protocol free of `throws`.
 
 ## Implementations
 
@@ -59,7 +65,7 @@ Backed by `NSCache`. The OS may evict entries under memory pressure. Does not su
 
 ### `StrongMemoryStorage`
 
-Backed by a `Dictionary`. Entries are never evicted by the OS. Suitable when values must survive memory pressure (e.g. expensive-to-fetch data where a miss is costly). `countLimit` is enforced strictly when non-nil: when exceeded, expired entries are removed first; if still over the limit, oldest-inserted entries are evicted until within the limit.
+Backed by a `Dictionary`. Entries are never evicted by the OS. Suitable when values must survive memory pressure (e.g. expensive-to-fetch data where a miss is costly). `countLimit` is a hint, not a hard cap. On write, if `count > countLimit * 2`, a linear scan runs: expired entries are removed first, then entries with the soonest remaining TTL until under `countLimit` (`Expiry.never` entries are last to go). This batches the O(n) cleanup cost — frequent inserts near the limit don't trigger a scan on every write. If all entries are `Expiry.never`, which ones are evicted is nondeterministic — this is an explicit limitation.
 
 ### `DiskStorage`
 
@@ -69,17 +75,17 @@ Backed by a dedicated SQLite database (via GRDB) per `DiskStorage` instance, sto
 
 ```sql
 CREATE TABLE IF NOT EXISTS entries (
-    key    BLOB NOT NULL PRIMARY KEY,
-    value  BLOB NOT NULL,
-    expiry INTEGER         -- Unix timestamp (seconds), NULL means never expires
+    key    BLOB    NOT NULL PRIMARY KEY,
+    value  BLOB    NOT NULL,
+    expiry INTEGER          -- Unix timestamp (seconds), NULL means never expires
 );
 ```
 
 This runs on every init and is a no-op if the table already exists. No migration system is needed — the database is purely a cache and can be deleted at any time without data loss.
 
-**Count limit:** When `countLimit` is non-nil, enforced on write — if inserting a new entry would exceed the limit, the oldest entry by expiry (or insertion order if no expiry) is deleted first.
+**Count limit:** `countLimit` is a hint, not a hard cap. On write, if `count > countLimit * 2`, a cleanup runs: delete expired entries first, then the soonest-expiring entries until under `countLimit`. `Expiry.never` entries are last to be evicted. If all entries are `Expiry.never`, which ones are evicted is nondeterministic — this is an explicit limitation.
 
-**Key serialization:** `K: Codable`, encoded to `Data` and stored as a blob. The encoding must be deterministic for value-equal keys — this holds for all synthesized `Codable` conformances on structs/enums with value-type fields, `UUID`, `String`, etc.
+**Key serialization:** `K: Codable`, encoded to `Data` and stored as a `BLOB`. The encoding **must be stable across app versions** — if the serialized form of a key changes, prior entries for that key become unreachable (treated as misses). This holds for `String`, `UUID`, `Int`, and synthesized `Codable` structs/enums with stable field names. Types whose serialized form is non-deterministic or whose `Codable` synthesis may change between builds should not be used as `DiskStorage` keys. If a row's key fails to decode (e.g. after a key type change), the row is deleted.
 
 **Value serialization:** `V: Codable`, encoded to `Data` and stored as a blob.
 
@@ -87,7 +93,7 @@ This runs on every init and is a no-op if the table already exists. No migration
 
 Wraps an ordered list of `Cache` delegates (fastest first, e.g. memory before disk). Imposes no constraints on `K` or `V` — each delegate was already constructed with its own constraints.
 
-**Read behavior:** Check delegates in order. On a hit in delegate N, backfill all preceding delegates (0..<N) with the found value using each delegate's default expiry.
+**Read behavior:** Check delegates in order. On a hit in delegate N, backfill all preceding delegates (0..<N) with the found value using `min(remaining TTL of the found entry, delegate's default expiry)` — so a nearly-expired entry is not backfilled with a longer TTL than it has remaining.
 
 **Write behavior (`put`):** Write through to all delegates.
 
@@ -119,6 +125,14 @@ All implementations are safe to call concurrently — reads and writes will not 
 - **`TieredStorage`:** Thread safety is provided by each delegate; `TieredStorage` itself holds no mutable state.
 
 **Stampede protection is not provided.** Concurrent `get(_:through:)` calls with the same key on a cold cache may each independently invoke `through`. This is an accepted limitation — closing it would require coalescing in-flight tasks per key, which breaks `rethrows` and adds significant complexity. Current app usage is `@MainActor`, so stampedes cannot occur in practice.
+
+## Sendability
+
+The `Cache` protocol is not `Sendable` — caches are service-layer singletons, not values passed between actors.
+
+The concrete implementations are `@unchecked Sendable` for a narrower reason: Swift 6 requires task closure captures to be `Sendable`, so `Task { [weak self] in ... }` in the GC task will not compile unless `self` is `Sendable`. This is a compiler requirement, not an architectural one. The `Cache` protocol and its `K`/`V` type parameters carry no `Sendable` constraints.
+
+`@unchecked Sendable` is a code-review guarantee. The safety invariant: every access to mutable backing state goes through the implementation's synchronization mechanism — `NSCache` (WeakMemoryStorage), `NSLock` (StrongMemoryStorage), GRDB `DatabaseQueue` (DiskStorage). Keep all backing-store properties `private` and never access them outside the synchronization path.
 
 ## Test Plan
 
