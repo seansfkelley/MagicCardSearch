@@ -136,6 +136,12 @@ Wraps an ordered list of `Cache` delegates (fastest first, e.g. memory before di
 
 **Clear behavior:** Clears all delegates.
 
+## Logging
+
+All caches should include suitable debug/info/warn/error logging for hits and misses, as appropriate.
+
+They should also include signpost logging via OSSignposter around closure calls, coaelescing waits, and database read/writes.
+
 ## Expiry & Garbage Collection
 
 **On access:** All implementations check expiry on every `get` and `getWithMetadata`. If the retrieved entry is expired, it is deleted and `nil` is returned, regardless of whether periodic GC is enabled.
