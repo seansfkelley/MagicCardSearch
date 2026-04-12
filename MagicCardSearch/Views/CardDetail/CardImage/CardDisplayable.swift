@@ -34,10 +34,8 @@ extension Card: CardDisplayable {
         // See above comment for logic.
         if let face = cardFaces?.second, face.imageUris != nil {
             face
-        } else if layout == .meld {
-            MeldBackFace(self)
         } else {
-            nil
+            MeldBackFace(self)
         }
     }
 
@@ -71,8 +69,16 @@ private struct MeldBackFace: CardFaceDisplayable {
     let name: String
     let imageUris: Card.ImageUris?
 
-    init(_ card: Card) {
-        self.name = card.allParts?.first(where: { $0.component == .meldResult })?.name ?? card.name
+    // swiftlint:disable:next force_unwrapping
+    private static let genericBackId = UUID(uuidString: "0aeebaf5-8c7d-4636-9e82-8c27447861f7")!
+
+    init?(_ card: Card) {
+        guard card.layout == .meld else { return nil }
+        guard let meldResult = card.allParts?.first(where: { $0.component == .meldResult }),
+              meldResult.id != card.id else { return nil }
+        guard card.cardBackId != Self.genericBackId else { return nil }
+
+        self.name = meldResult.name
         guard let backId = card.cardBackId else {
             self.imageUris = nil
             return
