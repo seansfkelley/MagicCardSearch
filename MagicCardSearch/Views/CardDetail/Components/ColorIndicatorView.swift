@@ -25,7 +25,7 @@ struct ColorIndicatorView: View {
         case 2:
             if let left = colors[0].indicatorUiColor,
                let right = colors[1].indicatorUiColor {
-                double(left, right)
+                colors[0] < colors[1] ? double(left, right) : double(right, left)
             } else {
                 unknown()
             }
